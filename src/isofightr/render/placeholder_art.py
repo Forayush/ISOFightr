@@ -88,6 +88,8 @@ ARROW_CENTRE_ABOVE_FEET: Final[int] = 17
 ARROW_BACK: Final[float] = 4.0
 ARROW_FRONT: Final[float] = 6.0
 ARROW_HEAD: Final[float] = 3.0
+ARROW_OUTLINE_WIDTH: Final[int] = 3
+ARROW_HEAD_OUTLINE_WIDTH: Final[int] = 2
 OUTLINE_SHADE: Final[float] = 0.45
 HEAD_SHADE: Final[float] = 0.7
 EYE_HEIGHT_ABOVE_FEET: Final[int] = 33
@@ -250,8 +252,8 @@ def _draw_arrow(
         (neck[0] + side[0] * ARROW_HEAD, neck[1] + side[1] * ARROW_HEAD),
         (neck[0] - side[0] * ARROW_HEAD, neck[1] - side[1] * ARROW_HEAD),
     ]
-    draw.line((tail, tip), fill=INK, width=3)
-    draw.polygon(head, fill=INK, outline=INK, width=2)
+    draw.line((tail, tip), fill=INK, width=ARROW_OUTLINE_WIDTH)
+    draw.polygon(head, fill=INK, outline=INK, width=ARROW_HEAD_OUTLINE_WIDTH)
     draw.line((tail, neck), fill=WHITE, width=1)
     draw.polygon(head, fill=WHITE)
 

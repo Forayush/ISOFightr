@@ -40,7 +40,9 @@ uv run pytest -m gl                       # render tests; need a real display, s
 uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
 ```
-(As of M0 the window flags `--scale N`, `--fullscreen`, `--frames N` and `--debug` exist. The match flags `--training`, `--p1`/`--p2`, `--stage` and `--headless` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+(As of M1 these flags exist: `--stage ID`, `--test-pattern`, `--scale N`, `--fullscreen`, `--frames N`, `--debug`. The match flags `--training`, `--p1`/`--p2` and `--headless` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+
+M1 sandbox keys (no physics yet, replaced in M2): `W/A/S/D` move, `I` / `,` raise and lower, `Tab` switch placeholder, `F3` debug overlay, `F8` reset, `C` camera clamp, `F11` fullscreen.
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
@@ -79,6 +81,12 @@ uv run mypy src/isofightr/sim
 - Pixel art: render to the 640×360 offscreen buffer, nearest-neighbor filtering, integer upscale, round sprite positions to whole native pixels.
 - DPI: importing `arcade` sets `pyglet.options.dpi_scaling = "stretch"`, which stretches the framebuffer by the OS display scale (2.5× on a 125% display) and ruins pixel art. `app.py` sets it to `"real"` before the window exists (decision D-017). Size things from `window.get_framebuffer_size()`, and always create the window through `GameWindow`.
 - `View.on_draw` must call `self.clear()` first.
+
+## Rendering notes (as built in M1)
+- **World draw order comes from `render/depth.py`, never from a scalar sort key.** It is a topological sort over geometric constraints between sprites that overlap on screen (decision D-019). To add a new kind of world sprite, give it a `DynamicItem` (position, height, exact pixel rect) and let the sorter place it.
+- The rect passed to the sorter must bound **every pixel the sprite draws**. A rect that is too small silently drops constraints.
+- `uv run pytest -m gl` includes an occlusion sweep against a geometric oracle (`tests/test_world_render.py`). Run it after any change to sorting, tile art geometry or sprite anchoring.
+- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `ui/pixel_font.py`, `scenes/sandbox.py`) must stay that way: the CI test run has no display.
 
 ## Assets and legal
 - Sprites: 64×64 cells, feet pivot at (32, 8) from the bottom-left. Directions SE/NE are authored and SW/NW are mirrored. Exported from Aseprite to `assets/characters/<id>/sheet_<DIR>.png/.json`.
