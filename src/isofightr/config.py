@@ -58,6 +58,30 @@ SURFACE_EPSILON: Final[float] = 1e-4
 PLAYER_SPAWN_COUNT: Final[int] = 4
 """Every stage defines spawn points ``p1`` to ``p4``."""
 
+# --- Stage rendering geometry (shared by the depth sorter and the tile art) ----------------
+ISLAND_THICKNESS: Final[float] = 1.0
+"""How far the island's stone sides hang below the lowest cell top, in units."""
+
+DECK_THICKNESS: Final[float] = 0.25
+"""Visual thickness of a soft platform deck, in units (4 px)."""
+
+# --- Camera ---------------------------------------------------------------------------------
+CAMERA_LERP: Final[float] = 0.1
+"""Fraction of the remaining distance the camera pans toward its target each tick."""
+
+# --- Debug sandbox (M1 free movement; replaced by real physics in M2) ----------------------
+DEFAULT_STAGE_ID: Final[str] = "sky_ruins"
+"""Stage loaded when ``--stage`` is not given."""
+
+SANDBOX_MOVE_SPEED: Final[float] = 0.1
+"""Free-move ground speed of the debug placeholder, in units per tick (about run speed)."""
+
+SANDBOX_RISE_SPEED: Final[float] = 0.1
+"""Free-move vertical speed of the debug placeholder, in units per tick."""
+
+SANDBOX_PLAYER_COUNT: Final[int] = 2
+"""How many placeholder fighters the sandbox spawns."""
+
 # --- Native resolution and window ---------------------------------------------------------
 NATIVE_W: Final[int] = 640
 """Width of the offscreen pixel-art buffer."""
