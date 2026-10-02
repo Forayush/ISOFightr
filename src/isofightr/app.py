@@ -84,6 +84,7 @@ def run(
     scale: int = DEFAULT_WINDOW_SCALE,
     fullscreen: bool = False,
     max_ticks: int | None = None,
+    training: bool = False,
 ) -> None:
     """Open the game window and block until it closes.
 
@@ -94,12 +95,15 @@ def run(
         scale: integer upscale of the native buffer for the windowed size.
         fullscreen: start fullscreen; the buffer is integer-scaled and letterboxed.
         max_ticks: close automatically after this many simulation ticks (smoke runs).
+        training: start in training mode (players 2 to 4 are dummies).
     """
     window = GameWindow(scale=scale, fullscreen=fullscreen)
     view: arcade.View
     if stage is None:
         view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
     else:
-        view = BattleView(window.pixel_buffer, stage, characters, seed, max_ticks=max_ticks)
+        view = BattleView(
+            window.pixel_buffer, stage, characters, seed, max_ticks=max_ticks, training=training
+        )
     window.show_view(view)
     arcade.run()

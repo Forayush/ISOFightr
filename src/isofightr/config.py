@@ -95,6 +95,9 @@ INVINCIBLE_BLINK_FRAMES: Final[int] = 4
 DEFAULT_STAGE_ID: Final[str] = "sky_ruins"
 """Stage loaded when ``--stage`` is not given."""
 
+TRAINING_STAGE_ID: Final[str] = "training_grid"
+"""Stage loaded for ``--training`` when ``--stage`` is not given."""
+
 DEFAULT_CHARACTER_ID: Final[str] = "rook"
 """Character used for a player slot when ``--p1``/``--p2`` are not given."""
 

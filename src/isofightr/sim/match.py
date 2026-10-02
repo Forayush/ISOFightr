@@ -15,6 +15,7 @@ from typing import Final
 
 from isofightr.sim import physics
 from isofightr.sim.character_def import CharacterDef
+from isofightr.sim.combat.constants import MAX_DAMAGE
 from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
 from isofightr.sim.events import Event, KoEvent, LandEvent
@@ -136,6 +137,26 @@ class Match:
                 self._knock_out(fighter)
 
         # 9. Rules: timer, game end, sudden death (M6).
+
+    # --- training and debug tools ------------------------------------------------------------
+    # The only ways anything outside the sim may change a running match besides input. They
+    # exist for training mode, are never called during normal play, and keep the match valid.
+
+    def set_damage(self, player_index: int, percent: float) -> None:
+        """Set a fighter's damage percent (training mode)."""
+        self.fighters[player_index].damage = min(max(percent, 0.0), MAX_DAMAGE)
+
+    def reload_characters(self, characters: Sequence[CharacterDef]) -> None:
+        """Swap in freshly loaded character data, one per fighter (F9 hot reload).
+
+        A fighter in the middle of a move that no longer exists drops out of it.
+        """
+        if len(characters) != len(self.fighters):
+            raise ValueError(f"expected {len(self.fighters)} characters, got {len(characters)}")
+        for fighter, character in zip(self.fighters, characters, strict=True):
+            fighter.character = character
+            if fighter.state is StateId.ATTACK and fighter.move_id not in character.moves:
+                change_state(self, fighter, StateId.IDLE if fighter.grounded else StateId.FALL)
 
     def state_hash(self) -> str:
         """Return a stable hash of all sim state.

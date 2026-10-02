@@ -1,9 +1,9 @@
 """``python -m isofightr`` entrypoint and CLI flags.
 
 Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". Built so
-far: the window options (M0), ``--stage`` (M1), and ``--p1`` to ``--p4``, ``--seed`` and
-``--headless`` (M2). ``--training``, ``--cpu``, ``--replay`` and ``--record`` are added by the
-milestones that build what they control.
+far: the window options (M0), ``--stage`` (M1), ``--p1`` to ``--p4``, ``--seed`` and
+``--headless`` (M2), and ``--training`` (M3). ``--cpu``, ``--replay`` and ``--record`` are
+added by the milestones that build what they control.
 """
 
 import argparse
@@ -18,6 +18,7 @@ from isofightr.config import (
     DEFAULT_WINDOW_SCALE,
     MAX_PLAYERS,
     MIN_WINDOW_SCALE,
+    TRAINING_STAGE_ID,
 )
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
@@ -57,9 +58,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fullscreen", action="store_true", help="start in fullscreen")
     parser.add_argument(
         "--stage",
-        default=DEFAULT_STAGE_ID,
+        default=None,
         metavar="ID",
-        help="stage to load from assets/stages (default: %(default)s)",
+        help=f"stage to load from assets/stages (default: {DEFAULT_STAGE_ID}, or "
+        f"{TRAINING_STAGE_ID} with --training)",
+    )
+    parser.add_argument(
+        "--training",
+        action="store_true",
+        help="training mode: player 2 is a dummy; see the on-screen help for the tools",
     )
     for slot in range(1, MAX_PLAYERS + 1):
         default = DEFAULT_CHARACTER_ID if slot <= DEFAULT_PLAYER_COUNT else None
@@ -94,6 +101,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def stage_id(args: argparse.Namespace) -> str:
+    """Return the stage to load: ``--stage``, or the default for the chosen mode."""
+    if args.stage is not None:
+        return str(args.stage)
+    return TRAINING_STAGE_ID if args.training else DEFAULT_STAGE_ID
+
+
 def character_ids(args: argparse.Namespace, parser: argparse.ArgumentParser) -> list[str]:
     """Return the chosen character ids in player order. Slots must be filled without gaps."""
     slots = [getattr(args, f"p{slot}") for slot in range(1, MAX_PLAYERS + 1)]
@@ -112,10 +126,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--headless needs --frames N")
     if args.headless and args.test_pattern:
         parser.error("--headless and --test-pattern cannot be combined")
+    if args.training and (args.headless or args.test_pattern):
+        parser.error("--training needs the normal game window")
 
     # Data is loaded first, so a bad --stage or --p1 is reported without opening a window.
     try:
-        stage = None if args.test_pattern else load_stage(args.stage)
+        stage = None if args.test_pattern else load_stage(stage_id(args))
         characters = [load_character(name) for name in character_ids(args, parser)]
     except DataError as error:
         print(f"isofightr: {error}", file=sys.stderr)
@@ -136,6 +152,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         scale=args.scale,
         fullscreen=args.fullscreen,
         max_ticks=args.frames,
+        training=args.training,
     )
     return 0
 

@@ -20,7 +20,8 @@ def test_defaults() -> None:
     assert args.fullscreen is False
     assert args.frames is None
     assert args.debug is False
-    assert args.stage == DEFAULT_STAGE_ID == "sky_ruins"
+    assert args.stage is None and args.training is False
+    assert DEFAULT_STAGE_ID == "sky_ruins"
     assert args.test_pattern is False
     assert (args.p1, args.p2, args.p3, args.p4) == ("rook", "rook", None, None)
     assert args.seed == 0

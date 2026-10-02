@@ -25,6 +25,7 @@ from isofightr.sim.input_frame import (
     InputFrame,
     stick_to_world,
 )
+from isofightr.sim.math3d import Vec2
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,7 +139,21 @@ def gamepad_frame(state: PadState, preset: GamepadPreset = RIGHT_STICK_MODIFIERS
     for field_name, button in _BUTTON_FIELDS:
         if is_held(state, getattr(preset, field_name)):
             held |= button
-    return InputFrame(move=move, vertical=vertical, held=held)
+    return InputFrame(move=move, vertical=vertical, held=held, cstick=smash_stick(state, preset))
+
+
+def smash_stick(state: PadState, preset: GamepadPreset) -> Vec2 | None:
+    """Return the world direction the right stick is flicked in, for a "C-stick" smash.
+
+    The sim reacts to the frame this goes from ``None`` to a direction. When the right stick
+    is also the up/down modifier, only a mostly sideways push counts.
+    """
+    x, y = state.right_x, state.right_y
+    if math.hypot(x, y) < MODIFIER_THRESHOLD:
+        return None
+    if preset.right_stick_modifiers and abs(y) > abs(x):
+        return None
+    return stick_to_world(x, y).normalized()
 
 
 def merge_frames(first: InputFrame, second: InputFrame) -> InputFrame:
@@ -149,4 +164,5 @@ def merge_frames(first: InputFrame, second: InputFrame) -> InputFrame:
     move = first.move if first.move.length() >= second.move.length() else second.move
     verticals = {first.vertical, second.vertical} - {VERTICAL_NONE}
     vertical = verticals.pop() if len(verticals) == 1 else VERTICAL_NONE
-    return InputFrame(move=move, vertical=vertical, held=first.held | second.held)
+    cstick = first.cstick if first.cstick is not None else second.cstick
+    return InputFrame(move=move, vertical=vertical, held=first.held | second.held, cstick=cstick)
