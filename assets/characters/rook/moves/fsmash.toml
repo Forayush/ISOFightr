@@ -1,0 +1,31 @@
+# Rook: forward smash, the main KO move
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "fsmash"
+kind = "smash"
+total = 48
+faf = 49
+charge = { frame = 6, max_frames = 60, damage_mult = 1.4 }   # hold strong on this frame
+
+[[windows]]
+frames = "14-16"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.1, 0.0, 1.2]   # forward, left, up
+  radius = 0.55
+  damage = 16.0
+  angle = 38
+  bkb = 30
+  kbg = 105
+  effect = "slash"
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.5, 0.0, 1.2]   # forward, left, up
+  radius = 0.45
+  damage = 13.0
+  angle = 38
+  bkb = 25
+  kbg = 100
+
+[[motion]]
+frames = "12-16"
+velocity = [0.06, 0.0, 0.0]

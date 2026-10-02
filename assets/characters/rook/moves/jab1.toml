@@ -1,0 +1,21 @@
+# Rook: jab 1, a quick poke that leads into jab 2
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab1"
+kind = "jab"
+total = 18
+faf = 19
+
+[[windows]]
+frames = "3-4"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.8, 0.0, 1.4]   # forward, left, up
+  radius = 0.4
+  damage = 2.5
+  angle = 70
+  bkb = 8
+  kbg = 30
+
+[cancel]                      # press attack again in this window for the next jab
+frames = "6-18"
+into = "jab2"

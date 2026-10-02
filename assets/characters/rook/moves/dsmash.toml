@@ -1,0 +1,31 @@
+# Rook: down smash, a low sweep in front and then behind
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dsmash"
+kind = "smash"
+total = 46
+faf = 47
+charge = { frame = 5, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "9-11"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 0.5]   # forward, left, up
+  radius = 0.55
+  damage = 12.0
+  angle = 30
+  bkb = 30
+  kbg = 95
+
+[[windows]]
+frames = "17-19"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [-1.0, 0.0, 0.5]   # forward, left, up
+  radius = 0.55
+  damage = 13.0
+  angle = 30
+  bkb = 30
+  kbg = 95
+  group = 1
+  yaw = 180

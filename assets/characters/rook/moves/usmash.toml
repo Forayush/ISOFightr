@@ -1,0 +1,27 @@
+# Rook: up smash, an anti-air thrust
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "usmash"
+kind = "smash"
+total = 44
+faf = 45
+charge = { frame = 5, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "10-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 2.6]   # forward, left, up
+  radius = 0.65
+  damage = 14.0
+  angle = 85
+  bkb = 32
+  kbg = 100
+  effect = "slash"
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.4, 0.0, 1.7]   # forward, left, up
+  radius = 0.5
+  damage = 12.0
+  angle = 85
+  bkb = 30
+  kbg = 100

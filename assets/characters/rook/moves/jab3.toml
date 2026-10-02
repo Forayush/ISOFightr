@@ -1,0 +1,17 @@
+# Rook: jab 3, the finisher that knocks away
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab3"
+kind = "jab"
+total = 30
+faf = 31
+
+[[windows]]
+frames = "5-7"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 1.3]   # forward, left, up
+  radius = 0.5
+  damage = 5.0
+  angle = 361
+  bkb = 35
+  kbg = 90

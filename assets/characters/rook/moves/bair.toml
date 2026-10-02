@@ -1,0 +1,20 @@
+# Rook: back air, a fast kick behind
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "bair"
+kind = "aerial"
+total = 36
+faf = 37
+landing_lag = 9
+autocancel = ["1-5", "30-"]
+
+[[windows]]
+frames = "7-10"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [-1.0, 0.0, 1.2]   # forward, left, up
+  radius = 0.5
+  damage = 10.5
+  angle = 361
+  bkb = 22
+  kbg = 100
+  yaw = 180

@@ -26,5 +26,21 @@ land_lag = 3
 [body]
 radius = 0.30                # environment collision radius
 height = 2.5
+hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.3 }   # vertical capsule above the feet
 
-# [moveset] and the hurtbox, shield and ledge-grab body fields arrive with M3 and M4.
+[moveset]                    # input slot -> move id (a file in moves/)
+jab = ["jab1", "jab2", "jab3"]
+ftilt = "ftilt"
+utilt = "utilt"
+dtilt = "dtilt"
+dash_attack = "dash_attack"
+fsmash = "fsmash"
+usmash = "usmash"
+dsmash = "dsmash"
+nair = "nair"
+fair = "fair"
+bair = "bair"
+uair = "uair"
+dair = "dair"
+
+# Specials, grabs and throws, shield and ledge-grab fields arrive with M4 and M5.

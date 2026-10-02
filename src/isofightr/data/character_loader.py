@@ -8,10 +8,19 @@ errors, and every error names the file and the key.
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
+from types import MappingProxyType
 
-from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR
+from isofightr.data.move_loader import load_moves
+from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError, TableReader
-from isofightr.sim.character_def import BodyStats, CharacterDef, MovementStats
+from isofightr.sim.character_def import (
+    BodyStats,
+    CharacterDef,
+    HurtboxDef,
+    MovementStats,
+    MoveSet,
+)
+from isofightr.sim.move_def import MoveDef, MoveKind
 
 _SPEED_KEYS = (
     "walk_speed",
@@ -29,6 +38,21 @@ _SPEED_KEYS = (
     "fast_fall",
 )
 _FRAME_KEYS = ("dash_frames", "jumpsquat", "air_jumps", "land_lag")
+_JAB_SLOT = "jab"
+_SLOT_KINDS = {
+    "ftilt": MoveKind.TILT,
+    "utilt": MoveKind.TILT,
+    "dtilt": MoveKind.TILT,
+    "dash_attack": MoveKind.DASH_ATTACK,
+    "fsmash": MoveKind.SMASH,
+    "usmash": MoveKind.SMASH,
+    "dsmash": MoveKind.SMASH,
+    "nair": MoveKind.AERIAL,
+    "fair": MoveKind.AERIAL,
+    "bair": MoveKind.AERIAL,
+    "uair": MoveKind.AERIAL,
+    "dair": MoveKind.AERIAL,
+}
 
 
 def list_character_ids(characters_dir: Path = CHARACTERS_DIR) -> list[str]:
@@ -51,18 +75,27 @@ def load_character(character_id: str, characters_dir: Path = CHARACTERS_DIR) -> 
             data = tomllib.load(file)
     except tomllib.TOMLDecodeError as error:
         raise DataError(f"{path}: invalid TOML: {error}") from error
-    return parse_character(data, source=str(path), expected_id=character_id)
+    moves = load_moves(path.parent / MOVES_DIR_NAME)
+    return parse_character(data, source=str(path), expected_id=character_id, moves=moves)
 
 
 def parse_character(
-    data: Mapping[str, object], *, source: str, expected_id: str | None = None
+    data: Mapping[str, object],
+    *,
+    source: str,
+    expected_id: str | None = None,
+    moves: Mapping[str, MoveDef],
 ) -> CharacterDef:
-    """Validate a parsed ``fighter.toml`` table and build the :class:`CharacterDef`."""
+    """Validate a parsed ``fighter.toml`` table and build the :class:`CharacterDef`.
+
+    ``moves`` are the character's already loaded move files; every move the moveset names
+    must be among them and be of the right kind.
+    """
     root = TableReader(
         data,
         source=source,
         where="",
-        allowed=("id", "display_name", "weight", "movement", "body"),
+        allowed=("id", "display_name", "weight", "movement", "body", "moveset"),
     )
     character_id = root.string("id")
     if expected_id is not None and character_id != expected_id:
@@ -76,8 +109,40 @@ def parse_character(
         display_name=root.string("display_name"),
         weight=weight,
         movement=_movement(root.subtable("movement", (*_SPEED_KEYS, *_FRAME_KEYS))),
-        body=_body(root.subtable("body", ("radius", "height"))),
+        body=_body(root.subtable("body", ("radius", "height", "hurtbox"))),
+        moveset=_moveset(root.subtable("moveset", (_JAB_SLOT, *_SLOT_KINDS)), moves),
+        moves=MappingProxyType(dict(moves)),
     )
+
+
+def _moveset(reader: TableReader, moves: Mapping[str, MoveDef]) -> MoveSet:
+    jab = reader.raw(_JAB_SLOT)
+    if not isinstance(jab, list) or not jab or not all(isinstance(item, str) for item in jab):
+        raise reader.error("must be a non-empty list of move ids", _JAB_SLOT)
+    for move_id in jab:
+        _check_move(reader, _JAB_SLOT, move_id, MoveKind.JAB, moves)
+    slots = {}
+    for slot, kind in _SLOT_KINDS.items():
+        slots[slot] = reader.string(slot)
+        _check_move(reader, slot, slots[slot], kind, moves)
+    for move in moves.values():
+        if move.cancel is not None and move.cancel.into not in moves:
+            raise reader.error(f"move {move.id!r} cancels into unknown move {move.cancel.into!r}")
+    return MoveSet(jab=tuple(jab), **slots)
+
+
+def _check_move(
+    reader: TableReader, slot: str, move_id: str, kind: MoveKind, moves: Mapping[str, MoveDef]
+) -> None:
+    if move_id not in moves:
+        known = ", ".join(sorted(moves)) or "none"
+        raise reader.error(f"no move file for {move_id!r} (moves found: {known})", slot)
+    if moves[move_id].kind is not kind:
+        raise reader.error(
+            f"move {move_id!r} is a {moves[move_id].kind.value}, but this slot needs "
+            f"a {kind.value}",
+            slot,
+        )
 
 
 def _movement(reader: TableReader) -> MovementStats:
@@ -123,4 +188,10 @@ def _body(reader: TableReader) -> BodyStats:
         raise reader.error("must be greater than 0", "radius")
     if height <= 0:
         raise reader.error("must be greater than 0", "height")
-    return BodyStats(radius=radius, height=height)
+    hurt = reader.subtable("hurtbox", ("radius", "z0", "z1"))
+    hurtbox = HurtboxDef(radius=hurt.number("radius"), z0=hurt.number("z0"), z1=hurt.number("z1"))
+    if hurtbox.radius <= 0:
+        raise hurt.error("must be greater than 0", "radius")
+    if hurtbox.z1 - hurtbox.z0 < 2 * hurtbox.radius:
+        raise hurt.error("must be at least z0 plus twice the radius (a capsule)", "z1")
+    return BodyStats(radius=radius, height=height, hurtbox=hurtbox)

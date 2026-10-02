@@ -1,0 +1,30 @@
+# Rook: neutral air, a body spin that stays out a long time
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "nair"
+kind = "aerial"
+total = 40
+faf = 41
+landing_lag = 7
+autocancel = ["1-3", "32-"]
+
+[[windows]]
+frames = "4-7"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.3, 0.0, 1.2]   # forward, left, up
+  radius = 0.7
+  damage = 8.0
+  angle = 361
+  bkb = 20
+  kbg = 90
+
+[[windows]]
+frames = "8-24"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.3, 0.0, 1.2]   # forward, left, up
+  radius = 0.6
+  damage = 5.0
+  angle = 361
+  bkb = 10
+  kbg = 80

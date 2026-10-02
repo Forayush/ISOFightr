@@ -1,0 +1,25 @@
+# Rook: down tilt, a low poke that pops the target up
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dtilt"
+kind = "tilt"
+total = 26
+faf = 27
+
+[[windows]]
+frames = "5-7"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 0.4]   # forward, left, up
+  radius = 0.45
+  damage = 6.0
+  angle = 75
+  bkb = 25
+  kbg = 80
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.5, 0.0, 0.4]   # forward, left, up
+  radius = 0.4
+  damage = 6.0
+  angle = 75
+  bkb = 25
+  kbg = 80

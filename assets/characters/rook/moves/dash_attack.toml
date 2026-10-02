@@ -1,0 +1,25 @@
+# Rook: dash attack, a sliding shoulder charge
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dash_attack"
+kind = "dash_attack"
+total = 38
+faf = 39
+
+[[windows]]
+frames = "6-12"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.8, 0.0, 1.0]   # forward, left, up
+  radius = 0.55
+  damage = 10.0
+  angle = 50
+  bkb = 40
+  kbg = 70
+
+[[motion]]                    # scripted velocity: forward, left, up
+frames = "1-12"
+velocity = [0.09, 0.0, 0.0]
+
+[[motion]]
+frames = "13-24"
+velocity = [0.03, 0.0, 0.0]

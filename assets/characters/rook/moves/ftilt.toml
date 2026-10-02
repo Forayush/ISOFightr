@@ -1,0 +1,26 @@
+# Rook: forward tilt, a sword swipe at mid range
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "ftilt"
+kind = "tilt"
+total = 30
+faf = 31
+
+[[windows]]
+frames = "7-9"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.1, 0.0, 1.2]   # forward, left, up
+  radius = 0.5
+  damage = 9.0
+  angle = 361
+  bkb = 20
+  kbg = 90
+  effect = "slash"
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.6, 0.0, 1.2]   # forward, left, up
+  radius = 0.4
+  damage = 8.0
+  angle = 361
+  bkb = 18
+  kbg = 90

@@ -4,13 +4,15 @@ Plan note "07 - Fighter State Machine and Move Data" ("Character data format", "
 load").
 """
 
+import shutil
 import tomllib
 from pathlib import Path
 
 import pytest
 
 from isofightr.data.character_loader import list_character_ids, load_character, parse_character
-from isofightr.data.paths import CHARACTER_FILE_NAME
+from isofightr.data.move_loader import load_moves
+from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError
 from isofightr.sim.character_def import CharacterDef
 
@@ -39,11 +41,29 @@ land_lag = 3
 [body]
 radius = 0.30
 height = 2.5
+hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.3 }
+[moveset]
+jab = ["jab1", "jab2", "jab3"]
+ftilt = "ftilt"
+utilt = "utilt"
+dtilt = "dtilt"
+dash_attack = "dash_attack"
+fsmash = "fsmash"
+usmash = "usmash"
+dsmash = "dsmash"
+nair = "nair"
+fair = "fair"
+bair = "bair"
+uair = "uair"
+dair = "dair"
 """
+MOVES = load_moves(CHARACTERS_DIR / "rook" / MOVES_DIR_NAME)
 
 
 def parse(text: str) -> CharacterDef:
-    return parse_character(tomllib.loads(text), source="rook/fighter.toml", expected_id="rook")
+    return parse_character(
+        tomllib.loads(text), source="rook/fighter.toml", expected_id="rook", moves=MOVES
+    )
 
 
 def test_rook_ships_with_the_stats_from_the_plan() -> None:
@@ -79,7 +99,7 @@ def test_characters_are_immutable() -> None:
 
 def test_unknown_character_lists_what_is_available(tmp_path: Path) -> None:
     path = tmp_path / "rook" / CHARACTER_FILE_NAME
-    path.parent.mkdir()
+    shutil.copytree(CHARACTERS_DIR / "rook" / MOVES_DIR_NAME, path.parent / MOVES_DIR_NAME)
     path.write_text(ROOK, encoding="utf-8")
     assert load_character("rook", tmp_path).id == "rook"
     with pytest.raises(DataError, match=r"no such character 'nope' \(available: rook\)"):
@@ -88,7 +108,7 @@ def test_unknown_character_lists_what_is_available(tmp_path: Path) -> None:
 
 def test_id_must_match_the_directory() -> None:
     with pytest.raises(DataError, match=r"id: is 'rook' but the directory is named 'bramble'"):
-        parse_character(tomllib.loads(ROOK), source="x", expected_id="bramble")
+        parse_character(tomllib.loads(ROOK), source="x", expected_id="bramble", moves=MOVES)
 
 
 def test_invalid_toml_names_the_file(tmp_path: Path) -> None:
@@ -120,7 +140,11 @@ def test_invalid_toml_names_the_file(tmp_path: Path) -> None:
         ("fast_fall = 0.260", "fast_fall = 0.1", r"movement\.fast_fall: must be at least max_fall"),
         ("radius = 0.30", "radius = 0", r"body\.radius: must be greater than 0"),
         ("height = 2.5", "", r"body\.height: missing required key"),
-        ("[body]", "[body]\nhurtbox = 1", r"body: unknown key\(s\) 'hurtbox'"),
+        ("[body]", "[body]\nshield = 1", r"body: unknown key\(s\) 'shield'"),
+        ("z1 = 2.3", "z1 = 0.5", r"body\.hurtbox\.z1: must be at least"),
+        ('ftilt = "ftilt"', 'ftilt = "nope"', r"moveset\.ftilt: no move file for 'nope'"),
+        ('ftilt = "ftilt"', 'ftilt = "fair"', r"moveset\.ftilt: move 'fair' is a aerial"),
+        ('ftilt = "ftilt"', "", r"moveset\.ftilt: missing required key"),
     ],
 )
 def test_mistakes_are_reported_with_file_and_key(old: str, new: str, message: str) -> None:
