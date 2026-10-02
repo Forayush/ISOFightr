@@ -1,0 +1,30 @@
+# Rook: the all-rounder and reference character. Every new mechanic is tuned on Rook first.
+# Units: world units (1 = one tile edge) and frames (60 per second).
+id = "rook"
+display_name = "Rook"
+weight = 98
+
+[movement]
+walk_speed = 0.060           # units/frame at full tilt without dashing
+dash_speed = 0.105           # initial dash burst
+dash_frames = 12
+run_speed = 0.100
+traction = 0.006             # ground deceleration per frame
+jumpsquat = 3                # grounded frames before leaving the ground
+full_hop_vz = 0.300
+short_hop_vz = 0.180
+double_jump_vz = 0.280
+air_jumps = 1
+air_accel = 0.006
+air_speed = 0.070            # cap on self-controlled horizontal air speed
+air_friction = 0.002
+gravity = 0.012
+max_fall = 0.180
+fast_fall = 0.260
+land_lag = 3
+
+[body]
+radius = 0.30                # environment collision radius
+height = 2.5
+
+# [moveset] and the hurtbox, shield and ledge-grab body fields arrive with M3 and M4.

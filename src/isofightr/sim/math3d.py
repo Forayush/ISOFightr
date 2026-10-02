@@ -135,6 +135,13 @@ class Vec3:
         return Vec3(self.x / length, self.y / length, self.z / length)
 
 
+ZERO2: Final[Vec2] = Vec2()
+"""The zero ground vector. Vectors are immutable, so sharing one instance is safe."""
+
+ZERO3: Final[Vec3] = Vec3()
+"""The zero world vector."""
+
+
 @dataclass(frozen=True, slots=True)
 class Box3:
     """An axis-aligned box in world space (blast zones, camera bounds, stage extents)."""

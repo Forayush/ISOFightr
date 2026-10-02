@@ -11,3 +11,5 @@ REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
 ASSETS_DIR: Final[Path] = REPO_ROOT / "assets"
 STAGES_DIR: Final[Path] = ASSETS_DIR / "stages"
 STAGE_FILE_NAME: Final[str] = "stage.toml"
+CHARACTERS_DIR: Final[Path] = ASSETS_DIR / "characters"
+CHARACTER_FILE_NAME: Final[str] = "fighter.toml"

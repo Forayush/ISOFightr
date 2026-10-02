@@ -75,6 +75,18 @@ class TableReader:
             raise self.error(f"must be a number, got {value!r}", key)
         return float(value)
 
+    def integer(self, key: str) -> int:
+        """Return a required whole number."""
+        value = self.number(key)
+        if not value.is_integer():
+            raise self.error(f"must be a whole number, got {value!r}", key)
+        return int(value)
+
+    def subtable(self, key: str, allowed: Iterable[str]) -> "TableReader":
+        """Return a reader for a required sub-table, with its own set of allowed keys."""
+        where = f"{self.where}.{key}" if self.where else key
+        return TableReader(self.raw(key), source=self.source, where=where, allowed=allowed)
+
     def boolean(self, key: str, default: bool) -> bool:
         """Return a boolean, or ``default`` if the key is absent."""
         if key not in self.table:
