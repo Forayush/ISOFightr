@@ -1,0 +1,11 @@
+# Rook: Riposte (down special), a counter: a hit taken on frames 5-25 is answered
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dspecial"
+kind = "special"
+total = 50
+faf = 51
+
+[counter]
+frames = "5-25"
+into = "riposte_hit"
+damage_mult = 1.2            # the reply deals at least the countered damage times this

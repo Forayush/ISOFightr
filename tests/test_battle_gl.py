@@ -382,3 +382,34 @@ def test_fighter_info_shows_shield_and_intangibility(window: Any) -> None:
     view.on_draw()
     assert view._info_lines[1].text.endswith("shield 50 intang 12")
     assert view._info_lines[3].text.endswith("shield 50")
+
+
+# --- M5: projectiles ---------------------------------------------------------------------------
+
+
+def test_a_projectile_is_drawn_and_outlined_in_the_overlay(window: Any) -> None:
+    from isofightr.input.devices import ARROWS_NUMPAD, SOLO_KEYBOARD
+    from isofightr.render.hitbox_overlay import HITBOX_LINE
+    from isofightr.sim.input_frame import Button
+
+    view = make_view(window, training=False)
+    view.match.fighters[1].pos = Vec3(9.5, 2.5, 0.0)
+    view.on_key_press(keys().K, 0)
+    ticks(view, 1)
+    view.on_key_release(keys().K, 0)
+    for _ in range(18):
+        ticks(view, 1)
+    assert len(view.match.projectiles) == 1
+    view.on_draw()
+    shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
+    assert len(shown) == 1
+    projectile = view.match.projectiles[0]
+    position = projectile.pos
+    sx, sy = (snap(value) for value in project(position.x, position.y, position.z))
+    assert abs(shown[0].center_x - sx) <= 0.5 and abs(shown[0].center_y - sy) <= 0.5
+    tap(view, keys().F1)
+    view.on_draw()
+    assert count_color(window, HITBOX_LINE) > 20
+
+    for bindings, key in ((SOLO_KEYBOARD, keys().T), (ARROWS_NUMPAD, keys().NUM_9)):
+        assert (key, Button.TAUNT) in bindings.buttons

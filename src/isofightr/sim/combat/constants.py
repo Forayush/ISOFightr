@@ -213,3 +213,8 @@ GETUP_ROLL_INTANGIBLE: Final[int] = 20
 GETUP_ROLL_DISTANCE: Final[float] = 1.6
 HELPLESS_DRIFT_MULT: Final[float] = 0.6
 HELPLESS_LAND_LAG: Final[int] = 20
+
+# --- Specials, projectiles, counters -------------------------------------------------------------
+PROJECTILE_SHIELDSTUN_MULT: Final[float] = 0.33
+"""Shieldstun from a blocked projectile, relative to a blocked attack."""
+COUNTER_MIN_FRAMES_TO_REPLY: Final[int] = 1

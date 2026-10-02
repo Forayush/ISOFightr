@@ -21,6 +21,8 @@ class MoveKind(Enum):
     AERIAL = "aerial"
     RECOVERY = "recovery"
     """A getup attack: from a knockdown or from a ledge."""
+    SPECIAL = "special"
+    TAUNT = "taunt"
 
 
 class DirectionMode(Enum):
@@ -31,7 +33,8 @@ class DirectionMode(Enum):
     RADIAL = "radial"
     """From the hitbox centre toward the target."""
     AUTOLINK = "autolink"
-    """Toward a point in front of the attacker, to keep multi-hits connecting."""
+    """Toward the hitbox centre, and carried along with the attacker's own velocity, to keep
+    multi-hits connecting."""
 
 
 class Effect(Enum):
@@ -124,6 +127,57 @@ class CancelDef:
     into: str
 
 
+class GroundBehavior(Enum):
+    """What a projectile does when it touches solid ground."""
+
+    DESTROY = "destroy"
+    BOUNCE = "bounce"
+    SLIDE = "slide"
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectileDef:
+    """A projectile a move fires (plan note 05, "Projectiles")."""
+
+    frame: int
+    """Move frame on which it is spawned."""
+    hitbox: HitboxDef
+    """What it hits with. ``offset`` is where it appears, relative to the fighter."""
+    speed: float
+    """Launch speed along the fighter's facing, in units per frame."""
+    rise: float
+    """Initial upward speed, in units per frame."""
+    gravity: float
+    lifetime: int
+    """Frames before it fades out."""
+    pierce: int
+    """How many fighters or shields it passes through before it is destroyed."""
+    reflectable: bool
+    absorbable: bool
+    ground: GroundBehavior
+
+
+@dataclass(frozen=True, slots=True)
+class CounterDef:
+    """A counter window: a hit taken during it is cancelled and answered with ``into``."""
+
+    frames: FrameRange
+    into: str
+    """The move performed in reply."""
+    damage_mult: float
+    """The reply deals at least the incoming damage times this."""
+
+
+@dataclass(frozen=True, slots=True)
+class ArmorDef:
+    """Frames on which hits deal damage but do not launch (super armor), or only launch
+    above a knockback threshold (heavy armor)."""
+
+    frames: FrameRange
+    threshold: float
+    """Knockback at or above this breaks through; ``inf`` is super armor."""
+
+
 @dataclass(frozen=True, slots=True)
 class MoveDef:
     """Everything about one move."""
@@ -144,6 +198,19 @@ class MoveDef:
     autocancel: tuple[FrameRange, ...]
     intangible: FrameRange | None = None
     """Frames during which the fighter cannot be hit or grabbed (getup attacks)."""
+    projectiles: tuple[ProjectileDef, ...] = ()
+    counter: CounterDef | None = None
+    armor: tuple[ArmorDef, ...] = ()
+    reflect: FrameRange | None = None
+    """Frames during which the move sends reflectable projectiles back."""
+    script: str | None = None
+    """Name of the Python script attached to the move (``"rook.side_special"``)."""
+    helpless: bool = False
+    """Whether ending the move in the air leaves the fighter in the helpless fall."""
+    ledge_grab_from: int = 0
+    """First frame on which the move can catch a ledge (0 = never)."""
+    once_per_airtime: bool = False
+    """Whether the move can be used only once in the air until landing or a ledge."""
     """Aerials only: frames on which landing uses the normal landing lag instead."""
 
     def active_hitboxes(self, frame: int) -> tuple[HitboxDef, ...]:
@@ -158,6 +225,13 @@ class MoveDef:
         for window in self.motion:
             if frame in window.frames:
                 return window.velocity
+        return None
+
+    def armor_threshold(self, frame: int) -> float | None:
+        """Return the knockback needed to break the armor on a move frame, or ``None``."""
+        for window in self.armor:
+            if frame in window.frames:
+                return window.threshold
         return None
 
     @property

@@ -1,5 +1,5 @@
 {
-  "description": "Four Rooks on Training Grid, all starting at 90%, with the parry and helpless-air-dodge rules on, driven by 6000 ticks of seeded random input (attacks, shields, dodges, grabs and throws, ledges, techs, KOs).",
+  "description": "Four Rooks on Training Grid, all starting at 90%, with the parry and helpless-air-dodge rules on, driven by 6000 ticks of seeded random input (attacks, specials and projectiles, shields, dodges, grabs and throws, ledges, techs, KOs).",
   "stage": "training_grid",
   "characters": [
     "rook",
@@ -10,11 +10,11 @@
   "seed": 3,
   "stocks": null,
   "start_damage": 90.0,
-  "input_seed": 106,
+  "input_seed": 115,
   "ticks": 6000,
   "rules": {
     "parry": true,
     "air_dodge_helpless": true
   },
-  "hash": "bda8cb9507748338b9aca789a6c50cff"
+  "hash": "9c403e26635ec54f76b9e6bcc8f71a83"
 }

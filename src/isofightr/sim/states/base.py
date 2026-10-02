@@ -55,6 +55,10 @@ class State:
         """The fighter walked, slid or was pushed off an edge. By default: fall."""
         change_state(match, fighter, StateId.FALL)
 
+    def can_grab_ledge(self, fighter: Fighter) -> bool:
+        """Return whether the fighter may catch a ledge right now (if falling beside one)."""
+        return self.grabs_ledges
+
     def on_wall(self, match: Match, fighter: Fighter, normal: Vec2, knockback: Vec3) -> None:
         """An airborne fighter ran into a wall. ``normal`` points away from the wall and
         ``knockback`` is the knockback velocity it had before the wall stopped it."""

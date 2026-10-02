@@ -1,8 +1,8 @@
 """Seeded random movement input: the simplest possible "CPU".
 
 Plan note "15 - CPU AI": an AI is just another input source that outputs ``InputFrame``s.
-This one ignores the game entirely and mashes plausible movement, attack, shield and grab
-input. It drives
+This one ignores the game entirely and mashes plausible movement, attack, special, shield and
+grab input. It drives
 the golden state-hash tests, the soak tests and ``--headless`` runs, so changing what it
 produces for a given seed means re-recording the goldens (``pytest --update-goldens``).
 
@@ -29,6 +29,9 @@ MAX_ATTACK_HOLD = 4
 STRONG_ODDS = 90
 MAX_STRONG_HOLD = 40
 """Strong is sometimes held long enough to charge a smash attack."""
+SPECIAL_ODDS = 60
+MAX_SPECIAL_HOLD = 30
+TAUNT_ODDS = 600
 SHIELD_ODDS = 70
 MAX_SHIELD_HOLD = 45
 GRAB_ODDS = 70
@@ -50,6 +53,7 @@ def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFr
     vertical_frames = [0] * players
     attack_frames = [0] * players
     strong_frames = [0] * players
+    special_frames = [0] * players
     shield_frames = [0] * players
     grab_frames = [0] * players
     verticals = [0] * players
@@ -79,6 +83,11 @@ def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFr
                 strong_frames[player] -= 1
             elif rng.below(STRONG_ODDS) == 0:
                 strong_frames[player] = rng.between(1, MAX_STRONG_HOLD)
+            if special_frames[player] > 0:
+                special_frames[player] -= 1
+            elif rng.below(SPECIAL_ODDS) == 0:
+                special_frames[player] = rng.between(1, MAX_SPECIAL_HOLD)
+            taunt = rng.below(TAUNT_ODDS) == 0
             if shield_frames[player] > 0:
                 shield_frames[player] -= 1
             elif rng.below(SHIELD_ODDS) == 0:
@@ -92,6 +101,8 @@ def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFr
                 | (Button.WALK if walking[player] else 0)
                 | (Button.ATTACK if attack_frames[player] else 0)
                 | (Button.STRONG if strong_frames[player] else 0)
+                | (Button.SPECIAL if special_frames[player] else 0)
+                | (Button.TAUNT if taunt else 0)
                 | (Button.SHIELD if shield_frames[player] else 0)
                 | (Button.GRAB if grab_frames[player] else 0)
             )

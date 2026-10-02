@@ -16,6 +16,7 @@ from isofightr.sim.combat.hitbox import active_hitboxes, hurtbox
 from isofightr.sim.combat.shield import is_shielding, shield_centre, shield_radius
 from isofightr.sim.fighter import Fighter
 from isofightr.sim.math3d import Capsule
+from isofightr.sim.projectile import Projectile
 
 type Color = tuple[int, int, int, int]
 
@@ -38,6 +39,7 @@ class HitboxOverlay:
     def __init__(self) -> None:
         """Start with nothing to draw."""
         self.fighters: Sequence[Fighter] = ()
+        self.projectiles: Sequence[Projectile] = ()
 
     def draw(self) -> None:
         """Draw the overlay. Call with the world camera active."""
@@ -46,6 +48,11 @@ class HitboxOverlay:
             fill = INVINCIBLE_FILL if invincible else HURTBOX_FILL
             line = INVINCIBLE_LINE if invincible else HURTBOX_LINE
             _draw_capsule(hurtbox(fighter), fill, line)
+        for projectile in self.projectiles:
+            ball = sphere_ellipse(projectile.pos, projectile.hitbox.radius)
+            arcade.draw_ellipse_outline(
+                ball.x, ball.y, ball.width, ball.height, HITBOX_LINE, LINE_WIDTH
+            )
         for fighter in self.fighters:
             if is_shielding(fighter):
                 bubble = sphere_ellipse(shield_centre(fighter), shield_radius(fighter))

@@ -141,6 +141,23 @@ class WallBounceEvent:
     position: Vec3
 
 
+@dataclass(frozen=True, slots=True)
+class ProjectileEvent:
+    """A projectile was fired (``spawned``) or is gone (hit something, timed out, left)."""
+
+    owner: int
+    position: Vec3
+    spawned: bool
+
+
+@dataclass(frozen=True, slots=True)
+class CounterEvent:
+    """A counter caught a hit and is replying."""
+
+    player: int
+    position: Vec3
+
+
 type Event = (
     JumpEvent
     | LandEvent
@@ -154,4 +171,6 @@ type Event = (
     | LedgeGrabEvent
     | TechEvent
     | WallBounceEvent
+    | ProjectileEvent
+    | CounterEvent
 )

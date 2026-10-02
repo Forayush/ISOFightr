@@ -47,6 +47,7 @@ SOLO_KEYBOARD = KeyboardBindings(
         (KEY.SPACE, Button.JUMP),
         (KEY.LSHIFT, Button.SHIELD),
         (KEY.LCTRL, Button.WALK),
+        (KEY.T, Button.TAUNT),
     ),
 )
 """The one-player layout from the plan. Shares no key with :data:`ARROWS_NUMPAD`."""
@@ -85,6 +86,7 @@ ARROWS_NUMPAD = KeyboardBindings(
         (KEY.NUM_7, Button.STRONG),
         (KEY.NUM_0, Button.JUMP),
         (KEY.NUM_1, Button.SHIELD),
+        (KEY.NUM_9, Button.TAUNT),
     ),
 )
 """Player 2 on the same keyboard."""

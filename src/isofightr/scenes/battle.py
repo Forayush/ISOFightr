@@ -65,8 +65,8 @@ HUD_MARGIN = 4
 HUD_CAPACITY = 104
 LINE_HEIGHT = GLYPH_HEIGHT
 HELP_LINES = (
-    "WASD move  SPACE jump  I/, up/down  J attack  U smash  L grab  LSHIFT shield  H help",
-    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload data",
+    "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
+    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload data  H help",
 )
 TRAINING_HELP = "TRAINING  -/= dummy damage  0 reset damage  TAB dummy control on/off"
 DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
@@ -262,8 +262,9 @@ class BattleView(TickedView):
             for fighter in fighters
         }
         self.renderer.sync(fighters, frame, looks)
-        self.effect_renderer.sync(self.effects, fighters)
+        self.effect_renderer.sync(self.effects, fighters, self.match.projectiles)
         self.hitboxes.fighters = fighters
+        self.hitboxes.projectiles = self.match.projectiles
         self.hud.update(self.match.fighters, self.effects)
         self._update_text()
 

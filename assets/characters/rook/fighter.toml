@@ -45,6 +45,11 @@ uair = "uair"
 dair = "dair"
 getup_attack = "getup_attack"
 ledge_attack = "ledge_attack"
+nspecial = "nspecial"        # Crescent Wave
+sspecial = "sspecial"        # Lunge
+uspecial = "uspecial"        # Rising Spin
+dspecial = "dspecial"        # Riposte (counters with riposte_hit)
+taunt = "taunt"
 
 [grab]                       # frames are 1-indexed and inclusive; offset = forward, left, up
 standing = { frames = "6-7", total = 34, offset = [0.75, 0.0, 1.2], radius = 0.45 }
@@ -57,4 +62,3 @@ back = { damage = 10.0, angle = 42, bkb = 60, kbg = 75, release = 16, total = 38
 up = { damage = 7.0, angle = 88, bkb = 60, kbg = 70, release = 14, total = 36 }
 down = { damage = 5.0, angle = 70, bkb = 55, kbg = 40, release = 18, total = 34 }
 
-# Specials arrive with M5.

@@ -205,15 +205,22 @@ def test_rook_has_all_the_m3_normals() -> None:
     grounded = ["jab1", "jab2", "jab3", "ftilt", "utilt", "dtilt", "dash_attack"]
     smashes_and_aerials = ["fsmash", "usmash", "dsmash", "nair", "fair", "bair", "uair", "dair"]
     recovery = ["getup_attack", "ledge_attack"]  # added in M4
-    assert sorted(ROOK.moves) == sorted([*grounded, *smashes_and_aerials, *recovery])
-    assert set(ROOK.moveset.all_ids()) == set(ROOK.moves)
+    specials = ["nspecial", "sspecial", "uspecial", "dspecial", "taunt"]  # added in M5
+    everything = [*grounded, *smashes_and_aerials, *recovery, *specials]
+    assert sorted(ROOK.moveset.all_ids()) == sorted(everything)
+    assert set(ROOK.moves) == {*everything, "riposte_hit"}, "plus the counter's reply"
     assert ROOK.moveset.jab == ("jab1", "jab2", "jab3")
 
 
 def test_rook_moves_have_sensible_frame_data() -> None:
+    no_hitbox = {"nspecial", "dspecial", "taunt"}  # a projectile, a counter, a flourish
     for move in ROOK.moves.values():
+        assert 1 <= move.faf <= move.total + 1, move.id
+        if move.id in no_hitbox:
+            assert move.first_active_frame is None, move.id
+            continue
         assert move.first_active_frame is not None, move.id
-        assert 1 < move.first_active_frame <= move.faf <= move.total + 1, move.id
+        assert 1 < move.first_active_frame <= move.faf, move.id
         for window in move.windows:
             for box in window.hitboxes:
                 assert 0 < box.radius <= 1.0 and 0 < box.damage <= 20, move.id

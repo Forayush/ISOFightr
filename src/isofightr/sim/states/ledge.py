@@ -106,7 +106,9 @@ def occupant_of(match: Match, newcomer: Fighter, index: int, point: Vec2) -> Fig
 
 def try_grab_ledge(match: Match, fighter: Fighter) -> bool:
     """Catch a ledge if the fighter is falling next to one (tick step 5, after moving)."""
-    if not STATES[fighter.state].grabs_ledges or fighter.grounded or fighter.hitlag > 0:
+    if not STATES[fighter.state].can_grab_ledge(fighter) or fighter.grounded:
+        return False
+    if fighter.hitlag > 0:
         return False
     if fighter.ledge_cooldown > 0 or fighter.buffer.vertical == VERTICAL_DOWN:
         return False
@@ -205,6 +207,7 @@ class LedgeHang(_OnLedge):
         fighter.fast_falling = False
         fighter.air_jumps_left = fighter.character.movement.air_jumps
         fighter.air_dodge_used = False
+        fighter.air_moves_used = []
         interrupts.snap_facing(fighter, ledge.normal * -1.0)
         fighter.intangible_frames = ledge_intangible_frames(fighter)
         fighter.ledge_grabs += 1

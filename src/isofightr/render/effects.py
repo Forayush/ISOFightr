@@ -14,11 +14,13 @@ from typing import Final
 
 from isofightr.sim.events import (
     ClankEvent,
+    CounterEvent,
     Event,
     GrabEvent,
     HitEvent,
     KoEvent,
     LedgeGrabEvent,
+    ProjectileEvent,
     ShieldBreakEvent,
     ShieldHitEvent,
     TechEvent,
@@ -56,6 +58,7 @@ PARRY_SHAKE_PIXELS: Final[int] = 2
 
 # --- Flash and HUD pop ---------------------------------------------------------------------
 HIT_FLASH_FRAMES: Final[int] = 3
+COUNTER_FLASH_FRAMES: Final[int] = 6
 """A fighter that was just hit is drawn white for this many ticks."""
 HUD_POP_FRAMES: Final[int] = 10
 """The damage number jumps for this many ticks after a hit."""
@@ -128,10 +131,12 @@ def shake_pixels(knockback: float) -> int:
 
 
 def _small_spark(event: Event) -> bool:
-    """Return whether an event gets the smallest spark: a tech, wall bounce, ledge grab or
-    grab clash."""
+    """Return whether an event gets the smallest spark: a tech, wall bounce, ledge grab,
+    grab clash, or a projectile ending."""
     if isinstance(event, GrabEvent):
         return event.clash
+    if isinstance(event, ProjectileEvent):
+        return not event.spawned
     return isinstance(event, TechEvent | WallBounceEvent | LedgeGrabEvent)
 
 
@@ -166,6 +171,9 @@ class BattleEffects:
             elif isinstance(event, ShieldBreakEvent):
                 self.sparks.append(Spark(event.position, SHIELD_BREAK_SPARK_TIER, Effect.ICE))
                 self.shake.start(SHIELD_BREAK_SHAKE_PIXELS)
+            elif isinstance(event, CounterEvent):
+                self.flash[event.player] = COUNTER_FLASH_FRAMES
+                self.shake.start(PARRY_SHAKE_PIXELS)
             elif _small_spark(event):
                 self.sparks.append(Spark(event.position, SMALL_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, KoEvent):

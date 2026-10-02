@@ -43,6 +43,11 @@ def _number(value: float) -> str:
 def move_row(character: CharacterDef, move: MoveDef, stage: Stage) -> str:
     """Return one table row. Per-hitbox values are listed sweet spot (lowest id) first."""
     boxes = [box for window in move.windows for box in window.hitboxes]
+    boxes += [projectile.hitbox for projectile in move.projectiles]
+    notes = [f"projectile on {projectile.frame}" for projectile in move.projectiles]
+    if move.counter is not None:
+        frames = move.counter.frames
+        notes.append(f"counter {frames.first}-{frames.last}")
     active = ", ".join(
         str(window.frames.first)
         if window.frames.first == window.frames.last
@@ -57,10 +62,11 @@ def move_row(character: CharacterDef, move: MoveDef, stage: Stage) -> str:
         )
     )
     kill = kill_percent(stage, character, character, move.id)
+    startup = move.first_active_frame
     cells = (
         move.id,
-        str(move.first_active_frame),
-        active,
+        "" if startup is None else str(startup),
+        ", ".join(part for part in (active, *notes) if part),
         str(move.faf),
         str(move.landing_lag) if move.autocancel else "",
         damage,
@@ -74,6 +80,7 @@ def move_row(character: CharacterDef, move: MoveDef, stage: Stage) -> str:
 def report(character: CharacterDef, stage: Stage) -> str:
     """Return the whole table, moves in moveset order."""
     order = list(dict.fromkeys(character.moveset.all_ids()))
+    order += sorted(set(character.moves) - set(order))  # moves on no button (counter replies)
     rows = [move_row(character, character.moves[move_id], stage) for move_id in order]
     return "\n".join([*HEADER, *rows])
 

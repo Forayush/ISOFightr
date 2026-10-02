@@ -140,6 +140,11 @@ class MoveSet:
     dair: str
     getup_attack: str
     ledge_attack: str
+    nspecial: str
+    sspecial: str
+    uspecial: str
+    dspecial: str
+    taunt: str
 
     def all_ids(self) -> tuple[str, ...]:
         """Return every move id the moveset refers to."""
@@ -158,6 +163,11 @@ class MoveSet:
             self.dair,
             self.getup_attack,
             self.ledge_attack,
+            self.nspecial,
+            self.sspecial,
+            self.uspecial,
+            self.dspecial,
+            self.taunt,
         )
         return (*self.jab, *singles)
 

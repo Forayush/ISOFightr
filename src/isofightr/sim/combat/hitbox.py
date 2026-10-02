@@ -78,3 +78,21 @@ def hits(box: ActiveHitbox, target: Fighter) -> bool:
 def hitboxes_touch(first: ActiveHitbox, second: ActiveHitbox) -> bool:
     """Return whether two hitboxes overlap each other (for clanks)."""
     return capsules_overlap(first.volume, second.volume)
+
+
+def charge_multiplier(fighter: Fighter) -> float:
+    """Return the damage multiplier from charging the current smash attack."""
+    move = fighter.move
+    if move is None or move.charge is None:
+        return 1.0
+    charged = fighter.charge_frames / move.charge.max_frames
+    return 1.0 + (move.charge.damage_mult - 1.0) * charged
+
+
+def hit_damage(attacker: Fighter, definition: HitboxDef) -> float:
+    """Return the damage a hitbox deals right now: base, times charge, times staling.
+
+    The reply of a counter deals at least what the countered hit would have dealt, scaled.
+    """
+    base = max(definition.damage, attacker.counter_damage)
+    return base * charge_multiplier(attacker) * attacker.move_stale

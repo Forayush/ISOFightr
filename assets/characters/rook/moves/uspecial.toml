@@ -1,0 +1,37 @@
+# Rook: Rising Spin (up special), a multi-hit spinning climb; the recovery move
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uspecial"
+kind = "special"
+total = 46
+faf = 47
+script = "rook.up_special"   # climbs on frames 6-27, steerable
+helpless = true              # falls helpless afterwards
+ledge_grab_from = 28
+landing_lag = 20
+
+[[windows]]
+frames = "6-24"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.4]   # forward, left, up
+  radius = 0.9
+  damage = 1.2
+  angle = 20
+  fkb = 12                   # a weak pull; autolink carries the target up with Rook
+  rehit = 4
+  hitlag_mult = 0.5
+  direction_mode = "autolink"
+  effect = "slash"
+
+[[windows]]
+frames = "25-27"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.6]   # forward, left, up
+  radius = 1.0
+  damage = 5.0
+  angle = 75
+  bkb = 68
+  kbg = 90
+  group = 1
+  effect = "slash"

@@ -50,6 +50,10 @@ class Shield(GroundState):
         if buffer.consume(Press.GRAB) or buffer.consume(Press.ATTACK):
             change_state(match, fighter, StateId.GRAB)
             return
+        if buffer.vertical == VERTICAL_UP and buffer.consume(Press.SPECIAL):
+            buffer.consume(Press.UP)
+            interrupts.start_move(match, fighter, fighter.character.moveset.uspecial)
+            return
         if buffer.vertical == VERTICAL_UP and buffer.consume(Press.STRONG):
             buffer.consume(Press.UP)
             interrupts.start_move(match, fighter, fighter.character.moveset.usmash)

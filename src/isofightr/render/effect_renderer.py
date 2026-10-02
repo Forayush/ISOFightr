@@ -22,6 +22,7 @@ from isofightr.sim.combat.hitbox import active_hitboxes
 from isofightr.sim.combat.shield import is_shielding, shield_centre, shield_radius
 from isofightr.sim.fighter import Fighter
 from isofightr.sim.math3d import Vec3
+from isofightr.sim.projectile import Projectile
 
 SHIELD_SIZE_STEP = 0.05
 """Shield bubble textures are built in steps of this radius, so a draining shield reuses them."""
@@ -36,7 +37,12 @@ class EffectRenderer:
         self._pool: list[arcade.Sprite] = []
         self._textures: dict[object, arcade.Texture] = {}
 
-    def sync(self, effects: BattleEffects, fighters: Sequence[Fighter]) -> None:
+    def sync(
+        self,
+        effects: BattleEffects,
+        fighters: Sequence[Fighter],
+        projectiles: Sequence[Projectile] = (),
+    ) -> None:
         """Place a sprite for every live spark, raised shield, grab box and hitbox."""
         wanted: list[tuple[arcade.Texture, Vec3]] = []
         for fighter in fighters:
@@ -59,6 +65,10 @@ class EffectRenderer:
                     ("swing", player, radius), partial(art.build_swing, player, radius)
                 )
                 wanted.append((texture, box.centre))
+        for projectile in projectiles:
+            ball = (projectile.owner, projectile.hitbox.radius)
+            texture = self._texture(("projectile", *ball), partial(art.build_projectile, *ball))
+            wanted.append((texture, projectile.pos))
         for spark in effects.sparks:
             key = (spark.tier, spark.effect.value, spark.frame)
             texture = self._texture(("spark", *key), partial(art.build_spark, *key))

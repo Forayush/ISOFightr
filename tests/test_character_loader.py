@@ -59,6 +59,11 @@ uair = "uair"
 dair = "dair"
 getup_attack = "getup_attack"
 ledge_attack = "ledge_attack"
+nspecial = "nspecial"
+sspecial = "sspecial"
+uspecial = "uspecial"
+dspecial = "dspecial"
+taunt = "taunt"
 [grab]
 standing = { frames = "6-7", total = 34, offset = [0.75, 0.0, 1.2], radius = 0.45 }
 dash = { frames = "9-11", total = 43, offset = [0.85, 0.0, 1.2], radius = 0.45, slide = 0.07 }

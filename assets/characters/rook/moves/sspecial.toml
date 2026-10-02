@@ -1,0 +1,21 @@
+# Rook: Lunge (side special), a dash-stab aimed with the stick in any of eight directions
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "sspecial"
+kind = "special"
+total = 44
+faf = 45
+script = "rook.side_special"   # turns to the stick, then dashes on frames 8-19
+once_per_airtime = true
+landing_lag = 12
+
+[[windows]]
+frames = "8-19"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 1.2]   # forward, left, up
+  radius = 0.5
+  damage = 10.0
+  angle = 40
+  bkb = 45
+  kbg = 75
+  effect = "slash"

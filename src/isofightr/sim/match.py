@@ -18,11 +18,15 @@ from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat.constants import MAX_DAMAGE, SHIELD_MAX_HP, SHIELD_REGEN
 from isofightr.sim.combat.grab_resolution import resolve_grabs
 from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
+from isofightr.sim.combat.projectile_hits import resolve_projectile_hits
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
-from isofightr.sim.events import Event, KoEvent, LandEvent
+from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import Dir8, InputFrame, facing_from_move
 from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
+from isofightr.sim.move_def import ProjectileDef
+from isofightr.sim.projectile import Projectile, spawn
+from isofightr.sim.projectile import step as step_projectile
 from isofightr.sim.rng import Rng
 from isofightr.sim.stage import Stage
 from isofightr.sim.states import STATES, change_state
@@ -57,6 +61,9 @@ class Match:
     frame: int = 0
     events: list[Event] = field(default_factory=list)
     """Events emitted by the latest tick, for presentation and audio. Replaced every tick."""
+    projectiles: list[Projectile] = field(default_factory=list)
+    """Projectiles in flight, oldest first."""
+    next_projectile_id: int = 0
 
     @classmethod
     def create(
@@ -136,11 +143,15 @@ class Match:
                     try_grab_ledge(self, fighter)
         self._push_fighters_apart()
 
-        # 6. Projectiles (M5).
+        # 6. Projectiles fly.
+        for projectile in self.projectiles:
+            step_projectile(self.stage, projectile)
 
         # 7. Hit resolution, then grabs (a grabber that was just hit does not grab).
         resolve_hits(self)
+        resolve_projectile_hits(self)
         resolve_grabs(self)
+        self._clear_dead_projectiles()
 
         # 8. Blast zones.
         for fighter in self.fighters:
@@ -181,6 +192,22 @@ class Match:
 
     # --- internals -------------------------------------------------------------------------
 
+    def spawn_projectile(
+        self, owner: Fighter, definition: ProjectileDef, damage: float
+    ) -> Projectile:
+        """Add a projectile fired by ``owner``'s current move, and return it."""
+        projectile = spawn(self.next_projectile_id, owner, definition, damage)
+        self.next_projectile_id += 1
+        self.projectiles.append(projectile)
+        self.events.append(ProjectileEvent(owner.player_index, projectile.pos, spawned=True))
+        return projectile
+
+    def _clear_dead_projectiles(self) -> None:
+        for projectile in self.projectiles:
+            if not projectile.alive:
+                self.events.append(ProjectileEvent(projectile.owner, projectile.pos, spawned=False))
+        self.projectiles = [projectile for projectile in self.projectiles if projectile.alive]
+
     def _upkeep(self, fighter: Fighter) -> None:
         """Run a fighter's per-frame timers (start of tick step 3; frozen fighters skip it)."""
         if fighter.invincible_frames > 0:
@@ -206,6 +233,7 @@ class Match:
         if result.landed:
             fighter.air_dodge_used = False
             fighter.ledge_grabs = 0
+            fighter.air_moves_used = []
             self.events.append(LandEvent(fighter.player_index, fighter.pos, result.fall_speed))
             STATES[fighter.state].on_land(self, fighter)
         elif result.left_ground:
@@ -256,6 +284,8 @@ class Match:
             self.rng.state,
             self.rng.increment,
             tuple(_canonical_fighter(fighter) for fighter in self.fighters),
+            self.next_projectile_id,
+            tuple(_canonical_projectile(projectile) for projectile in self.projectiles),
         )
 
 
@@ -291,6 +321,22 @@ def _canonical_vec2(vector: Vec2) -> tuple[float, float]:
 
 def _canonical_vec3(vector: Vec3) -> tuple[float, float, float]:
     return (_round(vector.x), _round(vector.y), _round(vector.z))
+
+
+def _canonical_projectile(projectile: Projectile) -> tuple[object, ...]:
+    return (
+        projectile.id,
+        projectile.owner,
+        projectile.move_id,
+        _canonical_vec3(projectile.pos),
+        _canonical_vec3(projectile.previous),
+        _canonical_vec3(projectile.vel),
+        _round(projectile.damage),
+        projectile.lifetime,
+        projectile.age,
+        projectile.pierce_left,
+        tuple(projectile.hit),
+    )
 
 
 def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
@@ -331,6 +377,7 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
             _canonical_vec2(fighter.launch.heading),
             _round(fighter.launch.elevation),
             fighter.launch.tumble,
+            _canonical_vec3(fighter.launch.carry),
         ),
         _round(fighter.sdi_mult),
         tuple(fighter.stale_queue),
@@ -354,6 +401,8 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         fighter.air_frames,
         fighter.tech_window,
         fighter.tech_lockout,
+        _round(fighter.counter_damage),
+        tuple(fighter.air_moves_used),
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,
         buffer.frame.held,

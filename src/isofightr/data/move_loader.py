@@ -6,24 +6,30 @@ within a window, radii are positive, angles are in range, and unknown keys are e
 """
 
 import itertools
+import math
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
 
 from isofightr.data.validation import DataError, TableReader
+from isofightr.sim.characters import SCRIPTS
 from isofightr.sim.combat.constants import SAKURAI_ANGLE
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import (
+    ArmorDef,
     CancelDef,
     ChargeDef,
+    CounterDef,
     DirectionMode,
     Effect,
     FrameRange,
+    GroundBehavior,
     HitboxDef,
     HitWindow,
     MotionWindow,
     MoveDef,
     MoveKind,
+    ProjectileDef,
 )
 
 MOVE_SUFFIX = ".toml"
@@ -40,7 +46,29 @@ _MOVE_KEYS = (
     "landing_lag",
     "autocancel",
     "intangible",
+    "projectiles",
+    "counter",
+    "armor",
+    "reflect",
+    "script",
+    "helpless",
+    "ledge_grab_from",
+    "once_per_airtime",
 )
+_PROJECTILE_KEYS = (
+    "frame",
+    "speed",
+    "rise",
+    "gravity",
+    "lifetime",
+    "pierce",
+    "reflectable",
+    "absorbable",
+    "ground",
+    "hitbox",
+)
+_LANDING_LAG_KINDS = (MoveKind.AERIAL, MoveKind.SPECIAL)
+_CHARGE_KINDS = (MoveKind.SMASH, MoveKind.SPECIAL)
 _HITBOX_KEYS = (
     "id",
     "group",
@@ -116,13 +144,14 @@ def parse_move(
         raise root.error(f"must be between 1 and total + 1 ({total + 1})", "faf")
 
     is_aerial = kind is MoveKind.AERIAL
-    for key in ("landing_lag", "autocancel"):
-        if root.has(key) and not is_aerial:
-            raise root.error("is only allowed on aerials", key)
+    if root.has("autocancel") and not is_aerial:
+        raise root.error("is only allowed on aerials", "autocancel")
+    if root.has("landing_lag") and kind not in _LANDING_LAG_KINDS:
+        raise root.error("is only allowed on aerials and specials", "landing_lag")
     if is_aerial and not root.has("landing_lag"):
         raise root.error("missing required key (aerials need a landing lag)", "landing_lag")
-    if root.has("charge") and kind is not MoveKind.SMASH:
-        raise root.error("is only allowed on smash attacks", "charge")
+    if root.has("charge") and kind not in _CHARGE_KINDS:
+        raise root.error("is only allowed on smash attacks and specials", "charge")
 
     windows = tuple(
         _window(table, source, index, total, clank_default=not is_aerial)
@@ -152,13 +181,101 @@ def parse_move(
         ),
         charge=_charge(root, total) if root.has("charge") else None,
         cancel=_cancel(root, total) if root.has("cancel") else None,
-        landing_lag=root.integer("landing_lag") if is_aerial else 0,
+        landing_lag=root.integer("landing_lag") if root.has("landing_lag") else 0,
         autocancel=autocancel,
-        intangible=(
-            parse_frame_range(root.raw("intangible"), total, root, "intangible")
-            if root.has("intangible")
-            else None
+        intangible=_optional_range(root, "intangible", total),
+        projectiles=tuple(
+            _projectile(table, source, index, total)
+            for index, table in enumerate(root.tables("projectiles"))
         ),
+        counter=_counter(root, total) if root.has("counter") else None,
+        armor=tuple(
+            _armor(table, source, index, total) for index, table in enumerate(root.tables("armor"))
+        ),
+        reflect=_optional_range(root, "reflect", total),
+        script=_script(root),
+        helpless=root.boolean("helpless", default=False),
+        ledge_grab_from=_ledge_grab_from(root, total),
+        once_per_airtime=root.boolean("once_per_airtime", default=False),
+    )
+
+
+def _optional_range(root: TableReader, key: str, total: int) -> FrameRange | None:
+    return parse_frame_range(root.raw(key), total, root, key) if root.has(key) else None
+
+
+def _script(root: TableReader) -> str | None:
+    name = root.optional_string("script")
+    if name is not None and name not in SCRIPTS:
+        known = ", ".join(sorted(SCRIPTS)) or "none"
+        raise root.error(f"no such move script {name!r} (registered: {known})", "script")
+    return name
+
+
+def _ledge_grab_from(root: TableReader, total: int) -> int:
+    if not root.has("ledge_grab_from"):
+        return 0
+    frame = root.integer("ledge_grab_from")
+    if not 1 <= frame <= total:
+        raise root.error(f"must be between 1 and total ({total})", "ledge_grab_from")
+    return frame
+
+
+def _projectile(table: object, source: str, index: int, total: int) -> ProjectileDef:
+    where = f"projectiles[{index}]"
+    reader = TableReader(table, source=source, where=where, allowed=_PROJECTILE_KEYS)
+    frame = reader.integer("frame")
+    if not 1 <= frame <= total:
+        raise reader.error(f"must be between 1 and total ({total})", "frame")
+    speed, lifetime = reader.number("speed"), reader.integer("lifetime")
+    if speed < 0:
+        raise reader.error("must be 0 or greater", "speed")
+    if lifetime < 1:
+        raise reader.error("must be 1 or greater", "lifetime")
+    gravity = reader.number("gravity", 0.0)
+    if gravity < 0:
+        raise reader.error("must be 0 or greater", "gravity")
+    pierce = reader.integer("pierce") if reader.has("pierce") else 0
+    if pierce < 0:
+        raise reader.error("must be 0 or greater", "pierce")
+    return ProjectileDef(
+        frame=frame,
+        hitbox=_hitbox(reader.raw("hitbox"), source, f"{where}.hitbox", clank_default=True),
+        speed=speed,
+        rise=reader.number("rise", 0.0),
+        gravity=gravity,
+        lifetime=lifetime,
+        pierce=pierce,
+        reflectable=reader.boolean("reflectable", default=True),
+        absorbable=reader.boolean("absorbable", default=False),
+        ground=_enum(reader, "ground", GroundBehavior, GroundBehavior.DESTROY),
+    )
+
+
+def _counter(root: TableReader, total: int) -> CounterDef:
+    reader = root.subtable("counter", ("frames", "into", "damage_mult"))
+    mult = reader.number("damage_mult", 1.0)
+    if mult < 1.0:
+        raise reader.error("must be 1 or greater", "damage_mult")
+    return CounterDef(
+        frames=parse_frame_range(reader.raw("frames"), total, reader, "frames"),
+        into=reader.string("into"),
+        damage_mult=mult,
+    )
+
+
+def _armor(table: object, source: str, index: int, total: int) -> ArmorDef:
+    reader = TableReader(
+        table, source=source, where=f"armor[{index}]", allowed=("frames", "threshold")
+    )
+    threshold = math.inf
+    if reader.has("threshold"):
+        threshold = reader.number("threshold")
+        if threshold <= 0:
+            raise reader.error("must be greater than 0", "threshold")
+    return ArmorDef(
+        frames=parse_frame_range(reader.raw("frames"), total, reader, "frames"),
+        threshold=threshold,
     )
 
 

@@ -59,6 +59,11 @@ _SLOT_KINDS = {
     "dair": MoveKind.AERIAL,
     "getup_attack": MoveKind.RECOVERY,
     "ledge_attack": MoveKind.RECOVERY,
+    "nspecial": MoveKind.SPECIAL,
+    "sspecial": MoveKind.SPECIAL,
+    "uspecial": MoveKind.SPECIAL,
+    "dspecial": MoveKind.SPECIAL,
+    "taunt": MoveKind.TAUNT,
 }
 _GRAB_KEYS = ("frames", "total", "offset", "radius", "slide")
 _THROWS = (("forward", "fthrow"), ("back", "bthrow"), ("up", "uthrow"), ("down", "dthrow"))
@@ -204,6 +209,8 @@ def _moveset(reader: TableReader, moves: Mapping[str, MoveDef]) -> MoveSet:
     for move in moves.values():
         if move.cancel is not None and move.cancel.into not in moves:
             raise reader.error(f"move {move.id!r} cancels into unknown move {move.cancel.into!r}")
+        if move.counter is not None and move.counter.into not in moves:
+            raise reader.error(f"move {move.id!r} counters with unknown move {move.counter.into!r}")
     return MoveSet(jab=tuple(jab), **slots)
 
 

@@ -193,9 +193,11 @@ SCENARIO_ONLY_STATES = {
     StateId.DIZZY,
     StateId.LEDGE_TRUMPED,
     StateId.WALL_TECH,
+    StateId.GETUP_ROLL,
 }
 """States random input practically never reaches (they need a shield held until it breaks, two
-fighters on one ledge spot, or a well-timed tech against a wall). Scenario tests cover them:
+fighters on one ledge spot, a well-timed tech against a wall, or a stick flick as the very
+first input after a knockdown). Scenario tests cover them:
 ``test_defense_scenarios.py`` and ``test_ledge_tech_scenarios.py``."""
 
 

@@ -11,7 +11,10 @@ Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``ran
 
 from __future__ import annotations
 
+import math
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
 from isofightr.sim import physics
@@ -20,6 +23,7 @@ from isofightr.sim.combat import knockback as kb_math
 from isofightr.sim.combat.hitbox import (
     ActiveHitbox,
     active_hitboxes,
+    hit_damage,
     hitboxes_touch,
     hits,
     remember_hitboxes,
@@ -32,18 +36,19 @@ from isofightr.sim.combat.shield import (
     shieldstun_frames,
 )
 from isofightr.sim.combat.staling import push_stale
-from isofightr.sim.events import ClankEvent, HitEvent, ShieldHitEvent
+from isofightr.sim.events import ClankEvent, CounterEvent, HitEvent, ShieldHitEvent
 from isofightr.sim.fighter import Fighter, GroundKind, Launch, StateId
 from isofightr.sim.input_frame import VERTICAL_NONE, Press
-from isofightr.sim.math3d import ZERO2, Vec2, Vec3, capsules_overlap
+from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3, capsules_overlap
 from isofightr.sim.move_def import DirectionMode, HitboxDef
 from isofightr.sim.states.base import change_state
+from isofightr.sim.states.interrupts import snap_facing, start_move
 
 if TYPE_CHECKING:
     from isofightr.sim.match import Match
 
-AUTOLINK_DISTANCE = 1.0
-"""Autolink hits pull toward a point this far in front of the attacker, in units."""
+type Change = Callable[[], None]
+"""A state change caused by a hit, applied after every hit of the tick is worked out."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,20 +59,7 @@ class _Hit:
     blocked: bool = False
     """The hitbox touched the target's shield."""
     parried: bool = False
-
-
-def charge_multiplier(fighter: Fighter) -> float:
-    """Return the damage multiplier from charging the current smash attack."""
-    move = fighter.move
-    if move is None or move.charge is None:
-        return 1.0
-    charged = fighter.charge_frames / move.charge.max_frames
-    return 1.0 + (move.charge.damage_mult - 1.0) * charged
-
-
-def hit_damage(attacker: Fighter, definition: HitboxDef) -> float:
-    """Return the damage a hitbox deals right now: base, times charge, times staling."""
-    return definition.damage * charge_multiplier(attacker) * attacker.move_stale
+    countered: bool = False
 
 
 def resolve_hits(match: Match) -> None:
@@ -104,6 +96,7 @@ def _find_hit(
         return None
     if target.intangible:
         return None
+    countering = counter_window_open(target)
     bubble = shield_volume(target) if is_shielding(target) else None
     parry = (
         match.rules.parry
@@ -121,7 +114,7 @@ def _find_hit(
         if bubble is not None and capsules_overlap(box.volume, bubble):
             return _Hit(attacker, target, box, blocked=True)
         if hits(box, target):
-            return _Hit(attacker, target, box, parried=parry)
+            return _Hit(attacker, target, box, parried=parry, countered=countering)
     return None
 
 
@@ -181,15 +174,22 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
         for hit in found
     ]
     headings = [_heading(hit) for hit in found]
-    changes: list[tuple[Fighter, StateId]] = []
+    changes: list[Change] = []
 
     for hit, damage, full_charge, heading in zip(
         found, damages, full_charges, headings, strict=True
     ):
         attacker, target, definition = hit.attacker, hit.target, hit.box.definition
         attacker.hit_log[(target.player_index, definition.group)] = frames[attacker.player_index]
+        if hit.countered:
+            hitlag = kb_math.hitlag_frames(damage, definition.hitlag_mult, definition.effect)
+            attacker.hitlag = max(attacker.hitlag, hitlag)
+            target.hitlag = max(target.hitlag, hitlag)
+            changes.append(partial(counter_reply, match, target, attacker, damage))
+            continue
         if hit.blocked or hit.parried:
-            changes.append((target, _block(match, hit, damage, full_charge)))
+            state = _block(match, hit, damage, full_charge)
+            changes.append(partial(change_state, match, target, state))
             continue
         attacker.dodge_stale = 0
         if not attacker.move_connected:
@@ -202,44 +202,97 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
         attacker.hitlag = max(attacker.hitlag, hitlag)
         target.hitlag = max(target.hitlag, hitlag)
 
-        knockback = 0.0
-        if not target.invincible:
-            target.damage = min(target.damage + damage, c.MAX_DAMAGE)
-            knockback = kb_math.knockback(
-                target.damage,
-                damage,
-                target.character.weight,
-                definition.bkb,
-                definition.kbg,
-                definition.fkb,
-            )
-            was_grounded = grounded[target.player_index]
-            launch = Launch(
-                knockback=knockback,
-                heading=heading,
-                elevation=kb_math.resolve_elevation(definition.angle, knockback, was_grounded),
-                tumble=kb_math.is_tumble(knockback)
-                or kb_math.meteor_tumbles(definition.angle, knockback, was_grounded),
-            )
-            # Hit by several fighters at once: the strongest launch wins, all damage counts.
-            if target.launch is None or launch.knockback >= target.launch.knockback:
-                target.launch = launch
-                target.sdi_mult = definition.sdi_mult
-            target.last_knockback = knockback
+        invincible = target.invincible
+        carry = attacker.vel if definition.direction_mode is DirectionMode.AUTOLINK else ZERO3
+        knockback = strike(
+            target, damage, definition, heading, grounded[target.player_index], carry
+        )
         match.events.append(
             HitEvent(
                 attacker=attacker.player_index,
                 target=target.player_index,
                 move_id=attacker.move_id,
-                damage=0.0 if target.invincible else damage,
+                damage=0.0 if invincible else damage,
                 knockback=knockback,
                 position=hit.box.centre,
                 effect=definition.effect,
                 hitlag=hitlag,
             )
         )
-    for fighter, state in changes:
-        change_state(match, fighter, state)
+    for change in changes:
+        change()
+
+
+def strike(
+    target: Fighter,
+    damage: float,
+    definition: HitboxDef,
+    heading: Vec2,
+    was_grounded: bool,
+    carry: Vec3 = ZERO3,
+) -> float:
+    """Damage a fighter and queue its launch. Returns the knockback (0 if invincible).
+
+    ``carry`` is added to the launch velocity (autolink hits pass the attacker's velocity).
+
+    Armor on the target's current move frame lets the damage through but not the launch,
+    unless the knockback reaches the armor's threshold.
+    """
+    if target.invincible:
+        return 0.0
+    target.damage = min(target.damage + damage, c.MAX_DAMAGE)
+    knockback = kb_math.knockback(
+        target.damage,
+        damage,
+        target.character.weight,
+        definition.bkb,
+        definition.kbg,
+        definition.fkb,
+    )
+    target.last_knockback = knockback
+    move = target.move
+    threshold = None if move is None else move.armor_threshold(target.state_frame)
+    if threshold is not None and knockback < threshold:
+        return knockback
+    launch = Launch(
+        knockback=knockback,
+        heading=heading,
+        elevation=kb_math.resolve_elevation(definition.angle, knockback, was_grounded),
+        tumble=kb_math.is_tumble(knockback)
+        or kb_math.meteor_tumbles(definition.angle, knockback, was_grounded),
+        carry=carry,
+    )
+    # Hit several times at once: the strongest launch wins, all damage counts.
+    if target.launch is None or launch.knockback >= target.launch.knockback:
+        target.launch = launch
+        target.sdi_mult = definition.sdi_mult
+    return knockback
+
+
+def counter_window_open(fighter: Fighter) -> bool:
+    """Return whether the fighter is in the counter window of a counter move."""
+    move = fighter.move
+    return (
+        move is not None
+        and move.counter is not None
+        and (fighter.state_frame in move.counter.frames)
+    )
+
+
+def counter_reply(
+    match: Match, fighter: Fighter, attacker: Fighter | None, incoming: float
+) -> None:
+    """A counter caught a hit: turn toward the attacker and start the reply move, which
+    deals at least the incoming damage times the counter's multiplier."""
+    move = fighter.move
+    if move is None or move.counter is None:
+        return
+    counter = move.counter
+    if attacker is not None:
+        snap_facing(fighter, (attacker.pos - fighter.pos).xy)
+    match.events.append(CounterEvent(fighter.player_index, fighter.pos))
+    start_move(match, fighter, counter.into)
+    fighter.counter_damage = incoming * counter.damage_mult
 
 
 def _block(match: Match, hit: _Hit, damage: float, full_charge: bool) -> StateId:
@@ -257,24 +310,36 @@ def _block(match: Match, hit: _Hit, damage: float, full_charge: bool) -> StateId
         return StateId.IDLE
 
     attacker.hitlag = max(attacker.hitlag, hitlag)
-    taken = shield_damage(damage, definition.shield_damage)
-    target.shield_hp -= taken
-    stun = shieldstun_frames(damage)
-    target.stun_frames = max(target.stun_frames, stun) if is_shielding(target) else stun
     away = (target.pos - attacker.pos).xy.normalized()
     if away == ZERO2:
         away = attacker.facing.world
-    push = away * shield_push_speed(damage)
-    target.vel = Vec3(push.x, push.y, 0.0)
+    state, taken = block_with_shield(target, damage, definition, away)
     if attacker.grounded:
-        back = push * -c.SHIELD_ATTACKER_PUSH
+        back = away * (-shield_push_speed(damage) * c.SHIELD_ATTACKER_PUSH)
         attacker.vel = Vec3(attacker.vel.x + back.x, attacker.vel.y + back.y, attacker.vel.z)
     match.events.append(
         ShieldHitEvent(
             attacker.player_index, target.player_index, taken, hit.box.centre, hitlag, False
         )
     )
-    return StateId.SHIELD_BREAK if target.shield_hp <= 0.0 else StateId.SHIELD_STUN
+    return state
+
+
+def block_with_shield(
+    target: Fighter, damage: float, definition: HitboxDef, away: Vec2, stun_mult: float = 1.0
+) -> tuple[StateId, float]:
+    """Take a hit on the shield: shield damage, shieldstun and pushback along ``away``.
+
+    Returns the state the defender goes to and the shield damage taken.
+    """
+    taken = shield_damage(damage, definition.shield_damage)
+    target.shield_hp -= taken
+    stun = math.floor(shieldstun_frames(damage) * stun_mult)
+    target.stun_frames = max(target.stun_frames, stun) if is_shielding(target) else stun
+    push = away * shield_push_speed(damage)
+    target.vel = Vec3(push.x, push.y, 0.0)
+    state = StateId.SHIELD_BREAK if target.shield_hp <= 0.0 else StateId.SHIELD_STUN
+    return state, taken
 
 
 def _heading(hit: _Hit) -> Vec2:
@@ -285,8 +350,7 @@ def _heading(hit: _Hit) -> Vec2:
         away = (target.pos - hit.box.centre).xy.normalized()
         return facing if away == ZERO2 else away
     if definition.direction_mode is DirectionMode.AUTOLINK:
-        point = attacker.pos.xy + facing * AUTOLINK_DISTANCE
-        toward = (point - target.pos.xy).normalized()
+        toward = (hit.box.centre.xy - target.pos.xy).normalized()
         return facing if toward == ZERO2 else toward
     return facing.rotated(definition.yaw)
 
@@ -328,7 +392,7 @@ def _launch(match: Match, fighter: Fighter, launch: Launch) -> None:
     if fighter.grounded and elevation < 0.0:
         elevation = 0.0  # DI cannot push a standing fighter into the floor
     direction = kb_math.launch_vector(heading, elevation)
-    fighter.kb_vel = direction * kb_math.launch_speed(launch.knockback)
+    fighter.kb_vel = direction * kb_math.launch_speed(launch.knockback) + launch.carry
     kept = fighter.vel.xy * c.LAUNCH_SELF_VELOCITY_KEEP
     fighter.vel = Vec3(kept.x, kept.y, 0.0)
     fighter.hitstun = kb_math.hitstun_frames(launch.knockback)
@@ -336,7 +400,7 @@ def _launch(match: Match, fighter: Fighter, launch: Launch) -> None:
     fighter.ledge_grabs = 0
     fighter.tech_window = 0
     fighter.intangible_frames = 0
-    if direction.z > 0.0 and fighter.grounded:
+    if fighter.kb_vel.z > 0.0 and fighter.grounded:
         fighter.ground = GroundKind.NONE
         fighter.platform = -1
     # Down held at launch is DI, not a fast-fall or platform-drop request.

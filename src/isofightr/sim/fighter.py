@@ -100,6 +100,9 @@ class Launch:
     elevation: float
     """Launch elevation in degrees, already resolved (Sakurai angle, meteor bounce)."""
     tumble: bool
+    carry: Vec3 = ZERO3
+    """Extra velocity added to the launch: the attacker's own, for autolink hits that drag
+    the target along with a moving attacker."""
 
 
 def _no_hits() -> dict[tuple[int, int], int]:
@@ -203,6 +206,10 @@ class Fighter:
     tech_window: int = 0
     """Frames left in which touching ground or a wall techs."""
     tech_lockout: int = 0
+    counter_damage: float = 0.0
+    """Damage the current move deals at least (set when it is the reply of a counter)."""
+    air_moves_used: list[str] = field(default_factory=_empty_queue)
+    """Once-per-airtime moves already used since last touching the ground or a ledge."""
     buffer: InputBuffer = field(default_factory=InputBuffer)
 
     @property

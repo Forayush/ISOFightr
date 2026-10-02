@@ -421,6 +421,19 @@ def build_swing(player_index: int, radius: float) -> Image.Image:
     return image
 
 
+def build_projectile(player_index: int, radius: float) -> Image.Image:
+    """Return a placeholder projectile: a solid player-colored ball with a bright core, the
+    size of its hitbox."""
+    width, height = sphere_screen_size(radius)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((0, 0, width - 1, height - 1), fill=player_color(player_index), outline=INK)
+    draw.ellipse(
+        (width // 4, height // 4, width - 1 - width // 4, height - 1 - height // 4), fill=WHITE
+    )
+    return image
+
+
 def build_shield(player_index: int, radius: float) -> Image.Image:
     """Return the shield bubble: a translucent player-colored ellipse of the shield's size."""
     width, height = sphere_screen_size(radius)

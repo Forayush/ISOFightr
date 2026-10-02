@@ -450,3 +450,27 @@ def test_blocks_parries_breaks_and_techs_give_feedback() -> None:
         ]
     )
     assert len(effects.sparks) == count + 3, "an ordinary grab has no spark"
+
+
+# --- M5: projectiles and counters -----------------------------------------------------------
+
+
+def test_projectile_ball_is_hitbox_sized_and_player_colored() -> None:
+    ball = art.build_projectile(0, 0.4)
+    assert ball.size == art.sphere_screen_size(0.4)
+    assert ball.getpixel((ball.width // 2, ball.height // 2)) == art.WHITE
+    assert ball.getpixel((ball.width // 2, 1)) == art.player_color(0)
+    assert ball.getpixel((0, 0))[3] == 0
+
+
+def test_counters_flash_and_projectiles_puff_when_they_end() -> None:
+    from isofightr.sim.events import CounterEvent, ProjectileEvent
+
+    effects = BattleEffects()
+    effects.consume([ProjectileEvent(0, ORIGIN, spawned=True)])
+    assert effects.sparks == []
+    effects.consume([ProjectileEvent(0, ORIGIN, spawned=False)])
+    assert [spark.tier for spark in effects.sparks] == [fx.SMALL_SPARK_TIER]
+    effects.consume([CounterEvent(1, ORIGIN)])
+    assert effects.flash == {1: fx.COUNTER_FLASH_FRAMES}
+    assert effects.shake.current() == fx.PARRY_SHAKE_PIXELS

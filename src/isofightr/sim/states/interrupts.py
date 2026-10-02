@@ -79,6 +79,48 @@ def _take_vertical(fighter: Fighter) -> int:
 # --- ground interrupts ---------------------------------------------------------------------
 
 
+def _special(match: Match, fighter: Fighter) -> bool:
+    """Special: up and down modifiers pick the up and down specials, a stick direction the
+    side special, and no direction the neutral special."""
+    buffer = fighter.buffer
+    if not buffer.has(Press.SPECIAL):
+        return False
+    moveset = fighter.character.moveset
+    if buffer.vertical == VERTICAL_UP:
+        move_id = moveset.uspecial
+    elif buffer.vertical == VERTICAL_DOWN:
+        move_id = moveset.dspecial
+    elif buffer.stick_active:
+        move_id = moveset.sspecial
+    else:
+        move_id = moveset.nspecial
+    move = fighter.character.moves[move_id]
+    buffer.consume(Press.SPECIAL)
+    if move.once_per_airtime and not fighter.grounded and move_id in fighter.air_moves_used:
+        return False  # the press is used up, so it cannot turn into another special later
+    _take_vertical(fighter)
+    start_move(match, fighter, move_id)
+    return True
+
+
+def ground_special(match: Match, fighter: Fighter) -> bool:
+    """A special move on the ground."""
+    return _special(match, fighter)
+
+
+def air_special(match: Match, fighter: Fighter) -> bool:
+    """A special move in the air."""
+    return _special(match, fighter)
+
+
+def ground_taunt(match: Match, fighter: Fighter) -> bool:
+    """Taunt."""
+    if fighter.buffer.consume(Press.TAUNT):
+        start_move(match, fighter, fighter.character.moveset.taunt)
+        return True
+    return False
+
+
 def ground_strong(match: Match, fighter: Fighter) -> bool:
     """Smash attack: the strong button, or a right-stick flick toward a direction.
 
@@ -160,7 +202,8 @@ def ground_actions(match: Match, fighter: Fighter) -> bool:
     """Smash, jump, grab, attack or shield, in priority order: what interrupts most ground
     movement."""
     return (
-        ground_strong(match, fighter)
+        ground_special(match, fighter)
+        or ground_strong(match, fighter)
         or ground_jump(match, fighter)
         or ground_grab(match, fighter)
         or ground_attack(match, fighter)
@@ -171,7 +214,8 @@ def ground_actions(match: Match, fighter: Fighter) -> bool:
 def running_actions(match: Match, fighter: Fighter) -> bool:
     """Like :func:`ground_actions`, but with the dash grab and the dash attack."""
     return (
-        ground_strong(match, fighter)
+        ground_special(match, fighter)
+        or ground_strong(match, fighter)
         or ground_jump(match, fighter)
         or dash_grab(match, fighter)
         or dash_attack(match, fighter)
@@ -241,12 +285,13 @@ def platform_drop_tap(match: Match, fighter: Fighter) -> bool:
 
 
 GROUND_NEUTRAL: tuple[Interrupt, ...] = (
-    # M5: special goes above strong.
+    ground_special,
     ground_strong,
     ground_jump,
     ground_grab,
     ground_attack,
     ground_shield,
+    ground_taunt,
     ground_dash,
     ground_move,
     platform_drop_hold,
@@ -260,6 +305,7 @@ def run_interrupts(match: Match, fighter: Fighter, interrupts: tuple[Interrupt, 
 
 
 GROUND_RECOVER: tuple[Interrupt, ...] = (
+    ground_special,
     ground_strong,
     ground_jump,
     ground_grab,
@@ -344,7 +390,7 @@ def fast_fall(match: Match, fighter: Fighter) -> bool:
 
 
 AIR_NEUTRAL: tuple[Interrupt, ...] = (
-    # M5: special goes above the air dodge.
+    air_special,
     air_dodge,
     air_attack,
     air_jump,
