@@ -20,6 +20,7 @@ from isofightr.sim.combat.hit_resolution import (
     counter_reply,
     counter_window_open,
     strike,
+    team_multiplier,
 )
 from isofightr.sim.combat.hitbox import active_hitboxes, hit_damage, hurtbox
 from isofightr.sim.combat.shield import is_shielding, shield_volume
@@ -81,7 +82,7 @@ def _hit_fighters(match: Match, projectile: Projectile, changes: list[Change]) -
     for target in match.fighters:
         if not projectile.alive:
             return
-        if not _can_touch(projectile, target):
+        if not _can_touch(match, projectile, target):
             continue
         move = target.move
         reflecting = move is not None and move.reflect is not None
@@ -111,8 +112,11 @@ def _hit_fighters(match: Match, projectile: Projectile, changes: list[Change]) -
             projectile.alive = False
 
 
-def _can_touch(projectile: Projectile, target: Fighter) -> bool:
+def _can_touch(match: Match, projectile: Projectile, target: Fighter) -> bool:
     definition = projectile.hitbox
+    owner = match.fighters[projectile.owner]
+    if owner.allied_with(target) and not match.rules.friendly_fire:
+        return False
     return (
         target.player_index != projectile.owner
         and target.in_play
@@ -143,20 +147,22 @@ def _struck(match: Match, projectile: Projectile, target: Fighter) -> None:
     hitlag = _hitlag(projectile)
     target.hitlag = max(target.hitlag, hitlag)
     invincible = target.invincible
+    team = team_multiplier(owner, target)
+    damage = projectile.damage * team
     knockback = strike(
         target,
-        projectile.damage,
+        damage,
         projectile.hitbox,
         heading,
         target.grounded,
-        rate=match.rules.launch_rate,
+        rate=match.rules.launch_rate * team,
     )
     match.events.append(
         HitEvent(
             attacker=projectile.owner,
             target=target.player_index,
             move_id=projectile.move_id,
-            damage=0.0 if invincible else projectile.damage,
+            damage=0.0 if invincible else damage,
             knockback=knockback,
             position=projectile.pos,
             effect=projectile.hitbox.effect,

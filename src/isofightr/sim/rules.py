@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from isofightr.sim.constants import KO_CREDIT_FRAMES, SUDDEN_DEATH_DAMAGE
 from isofightr.sim.events import HitEvent, KoEvent, MatchEndEvent, SuddenDeathEvent
-from isofightr.sim.fighter import NO_PARTNER, Fighter, GroundKind, StateId
+from isofightr.sim.fighter import NO_PARTNER, NO_TEAM, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.math3d import ZERO2, ZERO3
 from isofightr.sim.stage import NO_PLATFORM
@@ -61,8 +61,11 @@ class MatchResult:
     """How a match ended."""
 
     winner: int
+    """Player index of the winner (the first player of the winning team in a team match)."""
     placements: tuple[tuple[int, ...], ...]
-    """Player indices by rank, best first; players sharing a rank share a group."""
+    """Player indices by rank, best first; a team, or players sharing a rank, share a group."""
+    winners: tuple[int, ...] = ()
+    """Every player on the winning side."""
 
 
 def track_hits(match: Match) -> None:
@@ -116,49 +119,88 @@ def record_knockout(match: Match, fighter: Fighter) -> int | None:
     return credited
 
 
+def side_of(fighter: Fighter) -> tuple[bool, int]:
+    """Return the side a fighter plays for: its team, or itself in a free-for-all."""
+    if fighter.team != NO_TEAM:
+        return (True, fighter.team)
+    return (False, fighter.player_index)
+
+
+def sides(match: Match) -> dict[tuple[bool, int], tuple[int, ...]]:
+    """Return every side and the player indices on it, in player order."""
+    grouped: dict[tuple[bool, int], list[int]] = {}
+    for fighter in match.fighters:
+        grouped.setdefault(side_of(fighter), []).append(fighter.player_index)
+    return {side: tuple(players) for side, players in grouped.items()}
+
+
+def side_score(match: Match, players: tuple[int, ...]) -> int:
+    """Return a side's time-mode score: the sum of its players' scores."""
+    return sum(match.stats[index].score for index in players)
+
+
 def step(match: Match) -> None:
-    """Run the clock and decide whether the match is over (tick step 9)."""
-    if match.phase is not MatchPhase.PLAYING or len(match.fighters) < 2:
+    """Run the clock and decide whether the match is over (tick step 9).
+
+    A side is a team, or a single player in a free-for-all. A side is alive while any of its
+    fighters has stocks left.
+    """
+    if match.phase is not MatchPhase.PLAYING:
+        return
+    all_sides = sides(match)
+    if len(all_sides) < 2:
         return
     if match.time_left is not None:
         match.time_left -= 1
-    fallen = [
-        event.player
-        for event in match.events
-        if isinstance(event, KoEvent) and match.fighters[event.player].eliminated
-    ]
-    alive = [fighter.player_index for fighter in match.fighters if not fighter.eliminated]
+    alive = {
+        side: players
+        for side, players in all_sides.items()
+        if any(not match.fighters[index].eliminated for index in players)
+    }
     if len(alive) == 1:
-        _finish(match, alive[0])
+        _finish(match, next(iter(alive.values())))
     elif not alive:
-        _start_sudden_death(match, fallen)  # the last fighters fell on the same tick
+        # The last fighters fell on the same tick: their sides settle it.
+        fallen = {
+            side_of(match.fighters[event.player])
+            for event in match.events
+            if isinstance(event, KoEvent) and match.fighters[event.player].eliminated
+        }
+        tied = [index for side, players in all_sides.items() if side in fallen for index in players]
+        _start_sudden_death(match, tied)
     elif match.time_left is not None and match.time_left <= 0:
-        best = max(match.stats[index].score for index in alive)
-        leaders = [index for index in alive if match.stats[index].score == best]
+        best = max(side_score(match, players) for players in alive.values())
+        leaders = [players for players in alive.values() if side_score(match, players) == best]
         if len(leaders) == 1:
             _finish(match, leaders[0])
         else:
-            _start_sudden_death(match, leaders)
+            _start_sudden_death(match, [index for players in leaders for index in players])
 
 
-def _finish(match: Match, winner: int) -> None:
+def _finish(match: Match, winners: tuple[int, ...]) -> None:
     match.phase = MatchPhase.OVER
-    match.result = MatchResult(winner, placements(match, winner))
-    match.events.append(MatchEndEvent(winner))
+    match.result = MatchResult(winners[0], placements(match, winners), winners)
+    match.events.append(MatchEndEvent(winners[0]))
 
 
-def placements(match: Match, winner: int) -> tuple[tuple[int, ...], ...]:
-    """Rank the players: the winner, then by score in time mode or by who lasted longest."""
-    others = [fighter.player_index for fighter in match.fighters if fighter.player_index != winner]
+def placements(match: Match, winners: tuple[int, ...]) -> tuple[tuple[int, ...], ...]:
+    """Rank the sides: the winners, then by score in time mode (level scores share a rank)
+    or by which side lasted longest in stock mode."""
+    others = [players for players in sides(match).values() if players != winners]
     if match.rules.time_frames is not None:
         ranked: list[tuple[int, ...]] = []
-        for score in sorted({match.stats[index].score for index in others}, reverse=True):
-            ranked.append(tuple(index for index in others if match.stats[index].score == score))
-        return ((winner,), *ranked)
-    out_order = [index for index in match.eliminated if index != winner]
-    survivors = [index for index in others if index not in out_order]
-    later_first = list(dict.fromkeys(reversed(out_order)))
-    return ((winner,), *((index,) for index in (*survivors, *later_first)))
+        scores = sorted({side_score(match, players) for players in others}, reverse=True)
+        for score in scores:
+            level = [players for players in others if side_score(match, players) == score]
+            ranked.append(tuple(index for players in level for index in players))
+        return (winners, *ranked)
+
+    def out_at(players: tuple[int, ...]) -> int:
+        """When a side's last fighter went out (sides still standing sort first)."""
+        gone = [match.eliminated.index(index) for index in players if index in match.eliminated]
+        return max(gone) if len(gone) == len(players) else len(match.eliminated)
+
+    return (winners, *sorted(others, key=out_at, reverse=True))
 
 
 def _start_sudden_death(match: Match, players: list[int]) -> None:

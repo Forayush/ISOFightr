@@ -32,6 +32,8 @@ def resolve_grabs(match: Match) -> None:
         for target in match.fighters:
             if target is grabber or not can_be_grabbed(target):
                 continue
+            if grabber.allied_with(target) and not match.rules.friendly_fire:
+                continue
             if capsules_overlap(box, hurtbox(target)):
                 grabs[grabber.player_index] = target.player_index
                 break

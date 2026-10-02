@@ -93,7 +93,7 @@ def test_stock_match_ends_when_one_fighter_is_left() -> None:
     assert match.phase is MatchPhase.PLAYING and match.fighters[1].stocks == 1
     knock_out_until_gone(match, 1)
     assert match.phase is MatchPhase.OVER
-    assert match.result == MatchResult(winner=0, placements=((0,), (1,)))
+    assert match.result == MatchResult(winner=0, placements=((0,), (1,)), winners=(0,))
     assert [e for e in match.events if isinstance(e, MatchEndEvent)] == [MatchEndEvent(0)]
     assert match.eliminated == [1]
 
@@ -114,7 +114,7 @@ def test_four_player_placements_follow_the_order_of_elimination() -> None:
     for player in (2, 0, 3):
         assert match.phase is MatchPhase.PLAYING
         knock_out(match, player)
-    assert match.result == MatchResult(winner=1, placements=((1,), (3,), (0,), (2,)))
+    assert match.result == MatchResult(winner=1, placements=((1,), (3,), (0,), (2,)), winners=(1,))
 
 
 def test_infinite_stocks_never_end() -> None:
@@ -196,7 +196,7 @@ def test_time_match_goes_to_the_best_score() -> None:
     assert match.phase is MatchPhase.PLAYING and match.time_left == 2
     tick(match, 2)
     assert match.phase is MatchPhase.OVER
-    assert match.result == MatchResult(winner=0, placements=((0,), (1,)))
+    assert match.result == MatchResult(winner=0, placements=((0,), (1,)), winners=(0,))
 
 
 def test_time_mode_ranks_by_score_and_ties_share_a_rank() -> None:
@@ -285,3 +285,104 @@ def test_rule_state_is_hashed_and_copies_exactly() -> None:
 
 def test_make_match_default_rules() -> None:
     assert make_match().rules == MatchRules(stocks=3)
+
+
+# --- teams --------------------------------------------------------------------------------
+
+RED_VS_BLUE = (0, 1, 0, 1)
+"""Players 1 and 3 against players 2 and 4."""
+
+
+def team_duel(
+    friendly_fire: bool, teams: tuple[int, ...] = (0, 0)
+) -> tuple[Match, Fighter, Fighter]:
+    match = new_match(players=len(teams), stocks=None, teams=teams, friendly_fire=friendly_fire)
+    attacker, target = match.fighters[:2]
+    place(match, attacker, 4.0, 6.0, facing=Dir8.SE)
+    place(match, target, 5.0, 6.0)
+    for other in match.fighters[2:]:
+        place(match, other, 9.0, 2.0)
+    return match, attacker, target
+
+
+def test_fighters_know_their_team_and_color() -> None:
+    match = new_match(players=4, teams=RED_VS_BLUE)
+    assert [fighter.team for fighter in match.fighters] == [0, 1, 0, 1]
+    assert [fighter.color_index for fighter in match.fighters] == [0, 1, 0, 1]
+    first, second, third, _ = match.fighters
+    assert first.allied_with(third) and not first.allied_with(second)
+    assert not first.allied_with(first)
+    free = new_match(players=3)
+    assert [fighter.color_index for fighter in free.fighters] == [0, 1, 2]
+    assert not free.fighters[0].allied_with(free.fighters[1])
+    with pytest.raises(ValueError, match="teams lists 2 players, the match has 3"):
+        new_match(players=3, teams=(0, 1))
+
+
+def test_teammates_cannot_hurt_each_other_without_friendly_fire() -> None:
+    match, attacker, mate = team_duel(friendly_fire=False)
+    run(match, hold(buttons=Button.STRONG, frames=1) + neutral(30))
+    assert mate.damage == 0 and attacker.hitlag == 0 and attacker.stale_queue == []
+    # Grabs and projectiles pass through teammates too.
+    run(match, neutral(30) + hold(buttons=Button.GRAB, frames=1) + neutral(40))
+    assert mate.state is StateId.IDLE and attacker.state is StateId.IDLE
+    place(match, mate, 7.0, 6.0)
+    run(match, hold(buttons=Button.SPECIAL, frames=1) + neutral(60))
+    assert mate.damage == 0 and match.projectiles == []
+
+
+def test_friendly_fire_hits_for_half_damage_and_knockback() -> None:
+    match, _, mate = team_duel(friendly_fire=True)
+    run(match, hold(buttons=Button.STRONG, frames=1) + neutral(20))
+    rival_match, _, rival = team_duel(friendly_fire=True, teams=(0, 1))
+    run(rival_match, hold(buttons=Button.STRONG, frames=1) + neutral(20))
+    assert mate.damage == pytest.approx(rival.damage / 2) and mate.damage > 0
+    assert mate.last_knockback < rival.last_knockback / 2 + 20
+    assert mate.last_knockback < rival.last_knockback * 0.75
+
+
+def test_enemies_are_hit_normally_in_a_team_match() -> None:
+    match, _, rival = team_duel(friendly_fire=False, teams=(0, 1))
+    run(match, hold(buttons=Button.STRONG, frames=1) + neutral(20))
+    assert rival.damage == pytest.approx(16 * 1.05)
+
+
+def test_a_team_stock_match_ends_when_one_team_is_left() -> None:
+    match = new_match(players=4, stocks=1, teams=RED_VS_BLUE)
+    knock_out(match, 1)
+    assert match.phase is MatchPhase.PLAYING, "blue still has a fighter"
+    knock_out(match, 0)
+    assert match.phase is MatchPhase.PLAYING
+    knock_out(match, 3)
+    assert match.phase is MatchPhase.OVER
+    assert match.result == MatchResult(winner=0, placements=((0, 2), (1, 3)), winners=(0, 2))
+
+
+def test_team_time_match_adds_up_the_scores() -> None:
+    match = new_match(players=4, stocks=None, time_frames=600, teams=RED_VS_BLUE)
+    knock_out(match, 0)
+    tick(match, 130)
+    knock_out(match, 0)
+    tick(match, 130)
+    knock_out(match, 3)
+    tick(match, 600)
+    assert match.result is not None
+    assert match.result.winners == (1, 3), "blue is on -1, red on -2"
+    assert match.result.placements == ((1, 3), (0, 2))
+
+
+def test_a_team_tie_puts_both_whole_teams_into_sudden_death() -> None:
+    match = new_match(players=4, stocks=None, time_frames=100, teams=RED_VS_BLUE)
+    tick(match, 100)
+    assert match.sudden_death
+    assert [fighter.stocks for fighter in match.fighters] == [1, 1, 1, 1]
+    assert all(fighter.damage == 300 and fighter.in_play for fighter in match.fighters)
+
+
+def test_three_sides_two_against_one_against_one() -> None:
+    match = new_match(players=4, stocks=1, teams=(0, 0, 1, 2))
+    knock_out(match, 2)
+    knock_out(match, 0)
+    assert match.phase is MatchPhase.PLAYING
+    knock_out(match, 1)
+    assert match.result == MatchResult(winner=3, placements=((3,), (0, 1), (2,)), winners=(3,))

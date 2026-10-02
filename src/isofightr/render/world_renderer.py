@@ -69,6 +69,10 @@ class WorldEntity(Protocol):
         """0-based player slot, which picks the color."""
 
     @property
+    def color_index(self) -> int:
+        """Which player color to draw in (the team's in a team match)."""
+
+    @property
     def pos(self) -> Vec3:
         """Feet position in world units."""
 
@@ -221,9 +225,9 @@ class WorldRenderer:
         lying = look.pose is Pose.DOWN
         turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
         texture = self._texture(
-            ("fighter", entity.player_index, entity.facing, lying, turns, look.flash, look.dim),
+            ("fighter", entity.color_index, entity.facing, lying, turns, look.flash, look.dim),
             lambda: art.build_fighter(
-                entity.player_index, entity.facing, lying, turns, look.flash, look.dim
+                entity.color_index, entity.facing, lying, turns, look.flash, look.dim
             ),
         )
         sprite = self._part(entity, Part.BODY, texture)
@@ -266,7 +270,7 @@ class WorldRenderer:
 
     def _sync_shadow(self, entity: WorldEntity) -> DynamicItem | None:
         sprite = self._part(
-            entity, Part.SHADOW, self._shadow_texture(entity.player_index, 0, FULL_MASK)
+            entity, Part.SHADOW, self._shadow_texture(entity.color_index, 0, FULL_MASK)
         )
         pos = entity.pos
         surface = self.stage.support_below(pos.x, pos.y, pos.z)
@@ -277,7 +281,7 @@ class WorldRenderer:
         centre_x, centre_y = (snap(value) for value in project(pos.x, pos.y, surface))
         variant = art.shadow_variant_index(pos.z - surface)
         mask = shadow_mask(self.stage, centre_x, centre_y, surface)
-        texture = self._shadow_texture(entity.player_index, variant, mask)
+        texture = self._shadow_texture(entity.color_index, variant, mask)
         if sprite.texture is not texture:
             sprite.texture = texture
         sprite.position = (centre_x, centre_y)

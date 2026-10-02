@@ -46,7 +46,7 @@ class EffectRenderer:
         """Place a sprite for every live spark, raised shield, grab box and hitbox."""
         wanted: list[tuple[arcade.Texture, Vec3]] = []
         for fighter in fighters:
-            player = fighter.player_index
+            player = fighter.color_index
             if is_shielding(fighter):
                 size = round(shield_radius(fighter) / SHIELD_SIZE_STEP) * SHIELD_SIZE_STEP
                 texture = self._texture(
@@ -65,8 +65,10 @@ class EffectRenderer:
                     ("swing", player, radius), partial(art.build_swing, player, radius)
                 )
                 wanted.append((texture, box.centre))
+        colors = {fighter.player_index: fighter.color_index for fighter in fighters}
         for projectile in projectiles:
-            ball = (projectile.owner, projectile.hitbox.radius)
+            color = colors.get(projectile.owner, projectile.owner)
+            ball = (color, projectile.hitbox.radius)
             texture = self._texture(("projectile", *ball), partial(art.build_projectile, *ball))
             wanted.append((texture, projectile.pos))
         for spark in effects.sparks:

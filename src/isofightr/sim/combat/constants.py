@@ -218,3 +218,7 @@ HELPLESS_LAND_LAG: Final[int] = 20
 PROJECTILE_SHIELDSTUN_MULT: Final[float] = 0.33
 """Shieldstun from a blocked projectile, relative to a blocked attack."""
 COUNTER_MIN_FRAMES_TO_REPLY: Final[int] = 1
+
+# --- Teams -----------------------------------------------------------------------------------
+FRIENDLY_FIRE_MULT: Final[float] = 0.5
+"""With friendly fire on, hits on a teammate deal this share of their damage and knockback."""

@@ -88,6 +88,7 @@ class GroundKind(IntEnum):
 
 NO_PARTNER = -1
 NO_LEDGE = -1
+NO_TEAM = -1
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +145,8 @@ class Fighter:
     """Unit ground direction of the current dash, run or run turnaround."""
     damage: float = 0.0
     stocks: int | None = None
+    team: int = NO_TEAM
+    """Team number in a team match, or ``NO_TEAM`` in a free-for-all."""
     """Stocks left, or ``None`` for infinite."""
     invincible_frames: int = 0
     """Frames of invincibility left after leaving the revival platform."""
@@ -222,6 +225,15 @@ class Fighter:
     def entity_id(self) -> int:
         """Unique and stable id for rendering: the player index."""
         return self.player_index
+
+    @property
+    def color_index(self) -> int:
+        """Which player color to draw the fighter in: its team's, or its own."""
+        return self.team if self.team != NO_TEAM else self.player_index
+
+    def allied_with(self, other: Fighter) -> bool:
+        """Return whether ``other`` is a different fighter on the same team."""
+        return other is not self and self.team != NO_TEAM and self.team == other.team
 
     @property
     def grounded(self) -> bool:

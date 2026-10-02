@@ -96,6 +96,8 @@ def _find_hit(
         return None
     if target.intangible:
         return None
+    if attacker.allied_with(target) and not match.rules.friendly_fire:
+        return None
     countering = counter_window_open(target)
     bubble = shield_volume(target) if is_shielding(target) else None
     parry = (
@@ -166,7 +168,10 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
     """Apply every hit of this tick. Results are computed from the state before any hit."""
     grounded = {fighter.player_index: fighter.grounded for fighter in match.fighters}
     frames = {fighter.player_index: fighter.state_frame for fighter in match.fighters}
-    damages = [hit_damage(hit.attacker, hit.box.definition) for hit in found]
+    damages = [
+        hit_damage(hit.attacker, hit.box.definition) * team_multiplier(hit.attacker, hit.target)
+        for hit in found
+    ]
     full_charges = [
         (move := hit.attacker.move) is not None
         and move.charge is not None
@@ -211,7 +216,7 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
             heading,
             grounded[target.player_index],
             carry,
-            match.rules.launch_rate,
+            match.rules.launch_rate * team_multiplier(attacker, target),
         )
         match.events.append(
             HitEvent(
@@ -227,6 +232,11 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
         )
     for change in changes:
         change()
+
+
+def team_multiplier(attacker: Fighter, target: Fighter) -> float:
+    """Return the damage and knockback multiplier for a hit: reduced between teammates."""
+    return c.FRIENDLY_FIRE_MULT if attacker.allied_with(target) else 1.0
 
 
 def strike(
