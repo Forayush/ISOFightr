@@ -29,6 +29,35 @@ TILE_H: Final[int] = 16
 Z_PX: Final[int] = 16
 """Native pixels per world unit of height."""
 
+# --- Input ---------------------------------------------------------------------------------
+FACING_HYSTERESIS_DEGREES: Final[float] = 5.0
+"""Extra angle the stick must travel past a 45-degree boundary before 8-way facing changes."""
+
+# --- Stage defaults (used when a stage.toml omits the value) -------------------------------
+LEDGE_MIN_DROP: Final[float] = 2.0
+"""A solid neighbour lower by more than this many units still leaves a grabbable ledge."""
+
+DEFAULT_BLAST_SIDE: Final[float] = 7.0
+"""Horizontal blast-zone margin beyond the stage's solid bounding box, in units."""
+
+DEFAULT_BLAST_TOP: Final[float] = 14.0
+"""Height of the top blast zone, in units above the main floor."""
+
+DEFAULT_BLAST_BOTTOM: Final[float] = -8.0
+"""Height of the bottom blast zone, in units (negative = below the main floor)."""
+
+DEFAULT_CAMERA_MARGIN: Final[float] = 4.0
+"""How far beyond the stage's solid bounding box the camera may look, in units."""
+
+MIN_PLATFORM_CLEARANCE: Final[float] = 1.0
+"""A soft platform must sit at least this far above every solid cell beneath it, in units."""
+
+SURFACE_EPSILON: Final[float] = 1e-4
+"""Height tolerance when deciding whether something is on, above or below a surface."""
+
+PLAYER_SPAWN_COUNT: Final[int] = 4
+"""Every stage defines spawn points ``p1`` to ``p4``."""
+
 # --- Native resolution and window ---------------------------------------------------------
 NATIVE_W: Final[int] = 640
 """Width of the offscreen pixel-art buffer."""
