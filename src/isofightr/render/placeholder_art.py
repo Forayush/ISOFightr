@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw
 from isofightr.config import DECK_THICKNESS, NATIVE_H, NATIVE_W, TILE_H, TILE_W, Z_PX
 from isofightr.render.iso import project
 from isofightr.sim.input_frame import Dir8
+from isofightr.sim.stage import Stage
 
 type Rgba = tuple[int, int, int, int]
 
@@ -143,6 +144,18 @@ SPHERE_WIDTH_PER_UNIT: Final[float] = TILE_W / 2 * math.sqrt(2.0)
 """Screen half-width in pixels of a sphere of radius 1: the projection of ``x - y``."""
 SPHERE_HEIGHT_PER_UNIT: Final[float] = math.sqrt(2 * (TILE_H / 2) ** 2 + Z_PX**2)
 """Screen half-height in pixels of a sphere of radius 1 (``-(x + y) * 8 + z * 16``)."""
+
+# --- UI ------------------------------------------------------------------------------------
+PANEL_FILL: Final[Rgba] = (24, 28, 52, 215)
+PANEL_BORDER: Final[Rgba] = (236, 240, 255, 255)
+DIM_OVERLAY: Final[Rgba] = (8, 10, 24, 150)
+"""Drawn over the frozen battle while paused."""
+STOCK_ICON_SIZE: Final[int] = 7
+BUBBLE_SIZE: Final[int] = 15
+"""Size of the marker shown at the screen edge for a fighter that is out of view."""
+THUMBNAIL_SCALE: Final[int] = 4
+"""A stage thumbnail is drawn at one over this, so a cell is 8x4 pixels."""
+THUMBNAIL_PADDING: Final[int] = 4
 
 # --- Shadows -------------------------------------------------------------------------------
 SHADOW_WIDTH: Final[int] = 20
@@ -445,6 +458,86 @@ def build_shield(player_index: int, radius: float) -> Image.Image:
         fill=(red, green, blue, SHIELD_ALPHA),
         outline=(255, 255, 255, SHIELD_RIM_ALPHA),
     )
+    return image
+
+
+def build_panel(
+    width: int, height: int, fill: Rgba = PANEL_FILL, border: Rgba = PANEL_BORDER
+) -> Image.Image:
+    """Return a UI panel: a filled rectangle with a 1 px border and clipped corners."""
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, width - 1, height - 1), fill=fill, outline=border)
+    for corner in ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)):
+        image.putpixel(corner, TRANSPARENT)
+    return image
+
+
+def build_stock_icon(player_index: int) -> Image.Image:
+    """Return a stock icon: a small disc in the player's color."""
+    image = Image.new("RGBA", (STOCK_ICON_SIZE, STOCK_ICON_SIZE), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    last = STOCK_ICON_SIZE - 1
+    draw.ellipse((0, 0, last, last), fill=player_color(player_index), outline=INK)
+    return image
+
+
+def build_bubble(player_index: int) -> Image.Image:
+    """Return the off-screen marker: a white bubble with the player's color inside."""
+    image = Image.new("RGBA", (BUBBLE_SIZE, BUBBLE_SIZE), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    last = BUBBLE_SIZE - 1
+    draw.ellipse((0, 0, last, last), fill=WHITE, outline=INK)
+    draw.ellipse((3, 3, last - 3, last - 3), fill=player_color(player_index))
+    return image
+
+
+def build_stage_thumbnail(stage: Stage) -> Image.Image:
+    """Return a small isometric picture of a stage, made from its grid: no art to draw.
+
+    Every solid cell is a small diamond (darker where it is lower); soft platforms are drawn
+    on top in the deck color.
+    """
+    cell_w, cell_h = TILE_W // THUMBNAIL_SCALE, TILE_H // THUMBNAIL_SCALE
+    lift = Z_PX // THUMBNAIL_SCALE
+    half_w, half_h = cell_w // 2, cell_h // 2
+    heights = [cell.top for row in stage.cells for cell in row if cell is not None]
+    heights += [platform.z for platform in stage.soft_platforms]
+    tallest = max(heights)
+    span = stage.size_x + stage.size_y
+    width = span * half_w + 2 * THUMBNAIL_PADDING
+    height = span * half_h + round(tallest * lift) + 2 * THUMBNAIL_PADDING
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    origin_x = THUMBNAIL_PADDING + stage.size_y * half_w
+    origin_y = THUMBNAIL_PADDING + round(tallest * lift)
+
+    def diamond(cx: float, cy: float, z: float, color: Rgba) -> None:
+        left = origin_x + (cx - cy) * half_w
+        top = origin_y + (cx + cy) * half_h - z * lift
+        draw.polygon(
+            [
+                (left, top),
+                (left + half_w, top + half_h),
+                (left, top + cell_h),
+                (left - half_w, top + half_h),
+            ],
+            fill=color,
+        )
+
+    for cy, row in enumerate(stage.cells):
+        for cx, cell in enumerate(row):
+            if cell is None:
+                continue
+            palette = tile_palette(cell.tile)
+            top_color = palette.top_light if (cx + cy) % 2 == 0 else palette.top_dark
+            diamond(cx, cy, cell.top, top_color)
+    for platform in stage.soft_platforms:
+        for cy in range(platform.y0, platform.y1):
+            for cx in range(platform.x0, platform.x1):
+                light = (cx + cy) % 2 == 0
+                color = DECK_PALETTE.top_light if light else DECK_PALETTE.top_dark
+                diamond(cx, cy, platform.z, color)
     return image
 
 

@@ -6,44 +6,58 @@ presentation react to ``match.events``. Nothing here changes sim state except by
 input, and through the two training tools the sim itself offers (``Match.set_damage`` and
 ``Match.reload_characters``).
 
-Stocks are infinite for now; stock counts, countdown and results arrive in M6.
+Match flow (plan note 13): the countdown, the clock, "GAME!" with a short slow-motion, and
+then the results screen are all driven by ``match.phase``; this scene only shows them.
+Escape or Enter opens the pause menu, which in training mode holds the training tools.
 
 Debug keys (plan note 13, "Training mode"): F1 hitboxes and hurtboxes, F2 fighter info,
 F3 stage overlay, F5 pause, F6 advance one frame, F8 restart the match, F9 reload character
 and move data from disk, C toggles the camera clamp, H hides the help text. In training mode
-players 2 to 4 are dummies that stand still: ``-`` and ``=`` change their damage by 10%,
-``0`` resets it and Tab hands them back to their controls. Player controls are in
+``-`` and ``=`` change the dummies' damage by 10%, ``0`` resets it and Tab switches them
+between standing still and their own controls. Player controls are in
 :mod:`isofightr.input.devices`.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import arcade
 
-from isofightr.config import NATIVE_H, Z_PX
+from isofightr.ai.dummy import DummyBehavior, dummy_frame
+from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
 from isofightr.data.character_loader import load_character
 from isofightr.data.validation import DataError
 from isofightr.input.devices import InputSource
+from isofightr.render import placeholder_art as art
 from isofightr.render.camera import FollowCamera, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
 from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
 from isofightr.render.fighter_look import fighter_look
 from isofightr.render.hitbox_overlay import HitboxOverlay
+from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
-from isofightr.render.placeholder_art import BODY_HEIGHT
 from isofightr.render.world_renderer import Overlay, WorldRenderer
+from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.fighter import Fighter, StateId
-from isofightr.sim.input_frame import NEUTRAL_INPUT
+from isofightr.sim.input_frame import InputFrame
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec3
+from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui.hud import DamageHud
+from isofightr.ui.menu import Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
+from isofightr.ui.widgets import HIGHLIGHT, TextBlock, UiLayer, centred_left
+
+if TYPE_CHECKING:
+    from isofightr.scenes.flow import GameFlow
 
 LOG = logging.getLogger(__name__)
 
@@ -60,6 +74,7 @@ KEY_DUMMY_DAMAGE_DOWN = arcade.key.MINUS
 KEY_DUMMY_DAMAGE_UP = arcade.key.EQUAL
 KEY_DUMMY_DAMAGE_RESET = arcade.key.KEY_0
 KEY_DUMMY_CONTROL = arcade.key.TAB
+KEYS_MENU = (arcade.key.ESCAPE, arcade.key.ENTER)
 
 HUD_MARGIN = 4
 HUD_CAPACITY = 104
@@ -68,7 +83,7 @@ HELP_LINES = (
     "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
     "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload data  H help",
 )
-TRAINING_HELP = "TRAINING  -/= dummy damage  0 reset damage  TAB dummy control on/off"
+TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
 DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
 """The damage readout sits just above the help text."""
 INFO_LINES_PER_FIGHTER = 2
@@ -77,8 +92,35 @@ MESSAGE_TICKS = 180
 """How long a status message (such as the result of a reload) stays up."""
 FIRST_DUMMY = 1
 """In training mode every player from this index on is a dummy."""
-BODY_CENTRE_HEIGHT = BODY_HEIGHT / 2 / Z_PX
+BODY_CENTRE_HEIGHT = art.BODY_HEIGHT / 2 / Z_PX
 """The camera tracks a fighter's middle rather than its feet, in units above the feet."""
+
+BANNER_SCALE = 4
+BANNER_CAPACITY = len("SUDDEN DEATH")
+BANNER_BOTTOM = NATIVE_H // 2 + 30
+CLOCK_CAPACITY = len("99:59")
+CLOCK_SCALE = 2
+GO_TICKS = 40
+"""How long "GO!" stays up after the countdown."""
+SUDDEN_DEATH_TEXT_FRAMES = 60
+"""The first part of a sudden-death countdown says so instead of showing a number."""
+GAME_SLOW_TICKS = 60
+"""After the deciding KO the sim runs at a third of its speed for this many render ticks."""
+GAME_SLOW_FACTOR = 3
+GAME_HOLD_TICKS = 150
+"""Ticks between "GAME!" and the results screen."""
+PAUSE_PANEL_WIDTH = 300
+PAUSE_ROW_CAPACITY = 44
+
+MENU_RESUME = "resume"
+MENU_HELP = "help"
+MENU_QUIT = "quit"
+MENU_DUMMY = "dummy"
+MENU_DAMAGE = "damage"
+MENU_HITBOXES = "hitboxes"
+MENU_INFO = "info"
+MENU_RESET = "reset"
+ON_OFF = ("off", "on")
 
 
 class BattleView(TickedView):
@@ -92,19 +134,33 @@ class BattleView(TickedView):
         seed: int = 0,
         max_ticks: int | None = None,
         training: bool = False,
+        rules: MatchRules | None = None,
+        flow: GameFlow | None = None,
+        setup: MatchSetup | None = None,
     ) -> None:
         """Create the view. See :class:`TickedView` for ``pixel_buffer`` and ``max_ticks``.
 
-        ``training`` turns players 2 to 4 into dummies and enables the dummy keys.
+        Args:
+            stage: where the match is played.
+            characters: one character per player.
+            seed: the match seed.
+            training: players 2 to 4 are dummies, and the pause menu has the training tools.
+            rules: the match rules; by default endless stocks and no countdown (a sandbox).
+            flow: the scene router to go to results or back to the menus with, if any.
+            setup: what the menus chose, kept for "Rematch".
         """
         super().__init__(pixel_buffer, max_ticks)
         self.stage = stage
         self.characters = list(characters)
         self.seed = seed
         self.training = training
-        self.dummies = training
+        self.rules = rules or MatchRules(stocks=None)
+        self.flow = flow
+        self.setup = setup
+        self.dummy = DummyBehavior.STAND if training else DummyBehavior.MANUAL
         self.match = self._new_match()
         self.inputs = InputSource(len(self.characters))
+        self.menu_input = MenuInput()
         self.renderer = WorldRenderer(pixel_buffer, stage)
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
         self.camera.snap_to(self._camera_targets())
@@ -114,16 +170,20 @@ class BattleView(TickedView):
         self.show_hitboxes = False
         self.show_overlay = False
         self.show_fighter_info = False
-        self.show_help = True
+        self.show_help = flow is None
         self.paused = False
+        self.menu_open = False
         self._advance_one = False
         self._message = ""
         self._message_ticks = 0
+        self._go_ticks = 0
+        self._over_ticks = 0
         self._held_keys: set[int] = set()
 
         glyphs = GlyphAtlas()
         self.overlay = StageOverlay(stage, glyphs)
-        self.hud = DamageHud(glyphs, len(self.characters), DAMAGE_HUD_BOTTOM)
+        names = [character.display_name for character in self.characters]
+        self.hud = DamageHud(glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names)
         self._text: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         help_lines = [*HELP_LINES, TRAINING_HELP] if training else list(HELP_LINES)
         self._help_text = list(reversed(help_lines))
@@ -137,16 +197,141 @@ class BattleView(TickedView):
             PixelLabel(glyphs, self._text, HUD_MARGIN, top - row * LINE_HEIGHT, HUD_CAPACITY)
             for row in range(rows)
         ]
+        self.banner = PixelLabel(
+            glyphs,
+            self._text,
+            0,
+            BANNER_BOTTOM,
+            BANNER_CAPACITY,
+            HIGHLIGHT,
+            scale=BANNER_SCALE,
+        )
+        self.clock = PixelLabel(
+            glyphs,
+            self._text,
+            centred_left(CLOCK_CAPACITY, CLOCK_SCALE),
+            NATIVE_H - HUD_MARGIN - GLYPH_HEIGHT * CLOCK_SCALE,
+            CLOCK_CAPACITY,
+            scale=CLOCK_SCALE,
+        )
+        self.pause_menu = self._build_pause_menu()
+        self.pause_ui = UiLayer(glyphs)
+        self._build_pause_ui()
 
     def _new_match(self) -> Match:
-        return Match.create(self.stage, self.characters, self.seed, MatchRules(stocks=None))
+        return Match.create(self.stage, self.characters, self.seed, self.rules)
+
+    @property
+    def dummies(self) -> bool:
+        """Whether players 2 to 4 are run by a dummy behaviour instead of their devices."""
+        return self.dummy is not DummyBehavior.MANUAL
+
+    @dummies.setter
+    def dummies(self, value: bool) -> None:
+        self.dummy = DummyBehavior.STAND if value else DummyBehavior.MANUAL
+
+    # --- pause menu ------------------------------------------------------------------------
+
+    def _build_pause_menu(self) -> Menu:
+        items = [MenuItem(MENU_RESUME, "Resume")]
+        if self.training:
+            behaviors = tuple(behavior.value for behavior in DummyBehavior)
+            items += [
+                MenuItem(MENU_DUMMY, "Dummy", behaviors, behaviors.index(self.dummy.value)),
+                MenuItem(MENU_DAMAGE, ""),
+                MenuItem(MENU_HITBOXES, "Hitboxes", ON_OFF),
+                MenuItem(MENU_INFO, "Fighter info", ON_OFF),
+                MenuItem(MENU_RESET, "Reset positions"),
+            ]
+        items.append(MenuItem(MENU_HELP, "Controls help", ON_OFF, int(self.show_help)))
+        back = "Quit to character select" if self.flow is not None else "Quit"
+        items.append(MenuItem(MENU_QUIT, back))
+        return Menu(items)
+
+    def _build_pause_ui(self) -> None:
+        rows = len(self.pause_menu.items)
+        height = (rows + 3) * (GLYPH_HEIGHT + 2) + 16
+        left = (NATIVE_W - PAUSE_PANEL_WIDTH) // 2
+        bottom = (NATIVE_H - height) // 2
+        self.pause_ui.panel(0, 0, NATIVE_W, NATIVE_H, art.DIM_OVERLAY, art.DIM_OVERLAY)
+        self.pause_ui.panel(left, bottom, PAUSE_PANEL_WIDTH, height)
+        self.pause_ui.centred("PAUSED", bottom + height - GLYPH_HEIGHT * 2 - 8, HIGHLIGHT, 2)
+        self._pause_rows = TextBlock(
+            self.pause_ui,
+            left + 16,
+            bottom + height - GLYPH_HEIGHT * 2 - 16,
+            rows,
+            PAUSE_ROW_CAPACITY,
+        )
+
+    def open_menu(self) -> None:
+        """Pause and show the pause menu."""
+        self.menu_open = True
+        self.pause_menu.cursor = 0
+        self.menu_input.reset()
+        self._sync_pause_menu()
+
+    def close_menu(self) -> None:
+        """Hide the pause menu and carry on."""
+        self.menu_open = False
+
+    def _sync_pause_menu(self) -> None:
+        """Make the menu rows show the scene's current settings."""
+        menu = self.pause_menu
+        menu.item(MENU_HELP).index = int(self.show_help)
+        if self.training:
+            behaviors = [behavior.value for behavior in DummyBehavior]
+            menu.item(MENU_DUMMY).index = behaviors.index(self.dummy.value)
+            menu.item(MENU_HITBOXES).index = int(self.show_hitboxes)
+            menu.item(MENU_INFO).index = int(self.show_fighter_info)
+            dummies = self.match.fighters[FIRST_DUMMY:]
+            damage = dummies[0].damage if dummies else 0.0
+            menu.item(MENU_DAMAGE).label = f"Dummy damage: < {damage:.0f}% >"
+
+    def menu_action(self, action: MenuAction) -> None:
+        """Handle one navigation action in the pause menu."""
+        menu = self.pause_menu
+        if action is MenuAction.BACK:
+            self.close_menu()
+            return
+        if menu.selected.key == MENU_DAMAGE and action in (MenuAction.LEFT, MenuAction.RIGHT):
+            step = -DUMMY_DAMAGE_STEP if action is MenuAction.LEFT else DUMMY_DAMAGE_STEP
+            self.change_dummy_damage(step)
+        chosen = menu.apply(action)
+        if chosen == MENU_RESUME:
+            self.close_menu()
+        elif chosen == MENU_RESET:
+            self.restart()
+            self.close_menu()
+        elif chosen == MENU_QUIT:
+            self.quit_match()
+        self.show_help = bool(menu.item(MENU_HELP).index)
+        if self.training:
+            self.dummy = DummyBehavior(menu.item(MENU_DUMMY).value)
+            self.show_hitboxes = bool(menu.item(MENU_HITBOXES).index)
+            self.show_fighter_info = bool(menu.item(MENU_INFO).index)
+        self._sync_pause_menu()
+
+    def quit_match(self) -> None:
+        """Leave the match: back to character select, or close the window in a sandbox."""
+        if self.flow is not None and self.setup is not None:
+            self.flow.show_character_select(self.setup)
+        else:
+            self.window.close()
 
     # --- input -----------------------------------------------------------------------------
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
-        """Track held keys for the players and handle the debug and training keys."""
+        """Track held keys for the players and handle the menu, debug and training keys."""
         self._held_keys.add(symbol)
-        if symbol == KEY_HITBOXES:
+        if symbol in KEYS_MENU:
+            if not self.menu_open:
+                self.open_menu()
+            elif symbol == arcade.key.ESCAPE:
+                self.close_menu()
+            else:
+                self.menu_action(MenuAction.CONFIRM)
+        elif symbol == KEY_HITBOXES:
             self.show_hitboxes = not self.show_hitboxes
         elif symbol == KEY_OVERLAY:
             self.show_overlay = not self.show_overlay
@@ -193,6 +378,8 @@ class BattleView(TickedView):
         """Start the match over (F8)."""
         self.match = self._new_match()
         self.effects.clear()
+        self._go_ticks = 0
+        self._over_ticks = 0
         self.camera.snap_to(self._camera_targets())
 
     def reload_data(self) -> None:
@@ -230,18 +417,49 @@ class BattleView(TickedView):
         """Advance one fixed step: poll input, step the sim, update effects and the camera."""
         if self._message_ticks > 0:
             self._message_ticks -= 1
+        frames = self.inputs.poll(self._held_keys)
+        if self.menu_open:
+            for fired in self.menu_input.update(frames):
+                for action in MenuAction:
+                    if action in fired and self.menu_open:
+                        self.menu_action(action)
+            return
         if self.paused and not self._advance_one:
             return
         self._advance_one = False
-        frames = self.inputs.poll(self._held_keys)
-        if self.dummies:
-            frames[FIRST_DUMMY:] = [NEUTRAL_INPUT] * len(frames[FIRST_DUMMY:])
-        self.match.tick(frames)
+        if self.match.phase is MatchPhase.OVER and self._after_game():
+            return
+        was_counting = self.match.phase is MatchPhase.COUNTDOWN
+        self.match.tick(self._player_frames(frames))
+        if was_counting and self.match.phase is MatchPhase.PLAYING:
+            self._go_ticks = GO_TICKS
+        elif self._go_ticks > 0:
+            self._go_ticks -= 1
         self.effects.tick()
         self.effects.consume(self.match.events)
         targets = self._camera_targets()
         if targets:
             self.camera.update(targets)
+
+    def _player_frames(self, frames: list[InputFrame]) -> list[InputFrame]:
+        """Replace the dummies' input with their behaviour."""
+        if self.dummy is DummyBehavior.MANUAL:
+            return frames
+        frame = self.match.frame
+        return [
+            dummy_frame(self.dummy, frame, manual) if index >= FIRST_DUMMY else manual
+            for index, manual in enumerate(frames)
+        ]
+
+    def _after_game(self) -> bool:
+        """Run the "GAME!" slow-motion and move on to the results. Returns whether to skip
+        this tick's sim step."""
+        self._over_ticks += 1
+        if self._over_ticks > GAME_HOLD_TICKS and self.flow is not None and self.setup is not None:
+            self.flow.show_results(self.setup, self.match)
+            return True
+        slow = self._over_ticks <= GAME_SLOW_TICKS
+        return slow and self._over_ticks % GAME_SLOW_FACTOR != 0
 
     def _in_play(self) -> list[Fighter]:
         return [fighter for fighter in self.match.fighters if fighter.in_play]
@@ -249,6 +467,16 @@ class BattleView(TickedView):
     def _camera_targets(self) -> list[Vec3]:
         lift = Vec3(0.0, 0.0, BODY_CENTRE_HEIGHT)
         return [fighter.pos + lift for fighter in self._in_play()]
+
+    def _screen_positions(self, fighters: Sequence[Fighter]) -> list[tuple[float, float]]:
+        """Return each fighter's middle in native screen pixels."""
+        centre_x, centre_y = self.camera.pixel_centre
+        positions = []
+        for fighter in fighters:
+            pos = fighter.pos
+            sx, sy = project(pos.x, pos.y, pos.z + BODY_CENTRE_HEIGHT)
+            positions.append((sx - centre_x + NATIVE_W / 2, sy - centre_y + NATIVE_H / 2))
+        return positions
 
     def on_draw(self) -> None:
         """Draw the world at native resolution, then upscale it to the window."""
@@ -266,6 +494,7 @@ class BattleView(TickedView):
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
         self.hud.update(self.match.fighters, self.effects)
+        self.hud.place_bubbles(fighters, self._screen_positions(fighters))
         self._update_text()
 
         overlays: list[Overlay] = [self.effect_renderer]
@@ -279,13 +508,35 @@ class BattleView(TickedView):
             self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays)
             self.hud.draw()
             self._text.draw(pixelated=True)
+            if self.menu_open:
+                self._pause_rows.set_lines(self.pause_menu.lines(), self.pause_menu.cursor)
+                self.pause_ui.draw()
         self.blit_to_window()
 
-    # --- debug text ------------------------------------------------------------------------
+    # --- text ------------------------------------------------------------------------------
+
+    def banner_text(self) -> str:
+        """Return the big text in the middle of the screen: the countdown, GO!, or GAME!."""
+        match = self.match
+        if match.phase is MatchPhase.OVER:
+            return "GAME!"
+        if match.phase is MatchPhase.COUNTDOWN:
+            announcing = match.rules.countdown_frames - match.countdown < SUDDEN_DEATH_TEXT_FRAMES
+            if match.sudden_death and announcing:
+                return "SUDDEN DEATH"
+            return countdown_text(match.countdown)
+        return "GO!" if self._go_ticks > 0 else ""
 
     def _update_text(self) -> None:
         for label, line in zip(self._help, self._help_text, strict=True):
             label.text = line if self.show_help else ""
+
+        banner = self.banner_text()
+        if banner != self.banner.text:
+            self.banner.move_to(centred_left(len(banner), BANNER_SCALE), BANNER_BOTTOM)
+            self.banner.text = banner
+        time_left = self.match.time_left
+        self.clock.text = "" if time_left is None else clock_text(time_left)
 
         lines: list[str] = []
         if self.show_fighter_info or self.show_overlay:

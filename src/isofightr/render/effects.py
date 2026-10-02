@@ -130,14 +130,16 @@ def shake_pixels(knockback: float) -> int:
     return min(SHAKE_MAX_PIXELS, max(1, round(knockback / SHAKE_KNOCKBACK_PER_PIXEL)))
 
 
-def _small_spark(event: Event) -> bool:
-    """Return whether an event gets the smallest spark: a tech, wall bounce, ledge grab,
-    grab clash, or a projectile ending."""
+def _small_spark_at(event: Event) -> Vec3 | None:
+    """Return where an event gets the smallest spark, or ``None`` if it gets none: a tech,
+    wall bounce, ledge grab, grab clash, or a projectile ending."""
     if isinstance(event, GrabEvent):
-        return event.clash
+        return event.position if event.clash else None
     if isinstance(event, ProjectileEvent):
-        return not event.spawned
-    return isinstance(event, TechEvent | WallBounceEvent | LedgeGrabEvent)
+        return None if event.spawned else event.position
+    if isinstance(event, TechEvent | WallBounceEvent | LedgeGrabEvent):
+        return event.position
+    return None
 
 
 @dataclass(slots=True)
@@ -174,11 +176,13 @@ class BattleEffects:
             elif isinstance(event, CounterEvent):
                 self.flash[event.player] = COUNTER_FLASH_FRAMES
                 self.shake.start(PARRY_SHAKE_PIXELS)
-            elif _small_spark(event):
-                self.sparks.append(Spark(event.position, SMALL_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, KoEvent):
                 self.shake.start(KO_SHAKE_PIXELS)
                 self.flash.pop(event.player, None)
+            else:
+                point = _small_spark_at(event)
+                if point is not None:
+                    self.sparks.append(Spark(point, SMALL_SPARK_TIER, Effect.NORMAL))
 
     def tick(self) -> None:
         """Advance every effect by one sim tick."""

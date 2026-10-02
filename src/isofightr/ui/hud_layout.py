@@ -51,3 +51,35 @@ def panel_lefts(player_count: int) -> list[int]:
         round(NATIVE_W * (index + 1) / (player_count + 1) - PANEL_WIDTH / 2)
         for index in range(player_count)
     ]
+
+
+MAX_STOCK_ICONS: Final[int] = 5
+"""More stocks than this are shown as one icon and a number."""
+STOCK_ICON_STEP: Final[int] = 9
+"""Horizontal distance between stock icons, in pixels."""
+BUBBLE_MARGIN: Final[int] = 12
+"""Distance of an off-screen marker's centre from the screen edge, in pixels."""
+
+
+def stock_icons_shown(stocks: int | None) -> int:
+    """Return how many stock icons to draw: one per stock, or a single one beside a count."""
+    if stocks is None or stocks <= 0:
+        return 0
+    return stocks if stocks <= MAX_STOCK_ICONS else 1
+
+
+def stock_count_text(stocks: int | None) -> str:
+    """Return the number shown next to the single icon when there are too many stocks."""
+    return f"x{stocks}" if stocks is not None and stocks > MAX_STOCK_ICONS else ""
+
+
+def bubble_position(
+    screen_x: float, screen_y: float, width: int, height: int
+) -> tuple[int, int] | None:
+    """Return where to draw the marker for a fighter at a screen position, or ``None`` if the
+    fighter is in view. The marker sits on the nearest point of the screen's edge."""
+    if 0 <= screen_x <= width and 0 <= screen_y <= height:
+        return None
+    x = min(max(screen_x, BUBBLE_MARGIN), width - BUBBLE_MARGIN)
+    y = min(max(screen_y, BUBBLE_MARGIN), height - BUBBLE_MARGIN)
+    return (round(x), round(y))

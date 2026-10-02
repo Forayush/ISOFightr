@@ -20,6 +20,7 @@ from isofightr.config import (
 )
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
+from isofightr.scenes.flow import GameFlow
 from isofightr.scenes.test_pattern import TestPatternView
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.stage import Stage
@@ -85,6 +86,7 @@ def run(
     fullscreen: bool = False,
     max_ticks: int | None = None,
     training: bool = False,
+    menus: bool = False,
 ) -> None:
     """Open the game window and block until it closes.
 
@@ -96,9 +98,15 @@ def run(
         fullscreen: start fullscreen; the buffer is integer-scaled and letterboxed.
         max_ticks: close automatically after this many simulation ticks (smoke runs).
         training: start in training mode (players 2 to 4 are dummies).
+        menus: start at the title screen and let the menus set up matches; ``stage`` and
+            ``characters`` are then ignored.
     """
     window = GameWindow(scale=scale, fullscreen=fullscreen)
     view: arcade.View
+    if menus:
+        GameFlow(window, window.pixel_buffer, seed, max_ticks).show_title()
+        arcade.run()
+        return
     if stage is None:
         view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
     else:

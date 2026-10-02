@@ -2,7 +2,8 @@
 
 Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". Built so
 far: the window options (M0), ``--stage`` (M1), ``--p1`` to ``--p4``, ``--seed`` and
-``--headless`` (M2), and ``--training`` (M3). ``--cpu``, ``--replay`` and ``--record`` are
+``--headless`` (M2), ``--training`` (M3) and ``--battle`` (M6: without it, ``--stage`` or
+``--training``, the game starts at the title screen). ``--cpu``, ``--replay`` and ``--record`` are
 added by the milestones that build what they control.
 """
 
@@ -64,6 +65,12 @@ def build_parser() -> argparse.ArgumentParser:
         f"{TRAINING_STAGE_ID} with --training)",
     )
     parser.add_argument(
+        "--battle",
+        action="store_true",
+        help="skip the menus and start a match at once with --p1 to --p4 and --stage "
+        "(endless stocks). --stage and --training do the same",
+    )
+    parser.add_argument(
         "--training",
         action="store_true",
         help="training mode: player 2 is a dummy; see the on-screen help for the tools",
@@ -99,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     return parser
+
+
+def skips_menus(args: argparse.Namespace) -> bool:
+    """Return whether the command line asks to go straight into a match."""
+    return bool(args.battle or args.training or args.stage is not None)
 
 
 def stage_id(args: argparse.Namespace) -> str:
@@ -153,6 +165,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         fullscreen=args.fullscreen,
         max_ticks=args.frames,
         training=args.training,
+        menus=not (skips_menus(args) or args.test_pattern),
     )
     return 0
 

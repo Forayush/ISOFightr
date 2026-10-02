@@ -1,0 +1,38 @@
+# Final Plateau: a flat 14x10 island with no platforms. The plain, no-excuses stage.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+# On screen, +x runs toward the bottom-right and +y toward the bottom-left.
+id = "final_plateau"
+display_name = "Final Plateau"
+tileset = "stone"
+
+# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+grid = """
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+00000000000000
+"""
+
+[legend]
+"0" = { height = 0, tile = "stone" }
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [3.5, 5.0]
+p2 = [10.5, 5.0]
+p3 = [7.0, 2.5]
+p4 = [7.0, 7.5]
+respawn = [7.0, 5.0]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
