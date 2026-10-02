@@ -1,11 +1,9 @@
-"""Render smoke tests: need a real OpenGL window, so they are opt-in (``pytest -m gl``).
+"""Render smoke tests for the pixel buffer: need a real OpenGL window (``pytest -m gl``).
 
 Plan note "16 - Testing Debug and Tooling" lists these as optional and skipped in CI. They
 prove the M0 exit criterion mechanically: the native buffer holds the test pattern exactly,
 and the upscale reproduces every native pixel as an exact ``scale x scale`` block.
 """
-
-from collections.abc import Iterator
 
 import pytest
 from PIL import Image, ImageChops
@@ -17,15 +15,6 @@ from isofightr.render.pixel_scale import integer_scale_viewport
 pytestmark = pytest.mark.gl
 
 LETTERBOX_PROBE_COLOR = (255, 0, 255, 255)
-
-
-@pytest.fixture(scope="module")
-def window() -> Iterator["GameWindow"]:  # type: ignore[name-defined]  # noqa: F821
-    from isofightr.app import GameWindow
-
-    game_window = GameWindow(visible=False)
-    yield game_window
-    game_window.close()
 
 
 def _read_rgba(framebuffer, size: tuple[int, int]) -> Image.Image:  # type: ignore[no-untyped-def]
@@ -44,10 +33,10 @@ def _expected_native_frame(tick: int) -> Image.Image:
 
 
 def _draw_view(window, max_ticks: int | None = None):  # type: ignore[no-untyped-def]
-    from isofightr.scenes.battle import BattleView
+    from isofightr.scenes.test_pattern import TestPatternView
 
     window.switch_to()
-    view = BattleView(window.pixel_buffer, max_ticks=max_ticks)
+    view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
     window.show_view(view)
     return view
 

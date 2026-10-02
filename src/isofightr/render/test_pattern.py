@@ -13,6 +13,7 @@ Pure Pillow (no ``arcade``) so the image can be unit tested. All coordinates in 
 image coordinates (origin top-left, y down) unless a name says otherwise.
 """
 
+from collections.abc import Callable
 from typing import Final
 
 from PIL import Image, ImageDraw, ImageFont
@@ -135,7 +136,7 @@ def _draw_one_pixel_blocks(image: Image.Image) -> None:
     """Draw 1 px checker, vertical-stripe and horizontal-stripe blocks, left to right."""
     pixels = image.load()
     assert pixels is not None
-    patterns = (
+    patterns: tuple[Callable[[int, int], bool], ...] = (
         lambda x, y: (x + y) % 2 == 0,
         lambda x, y: x % 2 == 0,
         lambda x, y: y % 2 == 0,

@@ -1,15 +1,21 @@
 """``python -m isofightr`` entrypoint and CLI flags.
 
 Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". M0 covers
-the window options; match setup flags (``--p1``, ``--stage``, ``--training``, ``--headless``,
-``--replay``...) are added by the milestones that build what they control.
+the window options and M1 adds ``--stage``; the other match setup flags (``--p1``,
+``--training``, ``--headless``, ``--replay``...) are added by the milestones that build what
+they control.
 """
 
 import argparse
 import logging
+import sys
 from collections.abc import Sequence
 
-from isofightr.config import DEFAULT_WINDOW_SCALE, MIN_WINDOW_SCALE
+from isofightr.config import DEFAULT_STAGE_ID, DEFAULT_WINDOW_SCALE, MIN_WINDOW_SCALE
+from isofightr.data.stage_loader import load_stage
+from isofightr.data.validation import DataError
+
+EXIT_DATA_ERROR = 2
 
 
 def _positive_int(text: str) -> int:
@@ -41,6 +47,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--fullscreen", action="store_true", help="start in fullscreen")
     parser.add_argument(
+        "--stage",
+        default=DEFAULT_STAGE_ID,
+        metavar="ID",
+        help="stage to load from assets/stages (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--test-pattern",
+        action="store_true",
+        help="show the pixel test pattern instead of a stage (checks display scaling)",
+    )
+    parser.add_argument(
         "--frames",
         type=_positive_int,
         default=None,
@@ -56,10 +73,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
 
+    # Data is loaded first, so a bad --stage is reported without ever opening a window.
+    try:
+        stage = None if args.test_pattern else load_stage(args.stage)
+    except DataError as error:
+        print(f"isofightr: {error}", file=sys.stderr)
+        return EXIT_DATA_ERROR
+
     # Imported here so parsing (and --help) works without creating an OpenGL context.
     from isofightr.app import run
 
-    run(scale=args.scale, fullscreen=args.fullscreen, max_ticks=args.frames)
+    run(stage, scale=args.scale, fullscreen=args.fullscreen, max_ticks=args.frames)
     return 0
 
 

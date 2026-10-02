@@ -19,6 +19,8 @@ from isofightr.config import (
 )
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
+from isofightr.scenes.test_pattern import TestPatternView
+from isofightr.sim.stage import Stage
 
 LOG = logging.getLogger(__name__)
 
@@ -74,6 +76,7 @@ class GameWindow(arcade.Window):
 
 
 def run(
+    stage: Stage | None,
     scale: int = DEFAULT_WINDOW_SCALE,
     fullscreen: bool = False,
     max_ticks: int | None = None,
@@ -81,10 +84,16 @@ def run(
     """Open the game window and block until it closes.
 
     Args:
+        stage: the stage to play on, or ``None`` to show the pixel test pattern instead.
         scale: integer upscale of the native buffer for the windowed size.
         fullscreen: start fullscreen; the buffer is integer-scaled and letterboxed.
         max_ticks: close automatically after this many simulation ticks (smoke runs).
     """
     window = GameWindow(scale=scale, fullscreen=fullscreen)
-    window.show_view(BattleView(window.pixel_buffer, max_ticks=max_ticks))
+    view: arcade.View
+    if stage is None:
+        view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
+    else:
+        view = BattleView(window.pixel_buffer, stage, max_ticks=max_ticks)
+    window.show_view(view)
     arcade.run()
