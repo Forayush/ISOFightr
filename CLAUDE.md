@@ -43,9 +43,9 @@ uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
 uv run python tools/kill_calc.py          # KO percent of every move, from the real sim
 ```
-(As of M3 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--training`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+(As of M4 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--training`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
 
-Controls as of M3 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `J` attack, `U` strong (smash), `Left Ctrl` walk; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers, `Num4` attack, `Num7` strong; a connected controller also drives its player (A attack, LB strong, right stick up/down = modifiers, right stick sideways = forward smash). Debug keys (`scenes/battle.py`): `F1` hitboxes and hurtboxes, `F2` fighter info, `F3` stage overlay, `F5` pause, `F6` frame advance, `F8` restart, `F9` hot-reload character and move data, `H` help text, `C` camera clamp, `F11` fullscreen. In `--training`: `-` / `=` dummy damage, `0` reset it, `Tab` dummy control on/off.
+Controls as of M4 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `J` attack, `U` strong (smash), `L` grab, `Left Shift` shield, `Left Ctrl` walk; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers, `Num4` attack, `Num7` strong, `Num6` grab, `Num1` shield; a connected controller also drives its player (A attack, LB strong, RB grab, triggers shield, right stick up/down = modifiers, right stick sideways = forward smash). Shield + down = spot dodge, shield + stick flick = roll, shield in the air = air dodge, shield just before landing in tumble = tech. Debug keys (`scenes/battle.py`): `F1` hitboxes and hurtboxes, `F2` fighter info, `F3` stage overlay, `F5` pause, `F6` frame advance, `F8` restart, `F9` hot-reload character and move data, `H` help text, `C` camera clamp, `F11` fullscreen. In `--training`: `-` / `=` dummy damage, `0` reset it, `Tab` dummy control on/off.
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
@@ -100,15 +100,26 @@ Controls as of M3 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 - Staling is fixed when a move starts (`fighter.move_stale`), so every hit of a multi-hit move is staled alike; the queue is pushed once per move use that connects.
 - Knockback velocity (`kb_vel`) is separate from self velocity (`vel`). It decays every frame, and on the ground the fighter's traction slows it too.
 - State hooks: `on_land` and `on_leave_ground` on a `State` decide what landing or walking off an edge does in that state (aerial landing lag, tumble → knockdown, flinch keeps flinching).
-- Goldens can set `start_damage`; the two `combat_*` goldens start at 90% so random input produces tumbles, knockdowns and clanks.
+- Goldens can set `start_damage` and `rules`; the two `combat_*` goldens start at 90% with the optional rules on, so random input produces tumbles, knockdowns, clanks, grabs, ledge play and techs.
 
-## Rendering notes (as built in M1 to M3)
+## Defense notes (as built in M4)
+- **Intangible vs invincible:** `fighter.intangible_frames` (dodges, ledge, tech, getup) means hits and grabs pass through with no hitlag; `invincible_frames` (respawn) means the hit connects but does nothing. Open a window with `open_intangible_window(fighter, (first, last))` from a state's `enter` and `step`.
+- **Shield:** blocking is decided in hit resolution: a hitbox that touches the shield sphere (`sim/combat/shield.py`) is blocked, one that reaches the hurtbox without touching it pokes. State changes caused by hits are collected and applied after all hits of the tick.
+- **Grabs:** `sim/combat/grab.py` has the helpers and never changes a fighter's state, so state modules may import it; `sim/combat/grab_resolution.py` runs after hit resolution (a grabber hit on the same tick does not grab). A grab pair is linked by `grab_partner` on both fighters; the `exit` of `GrabHold`, `Throw` and `Grabbed` keeps the link consistent whatever interrupts the hold. Do not import `sim.states` from `combat/grab.py` (import cycle).
+- **State flags** on `State`: `uses_physics = False` for states that place the fighter themselves (hanging, climbing, being held), `stops_at_edges` for grounded states that must not go over an edge (shield, rolls, grabs, techs), `grabs_ledges` for airborne states that catch ledges, `regens_shield`.
+- **Ledges:** `sim/states/ledge.py`. `try_grab_ledge` runs after each airborne fighter's physics step. Ledge options need a fresh input (a flick or a press) so that whatever was held while recovering does not pick one.
+- **Tech:** a shield press during tumble hitstun opens an 11-frame window and a 40-frame lockout; `Tumble.on_land` and `Tumble.on_wall` read it. Physics reports wall hits through `StepResult.wall_normal` and the state's `on_wall` hook.
+- **Timers** (`Match._upkeep`): intangibility, ledge cooldown, tech window and lockout, dodge staling and shield regeneration tick once per frame for every fighter not in hitlag.
+- **Optional rules:** `MatchRules.parry` and `MatchRules.air_dodge_helpless`, both off by default.
+- Four states are too rare for random input (`SHIELD_BREAK`, `DIZZY`, `LEDGE_TRUMPED`, `WALL_TECH`): they are listed in `SCENARIO_ONLY_STATES` in `tests/test_match.py` and must stay covered by scenario tests. Do not add to that list lightly.
+
+## Rendering notes (as built in M1 to M4)
 - **World draw order comes from `render/depth.py`, never from a scalar sort key.** It is a topological sort over geometric constraints between sprites that overlap on screen (decision D-019). To add a new kind of world sprite, give it a `DynamicItem` (position, height, exact pixel rect) and let the sorter place it.
 - The rect passed to the sorter must bound **every pixel the sprite draws**. A rect that is too small silently drops constraints.
 - `uv run pytest -m gl` includes an occlusion sweep against a geometric oracle (`tests/test_world_render.py`). Run it after any change to sorting, tile art geometry or sprite anchoring.
 - Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `effects.py`, `fighter_look.py`, `hitbox_shapes.py`, `ui/pixel_font.py`, `ui/hud_layout.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display. `tests/test_sim_purity.py` lists them; split anything that draws into its own module (`effect_renderer.py`, `hitbox_overlay.py`, `ui/hud.py`).
 - Hit feedback is presentation only: `render/effects.py` (`BattleEffects`) consumes `match.events` once per sim tick and holds sparks, screen shake, hit flash and HUD pops; `render/fighter_look.py` picks each fighter's pose, flash and hitlag shake from sim state. The VFX layer and debug overlays are drawn over the sorted world, not depth-sorted.
-- Until moves have animations, an attack is shown as a translucent blob drawn exactly where each active hitbox is (`build_swing`), so the visuals and the F1 overlay cannot disagree.
+- Until moves have animations, an attack is shown as a translucent blob drawn exactly where each active hitbox is (`build_swing`), so the visuals and the F1 overlay cannot disagree. Grab boxes and the shield bubble (`build_shield`) are drawn the same way, at their real size.
 - A fighter the stage partly hides gets a faint "x-ray" copy drawn over the world (`OCCLUDED_FIGHTER_ALPHA`, decision D-025), because platforms and the island otherwise hide fighters completely in this projection.
 
 ## Assets and legal
@@ -122,3 +133,7 @@ Controls as of M3 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 - Don't edit files under `assets/**/sheet_*.png|json` by hand (they are generated).
 - Don't change plan notes' meaning without a Decision Log entry. Fixing typos or filling in real values is fine.
 - Don't rename notes in `D:\dwthiw\isofighter\plan\`. Obsidian `[[wikilinks]]` depend on the filenames.
+
+## Git & Commit Rules
+- Do not include `Co-authored-by` trailers or any Claude/Anthropic attribution in git commit messages.
+- Author all commits solely under the local git user configuration.
