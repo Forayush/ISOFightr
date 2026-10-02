@@ -7,6 +7,7 @@ then the window opens straight into :class:`~isofightr.scenes.battle.BattleView`
 
 import logging
 from collections.abc import Sequence
+from pathlib import Path
 
 import arcade
 import pyglet
@@ -18,11 +19,14 @@ from isofightr.config import (
     TICK_SECONDS,
     WINDOW_TITLE,
 )
+from isofightr.data.character_loader import load_character
+from isofightr.data.stage_loader import load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
 from isofightr.scenes.test_pattern import TestPatternView
 from isofightr.sim.character_def import CharacterDef
+from isofightr.sim.replay import Replay
 from isofightr.sim.stage import Stage
 
 LOG = logging.getLogger(__name__)
@@ -87,6 +91,7 @@ def run(
     max_ticks: int | None = None,
     training: bool = False,
     menus: bool = False,
+    record: Path | None = None,
 ) -> None:
     """Open the game window and block until it closes.
 
@@ -100,18 +105,46 @@ def run(
         training: start in training mode (players 2 to 4 are dummies).
         menus: start at the title screen and let the menus set up matches; ``stage`` and
             ``characters`` are then ignored.
+        record: save every match as a replay file (the path, then ``-2``, ``-3``...).
     """
     window = GameWindow(scale=scale, fullscreen=fullscreen)
     view: arcade.View
     if menus:
-        GameFlow(window, window.pixel_buffer, seed, max_ticks).show_title()
+        GameFlow(window, window.pixel_buffer, seed, max_ticks, record).show_title()
         arcade.run()
         return
     if stage is None:
         view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
     else:
         view = BattleView(
-            window.pixel_buffer, stage, characters, seed, max_ticks=max_ticks, training=training
+            window.pixel_buffer,
+            stage,
+            characters,
+            seed,
+            max_ticks=max_ticks,
+            training=training,
+            record=record,
         )
+    window.show_view(view)
+    arcade.run()
+
+
+def run_replay(
+    replay: Replay,
+    scale: int = DEFAULT_WINDOW_SCALE,
+    fullscreen: bool = False,
+    max_ticks: int | None = None,
+) -> None:
+    """Open the game window and play a replay back. Blocks until the window closes."""
+    window = GameWindow(scale=scale, fullscreen=fullscreen)
+    view = BattleView(
+        window.pixel_buffer,
+        load_stage(replay.stage),
+        [load_character(name) for name in replay.characters],
+        replay.seed,
+        max_ticks=max_ticks,
+        rules=replay.rules,
+        replay=replay,
+    )
     window.show_view(view)
     arcade.run()

@@ -2,15 +2,16 @@
 
 Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". Built so
 far: the window options (M0), ``--stage`` (M1), ``--p1`` to ``--p4``, ``--seed`` and
-``--headless`` (M2), ``--training`` (M3) and ``--battle`` (M6: without it, ``--stage`` or
-``--training``, the game starts at the title screen). ``--cpu``, ``--replay`` and ``--record`` are
-added by the milestones that build what they control.
+``--headless`` (M2), ``--training`` (M3), ``--battle`` (M6: without it, ``--stage`` or
+``--training``, the game starts at the title screen), and ``--record`` and ``--replay`` (M7).
+``--cpu`` arrives with the AI.
 """
 
 import argparse
 import logging
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from isofightr.config import (
     DEFAULT_CHARACTER_ID,
@@ -22,11 +23,17 @@ from isofightr.config import (
     TRAINING_STAGE_ID,
 )
 from isofightr.data.character_loader import load_character
+from isofightr.data.replay_io import load_replay, match_for, save_replay
 from isofightr.data.stage_loader import load_stage
 from isofightr.data.validation import DataError
-from isofightr.headless import run_headless
+from isofightr.headless import HEADLESS_RULES, replay_headless, run_headless
+from isofightr.sim.replay import Recorder, ReplayError
 
 EXIT_DATA_ERROR = 2
+EXIT_REPLAY_MISMATCH = 3
+REPLAY_MISMATCH_TEXT = (
+    "replay does NOT match the recorded state: the game's data or rules have changed since"
+)
 
 
 def _positive_int(text: str) -> int:
@@ -104,6 +111,21 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="stop automatically after N simulation ticks",
     )
+    parser.add_argument(
+        "--record",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="record every match of this session to a replay file (PATH, then PATH-2...)",
+    )
+    parser.add_argument(
+        "--replay",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="play a replay file back; with --headless, only check that it still ends in "
+        "the recorded state",
+    )
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     return parser
 
@@ -134,8 +156,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
-    if args.headless and args.frames is None:
+    if args.headless and args.frames is None and args.replay is None:
         parser.error("--headless needs --frames N")
+    if args.replay is not None and (args.record is not None or args.training):
+        parser.error("--replay cannot be combined with --record or --training")
+    if args.replay is not None:
+        return _replay(args)
     if args.headless and args.test_pattern:
         parser.error("--headless and --test-pattern cannot be combined")
     if args.training and (args.headless or args.test_pattern):
@@ -151,7 +177,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.headless:
         assert stage is not None
-        print(run_headless(stage, characters, args.seed, args.frames).summary())
+        recorder = None
+        if args.record is not None:
+            names = tuple(character.id for character in characters)
+            recorder = Recorder(stage.id, names, args.seed, HEADLESS_RULES)
+        print(run_headless(stage, characters, args.seed, args.frames, recorder).summary())
+        if recorder is not None and recorder.final is not None:
+            save_replay(args.record, recorder.final)
+            print(f"recorded {recorder.final.ticks} ticks to {args.record}")
         return 0
 
     # Imported here so parsing, --help and --headless work without an OpenGL context.
@@ -166,7 +199,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         max_ticks=args.frames,
         training=args.training,
         menus=not (skips_menus(args) or args.test_pattern),
+        record=args.record,
     )
+    return 0
+
+
+def _replay(args: argparse.Namespace) -> int:
+    """Play a replay file back, in a window or headless."""
+    try:
+        replay = load_replay(args.replay)
+        match = match_for(replay)
+    except (ReplayError, DataError) as error:
+        print(f"isofightr: {error}", file=sys.stderr)
+        return EXIT_DATA_ERROR
+    if args.headless:
+        report, matches = replay_headless(match, replay)
+        print(report.summary())
+        print("replay matches the recorded state" if matches else REPLAY_MISMATCH_TEXT)
+        return 0 if matches else EXIT_REPLAY_MISMATCH
+
+    from isofightr.app import run_replay
+
+    run_replay(replay, scale=args.scale, fullscreen=args.fullscreen, max_ticks=args.frames)
     return 0
 
 

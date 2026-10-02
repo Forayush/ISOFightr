@@ -21,7 +21,7 @@ from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.combat.projectile_hits import resolve_projectile_hits
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
 from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent
-from isofightr.sim.fighter import Fighter, GroundKind, StateId
+from isofightr.sim.fighter import NO_TEAM, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame, facing_from_move
 from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
 from isofightr.sim.move_def import ProjectileDef
@@ -52,6 +52,10 @@ class MatchRules:
     """Frames of "3, 2, 1" before the fighters can move (0 = start at once)."""
     launch_rate: float = 1.0
     """Multiplier on all knockback."""
+    teams: tuple[int, ...] | None = None
+    """Team number per player in player order, or ``None`` for a free-for-all."""
+    friendly_fire: bool = False
+    """Whether teammates can hit each other (for half damage and knockback)."""
     parry: bool = False
     """Whether a hit in the first frames of dropping shield is parried (optional rule)."""
     air_dodge_helpless: bool = False
@@ -98,6 +102,10 @@ class Match:
                 f"a match needs 1 to {len(stage.spawns)} fighters, got {len(characters)}"
             )
         rules = rules or MatchRules()
+        if rules.teams is not None and len(rules.teams) != len(characters):
+            raise ValueError(
+                f"teams lists {len(rules.teams)} players, the match has {len(characters)}"
+            )
         centre = stage.respawn_point()
         fighters = []
         for index, character in enumerate(characters):
@@ -111,6 +119,7 @@ class Match:
                     facing=facing,
                     air_jumps_left=character.movement.air_jumps,
                     stocks=rules.stocks,
+                    team=NO_TEAM if rules.teams is None else rules.teams[index],
                 )
             )
         return cls(
@@ -417,6 +426,7 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         _canonical_vec2(fighter.drive),
         _round(fighter.damage),
         fighter.stocks,
+        fighter.team,
         fighter.invincible_frames,
         fighter.land_lag,
         fighter.move_id,
@@ -468,10 +478,10 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         tuple(fighter.air_moves_used),
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,
-        buffer.frame.held,
+        int(buffer.frame.held),
         None if buffer.frame.cstick is None else _canonical_vec2(buffer.frame.cstick),
-        buffer.pressed,
-        buffer.released,
+        int(buffer.pressed),
+        int(buffer.released),
         tuple(buffer.ages),
         tuple(_canonical_vec2(move) for move in buffer.history),
     )

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import arcade
@@ -29,6 +30,7 @@ import arcade
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
 from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
 from isofightr.data.character_loader import load_character
+from isofightr.data.replay_io import save_replay
 from isofightr.data.validation import DataError
 from isofightr.input.devices import InputSource
 from isofightr.render import placeholder_art as art
@@ -48,6 +50,7 @@ from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.input_frame import InputFrame
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec3
+from isofightr.sim.replay import Recorder, Replay
 from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui.hud import DamageHud
@@ -137,6 +140,8 @@ class BattleView(TickedView):
         rules: MatchRules | None = None,
         flow: GameFlow | None = None,
         setup: MatchSetup | None = None,
+        record: Path | None = None,
+        replay: Replay | None = None,
     ) -> None:
         """Create the view. See :class:`TickedView` for ``pixel_buffer`` and ``max_ticks``.
 
@@ -148,6 +153,9 @@ class BattleView(TickedView):
             rules: the match rules; by default endless stocks and no countdown (a sandbox).
             flow: the scene router to go to results or back to the menus with, if any.
             setup: what the menus chose, kept for "Rematch".
+            record: file to save this match's replay to (never in training, whose tools
+                change the match from outside).
+            replay: a replay to play back instead of reading the players' devices.
         """
         super().__init__(pixel_buffer, max_ticks)
         self.stage = stage
@@ -158,6 +166,11 @@ class BattleView(TickedView):
         self.flow = flow
         self.setup = setup
         self.dummy = DummyBehavior.STAND if training else DummyBehavior.MANUAL
+        self.record_path = None if training else record
+        self.replay = replay
+        self.replay_matches: bool | None = None
+        """Once a replay has played out: whether it ended on its recorded state."""
+        self.recorder: Recorder | None = None
         self.match = self._new_match()
         self.inputs = InputSource(len(self.characters))
         self.menu_input = MenuInput()
@@ -219,7 +232,17 @@ class BattleView(TickedView):
         self._build_pause_ui()
 
     def _new_match(self) -> Match:
+        if self.record_path is not None:
+            names = tuple(character.id for character in self.characters)
+            self.recorder = Recorder(self.stage.id, names, self.seed, self.rules)
         return Match.create(self.stage, self.characters, self.seed, self.rules)
+
+    def save_recording(self) -> None:
+        """Write the replay of the match so far, if this match is being recorded."""
+        if self.recorder is None or self.record_path is None or not self.recorder.inputs:
+            return
+        save_replay(self.record_path, self.recorder.finish(self.match))
+        LOG.info("recorded %d ticks to %s", len(self.recorder.inputs), self.record_path)
 
     @property
     def dummies(self) -> bool:
@@ -369,7 +392,8 @@ class BattleView(TickedView):
         self._held_keys.discard(symbol)
 
     def on_hide_view(self) -> None:
-        """Release the controllers when the view goes away."""
+        """Save the recording and release the controllers when the view goes away."""
+        self.save_recording()
         self.inputs.close()
 
     # --- training and debug tools ------------------------------------------------------------
@@ -395,6 +419,10 @@ class BattleView(TickedView):
             return
         self.characters = characters
         self.match.reload_characters(characters)
+        if self.recorder is not None:
+            self.recorder = None  # a replay cannot reproduce a mid-match data change
+            self.say("recording stopped: data was reloaded")
+            return
         self.say("reloaded " + ", ".join(sorted({character.id for character in characters})))
 
     def change_dummy_damage(self, change: float | None) -> None:
@@ -430,7 +458,17 @@ class BattleView(TickedView):
         if self.match.phase is MatchPhase.OVER and self._after_game():
             return
         was_counting = self.match.phase is MatchPhase.COUNTDOWN
-        self.match.tick(self._player_frames(frames))
+        if self.replay is not None:
+            if self.match.frame >= self.replay.ticks:
+                if self.replay_matches is None:
+                    self.replay_matches = self.match.state_hash() == self.replay.final_hash
+                return
+            played = list(self.replay.inputs[self.match.frame])
+        else:
+            played = self._player_frames(frames)
+            if self.recorder is not None:
+                self.recorder.record(played)
+        self.match.tick(played)
         if was_counting and self.match.phase is MatchPhase.PLAYING:
             self._go_ticks = GO_TICKS
         elif self._go_ticks > 0:
@@ -455,6 +493,8 @@ class BattleView(TickedView):
         """Run the "GAME!" slow-motion and move on to the results. Returns whether to skip
         this tick's sim step."""
         self._over_ticks += 1
+        if self.replay is not None:
+            return False
         if self._over_ticks > GAME_HOLD_TICKS and self.flow is not None and self.setup is not None:
             self.flow.show_results(self.setup, self.match)
             return True
@@ -518,6 +558,8 @@ class BattleView(TickedView):
     def banner_text(self) -> str:
         """Return the big text in the middle of the screen: the countdown, GO!, or GAME!."""
         match = self.match
+        if self.replay_matches is not None:
+            return "REPLAY END"
         if match.phase is MatchPhase.OVER:
             return "GAME!"
         if match.phase is MatchPhase.COUNTDOWN:
@@ -557,6 +599,11 @@ class BattleView(TickedView):
         elif self.show_overlay:
             clamp = "on" if self.camera.clamped else "off"
             parts.append(f"frame {self.match.frame}  camera clamp {clamp}")
+        if self.replay is not None:
+            verdict = {None: "", True: "  matches the recording", False: "  DOES NOT MATCH"}
+            parts.append(
+                f"REPLAY {self.match.frame}/{self.replay.ticks}{verdict[self.replay_matches]}"
+            )
         if self._message_ticks > 0:
             parts.append(self._message)
         return "  ".join(parts)

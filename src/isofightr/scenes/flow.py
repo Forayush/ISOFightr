@@ -6,9 +6,12 @@ select → stage select → battle → results → rematch or back to character 
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import arcade
 
 from isofightr.data.character_loader import load_character
+from isofightr.data.replay_io import numbered
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
@@ -33,12 +36,15 @@ class GameFlow:
         pixel_buffer: PixelBuffer,
         seed: int = 0,
         max_ticks: int | None = None,
+        record: Path | None = None,
     ) -> None:
         """Create the router. ``seed`` seeds the match seeds and random stage picks, so a
-        session is reproducible; ``max_ticks`` is handed to every scene (smoke runs)."""
+        session is reproducible; ``max_ticks`` is handed to every scene (smoke runs); with
+        ``record`` every versus match is saved as a replay (the path, then ``-2``, ``-3``...)."""
         self.window = window
         self.pixel_buffer = pixel_buffer
         self.max_ticks = max_ticks
+        self.record = record
         self.setup = MatchSetup()
         self.rng = Rng.seeded(seed)
         self.matches_started = 0
@@ -80,6 +86,7 @@ class GameFlow:
             rules=setup.rules(),
             flow=self,
             setup=setup,
+            record=None if self.record is None else numbered(self.record, self.matches_started),
         )
         self.window.show_view(view)
 
