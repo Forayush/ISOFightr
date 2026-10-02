@@ -330,7 +330,7 @@ def test_swing_blob_is_hitbox_sized_and_player_colored() -> None:
 
 
 def test_damage_color_ramp_matches_the_art_direction_note() -> None:
-    from isofightr.ui.hud import DAMAGE_RAMP, damage_color
+    from isofightr.ui.hud_layout import DAMAGE_RAMP, damage_color
 
     for stop, color in DAMAGE_RAMP:
         assert damage_color(stop) == color
@@ -342,14 +342,14 @@ def test_damage_color_ramp_matches_the_art_direction_note() -> None:
 
 
 def test_damage_text_rounds_down() -> None:
-    from isofightr.ui.hud import damage_text
+    from isofightr.ui.hud_layout import damage_text
 
     assert [damage_text(value) for value in (0, 2.625, 99.99, 100.0)] == ["0%", "2%", "99%", "100%"]
 
 
 @pytest.mark.parametrize("players", [1, 2, 3, 4])
 def test_hud_panels_are_spread_evenly_and_stay_on_screen(players: int) -> None:
-    from isofightr.ui.hud import PANEL_WIDTH, panel_lefts
+    from isofightr.ui.hud_layout import PANEL_WIDTH, panel_lefts
 
     lefts = panel_lefts(players)
     assert len(lefts) == players and lefts == sorted(lefts)
@@ -364,7 +364,7 @@ def test_hud_panels_are_spread_evenly_and_stay_on_screen(players: int) -> None:
 
 
 def test_overlay_ellipses_sit_on_the_projected_shapes() -> None:
-    from isofightr.render.hitbox_overlay import capsule_ellipses, sphere_ellipse
+    from isofightr.render.hitbox_shapes import capsule_ellipses, sphere_ellipse
 
     shape = sphere_ellipse(Vec3(2.0, 1.0, 3.0), 0.5)
     assert (shape.x, shape.y) == project(2.0, 1.0, 3.0)

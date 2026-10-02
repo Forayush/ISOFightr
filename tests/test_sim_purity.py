@@ -65,3 +65,37 @@ def test_importing_all_of_sim_never_loads_arcade_or_pyglet() -> None:
     )
     result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+WINDOWLESS_MODULES = (
+    "isofightr.__main__",
+    "isofightr.headless",
+    "isofightr.ai.random_inputs",
+    "isofightr.input.gamepad",
+    "isofightr.input.keyboard",
+    "isofightr.render.camera",
+    "isofightr.render.depth",
+    "isofightr.render.effects",
+    "isofightr.render.fighter_look",
+    "isofightr.render.hitbox_shapes",
+    "isofightr.render.iso",
+    "isofightr.render.pixel_scale",
+    "isofightr.render.placeholder_art",
+    "isofightr.render.shadows",
+    "isofightr.ui.hud_layout",
+    "isofightr.ui.pixel_font",
+)
+"""Presentation helpers the default test run imports. CI has no display, so none of them may
+pull in ``arcade`` or ``pyglet``; the parts that draw live in separate modules."""
+
+
+def test_windowless_presentation_modules_never_load_arcade_or_pyglet() -> None:
+    script = (
+        "import importlib, sys\n"
+        f"for name in {WINDOWLESS_MODULES!r}:\n"
+        "    importlib.import_module(name)\n"
+        f"loaded = [name for name in {GPU_MODULES!r} if name in sys.modules]\n"
+        "assert not loaded, loaded\n"
+    )
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

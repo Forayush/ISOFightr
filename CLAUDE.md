@@ -33,6 +33,7 @@ The full design and implementation plan lives in an **Obsidian vault** outside t
 uv sync                                   # install deps
 uv run python -m isofightr                # run the game (two Rooks on Sky Ruins)
 uv run python -m isofightr --p1 rook --p2 rook --stage training_grid --seed 3
+uv run python -m isofightr --training     # training mode: P2 is a dummy, on Training Grid
 uv run python -m isofightr --headless --frames 10000   # headless sim run, prints the state hash
 uv run pytest                             # fast tests (excludes @slow and @gl)
 uv run pytest -m slow                     # soak tests
@@ -40,14 +41,15 @@ uv run pytest -m gl                       # render and device tests; need a real
 uv run pytest --update-goldens            # re-record tests/goldens after an intended mechanic change
 uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
+uv run python tools/kill_calc.py          # KO percent of every move, from the real sim
 ```
-(As of M2 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--training`, `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+(As of M3 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--training`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
 
-Controls as of M2 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `Left Ctrl` walk; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers; a connected controller also drives its player. Debug keys: `F2` fighter info, `F3` stage overlay, `F8` restart, `C` camera clamp, `F11` fullscreen.
+Controls as of M3 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `J` attack, `U` strong (smash), `Left Ctrl` walk; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers, `Num4` attack, `Num7` strong; a connected controller also drives its player (A attack, LB strong, right stick up/down = modifiers, right stick sideways = forward smash). Debug keys (`scenes/battle.py`): `F1` hitboxes and hurtboxes, `F2` fighter info, `F3` stage overlay, `F5` pause, `F6` frame advance, `F8` restart, `F9` hot-reload character and move data, `H` help text, `C` camera clamp, `F11` fullscreen. In `--training`: `-` / `=` dummy damage, `0` reset it, `Tab` dummy control on/off.
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
-2. **Presentation never mutates sim state.** Rendering, audio and HUD read state and consume `match.events`.
+2. **Presentation never mutates sim state.** Rendering, audio and HUD read state and consume `match.events`. The only exceptions are the training tools the sim itself offers: `Match.set_damage` and `Match.reload_characters`.
 3. **Fixed 60 Hz tick. All gameplay timing is in frames**, never seconds. Frames are **1-indexed**; frame ranges like `"14-16"` are **inclusive**.
 4. **World space is 3D: `x`, `y` = ground plane, `z` = up. 1 unit = 1 tile edge.** Only `render/` converts to pixels:
    `sx = (x - y) * 16`, `sy = -(x + y) * 8 + z * 16` (Arcade is y-up). Depth key = `x + y` (bigger = closer = drawn later).
@@ -60,6 +62,7 @@ Controls as of M2 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 ## Smash-mechanics essentials (full spec: `D:\dwthiw\isofighter\plan\05 - Combat Core.md` and `D:\dwthiw\isofighter\plan\06 - Shield Dodge Grab and Ledge.md`)
 - Knockback: `KB = ((((p/10 + p*d/20) * 200/(w+100) * 1.4) + 18) * kbg/100 + bkb) * r`, where `p` is the target's % **after** the hit.
 - Hitstun `= floor(KB * 0.4)`. Tumble at `KB ≥ 80`. Hitlag `= min(floor((d*0.65 + 6) * mult), 30)`.
+- Launch speed `= KB * 0.03 * PHYS_SCALE`, decaying by `0.051 * PHYS_SCALE` per frame (`PHYS_SCALE = 0.033`). Gravity and fall speed are ×0.4 while in hitstun (decision D-029). After changing knockback, gravity, blast zones or a KO move, check `uv run python tools/kill_calc.py`: Rook's forward smash should KO Rook at 120–140% from the centre of Sky Ruins (a test enforces it).
 - Launch direction = **yaw relative to attacker facing** + **elevation angle** (361 = Sakurai angle, negative = meteor).
 - Controls: the stick moves on the ground plane, so **up/down moves use dedicated `up`/`down` modifier inputs**, and smash attacks use a `strong` input (decision D-008).
 - Facing is 8-way (`Dir8`, named by **screen** compass). Stick input is screen-relative and converted to world: `wx = (u - v)/√2`, `wy = (-u - v)/√2`.
@@ -74,6 +77,7 @@ Controls as of M2 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 - Every gameplay change gets a **scenario test** (scripted `InputFrame`s against a `Match`, see `tests/helpers.py`: `make_match`, `hold`, `run`, `place`) plus unit tests for any formula.
 - Golden state hashes in `tests/goldens/*.json` guard determinism and catch unintended mechanic changes. If a change intentionally alters them, re-record with `pytest --update-goldens` and say so in the commit message. Between them the goldens must visit every `StateId` (a test enforces it), so extend their input when you add states.
 - Data validation tests load every TOML in `assets/`.
+- The default test run has no display (CI): a test module must not import `arcade` at the top level, not even one marked `gl`. Import it inside the test or a helper (see `tests/test_battle_gl.py`).
 - Run `uv run pytest` and `uv run ruff check .` before committing.
 
 ## Arcade 3 gotchas
@@ -89,11 +93,22 @@ Controls as of M2 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 - An `InputFrame` carries only what is held. Press edges, the 6-frame buffer and flicks come from the fighter's `InputBuffer` (decision D-024). Use `buffer.consume(Press.X)` so one press cannot trigger two things.
 - Interrupt priority lives in `sim/states/interrupts.py` as ordered tuples. New actions slot into those tuples.
 
-## Rendering notes (as built in M1 and M2)
+## Combat notes (as built in M3)
+- A move is one TOML file in `assets/characters/<id>/moves/` (`data/move_loader.py` → frozen `MoveDef`); `fighter.toml`'s `[moveset]` maps input slots to move ids. One generic `Attack` state (`sim/states/attack.py`) runs every move: `fighter.move_id` plus `state_frame` is the move frame.
+- `sim/combat/hit_resolution.py` runs at tick step 7: it finds every hit and clank from this tick's positions first, then applies them all, so simultaneous hits trade. A hit sets `fighter.hitlag` and a pending `fighter.launch`; the launch (with DI) is applied on the last hitlag frame. Fighters in hitlag skip the state machine and physics.
+- A hitbox hits each target once per `group` per move use, unless `rehit` is set. The lowest hitbox `id` wins when several overlap. Hitboxes are swept capsules from last tick's centre, so fast moves cannot tunnel.
+- Staling is fixed when a move starts (`fighter.move_stale`), so every hit of a multi-hit move is staled alike; the queue is pushed once per move use that connects.
+- Knockback velocity (`kb_vel`) is separate from self velocity (`vel`). It decays every frame, and on the ground the fighter's traction slows it too.
+- State hooks: `on_land` and `on_leave_ground` on a `State` decide what landing or walking off an edge does in that state (aerial landing lag, tumble → knockdown, flinch keeps flinching).
+- Goldens can set `start_damage`; the two `combat_*` goldens start at 90% so random input produces tumbles, knockdowns and clanks.
+
+## Rendering notes (as built in M1 to M3)
 - **World draw order comes from `render/depth.py`, never from a scalar sort key.** It is a topological sort over geometric constraints between sprites that overlap on screen (decision D-019). To add a new kind of world sprite, give it a `DynamicItem` (position, height, exact pixel rect) and let the sorter place it.
 - The rect passed to the sorter must bound **every pixel the sprite draws**. A rect that is too small silently drops constraints.
 - `uv run pytest -m gl` includes an occlusion sweep against a geometric oracle (`tests/test_world_render.py`). Run it after any change to sorting, tile art geometry or sprite anchoring.
-- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `ui/pixel_font.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display.
+- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `effects.py`, `fighter_look.py`, `hitbox_shapes.py`, `ui/pixel_font.py`, `ui/hud_layout.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display. `tests/test_sim_purity.py` lists them; split anything that draws into its own module (`effect_renderer.py`, `hitbox_overlay.py`, `ui/hud.py`).
+- Hit feedback is presentation only: `render/effects.py` (`BattleEffects`) consumes `match.events` once per sim tick and holds sparks, screen shake, hit flash and HUD pops; `render/fighter_look.py` picks each fighter's pose, flash and hitlag shake from sim state. The VFX layer and debug overlays are drawn over the sorted world, not depth-sorted.
+- Until moves have animations, an attack is shown as a translucent blob drawn exactly where each active hitbox is (`build_swing`), so the visuals and the F1 overlay cannot disagree.
 - A fighter the stage partly hides gets a faint "x-ray" copy drawn over the world (`OCCLUDED_FIGHTER_ALPHA`, decision D-025), because platforms and the island otherwise hide fighters completely in this projection.
 
 ## Assets and legal

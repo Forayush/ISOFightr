@@ -2,23 +2,18 @@
 
 Plan note "13 - Game Modes UI and Flow" (training mode: "Show hitboxes/hurtboxes", F1). The
 shapes come from the same functions hit resolution uses, so the overlay cannot disagree with
-what actually hits. A sphere in the world is an ellipse on screen in this projection.
-
-The geometry helpers are pure; only :class:`HitboxOverlay` draws.
+what actually hits. The screen geometry is in :mod:`isofightr.render.hitbox_shapes`.
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Final
 
 import arcade
 
-from isofightr.render.camera import snap
-from isofightr.render.iso import project
-from isofightr.render.placeholder_art import SPHERE_HEIGHT_PER_UNIT, SPHERE_WIDTH_PER_UNIT
+from isofightr.render.hitbox_shapes import capsule_ellipses, sphere_ellipse
 from isofightr.sim.combat.hitbox import active_hitboxes, hurtbox
 from isofightr.sim.fighter import Fighter
-from isofightr.sim.math3d import Capsule, Vec3
+from isofightr.sim.math3d import Capsule
 
 type Color = tuple[int, int, int, int]
 
@@ -30,32 +25,6 @@ HITBOX_FILL: Final[Color] = (255, 48, 48, 110)
 HITBOX_LINE: Final[Color] = (255, 48, 48, 255)
 SWEEP_LINE: Final[Color] = (255, 150, 150, 255)
 LINE_WIDTH: Final[int] = 1
-
-
-@dataclass(frozen=True, slots=True)
-class ScreenEllipse:
-    """A world sphere as it appears on screen, in world pixels."""
-
-    x: float
-    y: float
-    width: float
-    height: float
-
-
-def sphere_ellipse(centre: Vec3, radius: float) -> ScreenEllipse:
-    """Return the on-screen outline of a world-space sphere."""
-    sx, sy = project(centre.x, centre.y, centre.z)
-    return ScreenEllipse(
-        snap(sx), snap(sy), radius * SPHERE_WIDTH_PER_UNIT * 2, radius * SPHERE_HEIGHT_PER_UNIT * 2
-    )
-
-
-def capsule_ellipses(capsule: Capsule) -> tuple[ScreenEllipse, ScreenEllipse]:
-    """Return the on-screen outlines of a capsule's two end spheres."""
-    return (
-        sphere_ellipse(capsule.start, capsule.radius),
-        sphere_ellipse(capsule.end, capsule.radius),
-    )
 
 
 class HitboxOverlay:
