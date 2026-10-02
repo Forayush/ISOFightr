@@ -6,6 +6,7 @@ then the window opens straight into :class:`~isofightr.scenes.battle.BattleView`
 """
 
 import logging
+from collections.abc import Sequence
 
 import arcade
 import pyglet
@@ -20,6 +21,7 @@ from isofightr.config import (
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.test_pattern import TestPatternView
+from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.stage import Stage
 
 LOG = logging.getLogger(__name__)
@@ -77,6 +79,8 @@ class GameWindow(arcade.Window):
 
 def run(
     stage: Stage | None,
+    characters: Sequence[CharacterDef],
+    seed: int = 0,
     scale: int = DEFAULT_WINDOW_SCALE,
     fullscreen: bool = False,
     max_ticks: int | None = None,
@@ -85,6 +89,8 @@ def run(
 
     Args:
         stage: the stage to play on, or ``None`` to show the pixel test pattern instead.
+        characters: one character per player, in player order.
+        seed: the match seed.
         scale: integer upscale of the native buffer for the windowed size.
         fullscreen: start fullscreen; the buffer is integer-scaled and letterboxed.
         max_ticks: close automatically after this many simulation ticks (smoke runs).
@@ -94,6 +100,6 @@ def run(
     if stage is None:
         view = TestPatternView(window.pixel_buffer, max_ticks=max_ticks)
     else:
-        view = BattleView(window.pixel_buffer, stage, max_ticks=max_ticks)
+        view = BattleView(window.pixel_buffer, stage, characters, seed, max_ticks=max_ticks)
     window.show_view(view)
     arcade.run()

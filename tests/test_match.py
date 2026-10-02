@@ -173,7 +173,8 @@ def test_golden_state_hash(path: Path, update_goldens: bool) -> None:
     actual = play(match, inputs).state_hash()
     if update_goldens:
         golden["hash"] = actual
-        path.write_text(json.dumps(golden, indent=2) + "\n", encoding="utf-8")
+        text = json.dumps(golden, indent=2) + "\n"
+        path.write_text(text, encoding="utf-8", newline="\n")  # LF on every platform
     assert actual == golden["hash"]
 
 

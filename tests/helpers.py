@@ -6,16 +6,27 @@ which is how every gameplay mechanic is tested.
 
 from collections.abc import Sequence
 
+from isofightr.ai.random_inputs import random_inputs
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
-from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame, stick_to_world
+from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame, stick_to_world
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3
-from isofightr.sim.rng import Rng
 from isofightr.sim.stage import NO_PLATFORM, Stage, build_stage
 
 type Direction = Dir8 | tuple[float, float] | None
+
+__all__ = [
+    "hold",
+    "make_match",
+    "make_stage",
+    "neutral",
+    "place",
+    "random_inputs",
+    "run",
+    "run_until",
+]
 
 
 def make_match(
@@ -149,44 +160,3 @@ def place(
     else:
         fighter.ground = GroundKind.NONE
         fighter.state = StateId.FALL
-
-
-def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFrame]]:
-    """Return ``frames`` ticks of plausible random input for every player.
-
-    Deterministic for a given seed (it uses the sim's own PRNG, not Python's ``random``).
-    Each player holds directions for a while and taps jump and the vertical modifiers now
-    and then, which exercises walks, dashes, runs, turns, skids, jumps, fast falls, platform
-    drops, KOs and respawns while still spending most of the time on the ground.
-    """
-    rng = Rng.seeded(seed)
-    directions: list[Vec2] = [ZERO2] * players
-    walking = [False] * players
-    jump_frames = [0] * players
-    vertical_frames = [0] * players
-    verticals = [0] * players
-    ticks: list[list[InputFrame]] = []
-    for _ in range(frames):
-        tick: list[InputFrame] = []
-        for player in range(players):
-            if rng.below(25) == 0:
-                choice = rng.below(len(Dir8) + 4)
-                directions[player] = Dir8(choice).world if choice < len(Dir8) else ZERO2
-            if rng.below(90) == 0:
-                walking[player] = not walking[player]
-            if jump_frames[player] > 0:
-                jump_frames[player] -= 1
-            elif rng.below(50) == 0:
-                jump_frames[player] = rng.between(1, 10)
-            if vertical_frames[player] > 0:
-                vertical_frames[player] -= 1
-            elif rng.below(40) == 0:
-                vertical_frames[player] = rng.between(1, 8)
-                verticals[player] = -1 if rng.below(3) else 1
-            held = (Button.JUMP if jump_frames[player] else 0) | (
-                Button.WALK if walking[player] else 0
-            )
-            vertical = verticals[player] if vertical_frames[player] else 0
-            tick.append(InputFrame(move=directions[player], vertical=vertical, held=held))
-        ticks.append(tick)
-    return ticks

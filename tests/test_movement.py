@@ -386,6 +386,45 @@ def test_jump_buffered_during_landing_lag_comes_out_on_the_first_free_frame(
     assert rook.state is StateId.JUMP_SQUAT
 
 
+def test_holding_a_direction_through_landing_lag_dashes_without_a_new_flick(
+    match: Match, rook: Fighter
+) -> None:
+    place(match, rook, 6.0, 6.0, z=3.0)
+    run(match, hold(Dir8.SE, frames=1))
+    while rook.state is not StateId.LAND:
+        run(match, hold(Dir8.SE, frames=1))
+    run(match, hold(Dir8.SE, frames=LAND_LAG))
+    assert rook.state is StateId.DASH
+    run(match, hold(Dir8.SE, frames=DASH_FRAMES))
+    assert rook.state is StateId.RUN
+
+
+def test_holding_a_direction_with_the_walk_modifier_through_landing_walks(
+    match: Match, rook: Fighter
+) -> None:
+    place(match, rook, 6.0, 6.0, z=1.0)
+    while rook.state is not StateId.LAND:
+        run(match, hold(Dir8.SE, Button.WALK, frames=1))
+    run(match, hold(Dir8.SE, Button.WALK, frames=LAND_LAG))
+    assert rook.state is StateId.WALK
+
+
+def test_a_partial_tilt_held_through_landing_walks(match: Match, rook: Fighter) -> None:
+    place(match, rook, 6.0, 6.0, z=1.0)
+    while rook.state is not StateId.LAND:
+        run(match, hold(Dir8.SE, frames=1, magnitude=0.6))
+    run(match, hold(Dir8.SE, frames=LAND_LAG, magnitude=0.6))
+    assert rook.state is StateId.WALK
+
+
+def test_standing_still_a_slow_full_tilt_walks_rather_than_dashes(
+    match: Match, rook: Fighter
+) -> None:
+    for magnitude in (0.3, 0.45, 0.6, 0.75, 0.9, 1.0, 1.0, 1.0):
+        run(match, hold(Dir8.SE, frames=1, magnitude=magnitude))
+    assert rook.state is StateId.WALK
+
+
 def test_landing_restores_the_air_jump_and_clears_fast_fall(match: Match, rook: Fighter) -> None:
     run(match, [JUMP] * (JUMPSQUAT + 1))
     run(match, neutral(5))

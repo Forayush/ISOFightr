@@ -73,6 +73,12 @@ DECK_PALETTE: Final[TilePalette] = TilePalette(
     right=(118, 80, 54, 255),
 )
 DECK_SIDE_PX: Final[int] = round(DECK_THICKNESS * Z_PX)
+REVIVAL_PALETTE: Final[TilePalette] = TilePalette(
+    top_light=(236, 244, 255, 255),
+    top_dark=(236, 244, 255, 255),
+    left=(150, 190, 240, 255),
+    right=(110, 150, 215, 255),
+)
 PLATFORM_SHADOW: Final[Rgba] = (16, 20, 40, 72)
 
 # --- Fighters ------------------------------------------------------------------------------
@@ -184,6 +190,11 @@ def build_tile(tile: str, light: bool, side_px: int) -> Image.Image:
 def build_deck(light: bool) -> Image.Image:
     """Return one cell of a soft platform deck: a thin wooden slab."""
     return build_block(DECK_PALETTE, light, DECK_SIDE_PX)
+
+
+def build_revival_platform() -> Image.Image:
+    """Return the small glowing platform a fighter stands on after a KO."""
+    return build_block(REVIVAL_PALETTE, True, DECK_SIDE_PX)
 
 
 def build_platform_shadow() -> Image.Image:

@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from isofightr.sim.constants import TURN_THRESHOLD_DEGREES
+from isofightr.sim.constants import FLICK_HIGH, TURN_THRESHOLD_DEGREES
 from isofightr.sim.events import JumpEvent, JumpKind
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import (
@@ -77,6 +77,21 @@ def ground_dash(match: Match, fighter: Fighter) -> bool:
     return False
 
 
+def ground_dash_held(match: Match, fighter: Fighter) -> bool:
+    """Dash because the stick is already fully pushed when control comes back.
+
+    Without this, holding a direction through landing lag (or a turn, or the end of a dash)
+    would only walk, and running would need the stick released and flicked again. On a
+    keyboard that feels unresponsive; on an analog stick a partial tilt still walks.
+    """
+    buffer = fighter.buffer
+    if buffer.move.length() > FLICK_HIGH and not buffer.holds(Button.WALK):
+        buffer.consume(Press.FLICK)
+        change_state(match, fighter, StateId.DASH)
+        return True
+    return False
+
+
 def ground_move(match: Match, fighter: Fighter) -> bool:
     """Walk toward the stick, or turn around first if it points behind the fighter."""
     direction = stick_direction(fighter)
@@ -121,9 +136,21 @@ def run_interrupts(match: Match, fighter: Fighter, interrupts: tuple[Interrupt, 
     return any(interrupt(match, fighter) for interrupt in interrupts)
 
 
+GROUND_RECOVER: tuple[Interrupt, ...] = (
+    ground_jump,
+    ground_dash,
+    ground_dash_held,
+    ground_move,
+    platform_drop_hold,
+)
+"""Priority order on the first actionable frame after landing lag, a turn, a skid or a dash:
+like :data:`GROUND_NEUTRAL`, plus a fully held stick dashes without a fresh flick."""
+
+
 def become_ground_neutral(match: Match, fighter: Fighter) -> None:
-    """Hand control back to the player on the ground: act on buffered input, or stand idle."""
-    if not run_interrupts(match, fighter, GROUND_NEUTRAL):
+    """Hand control back to the player on the ground: act on held or buffered input, or
+    stand idle."""
+    if not run_interrupts(match, fighter, GROUND_RECOVER):
         change_state(match, fighter, StateId.IDLE)
 
 

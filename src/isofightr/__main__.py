@@ -1,9 +1,9 @@
 """``python -m isofightr`` entrypoint and CLI flags.
 
-Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". M0 covers
-the window options and M1 adds ``--stage``; the other match setup flags (``--p1``,
-``--training``, ``--headless``, ``--replay``...) are added by the milestones that build what
-they control.
+Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". Built so
+far: the window options (M0), ``--stage`` (M1), and ``--p1`` to ``--p4``, ``--seed`` and
+``--headless`` (M2). ``--training``, ``--cpu``, ``--replay`` and ``--record`` are added by the
+milestones that build what they control.
 """
 
 import argparse
@@ -11,9 +11,18 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from isofightr.config import DEFAULT_STAGE_ID, DEFAULT_WINDOW_SCALE, MIN_WINDOW_SCALE
+from isofightr.config import (
+    DEFAULT_CHARACTER_ID,
+    DEFAULT_PLAYER_COUNT,
+    DEFAULT_STAGE_ID,
+    DEFAULT_WINDOW_SCALE,
+    MAX_PLAYERS,
+    MIN_WINDOW_SCALE,
+)
+from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.data.validation import DataError
+from isofightr.headless import run_headless
 
 EXIT_DATA_ERROR = 2
 
@@ -52,38 +61,82 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="ID",
         help="stage to load from assets/stages (default: %(default)s)",
     )
+    for slot in range(1, MAX_PLAYERS + 1):
+        default = DEFAULT_CHARACTER_ID if slot <= DEFAULT_PLAYER_COUNT else None
+        parser.add_argument(
+            f"--p{slot}",
+            default=default,
+            metavar="ID",
+            help=f"character for player {slot}"
+            + (" (default: %(default)s)" if default else " (default: not playing)"),
+        )
+    parser.add_argument(
+        "--seed", type=int, default=0, metavar="N", help="match seed (default: %(default)s)"
+    )
     parser.add_argument(
         "--test-pattern",
         action="store_true",
         help="show the pixel test pattern instead of a stage (checks display scaling)",
     )
     parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the simulation without a window on seeded random input; needs --frames",
+    )
+    parser.add_argument(
         "--frames",
         type=_positive_int,
         default=None,
         metavar="N",
-        help="close automatically after N simulation ticks",
+        help="stop automatically after N simulation ticks",
     )
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     return parser
 
 
+def character_ids(args: argparse.Namespace, parser: argparse.ArgumentParser) -> list[str]:
+    """Return the chosen character ids in player order. Slots must be filled without gaps."""
+    slots = [getattr(args, f"p{slot}") for slot in range(1, MAX_PLAYERS + 1)]
+    chosen = [character for character in slots if character is not None]
+    if slots[: len(chosen)] != chosen:
+        parser.error("player slots must be filled in order: use --p3 before --p4")
+    return chosen
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Parse the command line and run the game. Returns the process exit code."""
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
+    if args.headless and args.frames is None:
+        parser.error("--headless needs --frames N")
+    if args.headless and args.test_pattern:
+        parser.error("--headless and --test-pattern cannot be combined")
 
-    # Data is loaded first, so a bad --stage is reported without ever opening a window.
+    # Data is loaded first, so a bad --stage or --p1 is reported without opening a window.
     try:
         stage = None if args.test_pattern else load_stage(args.stage)
+        characters = [load_character(name) for name in character_ids(args, parser)]
     except DataError as error:
         print(f"isofightr: {error}", file=sys.stderr)
         return EXIT_DATA_ERROR
 
-    # Imported here so parsing (and --help) works without creating an OpenGL context.
+    if args.headless:
+        assert stage is not None
+        print(run_headless(stage, characters, args.seed, args.frames).summary())
+        return 0
+
+    # Imported here so parsing, --help and --headless work without an OpenGL context.
     from isofightr.app import run
 
-    run(stage, scale=args.scale, fullscreen=args.fullscreen, max_ticks=args.frames)
+    run(
+        stage,
+        characters,
+        seed=args.seed,
+        scale=args.scale,
+        fullscreen=args.fullscreen,
+        max_ticks=args.frames,
+    )
     return 0
 
 

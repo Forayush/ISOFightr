@@ -104,6 +104,11 @@ class Fighter:
         return self.invincible_frames > 0 or self.ground is GroundKind.REVIVAL
 
     @property
+    def on_revival_platform(self) -> bool:
+        """Whether the fighter is standing on the revival platform."""
+        return self.ground is GroundKind.REVIVAL
+
+    @property
     def eliminated(self) -> bool:
         """Whether the fighter is out of stocks."""
         return self.stocks is not None and self.stocks <= 0

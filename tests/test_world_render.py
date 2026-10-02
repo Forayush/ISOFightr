@@ -15,6 +15,7 @@ from typing import Any
 import pytest
 
 from isofightr.config import DECK_THICKNESS, ISLAND_THICKNESS, NATIVE_H, NATIVE_W, TILE_H, Z_PX
+from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import snap
@@ -141,16 +142,20 @@ def make_view(window: Any, stage: Stage) -> Any:
     from isofightr.scenes.battle import BattleView
 
     window.switch_to()
-    view = BattleView(window.pixel_buffer, stage)
+    view = BattleView(window.pixel_buffer, stage, [load_character("rook")] * 2)
     window.show_view(view)
     view.camera.clamped = False
-    view.sandbox.entities[1].pos = FAR_AWAY
+    view.match.fighters[1].pos = FAR_AWAY
     return view
 
 
 def render(view: Any, pos: Vec3, facing: Dir8 = Dir8.N) -> tuple[int, int]:
-    """Place P1, centre the camera on it, draw, and return the camera centre."""
-    fighter = view.sandbox.entities[0]
+    """Place P1, centre the camera on it, draw, and return the camera centre.
+
+    Only the fighter's position and facing are set: rendering reads nothing else, and no
+    tick runs, so it does not matter that the position may be in mid-air.
+    """
+    fighter = view.match.fighters[0]
     fighter.pos, fighter.facing = pos, facing
     view.camera.snap_to([pos])
     view.on_draw()
@@ -165,6 +170,16 @@ def read_pixel(
     native_y = world_y - camera_centre[1] + NATIVE_H // 2
     data = window.pixel_buffer.framebuffer.read(viewport=(native_x, native_y, 1, 1), components=4)
     return tuple(data)
+
+
+def same_color(pixel: tuple[int, ...], color: tuple[int, ...]) -> bool:
+    """Compare the RGB of two colors, allowing one 8-bit level per channel.
+
+    The faint "x-ray" copy of a partly hidden fighter is blended over the fighter itself.
+    That leaves the color alone (give or take GPU rounding) but lowers the buffer's alpha,
+    which never reaches the screen: the upscale forces alpha to 1.
+    """
+    return all(abs(a - b) <= 1 for a, b in zip(pixel[:3], color[:3], strict=True))
 
 
 def frange(start: float, stop: float, step: float) -> list[float]:
@@ -203,7 +218,7 @@ def test_fighter_is_hidden_exactly_where_stage_geometry_is_in_front(
                 continue
             checked += 1
             hidden += expect_hidden
-            shows_fighter = read_pixel(window, centre, pixel_x, pixel_y) == color
+            shows_fighter = same_color(read_pixel(window, centre, pixel_x, pixel_y), color)
             if shows_fighter == expect_hidden:
                 failures.append(
                     f"({x}, {y}, {z}) +{above_feet}px: expected "
@@ -218,7 +233,7 @@ def test_fighter_is_hidden_exactly_where_stage_geometry_is_in_front(
 def test_two_fighters_nearer_one_is_drawn_on_top(window: Any) -> None:
     stage = load_stage("training_grid")
     view = make_view(window, stage)
-    near, far = view.sandbox.entities[0], view.sandbox.entities[1]
+    near, far = view.match.fighters
     # Same screen column, half a unit apart in depth: the sprites overlap almost fully.
     far.pos, far.facing = Vec3(5.0, 5.0, 0.0), Dir8.N
     centre = render(view, Vec3(5.25, 5.25, 0.0))
@@ -333,28 +348,114 @@ def test_camera_centres_the_fighter_in_the_native_buffer(window: Any) -> None:
     assert tuple(data) == P1_BODY
 
 
-def test_debug_overlay_draws_without_error_and_changes_the_frame(window: Any) -> None:
+def test_debug_overlay_and_fighter_info_draw(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
-    render(view, Vec3(6.5, 4.5, 0.0))
+    render(view, Vec3(6.5, 1.5, 0.0))
     plain = window.pixel_buffer.framebuffer.read(components=4)
     view.show_overlay = True
     view.on_draw()
     assert window.pixel_buffer.framebuffer.read(components=4) != plain
-    assert view._status.text.startswith("P1 x=6.50 y=4.50 z=0.00 facing=N ground=0.00")
+    assert view._info_lines[0].text.startswith("P1 idle f1 pos 6.50 1.50 0.00 vel +0.000")
+    assert view._info_lines[2].text == "frame 0  camera clamp off"
+    view.show_overlay = False
+    view.on_draw()
+    assert view._info_lines[0].text == ""
+    view.show_fighter_info = True
+    view.on_draw()
+    assert view._info_lines[0].text.startswith("P1 idle") and view._info_lines[2].text == ""
 
 
-def test_sandbox_keys_move_the_placeholder_through_the_fixed_loop(window: Any) -> None:
+def test_keys_drive_the_match_through_the_fixed_loop(window: Any) -> None:
     import arcade
 
-    from isofightr.config import SANDBOX_MOVE_SPEED, TICK_SECONDS
+    from isofightr.config import TICK_SECONDS
+    from isofightr.sim.fighter import StateId
 
     view = make_view(window, load_stage("training_grid"))
-    start = view.sandbox.controlled_entity.pos
+    view.match.fighters[1].pos = view.stage.spawn_point(1)
+    rook = view.match.fighters[0]
+    start = rook.pos
     view.on_key_press(arcade.key.D, 0)
-    view.on_update(TICK_SECONDS * 10)
-    view.on_key_release(arcade.key.D, 0)
-    view.on_update(TICK_SECONDS * 10)
-    moved = view.sandbox.controlled_entity.pos - start
-    assert view.tick_count == 20
-    assert moved.length() == pytest.approx(10 * SANDBOX_MOVE_SPEED)
+    view.on_update(TICK_SECONDS * 5)
+    assert view.tick_count == view.match.frame == 5
+    assert rook.state is StateId.DASH
+    moved = rook.pos - start
     assert project(moved.x, moved.y)[0] > 0 and project(moved.x, moved.y)[1] == pytest.approx(0)
+    view.on_key_release(arcade.key.D, 0)
+    view.on_key_press(arcade.key.SPACE, 0)
+    view.on_update(TICK_SECONDS * 4)
+    assert rook.state is StateId.JUMP
+    view.on_key_press(arcade.key.F8, 0)
+    assert view.match.frame == 0 and view.match.fighters[0].pos == start
+
+
+def test_a_fighter_behind_a_platform_shows_through_it(window: Any) -> None:
+    """The x-ray copy: a body pixel hidden by a deck is drawn faintly over the deck."""
+    import isofightr.render.world_renderer as world_renderer
+
+    stage = load_stage("sky_ruins")
+    # On the ground just behind the screen-left low platform (x 2..5, y 6..9, z 2.5).
+    pos = Vec3(3.5, 5.5, 0.0)
+    feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
+    sample = (feet_x + 3, feet_y + 24)  # beside the arrow, 1.5 units up: behind the deck
+    assert stable_verdict(stage, pos.x + pos.y, sample[0] + 0.5, sample[1] + 0.5) is True
+
+    view = make_view(window, stage)
+    with_xray = read_pixel(window, render(view, pos), *sample)
+    world_renderer.OCCLUDED_FIGHTER_ALPHA = 0
+    try:
+        without_xray = read_pixel(window, render(view, pos), *sample)
+    finally:
+        world_renderer.OCCLUDED_FIGHTER_ALPHA = 96
+
+    deck_colors = {art.DECK_PALETTE.top_light, art.DECK_PALETTE.top_dark}
+    assert without_xray in deck_colors, "without the x-ray copy only the deck is seen"
+    assert with_xray not in deck_colors
+    assert not same_color(with_xray, P1_BODY), "it is a faint copy, not the fighter in front"
+    # Pulled from the deck color toward the fighter's red: less green and blue.
+    assert with_xray[1] < without_xray[1] and with_xray[2] < without_xray[2]
+
+
+def test_invincible_fighter_blinks(window: Any) -> None:
+    from isofightr.config import INVINCIBLE_BLINK_FRAMES
+
+    view = make_view(window, load_stage("training_grid"))
+    rook = view.match.fighters[0]
+    pos = Vec3(6.0, 6.0, 0.0)
+    rook.invincible_frames = 100
+    feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
+    seen = []
+    for frame in range(4 * INVINCIBLE_BLINK_FRAMES):
+        view.match.frame = frame
+        centre = render(view, pos)
+        # The head, not the legs: the ring around the feet has the same color as the body.
+        pixel = read_pixel(window, centre, feet_x - 1, feet_y + HEAD_SAMPLE_ABOVE_FEET)
+        seen.append(pixel == P1_HEAD)
+    on, off = [True] * INVINCIBLE_BLINK_FRAMES, [False] * INVINCIBLE_BLINK_FRAMES
+    assert seen == on + off + on + off
+
+
+def test_revival_platform_is_drawn_under_a_respawning_fighter(window: Any) -> None:
+    from isofightr.sim.fighter import GroundKind
+
+    view = make_view(window, load_stage("training_grid"))
+    rook = view.match.fighters[0]
+    pos = Vec3(6.0, 6.0, 5.0)
+    feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
+    centre = render(view, pos)
+    below_feet = read_pixel(window, centre, feet_x - 1, feet_y - 2)
+    assert below_feet != art.REVIVAL_PALETTE.top_light
+    rook.ground = GroundKind.REVIVAL
+    centre = render(view, pos)
+    assert read_pixel(window, centre, feet_x - 1, feet_y - 2) == art.REVIVAL_PALETTE.top_light
+
+
+def test_keyboard_presets_do_not_collide(window: Any) -> None:
+    """Needs arcade for the real key codes, hence a ``gl`` test."""
+    from isofightr.input.devices import ARROWS_NUMPAD, LEFT_CLUSTER, SOLO_KEYBOARD
+
+    for preset in (SOLO_KEYBOARD, LEFT_CLUSTER, ARROWS_NUMPAD):
+        assert len(set(preset.keys())) == len(preset.keys()), preset.name
+    # Either player-1 layout can share a keyboard with player 2's.
+    assert not set(SOLO_KEYBOARD.keys()) & set(ARROWS_NUMPAD.keys())
+    assert not set(LEFT_CLUSTER.keys()) & set(ARROWS_NUMPAD.keys())

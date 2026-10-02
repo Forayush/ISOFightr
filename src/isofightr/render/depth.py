@@ -237,6 +237,13 @@ class DepthSorter:
             self._cached_order = self._sort(ordered, edges)
         return list(self._cached_order)
 
+    def is_hidden_by_stage(self, item: DynamicItem) -> bool:
+        """Return whether any stage geometry is drawn in front of part of ``item``."""
+        return any(
+            static_hides(self.statics[index], item)
+            for index in self._overlapping_statics(item.rect)
+        )
+
     def _sort(
         self, ordered: Sequence[DynamicItem], edges: Sequence[tuple[int, int]]
     ) -> list[DrawEntry]:

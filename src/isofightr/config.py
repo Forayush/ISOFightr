@@ -33,6 +33,19 @@ Z_PX: Final[int] = 16
 FACING_HYSTERESIS_DEGREES: Final[float] = 5.0
 """Extra angle the stick must travel past a 45-degree boundary before 8-way facing changes."""
 
+# --- Input devices (plan note "08 - Controls and Input", "Analog processing") --------------
+STICK_DEADZONE: Final[float] = 0.20
+"""Radial deadzone: stick magnitudes at or below this read as zero."""
+
+STICK_SATURATION: Final[float] = 0.95
+"""Stick magnitudes at or above this read as fully pushed."""
+
+MODIFIER_THRESHOLD: Final[float] = 0.5
+"""How far the right stick must be pushed up or down to act as the up or down modifier."""
+
+TRIGGER_THRESHOLD: Final[float] = 0.5
+"""How far an analog trigger must be pulled to count as held."""
+
 # --- Stage defaults (used when a stage.toml omits the value) -------------------------------
 LEDGE_MIN_DROP: Final[float] = 2.0
 """A solid neighbour lower by more than this many units still leaves a grabbable ledge."""
@@ -70,18 +83,25 @@ DECK_THICKNESS: Final[float] = 0.25
 CAMERA_LERP: Final[float] = 0.1
 """Fraction of the remaining distance the camera pans toward its target each tick."""
 
-# --- Debug sandbox (M1 free movement; replaced by real physics in M2) ----------------------
+# --- Fighter presentation -------------------------------------------------------------------
+OCCLUDED_FIGHTER_ALPHA: Final[int] = 96
+"""Opacity (0-255) of the "x-ray" copy of each fighter drawn over the world, so a fighter
+behind a platform or the island stays visible. 0 turns it off (decision D-025)."""
+
+INVINCIBLE_BLINK_FRAMES: Final[int] = 4
+"""An invincible fighter's sprite is hidden for this many frames, then shown for as many."""
+
+# --- Match defaults -------------------------------------------------------------------------
 DEFAULT_STAGE_ID: Final[str] = "sky_ruins"
 """Stage loaded when ``--stage`` is not given."""
 
-SANDBOX_MOVE_SPEED: Final[float] = 0.1
-"""Free-move ground speed of the debug placeholder, in units per tick (about run speed)."""
+DEFAULT_CHARACTER_ID: Final[str] = "rook"
+"""Character used for a player slot when ``--p1``/``--p2`` are not given."""
 
-SANDBOX_RISE_SPEED: Final[float] = 0.1
-"""Free-move vertical speed of the debug placeholder, in units per tick."""
+DEFAULT_PLAYER_COUNT: Final[int] = 2
+"""Players in a match started from the command line without ``--p3``/``--p4``."""
 
-SANDBOX_PLAYER_COUNT: Final[int] = 2
-"""How many placeholder fighters the sandbox spawns."""
+MAX_PLAYERS: Final[int] = 4
 
 # --- Native resolution and window ---------------------------------------------------------
 NATIVE_W: Final[int] = 640

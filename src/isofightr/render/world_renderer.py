@@ -9,13 +9,21 @@ Reads state only: it never changes what it draws.
 """
 
 from collections.abc import Callable, Sequence
+from enum import IntEnum
 from typing import Protocol
 
 import arcade
 from arcade.types import LBWH, LRBT
 from PIL import Image
 
-from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
+from isofightr.config import (
+    INVINCIBLE_BLINK_FRAMES,
+    NATIVE_H,
+    NATIVE_W,
+    OCCLUDED_FIGHTER_ALPHA,
+    TILE_H,
+    Z_PX,
+)
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import snap
 from isofightr.render.depth import (
@@ -33,12 +41,19 @@ from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import Stage
 
-SHADOW_RANK = 0
-BODY_RANK = 1
 HIDDEN_DRAW_RANK = -1
 BODY_RECT_HALF_WIDTH = art.BODY_HALF_WIDTH + 3
 """Half-width of everything the fighter sprite draws: the body plus the arrow tips."""
 BODY_HEIGHT_UNITS = art.BODY_HEIGHT / Z_PX
+
+
+class Part(IntEnum):
+    """The sprites one entity can own. The value is also the tie-break rank among items at
+    the same place: flat things on the ground are drawn before the body standing on them."""
+
+    SHADOW = 0
+    REVIVAL_PLATFORM = 1
+    BODY = 2
 
 
 class WorldEntity(Protocol):
@@ -59,6 +74,14 @@ class WorldEntity(Protocol):
     @property
     def facing(self) -> Dir8:
         """Which of the eight directions the entity faces."""
+
+    @property
+    def invincible(self) -> bool:
+        """Whether the entity is invincible right now (its sprite blinks)."""
+
+    @property
+    def on_revival_platform(self) -> bool:
+        """Whether the entity stands on a revival platform (which is then drawn under it)."""
 
 
 class Overlay(Protocol):
@@ -90,9 +113,15 @@ class WorldRenderer:
         )
         self._textures: dict[object, arcade.Texture] = {}
         self._static_sprites = [self._make_static_sprite(item) for item in self.sorter.statics]
-        self._bodies: dict[int, _RankedSprite] = {}
-        self._shadows: dict[int, _RankedSprite] = {}
+        self._parts: dict[tuple[int, Part], _RankedSprite] = {}
         self._order: list[DrawEntry] | None = None
+
+        # "X-ray" copies of fighters that the stage partly hides, drawn faintly over the
+        # finished world. Where the fighter is in plain view the copy changes nothing you can
+        # see (the same pixels blended over themselves, at most one 8-bit level off); behind
+        # a platform or the island it shows.
+        self._ghosts: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
+        self._ghost_of: dict[int, arcade.Sprite] = {}
 
         self._background: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._background.append(
@@ -105,15 +134,19 @@ class WorldRenderer:
 
     # --- per-frame -------------------------------------------------------------------------
 
-    def sync(self, entities: Sequence[WorldEntity]) -> None:
-        """Update sprite positions, textures and draw order from the current world state."""
+    def sync(self, entities: Sequence[WorldEntity], frame: int = 0) -> None:
+        """Update sprite positions, textures and draw order from the current world state.
+
+        ``frame`` is the match frame; it only drives the invincibility blink.
+        """
         self._drop_missing({entity.entity_id for entity in entities})
+        blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
         items: list[DynamicItem] = []
         for entity in entities:
-            items.append(self._sync_body(entity))
-            shadow_item = self._sync_shadow(entity)
-            if shadow_item is not None:
-                items.append(shadow_item)
+            items.append(self._sync_body(entity, hidden=entity.invincible and blink_off))
+            for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
+                if item is not None:
+                    items.append(item)
 
         order = self.sorter.draw_order(items)
         if order != self._order:
@@ -130,6 +163,8 @@ class WorldRenderer:
         self.camera.position = camera_centre
         with self.camera.activate():
             self.sprites.draw(pixelated=True)
+            if OCCLUDED_FIGHTER_ALPHA > 0:
+                self._ghosts.draw(pixelated=True)
             if overlay is not None:
                 overlay.draw()
 
@@ -159,29 +194,36 @@ class WorldRenderer:
 
     # --- dynamics --------------------------------------------------------------------------
 
-    def _sync_body(self, entity: WorldEntity) -> DynamicItem:
-        sprite = self._bodies.get(entity.entity_id)
-        texture = self._texture(
-            ("fighter", entity.player_index, entity.facing),
-            lambda: art.build_fighter(entity.player_index, entity.facing),
-        )
+    def _part(self, entity: WorldEntity, part: Part, texture: arcade.Texture) -> _RankedSprite:
+        """Return the entity's sprite for ``part``, creating it on first use."""
+        key = (entity.entity_id, part)
+        sprite = self._parts.get(key)
         if sprite is None:
             sprite = _RankedSprite(texture)
-            self._bodies[entity.entity_id] = sprite
+            self._parts[key] = sprite
             self.sprites.append(sprite)
             self._order = None
         elif sprite.texture is not texture:
             sprite.texture = texture
+        return sprite
 
+    def _sync_body(self, entity: WorldEntity, hidden: bool) -> DynamicItem:
+        texture = self._texture(
+            ("fighter", entity.player_index, entity.facing),
+            lambda: art.build_fighter(entity.player_index, entity.facing),
+        )
+        sprite = self._part(entity, Part.BODY, texture)
         pos = entity.pos
         feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
         sprite.position = (
             feet_x + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_X,
             feet_y + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_FROM_BOTTOM,
         )
-        return DynamicItem(
-            item_id=_body_item_id(entity.entity_id),
-            rank=BODY_RANK,
+        sprite.visible = not hidden
+
+        item = DynamicItem(
+            item_id=_item_id(entity.entity_id, Part.BODY),
+            rank=Part.BODY,
             x=pos.x,
             y=pos.y,
             z=pos.z,
@@ -194,14 +236,24 @@ class WorldRenderer:
             ),
         )
 
-    def _sync_shadow(self, entity: WorldEntity) -> DynamicItem | None:
-        sprite = self._shadows.get(entity.entity_id)
-        if sprite is None:
-            sprite = _RankedSprite(self._shadow_texture(entity.player_index, 0, FULL_MASK))
-            self._shadows[entity.entity_id] = sprite
-            self.sprites.append(sprite)
-            self._order = None
+        ghost = self._ghost_of.get(entity.entity_id)
+        if ghost is None:
+            ghost = arcade.Sprite(texture)
+            ghost.alpha = OCCLUDED_FIGHTER_ALPHA
+            self._ghost_of[entity.entity_id] = ghost
+            self._ghosts.append(ghost)
+        elif ghost.texture is not texture:
+            ghost.texture = texture
+        ghost.position = sprite.position
+        # Only while the stage hides part of the fighter, so fighters overlapping each other
+        # in the open are not tinted by one another.
+        ghost.visible = not hidden and self.sorter.is_hidden_by_stage(item)
+        return item
 
+    def _sync_shadow(self, entity: WorldEntity) -> DynamicItem | None:
+        sprite = self._part(
+            entity, Part.SHADOW, self._shadow_texture(entity.player_index, 0, FULL_MASK)
+        )
         pos = entity.pos
         surface = self.stage.support_below(pos.x, pos.y, pos.z)
         sprite.visible = surface is not None
@@ -217,8 +269,8 @@ class WorldRenderer:
         sprite.position = (centre_x, centre_y)
         half_w, half_h = art.SHADOW_WIDTH / 2, art.SHADOW_HEIGHT / 2
         return DynamicItem(
-            item_id=_shadow_item_id(entity.entity_id),
-            rank=SHADOW_RANK,
+            item_id=_item_id(entity.entity_id, Part.SHADOW),
+            rank=Part.SHADOW,
             x=pos.x,
             y=pos.y,
             z=surface,
@@ -228,21 +280,46 @@ class WorldRenderer:
             ),
         )
 
+    def _sync_revival_platform(self, entity: WorldEntity) -> DynamicItem | None:
+        texture = self._texture(("revival_platform",), art.build_revival_platform)
+        sprite = self._part(entity, Part.REVIVAL_PLATFORM, texture)
+        sprite.visible = entity.on_revival_platform
+        if not entity.on_revival_platform:
+            return None
+
+        pos = entity.pos
+        feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
+        # The feet stand at the middle of the platform's top diamond.
+        top = feet_y + TILE_H // 2
+        sprite.position = (feet_x, top - texture.height / 2)
+        return DynamicItem(
+            item_id=_item_id(entity.entity_id, Part.REVIVAL_PLATFORM),
+            rank=Part.REVIVAL_PLATFORM,
+            x=pos.x,
+            y=pos.y,
+            z=pos.z,
+            height=0.0,
+            rect=ScreenRect(
+                feet_x - texture.width / 2, top - texture.height, feet_x + texture.width / 2, top
+            ),
+        )
+
     def _drop_missing(self, alive: set[int]) -> None:
-        for sprites in (self._bodies, self._shadows):
-            for entity_id in [key for key in sprites if key not in alive]:
-                sprites.pop(entity_id).remove_from_sprite_lists()
-                self._order = None
+        for key in [key for key in self._parts if key[0] not in alive]:
+            self._parts.pop(key).remove_from_sprite_lists()
+            self._order = None
+        for entity_id in [key for key in self._ghost_of if key not in alive]:
+            self._ghost_of.pop(entity_id).remove_from_sprite_lists()
 
     def _apply_order(self, order: Sequence[DrawEntry]) -> None:
-        for sprite in self._shadows.values():
+        for sprite in self._parts.values():
             sprite.draw_rank = HIDDEN_DRAW_RANK
         for rank, entry in enumerate(order):
             if entry.is_static:
                 self._static_sprites[entry.index].draw_rank = rank
             else:
-                entity_id, is_body = divmod(entry.index, 2)
-                (self._bodies if is_body else self._shadows)[entity_id].draw_rank = rank
+                entity_id, part = divmod(entry.index, len(Part))
+                self._parts[(entity_id, Part(part))].draw_rank = rank
         self.sprites.sort(key=lambda sprite: sprite.draw_rank)
 
     # --- textures --------------------------------------------------------------------------
@@ -264,9 +341,6 @@ class WorldRenderer:
         )
 
 
-def _shadow_item_id(entity_id: int) -> int:
-    return entity_id * 2
-
-
-def _body_item_id(entity_id: int) -> int:
-    return entity_id * 2 + 1
+def _item_id(entity_id: int, part: Part) -> int:
+    """Return the depth sorter id of one of an entity's sprites."""
+    return entity_id * len(Part) + part
