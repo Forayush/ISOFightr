@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from isofightr.sim import physics
 from isofightr.sim.fighter import Fighter, StateId
+from isofightr.sim.math3d import Vec2, Vec3
 
 if TYPE_CHECKING:
     from isofightr.sim.match import Match
@@ -25,6 +26,13 @@ class State:
     """Behaviour of one fighter state. Subclasses set ``id`` and override what they need."""
 
     id: ClassVar[StateId]
+    uses_physics: ClassVar[bool] = True
+    """False for states that place the fighter themselves (hanging, climbing, being held)."""
+    stops_at_edges: ClassVar[bool] = False
+    """True for grounded states that cannot slide or move off an edge (shield, rolls...)."""
+    grabs_ledges: ClassVar[bool] = False
+    """True for airborne states in which a falling fighter catches a nearby ledge."""
+    regens_shield: ClassVar[bool] = True
 
     def enter(self, match: Match, fighter: Fighter) -> None:
         """Run once when the fighter enters this state (its frame 1)."""
@@ -46,6 +54,10 @@ class State:
     def on_leave_ground(self, match: Match, fighter: Fighter) -> None:
         """The fighter walked, slid or was pushed off an edge. By default: fall."""
         change_state(match, fighter, StateId.FALL)
+
+    def on_wall(self, match: Match, fighter: Fighter, normal: Vec2, knockback: Vec3) -> None:
+        """An airborne fighter ran into a wall. ``normal`` points away from the wall and
+        ``knockback`` is the knockback velocity it had before the wall stopped it."""
 
 
 class GroundState(State):

@@ -12,6 +12,8 @@ from typing import Any
 import pytest
 
 from helpers import hold, make_match, neutral, random_inputs, run
+from isofightr.data.character_loader import load_character
+from isofightr.data.stage_loader import load_stage
 from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame
 from isofightr.sim.match import Match, MatchRules
@@ -158,13 +160,11 @@ def test_random_play_survives_and_keeps_fighters_inside_the_blast_zone_or_ko() -
 
 def golden_match(golden: dict[str, Any]) -> Match:
     """Build the match a golden file describes. ``start_damage`` (optional) is the percent
-    every fighter starts on, so that random hits launch hard enough to tumble."""
-    match = make_match(
-        golden["stage"],
-        tuple(golden["characters"]),
-        seed=golden["seed"],
-        stocks=golden["stocks"],
-    )
+    every fighter starts on, so that random hits launch hard enough to tumble; ``rules``
+    (optional) turns on optional match rules."""
+    rules = MatchRules(stocks=golden["stocks"], **golden.get("rules", {}))
+    characters = [load_character(name) for name in golden["characters"]]
+    match = Match.create(load_stage(golden["stage"]), characters, golden["seed"], rules)
     for fighter in match.fighters:
         fighter.damage = golden.get("start_damage", 0.0)
     return match
@@ -188,8 +188,22 @@ def test_golden_state_hash(path: Path, update_goldens: bool) -> None:
     assert actual == golden["hash"]
 
 
+SCENARIO_ONLY_STATES = {
+    StateId.SHIELD_BREAK,
+    StateId.DIZZY,
+    StateId.LEDGE_TRUMPED,
+    StateId.WALL_TECH,
+}
+"""States random input practically never reaches (they need a shield held until it breaks, two
+fighters on one ledge spot, or a well-timed tech against a wall). Scenario tests cover them:
+``test_defense_scenarios.py`` and ``test_ledge_tech_scenarios.py``."""
+
+
 def test_golden_runs_between_them_visit_every_state() -> None:
-    """A golden that never reaches a state cannot notice that state changing."""
+    """A golden that never reaches a state cannot notice that state changing.
+
+    Every state must be visited, except the few listed in ``SCENARIO_ONLY_STATES``.
+    """
     visited: set[StateId] = set()
     for path in sorted(GOLDENS_DIR.glob("*.json")):
         golden = json.loads(path.read_text(encoding="utf-8"))
@@ -198,7 +212,7 @@ def test_golden_runs_between_them_visit_every_state() -> None:
         for frames in random_inputs(golden["input_seed"], golden["ticks"], players):
             match.tick(frames)
             visited.update(fighter.state for fighter in match.fighters)
-    assert visited == set(StateId)
+    assert visited == set(StateId) - SCENARIO_ONLY_STATES
 
 
 def test_goldens_exist() -> None:

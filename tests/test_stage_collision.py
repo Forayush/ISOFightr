@@ -250,6 +250,7 @@ def test_the_island_side_is_a_wall_to_a_fighter_below_the_surface() -> None:
     match = make_match(make_stage(["000", "000", "000"]))
     rook = match.fighters[0]
     place(match, rook, -1.0, 1.5, z=-0.5)
+    rook.ledge_cooldown = 10  # or it would catch the ledge instead
     rook.kb_vel = Vec3(1.5, 0.0, 0.0)
     run(match, neutral(1))
     assert rook.pos.x == pytest.approx(-RADIUS, abs=1e-5)

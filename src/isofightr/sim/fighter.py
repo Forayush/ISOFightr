@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 
 from isofightr.sim.character_def import CharacterDef
+from isofightr.sim.combat.constants import SHIELD_MAX_HP
 from isofightr.sim.input_frame import Dir8, InputBuffer
 from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3
 from isofightr.sim.move_def import MoveDef
@@ -22,7 +23,7 @@ from isofightr.sim.stage import NO_PLATFORM
 class StateId(Enum):
     """Every state a fighter can be in so far (plan note 07, "State list").
 
-    Defense, grabs and ledges come in M4.
+    Specials arrive in M5.
     """
 
     IDLE = "idle"
@@ -44,6 +45,30 @@ class StateId(Enum):
     TUMBLE = "tumble"
     KNOCKDOWN = "knockdown"
     GETUP = "getup"
+    SHIELD = "shield"
+    SHIELD_STUN = "shield_stun"
+    SHIELD_DROP = "shield_drop"
+    SHIELD_BREAK = "shield_break"
+    DIZZY = "dizzy"
+    SPOT_DODGE = "spot_dodge"
+    ROLL = "roll"
+    AIR_DODGE = "air_dodge"
+    HELPLESS = "helpless"
+    GRAB = "grab"
+    DASH_GRAB = "dash_grab"
+    GRAB_HOLD = "grab_hold"
+    GRABBED = "grabbed"
+    THROW = "throw"
+    GRAB_RELEASE = "grab_release"
+    LEDGE_HANG = "ledge_hang"
+    LEDGE_GETUP = "ledge_getup"
+    LEDGE_ATTACK = "ledge_attack"
+    LEDGE_ROLL = "ledge_roll"
+    LEDGE_TRUMPED = "ledge_trumped"
+    TECH = "tech"
+    TECH_ROLL = "tech_roll"
+    WALL_TECH = "wall_tech"
+    GETUP_ROLL = "getup_roll"
     REVIVAL = "revival"
     KO = "ko"
 
@@ -59,6 +84,10 @@ class GroundKind(IntEnum):
     """A soft platform deck (``Fighter.platform`` says which)."""
     REVIVAL = 3
     """The revival platform after a KO: not part of the stage, and nothing moves you off it."""
+
+
+NO_PARTNER = -1
+NO_LEDGE = -1
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +169,40 @@ class Fighter:
     """The last moves that connected, newest first (at most ``STALE_QUEUE_LENGTH``)."""
     last_knockback: float = 0.0
     """Knockback of the last hit taken, for the debug panel."""
+    shield_hp: float = SHIELD_MAX_HP
+    intangible_frames: int = 0
+    """Frames left during which nothing can hit or grab the fighter (dodges, ledge, tech)."""
+    stun_frames: int = 0
+    """Frames left of shieldstun, dizziness or ledge-trump lag (whichever state is active)."""
+    air_dodge_used: bool = False
+    """One air dodge per airtime."""
+    dodge_dir: Vec3 = ZERO3
+    """Direction of the current air dodge (zero for a neutral one)."""
+    dodge_stale: int = 0
+    """Recent dodges: each one adds end lag to the next."""
+    dodge_stale_timer: int = 0
+    dodge_lag: int = 0
+    """Extra end lag of the current dodge, from staling."""
+    grab_partner: int = NO_PARTNER
+    """Player index of the fighter being held, or holding this one."""
+    grab_timer: int = 0
+    """Frames left before a held fighter breaks free (counted on the grabber)."""
+    pummel_cooldown: int = 0
+    throw_id: str = ""
+    """The throw being performed while in the ``THROW`` state."""
+    ledge: int = NO_LEDGE
+    """Index of the stage ledge line being hung from or climbed."""
+    ledge_point: Vec2 = ZERO2
+    """The point on that ledge line."""
+    ledge_cooldown: int = 0
+    """Frames before a ledge can be grabbed again."""
+    ledge_grabs: int = 0
+    """Ledge grabs since last touching the ground or being launched."""
+    air_frames: int = 0
+    """Frames since last standing on the ground."""
+    tech_window: int = 0
+    """Frames left in which touching ground or a wall techs."""
+    tech_lockout: int = 0
     buffer: InputBuffer = field(default_factory=InputBuffer)
 
     @property
@@ -168,6 +231,11 @@ class Fighter:
     def invincible(self) -> bool:
         """Whether hits currently do no damage or knockback."""
         return self.invincible_frames > 0 or self.ground is GroundKind.REVIVAL
+
+    @property
+    def intangible(self) -> bool:
+        """Whether hits and grabs pass through the fighter right now."""
+        return self.intangible_frames > 0
 
     @property
     def on_revival_platform(self) -> bool:

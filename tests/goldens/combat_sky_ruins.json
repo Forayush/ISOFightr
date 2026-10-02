@@ -1,5 +1,5 @@
 {
-  "description": "Four Rooks on Sky Ruins, all starting at 90%, driven by 3000 ticks of seeded random input (attacks, smashes, aerials, clanks, tumbles, knockdowns, KOs).",
+  "description": "Four Rooks on Sky Ruins, all starting at 90%, with the parry and helpless-air-dodge rules on, driven by 6000 ticks of seeded random input (attacks, shields, dodges, grabs and throws, ledges, techs, KOs).",
   "stage": "sky_ruins",
   "characters": [
     "rook",
@@ -10,7 +10,11 @@
   "seed": 3,
   "stocks": null,
   "start_damage": 90.0,
-  "input_seed": 114,
-  "ticks": 3000,
-  "hash": "33b0ed376157c7273f0b83087143d19f"
+  "input_seed": 137,
+  "ticks": 6000,
+  "rules": {
+    "parry": true,
+    "air_dodge_helpless": true
+  },
+  "hash": "4a6fbc8db828cd34b9e1b68a86fdff3e"
 }

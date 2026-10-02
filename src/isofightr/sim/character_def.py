@@ -10,7 +10,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Self
 
-from isofightr.sim.move_def import MoveDef
+from isofightr.sim.math3d import Vec3
+from isofightr.sim.move_def import FrameRange, MoveDef
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +66,58 @@ class BodyStats:
     height: float
     """Height from the feet to the top of the head."""
     hurtbox: HurtboxDef
+    shield_radius_max: float
+    """Radius of the shield sphere at full shield HP."""
+
+
+@dataclass(frozen=True, slots=True)
+class GrabDef:
+    """One kind of grab (standing or dash): when and where the grab box is out."""
+
+    frames: FrameRange
+    total: int
+    offset: Vec3
+    """Centre of the grab sphere in fighter-local space: forward, left, up."""
+    radius: float
+    slide: float
+    """Forward speed until the grab box is gone (dash grab), in units per frame."""
+
+
+@dataclass(frozen=True, slots=True)
+class PummelDef:
+    """The small hit a grabber can deal while holding."""
+
+    damage: float
+    cooldown: int
+    """Frames before the next pummel."""
+
+
+@dataclass(frozen=True, slots=True)
+class ThrowDef:
+    """One throw: knockback numbers and timing."""
+
+    id: str
+    """Stale-queue id of the throw (``fthrow``, ``bthrow``, ``uthrow``, ``dthrow``)."""
+    damage: float
+    angle: float
+    bkb: float
+    kbg: float
+    release: int
+    """Frame on which the victim is damaged and launched."""
+    total: int
+
+
+@dataclass(frozen=True, slots=True)
+class GrabSet:
+    """A character's grabs and throws (``[grab]`` and ``[throws]`` in ``fighter.toml``)."""
+
+    standing: GrabDef
+    dash: GrabDef
+    pummel: PummelDef
+    forward: ThrowDef
+    back: ThrowDef
+    up: ThrowDef
+    down: ThrowDef
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +138,8 @@ class MoveSet:
     bair: str
     uair: str
     dair: str
+    getup_attack: str
+    ledge_attack: str
 
     def all_ids(self) -> tuple[str, ...]:
         """Return every move id the moveset refers to."""
@@ -101,6 +156,8 @@ class MoveSet:
             self.bair,
             self.uair,
             self.dair,
+            self.getup_attack,
+            self.ledge_attack,
         )
         return (*self.jab, *singles)
 
@@ -115,6 +172,7 @@ class CharacterDef:
     movement: MovementStats
     body: BodyStats
     moveset: MoveSet
+    grabs: GrabSet
     moves: Mapping[str, MoveDef]
     """Every move of the character, by id."""
 

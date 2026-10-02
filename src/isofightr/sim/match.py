@@ -15,7 +15,8 @@ from typing import Final
 
 from isofightr.sim import physics
 from isofightr.sim.character_def import CharacterDef
-from isofightr.sim.combat.constants import MAX_DAMAGE
+from isofightr.sim.combat.constants import MAX_DAMAGE, SHIELD_MAX_HP, SHIELD_REGEN
+from isofightr.sim.combat.grab_resolution import resolve_grabs
 from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
 from isofightr.sim.events import Event, KoEvent, LandEvent
@@ -25,6 +26,7 @@ from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
 from isofightr.sim.rng import Rng
 from isofightr.sim.stage import Stage
 from isofightr.sim.states import STATES, change_state
+from isofightr.sim.states.ledge import try_grab_ledge
 
 HASH_DECIMALS: Final[int] = 6
 """Floats are rounded to this many decimals in the state hash (plan note 16, "State hash")."""
@@ -38,6 +40,10 @@ class MatchRules:
 
     stocks: int | None = DEFAULT_STOCKS
     """Stocks per fighter, or ``None`` for infinite (training)."""
+    parry: bool = False
+    """Whether a hit in the first frames of dropping shield is parried (optional rule)."""
+    air_dodge_helpless: bool = False
+    """Whether a directional air dodge ends in the helpless fall (optional rule)."""
 
 
 @dataclass(slots=True)
@@ -109,8 +115,7 @@ class Match:
         for fighter in self.fighters:
             if fighter.player_index in frozen:
                 continue
-            if fighter.invincible_frames > 0:
-                fighter.invincible_frames -= 1
+            self._upkeep(fighter)
             fighter.state_frame += 1
             STATES[fighter.state].step(self, fighter)
 
@@ -122,14 +127,20 @@ class Match:
             if fighter.player_index in frozen:
                 continue
             physics.decay_knockback(fighter)
-            STATES[fighter.state].motion(self, fighter)
-            self._apply(fighter, physics.step(self.stage, fighter))
+            state = STATES[fighter.state]
+            state.motion(self, fighter)
+            if state.uses_physics:
+                result = physics.step(self.stage, fighter, state.stops_at_edges)
+                self._apply(fighter, result)
+                if not result.landed:
+                    try_grab_ledge(self, fighter)
         self._push_fighters_apart()
 
         # 6. Projectiles (M5).
 
-        # 7. Hit resolution.
+        # 7. Hit resolution, then grabs (a grabber that was just hit does not grab).
         resolve_hits(self)
+        resolve_grabs(self)
 
         # 8. Blast zones.
         for fighter in self.fighters:
@@ -170,13 +181,37 @@ class Match:
 
     # --- internals -------------------------------------------------------------------------
 
+    def _upkeep(self, fighter: Fighter) -> None:
+        """Run a fighter's per-frame timers (start of tick step 3; frozen fighters skip it)."""
+        if fighter.invincible_frames > 0:
+            fighter.invincible_frames -= 1
+        if fighter.intangible_frames > 0:
+            fighter.intangible_frames -= 1
+        if fighter.ledge_cooldown > 0:
+            fighter.ledge_cooldown -= 1
+        if fighter.tech_window > 0:
+            fighter.tech_window -= 1
+        if fighter.tech_lockout > 0:
+            fighter.tech_lockout -= 1
+        if fighter.dodge_stale_timer > 0:
+            fighter.dodge_stale_timer -= 1
+            if fighter.dodge_stale_timer == 0:
+                fighter.dodge_stale = 0
+        if STATES[fighter.state].regens_shield:
+            fighter.shield_hp = min(SHIELD_MAX_HP, fighter.shield_hp + SHIELD_REGEN)
+        fighter.air_frames = 0 if fighter.grounded else fighter.air_frames + 1
+
     def _apply(self, fighter: Fighter, result: physics.StepResult) -> None:
         """Turn what physics found into state changes and events."""
         if result.landed:
+            fighter.air_dodge_used = False
+            fighter.ledge_grabs = 0
             self.events.append(LandEvent(fighter.player_index, fighter.pos, result.fall_speed))
             STATES[fighter.state].on_land(self, fighter)
         elif result.left_ground:
             STATES[fighter.state].on_leave_ground(self, fighter)
+        elif result.wall_normal is not None:
+            STATES[fighter.state].on_wall(self, fighter, result.wall_normal, result.wall_knockback)
 
     def _push_fighters_apart(self) -> None:
         """Gently separate grounded fighters whose bodies overlap (plan note 04, pushboxes).
@@ -189,6 +224,8 @@ class Match:
             for second in self.fighters[first_index + 1 :]:
                 if first.ground not in _PUSHABLE or second.ground not in _PUSHABLE:
                     continue
+                if not (STATES[first.state].uses_physics and STATES[second.state].uses_physics):
+                    continue  # a held fighter is placed by its grabber
                 if abs(first.pos.z - second.pos.z) > PUSH_HEIGHT_TOLERANCE:
                     continue
                 gap = (second.pos - first.pos).xy
@@ -201,7 +238,8 @@ class Match:
                 pushes[second.player_index] = pushes[second.player_index] + away * PUSH_SPEED
         for fighter, push in zip(self.fighters, pushes, strict=True):
             if push != Vec2():
-                self._apply(fighter, physics.nudge_grounded(self.stage, fighter, push))
+                stop = STATES[fighter.state].stops_at_edges
+                self._apply(fighter, physics.nudge_grounded(self.stage, fighter, push, stop))
 
     def _knock_out(self, fighter: Fighter) -> None:
         """Take a stock from a fighter that crossed a blast zone and send it to respawn."""
@@ -297,6 +335,25 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         _round(fighter.sdi_mult),
         tuple(fighter.stale_queue),
         _round(fighter.last_knockback),
+        _round(fighter.shield_hp),
+        fighter.intangible_frames,
+        fighter.stun_frames,
+        fighter.air_dodge_used,
+        _canonical_vec3(fighter.dodge_dir),
+        fighter.dodge_stale,
+        fighter.dodge_stale_timer,
+        fighter.dodge_lag,
+        fighter.grab_partner,
+        fighter.grab_timer,
+        fighter.pummel_cooldown,
+        fighter.throw_id,
+        fighter.ledge,
+        _canonical_vec2(fighter.ledge_point),
+        fighter.ledge_cooldown,
+        fighter.ledge_grabs,
+        fighter.air_frames,
+        fighter.tech_window,
+        fighter.tech_lockout,
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,
         buffer.frame.held,

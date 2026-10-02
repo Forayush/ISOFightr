@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 class _Rising(AirState):
     """Shared behaviour of the two rising states."""
 
+    grabs_ledges = True
+
     def step(self, match: Match, fighter: Fighter) -> None:
         """Air jump or fast fall; become Fall once no longer rising."""
         if interrupts.run_interrupts(match, fighter, interrupts.AIR_NEUTRAL):
@@ -48,6 +50,7 @@ class Fall(AirState):
     """Falling, or airborne without having jumped (walked off an edge)."""
 
     id = StateId.FALL
+    grabs_ledges = True
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Air jump or fast fall."""

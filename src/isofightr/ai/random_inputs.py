@@ -1,7 +1,8 @@
 """Seeded random movement input: the simplest possible "CPU".
 
 Plan note "15 - CPU AI": an AI is just another input source that outputs ``InputFrame``s.
-This one ignores the game entirely and mashes plausible movement and attack input. It drives
+This one ignores the game entirely and mashes plausible movement, attack, shield and grab
+input. It drives
 the golden state-hash tests, the soak tests and ``--headless`` runs, so changing what it
 produces for a given seed means re-recording the goldens (``pytest --update-goldens``).
 
@@ -28,6 +29,10 @@ MAX_ATTACK_HOLD = 4
 STRONG_ODDS = 90
 MAX_STRONG_HOLD = 40
 """Strong is sometimes held long enough to charge a smash attack."""
+SHIELD_ODDS = 70
+MAX_SHIELD_HOLD = 45
+GRAB_ODDS = 70
+MAX_GRAB_HOLD = 3
 
 
 def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFrame]]:
@@ -45,6 +50,8 @@ def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFr
     vertical_frames = [0] * players
     attack_frames = [0] * players
     strong_frames = [0] * players
+    shield_frames = [0] * players
+    grab_frames = [0] * players
     verticals = [0] * players
     ticks: list[list[InputFrame]] = []
     for _ in range(frames):
@@ -72,11 +79,21 @@ def random_inputs(seed: int, frames: int, players: int = 2) -> list[list[InputFr
                 strong_frames[player] -= 1
             elif rng.below(STRONG_ODDS) == 0:
                 strong_frames[player] = rng.between(1, MAX_STRONG_HOLD)
+            if shield_frames[player] > 0:
+                shield_frames[player] -= 1
+            elif rng.below(SHIELD_ODDS) == 0:
+                shield_frames[player] = rng.between(1, MAX_SHIELD_HOLD)
+            if grab_frames[player] > 0:
+                grab_frames[player] -= 1
+            elif rng.below(GRAB_ODDS) == 0:
+                grab_frames[player] = rng.between(1, MAX_GRAB_HOLD)
             held = (
                 (Button.JUMP if jump_frames[player] else 0)
                 | (Button.WALK if walking[player] else 0)
                 | (Button.ATTACK if attack_frames[player] else 0)
                 | (Button.STRONG if strong_frames[player] else 0)
+                | (Button.SHIELD if shield_frames[player] else 0)
+                | (Button.GRAB if grab_frames[player] else 0)
             )
             vertical = verticals[player] if vertical_frames[player] else 0
             tick.append(InputFrame(move=directions[player], vertical=vertical, held=held))

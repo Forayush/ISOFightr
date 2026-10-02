@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from isofightr.sim.combat.constants import SHIELD_MAX_HP
 from isofightr.sim.constants import (
     RESPAWN_DELAY_FRAMES,
     REVIVAL_HEIGHT,
@@ -57,6 +58,10 @@ class Ko(State):
         fighter.hitlag = 0
         fighter.hitstun = 0
         fighter.launch = None
+        fighter.intangible_frames = 0
+        fighter.stun_frames = 0
+        fighter.tech_window = 0
+        fighter.tech_lockout = 0
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Respawn after the delay, unless out of stocks."""
@@ -75,6 +80,11 @@ class Revival(State):
         fighter.pos = revival_point(match, fighter)
         fighter.ground = GroundKind.REVIVAL
         fighter.damage = 0.0
+        fighter.shield_hp = SHIELD_MAX_HP
+        fighter.dodge_stale = 0
+        fighter.air_dodge_used = False
+        fighter.ledge_grabs = 0
+        fighter.ledge_cooldown = 0
         fighter.air_jumps_left = fighter.character.movement.air_jumps
         fighter.buffer.clear()
         centre = match.stage.respawn_point()

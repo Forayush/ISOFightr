@@ -204,7 +204,8 @@ def test_a_window_needs_a_hitbox() -> None:
 def test_rook_has_all_the_m3_normals() -> None:
     grounded = ["jab1", "jab2", "jab3", "ftilt", "utilt", "dtilt", "dash_attack"]
     smashes_and_aerials = ["fsmash", "usmash", "dsmash", "nair", "fair", "bair", "uair", "dair"]
-    assert sorted(ROOK.moves) == sorted([*grounded, *smashes_and_aerials])
+    recovery = ["getup_attack", "ledge_attack"]  # added in M4
+    assert sorted(ROOK.moves) == sorted([*grounded, *smashes_and_aerials, *recovery])
     assert set(ROOK.moveset.all_ids()) == set(ROOK.moves)
     assert ROOK.moveset.jab == ("jab1", "jab2", "jab3")
 

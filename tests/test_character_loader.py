@@ -42,6 +42,7 @@ land_lag = 3
 radius = 0.30
 height = 2.5
 hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.3 }
+shield_radius_max = 1.2
 [moveset]
 jab = ["jab1", "jab2", "jab3"]
 ftilt = "ftilt"
@@ -56,6 +57,17 @@ fair = "fair"
 bair = "bair"
 uair = "uair"
 dair = "dair"
+getup_attack = "getup_attack"
+ledge_attack = "ledge_attack"
+[grab]
+standing = { frames = "6-7", total = 34, offset = [0.75, 0.0, 1.2], radius = 0.45 }
+dash = { frames = "9-11", total = 43, offset = [0.85, 0.0, 1.2], radius = 0.45, slide = 0.07 }
+pummel = { damage = 1.5, cooldown = 18 }
+[throws]
+forward = { damage = 8.0, angle = 40, bkb = 60, kbg = 60, release = 13, total = 34 }
+back = { damage = 10.0, angle = 42, bkb = 60, kbg = 75, release = 16, total = 38 }
+up = { damage = 7.0, angle = 88, bkb = 60, kbg = 70, release = 14, total = 36 }
+down = { damage = 5.0, angle = 70, bkb = 55, kbg = 40, release = 18, total = 34 }
 """
 MOVES = load_moves(CHARACTERS_DIR / "rook" / MOVES_DIR_NAME)
 

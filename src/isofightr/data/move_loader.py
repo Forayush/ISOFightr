@@ -39,6 +39,7 @@ _MOVE_KEYS = (
     "cancel",
     "landing_lag",
     "autocancel",
+    "intangible",
 )
 _HITBOX_KEYS = (
     "id",
@@ -58,6 +59,7 @@ _HITBOX_KEYS = (
     "hits",
     "rehit",
     "clank",
+    "shield_damage",
 )
 _HIT_TARGETS = ("ground", "air")
 MAX_ELEVATION = 90.0
@@ -152,6 +154,11 @@ def parse_move(
         cancel=_cancel(root, total) if root.has("cancel") else None,
         landing_lag=root.integer("landing_lag") if is_aerial else 0,
         autocancel=autocancel,
+        intangible=(
+            parse_frame_range(root.raw("intangible"), total, root, "intangible")
+            if root.has("intangible")
+            else None
+        ),
     )
 
 
@@ -223,7 +230,15 @@ def _hitbox(table: object, source: str, where: str, clank_default: bool) -> Hitb
         hits_air="air" in hits,
         rehit=rehit,
         clank=reader.boolean("clank", default=clank_default),
+        shield_damage=_shield_damage(reader),
     )
+
+
+def _shield_damage(reader: TableReader) -> float:
+    extra = reader.number("shield_damage", 0.0)
+    if extra < 0:
+        raise reader.error("must be 0 or greater", "shield_damage")
+    return extra
 
 
 def _motion(table: object, source: str, index: int, total: int) -> MotionWindow:

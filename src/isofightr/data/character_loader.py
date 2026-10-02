@@ -10,16 +10,21 @@ from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
 
-from isofightr.data.move_loader import load_moves
+from isofightr.data.move_loader import MAX_ELEVATION, load_moves, parse_frame_range
 from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError, TableReader
 from isofightr.sim.character_def import (
     BodyStats,
     CharacterDef,
+    GrabDef,
+    GrabSet,
     HurtboxDef,
     MovementStats,
     MoveSet,
+    PummelDef,
+    ThrowDef,
 )
+from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import MoveDef, MoveKind
 
 _SPEED_KEYS = (
@@ -52,7 +57,12 @@ _SLOT_KINDS = {
     "bair": MoveKind.AERIAL,
     "uair": MoveKind.AERIAL,
     "dair": MoveKind.AERIAL,
+    "getup_attack": MoveKind.RECOVERY,
+    "ledge_attack": MoveKind.RECOVERY,
 }
+_GRAB_KEYS = ("frames", "total", "offset", "radius", "slide")
+_THROWS = (("forward", "fthrow"), ("back", "bthrow"), ("up", "uthrow"), ("down", "dthrow"))
+_THROW_KEYS = ("damage", "angle", "bkb", "kbg", "release", "total")
 
 
 def list_character_ids(characters_dir: Path = CHARACTERS_DIR) -> list[str]:
@@ -95,7 +105,7 @@ def parse_character(
         data,
         source=source,
         where="",
-        allowed=("id", "display_name", "weight", "movement", "body", "moveset"),
+        allowed=("id", "display_name", "weight", "movement", "body", "moveset", "grab", "throws"),
     )
     character_id = root.string("id")
     if expected_id is not None and character_id != expected_id:
@@ -109,9 +119,75 @@ def parse_character(
         display_name=root.string("display_name"),
         weight=weight,
         movement=_movement(root.subtable("movement", (*_SPEED_KEYS, *_FRAME_KEYS))),
-        body=_body(root.subtable("body", ("radius", "height", "hurtbox"))),
+        body=_body(root.subtable("body", ("radius", "height", "hurtbox", "shield_radius_max"))),
         moveset=_moveset(root.subtable("moveset", (_JAB_SLOT, *_SLOT_KINDS)), moves),
+        grabs=_grabs(
+            root.subtable("grab", ("standing", "dash", "pummel")),
+            root.subtable("throws", [name for name, _ in _THROWS]),
+        ),
         moves=MappingProxyType(dict(moves)),
+    )
+
+
+def _grabs(grab: TableReader, throws: TableReader) -> GrabSet:
+    pummel = grab.subtable("pummel", ("damage", "cooldown"))
+    pummel_def = PummelDef(damage=pummel.number("damage"), cooldown=pummel.integer("cooldown"))
+    if pummel_def.damage < 0:
+        raise pummel.error("must be 0 or greater", "damage")
+    if pummel_def.cooldown < 1:
+        raise pummel.error("must be 1 or greater", "cooldown")
+    parsed = {
+        name: _throw(throws.subtable(name, _THROW_KEYS), throw_id) for name, throw_id in _THROWS
+    }
+    return GrabSet(
+        standing=_grab(grab.subtable("standing", _GRAB_KEYS)),
+        dash=_grab(grab.subtable("dash", _GRAB_KEYS)),
+        pummel=pummel_def,
+        forward=parsed["forward"],
+        back=parsed["back"],
+        up=parsed["up"],
+        down=parsed["down"],
+    )
+
+
+def _grab(reader: TableReader) -> GrabDef:
+    total = reader.integer("total")
+    if total < 1:
+        raise reader.error("must be 1 or greater", "total")
+    radius = reader.number("radius")
+    if radius <= 0:
+        raise reader.error("must be greater than 0", "radius")
+    slide = reader.number("slide", 0.0) if reader.has("slide") else 0.0
+    if slide < 0:
+        raise reader.error("must be 0 or greater", "slide")
+    return GrabDef(
+        frames=parse_frame_range(reader.raw("frames"), total, reader, "frames"),
+        total=total,
+        offset=Vec3(*reader.numbers("offset", 3)),
+        radius=radius,
+        slide=slide,
+    )
+
+
+def _throw(reader: TableReader, throw_id: str) -> ThrowDef:
+    total, release = reader.integer("total"), reader.integer("release")
+    if total < 1:
+        raise reader.error("must be 1 or greater", "total")
+    if not 1 <= release <= total:
+        raise reader.error(f"must be between 1 and total ({total})", "release")
+    damage, angle = reader.number("damage"), reader.number("angle")
+    if damage < 0:
+        raise reader.error("must be 0 or greater", "damage")
+    if not -MAX_ELEVATION <= angle <= MAX_ELEVATION:
+        raise reader.error(f"must be between -{MAX_ELEVATION:g} and {MAX_ELEVATION:g}", "angle")
+    return ThrowDef(
+        id=throw_id,
+        damage=damage,
+        angle=angle,
+        bkb=reader.number("bkb"),
+        kbg=reader.number("kbg"),
+        release=release,
+        total=total,
     )
 
 
@@ -194,4 +270,7 @@ def _body(reader: TableReader) -> BodyStats:
         raise hurt.error("must be greater than 0", "radius")
     if hurtbox.z1 - hurtbox.z0 < 2 * hurtbox.radius:
         raise hurt.error("must be at least z0 plus twice the radius (a capsule)", "z1")
-    return BodyStats(radius=radius, height=height, hurtbox=hurtbox)
+    shield = reader.number("shield_radius_max")
+    if shield <= 0:
+        raise reader.error("must be greater than 0", "shield_radius_max")
+    return BodyStats(radius=radius, height=height, hurtbox=hurtbox, shield_radius_max=shield)

@@ -1,5 +1,5 @@
 {
-  "description": "Four Rooks on Training Grid driven by 3000 ticks of seeded random movement input, with three stocks each.",
+  "description": "Four Rooks on Training Grid driven by 3000 ticks of seeded random input, with three stocks each.",
   "stage": "training_grid",
   "characters": [
     "rook",
@@ -9,7 +9,7 @@
   ],
   "seed": 2,
   "stocks": 3,
-  "input_seed": 202,
+  "input_seed": 101,
   "ticks": 3000,
-  "hash": "d6ddfd595574387f79f2634d206ffce9"
+  "hash": "b9a90c123bfc95357737b5ebd5c49abb"
 }

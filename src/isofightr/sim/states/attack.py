@@ -20,6 +20,7 @@ from isofightr.sim.math3d import ZERO3
 from isofightr.sim.move_def import MoveDef
 from isofightr.sim.states import interrupts
 from isofightr.sim.states.base import State, change_state, register
+from isofightr.sim.states.dodge import open_intangible_window
 
 if TYPE_CHECKING:
     from isofightr.sim.match import Match
@@ -47,6 +48,7 @@ class Attack(State):
         fighter.hit_log = {}
         fighter.move_connected = False
         fighter.hitbox_centres = {}
+        self._intangibility(fighter)
 
     def exit(self, match: Match, fighter: Fighter) -> None:
         """Forget the swept hitbox positions."""
@@ -55,6 +57,7 @@ class Attack(State):
     def step(self, match: Match, fighter: Fighter) -> None:
         """Charge, chain, become actionable at the FAF, and end after the last frame."""
         move = fighter.character.moves[fighter.move_id]
+        self._intangibility(fighter)
         if self._hold_charge(fighter, move):
             return
         frame = fighter.state_frame
@@ -67,6 +70,13 @@ class Attack(State):
         elif frame >= move.faf:
             table = interrupts.GROUND_RECOVER if fighter.grounded else interrupts.AIR_NEUTRAL
             interrupts.run_interrupts(match, fighter, table)
+
+    @staticmethod
+    def _intangibility(fighter: Fighter) -> None:
+        """Open the move's intangible window, if it has one (getup and ledge attacks)."""
+        window = fighter.character.moves[fighter.move_id].intangible
+        if window is not None:
+            open_intangible_window(fighter, (window.first, window.last))
 
     @staticmethod
     def _hold_charge(fighter: Fighter, move: MoveDef) -> bool:

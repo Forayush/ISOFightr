@@ -24,11 +24,18 @@ from isofightr.sim.combat.hitbox import (
     hits,
     remember_hitboxes,
 )
+from isofightr.sim.combat.shield import (
+    is_shielding,
+    shield_damage,
+    shield_push_speed,
+    shield_volume,
+    shieldstun_frames,
+)
 from isofightr.sim.combat.staling import push_stale
-from isofightr.sim.events import ClankEvent, HitEvent
+from isofightr.sim.events import ClankEvent, HitEvent, ShieldHitEvent
 from isofightr.sim.fighter import Fighter, GroundKind, Launch, StateId
 from isofightr.sim.input_frame import VERTICAL_NONE, Press
-from isofightr.sim.math3d import ZERO2, Vec2, Vec3
+from isofightr.sim.math3d import ZERO2, Vec2, Vec3, capsules_overlap
 from isofightr.sim.move_def import DirectionMode, HitboxDef
 from isofightr.sim.states.base import change_state
 
@@ -44,6 +51,9 @@ class _Hit:
     attacker: Fighter
     target: Fighter
     box: ActiveHitbox
+    blocked: bool = False
+    """The hitbox touched the target's shield."""
+    parried: bool = False
 
 
 def charge_multiplier(fighter: Fighter) -> float:
@@ -70,7 +80,7 @@ def resolve_hits(match: Match) -> None:
         hit
         for attacker in match.fighters
         for target in match.fighters
-        if (hit := _find_hit(attacker, target, boxes[attacker.player_index])) is not None
+        if (hit := _find_hit(match, attacker, target, boxes[attacker.player_index])) is not None
     ]
     clanks = _find_clanks(match, boxes, found)
 
@@ -82,10 +92,24 @@ def resolve_hits(match: Match) -> None:
         change_state(match, fighter, StateId.REBOUND)
 
 
-def _find_hit(attacker: Fighter, target: Fighter, boxes: list[ActiveHitbox]) -> _Hit | None:
-    """Return the highest-priority hitbox of ``attacker`` that connects with ``target``."""
+def _find_hit(
+    match: Match, attacker: Fighter, target: Fighter, boxes: list[ActiveHitbox]
+) -> _Hit | None:
+    """Return the highest-priority hitbox of ``attacker`` that connects with ``target``.
+
+    A hitbox that touches a raised shield is blocked; one that reaches the hurtbox without
+    touching the shield pokes through and hits normally.
+    """
     if attacker is target or not target.in_play or target.ground is GroundKind.REVIVAL:
         return None
+    if target.intangible:
+        return None
+    bubble = shield_volume(target) if is_shielding(target) else None
+    parry = (
+        match.rules.parry
+        and target.state is StateId.SHIELD_DROP
+        and target.state_frame <= c.PARRY_WINDOW
+    )
     frame = attacker.state_frame
     for box in boxes:  # lowest id first
         definition = box.definition
@@ -94,8 +118,10 @@ def _find_hit(attacker: Fighter, target: Fighter, boxes: list[ActiveHitbox]) -> 
             continue
         if not (definition.hits_ground if target.grounded else definition.hits_air):
             continue
+        if bubble is not None and capsules_overlap(box.volume, bubble):
+            return _Hit(attacker, target, box, blocked=True)
         if hits(box, target):
-            return _Hit(attacker, target, box)
+            return _Hit(attacker, target, box, parried=parry)
     return None
 
 
@@ -155,12 +181,17 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
         for hit in found
     ]
     headings = [_heading(hit) for hit in found]
+    changes: list[tuple[Fighter, StateId]] = []
 
     for hit, damage, full_charge, heading in zip(
         found, damages, full_charges, headings, strict=True
     ):
         attacker, target, definition = hit.attacker, hit.target, hit.box.definition
         attacker.hit_log[(target.player_index, definition.group)] = frames[attacker.player_index]
+        if hit.blocked or hit.parried:
+            changes.append((target, _block(match, hit, damage, full_charge)))
+            continue
+        attacker.dodge_stale = 0
         if not attacker.move_connected:
             attacker.move_connected = True
             push_stale(attacker.stale_queue, attacker.move_id)
@@ -207,6 +238,43 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
                 hitlag=hitlag,
             )
         )
+    for fighter, state in changes:
+        change_state(match, fighter, state)
+
+
+def _block(match: Match, hit: _Hit, damage: float, full_charge: bool) -> StateId:
+    """Apply a blocked (or parried) hit. Returns the state the defender goes to."""
+    attacker, target, definition = hit.attacker, hit.target, hit.box.definition
+    hitlag = kb_math.hitlag_frames(damage, definition.hitlag_mult, definition.effect, full_charge)
+    target.hitlag = max(target.hitlag, hitlag)
+    if hit.parried:
+        attacker.hitlag = max(attacker.hitlag, hitlag + c.PARRY_EXTRA_HITLAG)
+        match.events.append(
+            ShieldHitEvent(
+                attacker.player_index, target.player_index, 0.0, hit.box.centre, hitlag, True
+            )
+        )
+        return StateId.IDLE
+
+    attacker.hitlag = max(attacker.hitlag, hitlag)
+    taken = shield_damage(damage, definition.shield_damage)
+    target.shield_hp -= taken
+    stun = shieldstun_frames(damage)
+    target.stun_frames = max(target.stun_frames, stun) if is_shielding(target) else stun
+    away = (target.pos - attacker.pos).xy.normalized()
+    if away == ZERO2:
+        away = attacker.facing.world
+    push = away * shield_push_speed(damage)
+    target.vel = Vec3(push.x, push.y, 0.0)
+    if attacker.grounded:
+        back = push * -c.SHIELD_ATTACKER_PUSH
+        attacker.vel = Vec3(attacker.vel.x + back.x, attacker.vel.y + back.y, attacker.vel.z)
+    match.events.append(
+        ShieldHitEvent(
+            attacker.player_index, target.player_index, taken, hit.box.centre, hitlag, False
+        )
+    )
+    return StateId.SHIELD_BREAK if target.shield_hp <= 0.0 else StateId.SHIELD_STUN
 
 
 def _heading(hit: _Hit) -> Vec2:
@@ -265,6 +333,9 @@ def _launch(match: Match, fighter: Fighter, launch: Launch) -> None:
     fighter.vel = Vec3(kept.x, kept.y, 0.0)
     fighter.hitstun = kb_math.hitstun_frames(launch.knockback)
     fighter.fast_falling = False
+    fighter.ledge_grabs = 0
+    fighter.tech_window = 0
+    fighter.intangible_frames = 0
     if direction.z > 0.0 and fighter.grounded:
         fighter.ground = GroundKind.NONE
         fighter.platform = -1

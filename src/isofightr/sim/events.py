@@ -84,4 +84,74 @@ class ClankEvent:
     position: Vec3
 
 
-type Event = JumpEvent | LandEvent | KoEvent | RespawnEvent | HitEvent | ClankEvent
+@dataclass(frozen=True, slots=True)
+class ShieldHitEvent:
+    """An attack was blocked by a shield (or parried)."""
+
+    attacker: int
+    target: int
+    damage: float
+    """Damage the shield took (0 for a parry)."""
+    position: Vec3
+    hitlag: int
+    parried: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ShieldBreakEvent:
+    """A fighter's shield broke."""
+
+    player: int
+    position: Vec3
+
+
+@dataclass(frozen=True, slots=True)
+class GrabEvent:
+    """A grab connected; ``clash`` when two grabs cancelled each other."""
+
+    grabber: int
+    target: int
+    position: Vec3
+    clash: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LedgeGrabEvent:
+    """A fighter caught a ledge; ``trumped`` is the fighter knocked off it, or ``None``."""
+
+    player: int
+    position: Vec3
+    trumped: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class TechEvent:
+    """A fighter teched the ground or a wall."""
+
+    player: int
+    position: Vec3
+    wall: bool
+
+
+@dataclass(frozen=True, slots=True)
+class WallBounceEvent:
+    """A tumbling fighter bounced off a wall."""
+
+    player: int
+    position: Vec3
+
+
+type Event = (
+    JumpEvent
+    | LandEvent
+    | KoEvent
+    | RespawnEvent
+    | HitEvent
+    | ClankEvent
+    | ShieldHitEvent
+    | ShieldBreakEvent
+    | GrabEvent
+    | LedgeGrabEvent
+    | TechEvent
+    | WallBounceEvent
+)

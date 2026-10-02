@@ -84,3 +84,132 @@ KNOCKDOWN_LOCK_FRAMES: Final[int] = 20
 KNOCKDOWN_MAX_FRAMES: Final[int] = 60
 """A knocked-down fighter gets up by itself after this many frames."""
 GETUP_FRAMES: Final[int] = 20
+
+# --- Shield (plan note 06) -----------------------------------------------------------------
+SHIELD_MAX_HP: Final[float] = 50.0
+SHIELD_DECAY: Final[float] = 0.15
+"""Shield HP lost per frame while the shield is up."""
+SHIELD_REGEN: Final[float] = 0.08
+"""Shield HP regained per frame while it is down."""
+SHIELD_MIN_FRAMES: Final[int] = 3
+"""A shield stays up at least this long, however briefly the button was pressed."""
+SHIELD_DROP_FRAMES: Final[int] = 11
+SHIELD_MIN_SIZE: Final[float] = 0.4
+"""Fraction of its full radius the shield sphere keeps at 0 HP; it grows linearly with HP."""
+SHIELD_CENTRE_HEIGHT: Final[float] = 1.25
+"""Height of the shield sphere's centre above the feet, in units."""
+SHIELD_DAMAGE_MULT: Final[float] = 1.19
+SHIELDSTUN_PER_DAMAGE: Final[float] = 0.8 * 0.725
+SHIELDSTUN_BASE: Final[float] = 2.0
+SHIELD_PUSH_PER_DAMAGE: Final[float] = 0.004
+"""Speed the defender slides back per point of blocked damage, in units per frame."""
+SHIELD_PUSH_MAX: Final[float] = 0.09
+SHIELD_ATTACKER_PUSH: Final[float] = 0.4
+"""Fraction of the defender's pushback a grounded attacker gets, the other way."""
+SHIELD_BREAK_POP: Final[float] = 0.34
+"""Upward speed of a fighter whose shield just broke."""
+SHIELD_BREAK_HP: Final[float] = 0.3 * SHIELD_MAX_HP
+"""Shield HP right after a break."""
+DIZZY_BASE_FRAMES: Final[int] = 400
+DIZZY_MIN_FRAMES: Final[int] = 90
+"""Dizzy lasts ``max(DIZZY_MIN_FRAMES, DIZZY_BASE_FRAMES - damage)`` frames."""
+PARRY_WINDOW: Final[int] = 5
+"""With the parry rule on: a hit in the first frames of dropping shield is parried."""
+PARRY_EXTRA_HITLAG: Final[int] = 14
+"""Extra frames the attacker is frozen after being parried."""
+
+# --- Dodges --------------------------------------------------------------------------------
+SPOT_DODGE_FRAMES: Final[int] = 26
+SPOT_DODGE_INTANGIBLE: Final[tuple[int, int]] = (3, 17)
+ROLL_FRAMES: Final[int] = 31
+ROLL_INTANGIBLE: Final[tuple[int, int]] = (4, 15)
+ROLL_MOVE_FRAMES: Final[tuple[int, int]] = (4, 23)
+"""Frames of a roll during which the fighter travels."""
+ROLL_DISTANCE: Final[float] = 1.6
+AIR_DODGE_FRAMES: Final[int] = 49
+AIR_DODGE_INTANGIBLE: Final[tuple[int, int]] = (3, 29)
+AIR_DODGE_DIRECTIONAL_INTANGIBLE: Final[tuple[int, int]] = (3, 19)
+AIR_DODGE_SPEED: Final[float] = 0.17
+"""Starting speed of a directional air dodge; it falls linearly to zero over the burst."""
+AIR_DODGE_BURST_FRAMES: Final[int] = 18
+AIR_DODGE_LAND_LAG: Final[int] = 10
+AIR_DODGE_DIRECTIONAL_LAND_LAG: Final[int] = 19
+DODGE_STALE_STEP: Final[int] = 2
+"""Extra end lag per recent dodge."""
+DODGE_STALE_MAX: Final[int] = 12
+DODGE_STALE_RESET_FRAMES: Final[int] = 120
+"""Dodge staling wears off after this long without dodging (or on landing a hit)."""
+
+# --- Grabs and throws ----------------------------------------------------------------------
+GRAB_HOLD_DISTANCE: Final[float] = 0.6
+"""How far in front of the grabber the victim is held, in units."""
+GRAB_HOLD_BASE_FRAMES: Final[int] = 90
+GRAB_HOLD_PER_DAMAGE: Final[float] = 1.7
+GRAB_MASH_FRAMES: Final[int] = 4
+"""Frames each new input by the victim takes off the hold."""
+GRAB_RELEASE_FRAMES: Final[int] = 30
+"""Lag for both fighters after a grab release or a grab clash."""
+GRAB_RELEASE_SPEED: Final[float] = 0.06
+"""Speed the two are pushed apart at on release."""
+PUMMEL_HITLAG: Final[int] = 4
+THROW_BACK_DEGREES: Final[float] = 112.5
+"""A stick direction further than this from the facing picks the back throw."""
+
+# --- Ledges --------------------------------------------------------------------------------
+LEDGE_REACH: Final[float] = 0.5
+"""Horizontal distance from a ledge line within which a falling fighter grabs it."""
+LEDGE_Z_BELOW: Final[tuple[float, float]] = (0.3, 2.0)
+"""The feet must be between these distances below the ledge's top to grab it."""
+LEDGE_HANG_OUT: Final[float] = 0.35
+"""A hanging fighter's feet point is this far outside the ledge line."""
+LEDGE_HANG_BELOW: Final[float] = 1.8
+"""...and this far below its top."""
+LEDGE_AWAY_SPEED: Final[float] = 0.02
+"""A fighter moving away from the stage faster than this does not grab."""
+LEDGE_OCCUPIED_DISTANCE: Final[float] = 0.8
+"""Two fighters closer than this along one ledge line share a spot (the newcomer trumps)."""
+LEDGE_REGRAB_COOLDOWN: Final[int] = 30
+LEDGE_ACTION_DELAY: Final[int] = 8
+"""Frames a fighter must hang before it can pick a ledge option."""
+LEDGE_MAX_HANG: Final[int] = 300
+LEDGE_INTANGIBLE_BASE: Final[float] = 64.0
+LEDGE_INTANGIBLE_MIN: Final[int] = 16
+LEDGE_INTANGIBLE_PER_AIR_FRAME: Final[float] = 0.1
+LEDGE_INTANGIBLE_PER_DAMAGE: Final[float] = 0.1
+LEDGE_TRUMP_FRAMES: Final[int] = 20
+LEDGE_TRUMP_SPEED: Final[float] = 0.05
+LEDGE_GETUP_FRAMES: Final[int] = 30
+LEDGE_GETUP_INTANGIBLE: Final[int] = 28
+LEDGE_GETUP_INSET: Final[float] = 0.6
+"""A getup ends this far inside the ledge line, standing on top."""
+LEDGE_ATTACK_CLIMB_FRAMES: Final[int] = 18
+LEDGE_ROLL_FRAMES: Final[int] = 45
+LEDGE_ROLL_INTANGIBLE: Final[int] = 30
+LEDGE_ROLL_DISTANCE: Final[float] = 2.0
+LEDGE_JUMP_INTANGIBLE: Final[int] = 10
+LEDGE_JUMP_IN_SPEED: Final[float] = 0.05
+LEDGE_JUMP_VZ_MULT: Final[float] = 1.15
+"""A ledge jump rises at the full hop speed times this."""
+
+# --- Tech, knockdown, wall bounce, helpless ------------------------------------------------
+TECH_WINDOW: Final[int] = 11
+"""A shield press this many frames or fewer before touching ground or wall techs."""
+TECH_LOCKOUT: Final[int] = 40
+"""After a shield press in tumble, another one cannot count for this long."""
+TECH_FRAMES: Final[int] = 26
+TECH_INTANGIBLE: Final[int] = 20
+TECH_ROLL_FRAMES: Final[int] = 40
+TECH_ROLL_DISTANCE: Final[float] = 1.8
+WALL_TECH_FRAMES: Final[int] = 20
+WALL_TECH_INTANGIBLE: Final[int] = 14
+WALL_BOUNCE_MIN_SPEED: Final[float] = 0.05
+"""A tumbling fighter hitting a wall slower than this just stops."""
+WALL_BOUNCE_KEEP: Final[float] = 0.8
+"""Fraction of the knockback speed kept after bouncing off a wall."""
+WALL_BOUNCE_DAMAGE: Final[float] = 1.0
+GETUP_INTANGIBLE: Final[int] = 14
+GETUP_ROLL_FRAMES: Final[int] = 35
+GETUP_ROLL_INTANGIBLE: Final[int] = 20
+GETUP_ROLL_DISTANCE: Final[float] = 1.6
+HELPLESS_DRIFT_MULT: Final[float] = 0.6
+HELPLESS_LAND_LAG: Final[int] = 20

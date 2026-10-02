@@ -1,5 +1,5 @@
 {
-  "description": "Two Rooks on Sky Ruins driven by 3000 ticks of seeded random movement input (dashes, runs, turns, jumps, fast falls, platform drops, KOs and respawns).",
+  "description": "Two Rooks on Sky Ruins driven by 3000 ticks of seeded random input (dashes, runs, turns, jumps, fast falls, platform drops, KOs and respawns).",
   "stage": "sky_ruins",
   "characters": [
     "rook",
@@ -7,7 +7,7 @@
   ],
   "seed": 1,
   "stocks": null,
-  "input_seed": 101,
+  "input_seed": 100,
   "ticks": 3000,
-  "hash": "7309bea7d2946df81393f513610a19fd"
+  "hash": "2e4f04fad62fd454259976bb78982879"
 }

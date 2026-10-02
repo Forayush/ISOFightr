@@ -132,19 +132,50 @@ def dash_attack(match: Match, fighter: Fighter) -> bool:
     return False
 
 
+def ground_grab(match: Match, fighter: Fighter) -> bool:
+    """Standing grab."""
+    if fighter.buffer.consume(Press.GRAB):
+        change_state(match, fighter, StateId.GRAB)
+        return True
+    return False
+
+
+def dash_grab(match: Match, fighter: Fighter) -> bool:
+    """Dash grab: grab while dashing or running."""
+    if fighter.buffer.consume(Press.GRAB):
+        change_state(match, fighter, StateId.DASH_GRAB)
+        return True
+    return False
+
+
+def ground_shield(match: Match, fighter: Fighter) -> bool:
+    """Shield: up for as long as the button is held."""
+    if fighter.buffer.holds(Button.SHIELD):
+        change_state(match, fighter, StateId.SHIELD)
+        return True
+    return False
+
+
 def ground_actions(match: Match, fighter: Fighter) -> bool:
-    """Smash, jump or attack, in priority order: what interrupts most ground movement."""
+    """Smash, jump, grab, attack or shield, in priority order: what interrupts most ground
+    movement."""
     return (
         ground_strong(match, fighter)
         or ground_jump(match, fighter)
+        or ground_grab(match, fighter)
         or ground_attack(match, fighter)
+        or ground_shield(match, fighter)
     )
 
 
 def running_actions(match: Match, fighter: Fighter) -> bool:
-    """Like :func:`ground_actions`, but attack is the dash attack."""
+    """Like :func:`ground_actions`, but with the dash grab and the dash attack."""
     return (
-        ground_strong(match, fighter) or ground_jump(match, fighter) or dash_attack(match, fighter)
+        ground_strong(match, fighter)
+        or ground_jump(match, fighter)
+        or dash_grab(match, fighter)
+        or dash_attack(match, fighter)
+        or ground_shield(match, fighter)
     )
 
 
@@ -210,10 +241,12 @@ def platform_drop_tap(match: Match, fighter: Fighter) -> bool:
 
 
 GROUND_NEUTRAL: tuple[Interrupt, ...] = (
-    # M4+: special goes above strong; grab and shield below attack.
+    # M5: special goes above strong.
     ground_strong,
     ground_jump,
+    ground_grab,
     ground_attack,
+    ground_shield,
     ground_dash,
     ground_move,
     platform_drop_hold,
@@ -229,7 +262,9 @@ def run_interrupts(match: Match, fighter: Fighter, interrupts: tuple[Interrupt, 
 GROUND_RECOVER: tuple[Interrupt, ...] = (
     ground_strong,
     ground_jump,
+    ground_grab,
     ground_attack,
+    ground_shield,
     ground_dash,
     ground_dash_held,
     ground_move,
@@ -293,6 +328,14 @@ def air_attack(match: Match, fighter: Fighter) -> bool:
     return True
 
 
+def air_dodge(match: Match, fighter: Fighter) -> bool:
+    """Air dodge: shield in the air, once per airtime."""
+    if fighter.air_dodge_used or not fighter.buffer.consume(Press.SHIELD):
+        return False
+    change_state(match, fighter, StateId.AIR_DODGE)
+    return True
+
+
 def fast_fall(match: Match, fighter: Fighter) -> bool:
     """Fast fall: a Down tap at or after the apex. Never changes state."""
     if fighter.vel.z <= 0.0 and not fighter.fast_falling and fighter.buffer.consume(Press.DOWN):
@@ -301,7 +344,8 @@ def fast_fall(match: Match, fighter: Fighter) -> bool:
 
 
 AIR_NEUTRAL: tuple[Interrupt, ...] = (
-    # M4+: special and air dodge go above the aerials.
+    # M5: special goes above the air dodge.
+    air_dodge,
     air_attack,
     air_jump,
     fast_fall,

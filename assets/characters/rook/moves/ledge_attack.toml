@@ -1,0 +1,18 @@
+# Rook: ledge attack, a low swipe right after climbing onto the stage
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "ledge_attack"
+kind = "recovery"
+total = 34
+faf = 35
+intangible = "1-4"
+
+[[windows]]
+frames = "5-8"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 0.7]   # forward, left, up
+  radius = 0.6
+  damage = 9.0
+  angle = 45
+  bkb = 70
+  kbg = 40

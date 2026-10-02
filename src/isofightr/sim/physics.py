@@ -123,24 +123,33 @@ class StepResult:
     left_ground: bool = False
     fall_speed: float = 0.0
     """Downward speed just before a landing, in units per frame."""
+    wall_normal: Vec2 | None = None
+    """Set when an airborne fighter was stopped by a wall: the unit normal away from it."""
+    wall_knockback: Vec3 = ZERO3
+    """The knockback velocity the fighter had before the wall stopped it."""
 
 
 _NOTHING = StepResult()
 
 
-def step(stage: Stage, fighter: Fighter) -> StepResult:
-    """Move a fighter by its velocities for one tick and resolve stage collision."""
+def step(stage: Stage, fighter: Fighter, stop_at_edges: bool = False) -> StepResult:
+    """Move a fighter by its velocities for one tick and resolve stage collision.
+
+    With ``stop_at_edges`` a grounded fighter is held at an edge instead of going over it.
+    """
     if not fighter.in_play or fighter.ground is GroundKind.REVIVAL:
         return _NOTHING
     delta = fighter.vel + fighter.kb_vel
     if fighter.grounded:
-        return _move_grounded(stage, fighter, delta.xy)
+        return _move_grounded(stage, fighter, delta.xy, stop_at_edges)
     return _move_airborne(stage, fighter, delta)
 
 
-def nudge_grounded(stage: Stage, fighter: Fighter, offset: Vec2) -> StepResult:
+def nudge_grounded(
+    stage: Stage, fighter: Fighter, offset: Vec2, stop_at_edges: bool = False
+) -> StepResult:
     """Shift a grounded fighter sideways (pushboxes), with the same collision as walking."""
-    return _move_grounded(stage, fighter, offset)
+    return _move_grounded(stage, fighter, offset, stop_at_edges)
 
 
 def shift(stage: Stage, fighter: Fighter, offset: Vec2) -> None:
@@ -148,7 +157,7 @@ def shift(stage: Stage, fighter: Fighter, offset: Vec2) -> None:
     if fighter.grounded:
         _move_grounded(stage, fighter, offset)
     else:
-        x, y = _slide_along_walls(stage, fighter, offset)
+        x, y, _, _ = _slide_along_walls(stage, fighter, offset)
         fighter.pos = Vec3(x, y, fighter.pos.z)
 
 
@@ -197,12 +206,21 @@ def _support_at(
     return best
 
 
-def _move_grounded(stage: Stage, fighter: Fighter, delta: Vec2) -> StepResult:
+def _move_grounded(
+    stage: Stage, fighter: Fighter, delta: Vec2, stop_at_edges: bool = False
+) -> StepResult:
     pos = fighter.pos
-    x, y = _slide_along_walls(stage, fighter, delta)
-    support = support_under(
-        stage, x, y, pos.z - STEP_HEIGHT, pos.z + STEP_HEIGHT, fighter.character.body.radius
-    )
+    radius = fighter.character.body.radius
+    x, y, _, _ = _slide_along_walls(stage, fighter, delta)
+    low, high = pos.z - STEP_HEIGHT, pos.z + STEP_HEIGHT
+    support = support_under(stage, x, y, low, high, radius)
+    if support is None and stop_at_edges:
+        # Held at the edge: keep whichever single axis of the move still has ground under it.
+        for hold_x, hold_y in ((x, pos.y), (pos.x, y), (pos.x, pos.y)):
+            support = support_under(stage, hold_x, hold_y, low, high, radius)
+            if support is not None:
+                x, y = hold_x, hold_y
+                break
     if support is None:
         # Walked or was pushed off an edge: keep the height and start falling.
         fighter.pos = Vec3(x, y, pos.z)
@@ -218,7 +236,13 @@ def _move_grounded(stage: Stage, fighter: Fighter, delta: Vec2) -> StepResult:
 def _move_airborne(stage: Stage, fighter: Fighter, delta: Vec3) -> StepResult:
     pos = fighter.pos
     body = fighter.character.body
-    x, y = _slide_along_walls(stage, fighter, delta.xy)
+    knockback = fighter.kb_vel
+    x, y, blocked_x, blocked_y = _slide_along_walls(stage, fighter, delta.xy)
+    wall_normal: Vec2 | None = None
+    if blocked_x:
+        wall_normal = Vec2(-1.0 if delta.x > 0 else 1.0, 0.0)
+    elif blocked_y:
+        wall_normal = Vec2(0.0, -1.0 if delta.y > 0 else 1.0)
     new_z = pos.z + delta.z
 
     if delta.z <= 0.0:
@@ -249,6 +273,8 @@ def _move_airborne(stage: Stage, fighter: Fighter, delta: Vec3) -> StepResult:
         deck = stage.soft_platforms[fighter.drop_platform].z
         if new_z < deck - PLATFORM_DROP_CLEARANCE:
             fighter.drop_platform = NO_PLATFORM
+    if wall_normal is not None:
+        return StepResult(wall_normal=wall_normal, wall_knockback=knockback)
     return _NOTHING
 
 
@@ -284,11 +310,14 @@ def _is_wall(stage: Stage, cx: int, cy: int, feet: float, height: float) -> bool
     return cell is not None and cell.top > feet + STEP_HEIGHT and stage.underside < feet + height
 
 
-def _slide_along_walls(stage: Stage, fighter: Fighter, delta: Vec2) -> tuple[float, float]:
+def _slide_along_walls(
+    stage: Stage, fighter: Fighter, delta: Vec2
+) -> tuple[float, float, bool, bool]:
     """Move the fighter's ground position by ``delta``, stopping each axis at walls.
 
     Axes are resolved one after the other, which slides the fighter along a wall it runs into
-    at an angle. The blocked component of both velocities is removed.
+    at an angle. The blocked component of both velocities is removed. Returns the new
+    ``x`` and ``y`` and whether each axis was blocked.
     """
     pos = fighter.pos
     body = fighter.character.body
@@ -297,7 +326,7 @@ def _slide_along_walls(stage: Stage, fighter: Fighter, delta: Vec2) -> tuple[flo
     if blocked_x or blocked_y:
         fighter.vel = _without(fighter.vel, blocked_x, blocked_y)
         fighter.kb_vel = _without(fighter.kb_vel, blocked_x, blocked_y)
-    return x, y
+    return x, y, blocked_x, blocked_y
 
 
 def _without(velocity: Vec3, drop_x: bool, drop_y: bool) -> Vec3:

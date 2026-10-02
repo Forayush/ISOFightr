@@ -19,6 +19,8 @@ class MoveKind(Enum):
     DASH_ATTACK = "dash_attack"
     SMASH = "smash"
     AERIAL = "aerial"
+    RECOVERY = "recovery"
+    """A getup attack: from a knockdown or from a ledge."""
 
 
 class DirectionMode(Enum):
@@ -83,6 +85,8 @@ class HitboxDef:
     rehit: int
     """Frames before the same group may hit the same target again (0 = never)."""
     clank: bool
+    shield_damage: float = 0.0
+    """Extra damage this hitbox does to a shield, on top of its normal damage."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,6 +142,8 @@ class MoveDef:
     landing_lag: int
     """Aerials only: landing lag when the move is interrupted by landing."""
     autocancel: tuple[FrameRange, ...]
+    intangible: FrameRange | None = None
+    """Frames during which the fighter cannot be hit or grabbed (getup attacks)."""
     """Aerials only: frames on which landing uses the normal landing lag instead."""
 
     def active_hitboxes(self, frame: int) -> tuple[HitboxDef, ...]:
