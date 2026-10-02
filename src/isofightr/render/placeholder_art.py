@@ -11,6 +11,7 @@ module are image coordinates (origin top-left, y down).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Final
 
@@ -108,6 +109,36 @@ PLAYER_COLORS: Final[tuple[Rgba, ...]] = (
     (30, 188, 115, 255),
 )
 """P1 red, P2 blue, P3 yellow, P4 green (plan note 09). Player indices wrap around."""
+LYING_HALF_LENGTH: Final[int] = BODY_HEIGHT // 2
+LYING_HEIGHT: Final[int] = BODY_HALF_WIDTH * 2
+"""A knocked-down fighter is the same capsule on its side."""
+QUARTER_TURN_DEGREES: Final[int] = 90
+
+# --- Hit sparks and attack swings ----------------------------------------------------------
+SPARK_SIZES: Final[tuple[int, ...]] = (15, 23, 31, 43)
+"""Canvas size of a spark, by tier: light, medium, heavy, KO strength. Odd, so it has a
+centre pixel."""
+SPARK_FRAME_SCALE: Final[tuple[float, ...]] = (0.55, 1.0, 1.0)
+"""How much of the canvas each animation frame fills. The last frame is only an outline."""
+SPARK_POINTS: Final[int] = 4
+SPARK_INNER_RATIO: Final[float] = 0.3
+SPARK_CORE_RATIO: Final[float] = 0.6
+"""Size of the bright core of a spark, relative to the whole star."""
+SPARK_COLORS: Final[dict[str, tuple[Rgba, Rgba]]] = {
+    "normal": ((255, 244, 180, 255), (249, 194, 43, 255)),
+    "slash": ((255, 255, 255, 255), (150, 220, 255, 255)),
+    "fire": ((255, 230, 150, 255), (240, 96, 40, 255)),
+    "electric": ((255, 255, 255, 255), (120, 200, 255, 255)),
+    "ice": ((240, 250, 255, 255), (130, 200, 240, 255)),
+    "darkness": ((220, 170, 255, 255), (120, 60, 180, 255)),
+}
+"""``(core, edge)`` colors of a spark, by hit effect name."""
+SWING_ALPHA: Final[int] = 150
+SWING_RIM_ALPHA: Final[int] = 230
+SPHERE_WIDTH_PER_UNIT: Final[float] = TILE_W / 2 * math.sqrt(2.0)
+"""Screen half-width in pixels of a sphere of radius 1: the projection of ``x - y``."""
+SPHERE_HEIGHT_PER_UNIT: Final[float] = math.sqrt(2 * (TILE_H / 2) ** 2 + Z_PX**2)
+"""Screen half-height in pixels of a sphere of radius 1 (``-(x + y) * 8 + z * 16``)."""
 
 # --- Shadows -------------------------------------------------------------------------------
 SHADOW_WIDTH: Final[int] = 20
@@ -214,12 +245,60 @@ def player_color(player_index: int) -> Rgba:
     return PLAYER_COLORS[player_index % len(PLAYER_COLORS)]
 
 
-def build_fighter(player_index: int, facing: Dir8) -> Image.Image:
+def build_fighter(
+    player_index: int,
+    facing: Dir8,
+    lying: bool = False,
+    quarter_turns: int = 0,
+    flash: bool = False,
+) -> Image.Image:
     """Return the 64x64 placeholder fighter: a capsule, a darker head and a facing arrow.
 
     The arrow points where the facing direction goes on screen. Fighters facing toward the
     camera also get eyes, so front and back read differently at a glance.
+
+    Args:
+        player_index: picks the color.
+        facing: where the arrow points.
+        lying: draw the knocked-down pose (the capsule on its side) instead.
+        quarter_turns: spin the standing sprite about its middle (tumbling).
+        flash: paint every pixel white (hit flash, charge blink).
     """
+    image = _build_lying(player_index) if lying else _build_standing(player_index, facing)
+    if quarter_turns % 4 and not lying:
+        # Pillow measures the centre from the image's top-left corner, in pixel edges.
+        middle = (FIGHTER_PIVOT_X, FIGHTER_CANVAS - FIGHTER_PIVOT_FROM_BOTTOM - BODY_HEIGHT / 2)
+        image = image.rotate(
+            quarter_turns * QUARTER_TURN_DEGREES, resample=Image.Resampling.NEAREST, center=middle
+        )
+    if flash:
+        white = Image.new("RGBA", image.size, WHITE)
+        white.putalpha(image.getchannel("A"))
+        image = white
+    return image
+
+
+def _build_lying(player_index: int) -> Image.Image:
+    color = player_color(player_index)
+    image = Image.new("RGBA", (FIGHTER_CANVAS, FIGHTER_CANVAS), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    feet_row = FIGHTER_CANVAS - FIGHTER_PIVOT_FROM_BOTTOM
+    left = FIGHTER_PIVOT_X - LYING_HALF_LENGTH
+    right = FIGHTER_PIVOT_X + LYING_HALF_LENGTH - 1
+    top = feet_row - LYING_HEIGHT
+    draw.rounded_rectangle(
+        (left, top, right, feet_row - 1),
+        radius=BODY_HALF_WIDTH - 1,
+        fill=color,
+        outline=shade(color, OUTLINE_SHADE),
+    )
+    draw.ellipse(
+        (left + 1, top + 1, left + HEAD_HEIGHT, feet_row - 2), fill=shade(color, HEAD_SHADE)
+    )
+    return image
+
+
+def _build_standing(player_index: int, facing: Dir8) -> Image.Image:
     color = player_color(player_index)
     outline = shade(color, OUTLINE_SHADE)
     image = Image.new("RGBA", (FIGHTER_CANVAS, FIGHTER_CANVAS), TRANSPARENT)
@@ -267,6 +346,67 @@ def _draw_arrow(
     draw.polygon(head, fill=INK, outline=INK, width=ARROW_HEAD_OUTLINE_WIDTH)
     draw.line((tail, neck), fill=WHITE, width=1)
     draw.polygon(head, fill=WHITE)
+
+
+def build_spark(tier: int, effect: str, frame: int) -> Image.Image:
+    """Return one frame of a hit spark: a four-point star that grows, then leaves an outline.
+
+    Args:
+        tier: 0 light to 3 KO strength; picks the size.
+        effect: the hit effect name (``Effect.value``); picks the colors.
+        frame: animation frame, 0 to 2.
+    """
+    size = SPARK_SIZES[min(tier, len(SPARK_SIZES) - 1)]
+    core, edge = SPARK_COLORS.get(effect, SPARK_COLORS["normal"])
+    image = Image.new("RGBA", (size, size), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    centre = (size - 1) / 2
+    outer = centre * SPARK_FRAME_SCALE[min(frame, len(SPARK_FRAME_SCALE) - 1)]
+    inner = outer * SPARK_INNER_RATIO
+    points = _star(centre, outer, inner)
+    if frame >= len(SPARK_FRAME_SCALE) - 1:
+        draw.polygon(points, outline=edge)
+    else:
+        draw.polygon(points, fill=edge)
+        draw.polygon(_star(centre, outer * SPARK_CORE_RATIO, inner * SPARK_CORE_RATIO), fill=core)
+    # Polygon rasterising is not quite symmetric; mirror it so the spark is.
+    for flip in (Image.Transpose.FLIP_LEFT_RIGHT, Image.Transpose.FLIP_TOP_BOTTOM):
+        image = Image.alpha_composite(image.transpose(flip), image)
+    return image
+
+
+def _star(centre: float, outer: float, inner: float) -> list[tuple[float, float]]:
+    points = []
+    for index in range(SPARK_POINTS * 2):
+        radius = outer if index % 2 == 0 else inner
+        angle = math.pi * index / SPARK_POINTS
+        points.append((centre + math.sin(angle) * radius, centre - math.cos(angle) * radius))
+    return points
+
+
+def sphere_screen_size(radius: float) -> tuple[int, int]:
+    """Return the ``(width, height)`` in pixels of a world sphere's outline on screen."""
+    width = max(1, round(radius * SPHERE_WIDTH_PER_UNIT * 2))
+    height = max(1, round(radius * SPHERE_HEIGHT_PER_UNIT * 2))
+    return (width, height)
+
+
+def build_swing(player_index: int, radius: float) -> Image.Image:
+    """Return the placeholder "attack swing": a translucent blob the size of a hitbox.
+
+    Until moves have animations this is the only visual of an attack, and it is drawn exactly
+    where the hitbox is, so what you see is what hits.
+    """
+    width, height = sphere_screen_size(radius)
+    red, green, blue, _ = player_color(player_index)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.ellipse(
+        (0, 0, width - 1, height - 1),
+        fill=(255, 255, 255, SWING_ALPHA),
+        outline=(red, green, blue, SWING_RIM_ALPHA),
+    )
+    return image
 
 
 def shadow_variant_index(height_above_surface: float) -> int:

@@ -8,7 +8,7 @@ so the whole world is a single batched draw call (decision D-019).
 Reads state only: it never changes what it draws.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from enum import IntEnum
 from typing import Protocol
 
@@ -34,6 +34,7 @@ from isofightr.render.depth import (
     StaticItem,
     StaticKind,
 )
+from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
@@ -134,16 +135,23 @@ class WorldRenderer:
 
     # --- per-frame -------------------------------------------------------------------------
 
-    def sync(self, entities: Sequence[WorldEntity], frame: int = 0) -> None:
+    def sync(
+        self,
+        entities: Sequence[WorldEntity],
+        frame: int = 0,
+        looks: Mapping[int, FighterLook] | None = None,
+    ) -> None:
         """Update sprite positions, textures and draw order from the current world state.
 
-        ``frame`` is the match frame; it only drives the invincibility blink.
+        ``frame`` is the match frame; it only drives the invincibility blink. ``looks`` gives
+        the pose, flash and shake of entities by ``entity_id``; the rest stand normally.
         """
         self._drop_missing({entity.entity_id for entity in entities})
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
         items: list[DynamicItem] = []
         for entity in entities:
-            items.append(self._sync_body(entity, hidden=entity.invincible and blink_off))
+            look = DEFAULT_LOOK if looks is None else looks.get(entity.entity_id, DEFAULT_LOOK)
+            items.append(self._sync_body(entity, look, hidden=entity.invincible and blink_off))
             for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
                 if item is not None:
                     items.append(item)
@@ -153,11 +161,12 @@ class WorldRenderer:
             self._order = order
             self._apply_order(order)
 
-    def draw(self, camera_centre: tuple[int, int], overlay: "Overlay | None" = None) -> None:
+    def draw(self, camera_centre: tuple[int, int], overlays: Sequence[Overlay] = ()) -> None:
         """Draw the background, then the sorted world as seen from ``camera_centre``.
 
         Call inside ``pixel_buffer.drawing()``. ``camera_centre`` is in whole world pixels.
-        ``overlay`` is drawn last, in the same world pixel space (debug overlays).
+        ``overlays`` are drawn last and in order, in the same world pixel space (the VFX
+        layer, debug overlays).
         """
         self._background.draw(pixelated=True)
         self.camera.position = camera_centre
@@ -165,7 +174,7 @@ class WorldRenderer:
             self.sprites.draw(pixelated=True)
             if OCCLUDED_FIGHTER_ALPHA > 0:
                 self._ghosts.draw(pixelated=True)
-            if overlay is not None:
+            for overlay in overlays:
                 overlay.draw()
 
     # --- statics ---------------------------------------------------------------------------
@@ -207,16 +216,18 @@ class WorldRenderer:
             sprite.texture = texture
         return sprite
 
-    def _sync_body(self, entity: WorldEntity, hidden: bool) -> DynamicItem:
+    def _sync_body(self, entity: WorldEntity, look: FighterLook, hidden: bool) -> DynamicItem:
+        lying = look.pose is Pose.DOWN
+        turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
         texture = self._texture(
-            ("fighter", entity.player_index, entity.facing),
-            lambda: art.build_fighter(entity.player_index, entity.facing),
+            ("fighter", entity.player_index, entity.facing, lying, turns, look.flash),
+            lambda: art.build_fighter(entity.player_index, entity.facing, lying, turns, look.flash),
         )
         sprite = self._part(entity, Part.BODY, texture)
         pos = entity.pos
         feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
         sprite.position = (
-            feet_x + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_X,
+            feet_x + look.offset_x + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_X,
             feet_y + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_FROM_BOTTOM,
         )
         sprite.visible = not hidden

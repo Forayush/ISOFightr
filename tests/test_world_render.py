@@ -356,13 +356,13 @@ def test_debug_overlay_and_fighter_info_draw(window: Any) -> None:
     view.on_draw()
     assert window.pixel_buffer.framebuffer.read(components=4) != plain
     assert view._info_lines[0].text.startswith("P1 idle f1 pos 6.50 1.50 0.00 vel +0.000")
-    assert view._info_lines[2].text == "frame 0  camera clamp off"
+    assert view._info_lines[4].text == "frame 0  camera clamp off"
     view.show_overlay = False
     view.on_draw()
     assert view._info_lines[0].text == ""
     view.show_fighter_info = True
     view.on_draw()
-    assert view._info_lines[0].text.startswith("P1 idle") and view._info_lines[2].text == ""
+    assert view._info_lines[0].text.startswith("P1 idle") and view._info_lines[4].text == ""
 
 
 def test_keys_drive_the_match_through_the_fixed_loop(window: Any) -> None:

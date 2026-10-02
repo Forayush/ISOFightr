@@ -35,14 +35,19 @@ class PixelLabel:
         y: int,
         capacity: int,
         color: RGBOrA255 = arcade.color.WHITE,
+        scale: int = 1,
     ) -> None:
-        """Create ``capacity`` hidden glyph sprites in ``sprites``, positioned left to right."""
+        """Create ``capacity`` hidden glyph sprites in ``sprites``, positioned left to right.
+
+        ``scale`` is a whole-number size multiplier (big HUD numbers).
+        """
         self._glyphs = glyphs
         self._text = ""
+        self._scale = scale
         self._sprites: list[arcade.Sprite] = []
         placeholder = glyphs.get(PRINTABLE[0])
         for _ in range(capacity):
-            sprite = arcade.Sprite(placeholder)
+            sprite = arcade.Sprite(placeholder, scale=scale)
             sprite.color = color
             sprite.visible = False
             sprites.append(sprite)
@@ -53,9 +58,19 @@ class PixelLabel:
         """Move the label so its bottom-left corner is at ``(x, y)``."""
         for index, sprite in enumerate(self._sprites):
             sprite.position = (
-                x + index * GLYPH_ADVANCE + GLYPH_WIDTH / 2,
-                y + GLYPH_HEIGHT / 2,
+                x + (index * GLYPH_ADVANCE + GLYPH_WIDTH / 2) * self._scale,
+                y + GLYPH_HEIGHT / 2 * self._scale,
             )
+
+    @property
+    def color(self) -> RGBOrA255:
+        """The tint of every glyph."""
+        return self._sprites[0].color if self._sprites else arcade.color.WHITE
+
+    @color.setter
+    def color(self, value: RGBOrA255) -> None:
+        for sprite in self._sprites:
+            sprite.color = value
 
     @property
     def text(self) -> str:
