@@ -31,18 +31,19 @@ The full design and implementation plan lives in an **Obsidian vault** outside t
 - Python **3.12**, **Arcade 3.x** (pinned), Pillow, uv, pytest, ruff, mypy
 ```bash
 uv sync                                   # install deps
-uv run python -m isofightr                # run the game
-uv run python -m isofightr --training --p1 rook --p2 rook --stage training_grid --debug
-uv run python -m isofightr --headless --frames 10000   # headless sim run
+uv run python -m isofightr                # run the game (two Rooks on Sky Ruins)
+uv run python -m isofightr --p1 rook --p2 rook --stage training_grid --seed 3
+uv run python -m isofightr --headless --frames 10000   # headless sim run, prints the state hash
 uv run pytest                             # fast tests (excludes @slow and @gl)
 uv run pytest -m slow                     # soak tests
-uv run pytest -m gl                       # render tests; need a real display, skipped in CI
+uv run pytest -m gl                       # render and device tests; need a real display, skipped in CI
+uv run pytest --update-goldens            # re-record tests/goldens after an intended mechanic change
 uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
 ```
-(As of M1 these flags exist: `--stage ID`, `--test-pattern`, `--scale N`, `--fullscreen`, `--frames N`, `--debug`. The match flags `--training`, `--p1`/`--p2` and `--headless` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+(As of M2 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--training`, `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
 
-M1 sandbox keys (no physics yet, replaced in M2): `W/A/S/D` move, `I` / `,` raise and lower, `Tab` switch placeholder, `F3` debug overlay, `F8` reset, `C` camera clamp, `F11` fullscreen.
+Controls as of M2 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `Left Ctrl` walk; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers; a connected controller also drives its player. Debug keys: `F2` fighter info, `F3` stage overlay, `F8` restart, `C` camera clamp, `F11` fullscreen.
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
@@ -54,7 +55,7 @@ M1 sandbox keys (no physics yet, replaced in M2): `W/A/S/D` move, `I` / `,` rais
 6. **Characters, moves and stages are data** (TOML in `assets/`), loaded into frozen dataclasses with strict validation (unknown keys = error). Python code only for special-move scripts in `sim/characters/<name>.py`.
 7. Follow the **per-tick order of operations** in `D:\dwthiw\isofighter\plan\02 - Technical Architecture.md`. Hits are computed first, then applied simultaneously (trades).
 8. Iterate fighters in **player index order**. Never iterate a `set` in the sim.
-9. Tunable numbers go in data files or `sim/combat/constants.py` / `config.py`. No inline magic numbers.
+9. Tunable numbers go in data files, `sim/constants.py` (movement, physics, match flow), `sim/combat/constants.py` (combat) or `config.py` (presentation, devices, stage defaults). No inline magic numbers.
 
 ## Smash-mechanics essentials (full spec: `D:\dwthiw\isofighter\plan\05 - Combat Core.md` and `D:\dwthiw\isofighter\plan\06 - Shield Dodge Grab and Ledge.md`)
 - Knockback: `KB = ((((p/10 + p*d/20) * 200/(w+100) * 1.4) + 18) * kbg/100 + bkb) * r`, where `p` is the target's % **after** the hit.
@@ -70,8 +71,8 @@ M1 sandbox keys (no physics yet, replaced in M2): `W/A/S/D` move, `I` / `,` rais
 - No new dependencies without a Decision Log entry.
 
 ## Testing expectations
-- Every gameplay change gets a **scenario test** (scripted `InputFrame`s against a `Match`, see `tests/helpers.py`) plus unit tests for any formula.
-- Golden replay tests guard determinism. If a mechanic change intentionally alters them, re-record with `pytest --update-goldens` and say so in the commit message.
+- Every gameplay change gets a **scenario test** (scripted `InputFrame`s against a `Match`, see `tests/helpers.py`: `make_match`, `hold`, `run`, `place`) plus unit tests for any formula.
+- Golden state hashes in `tests/goldens/*.json` guard determinism and catch unintended mechanic changes. If a change intentionally alters them, re-record with `pytest --update-goldens` and say so in the commit message. Between them the goldens must visit every `StateId` (a test enforces it), so extend their input when you add states.
 - Data validation tests load every TOML in `assets/`.
 - Run `uv run pytest` and `uv run ruff check .` before committing.
 
@@ -82,11 +83,18 @@ M1 sandbox keys (no physics yet, replaced in M2): `W/A/S/D` move, `I` / `,` rais
 - DPI: importing `arcade` sets `pyglet.options.dpi_scaling = "stretch"`, which stretches the framebuffer by the OS display scale (2.5× on a 125% display) and ruins pixel art. `app.py` sets it to `"real"` before the window exists (decision D-017). Size things from `window.get_framebuffer_size()`, and always create the window through `GameWindow`.
 - `View.on_draw` must call `self.clear()` first.
 
-## Rendering notes (as built in M1)
+## Sim notes (as built in M2)
+- State changes go through `change_state(match, fighter, state_id)` only. The tick a state is entered is its frame 1 (`enter` is that frame's logic); `step` runs from frame 2 on.
+- States hold no data. Anything a state needs to remember is a field on `Fighter`, and must be added to `Match._canonical` so the state hash sees it.
+- An `InputFrame` carries only what is held. Press edges, the 6-frame buffer and flicks come from the fighter's `InputBuffer` (decision D-024). Use `buffer.consume(Press.X)` so one press cannot trigger two things.
+- Interrupt priority lives in `sim/states/interrupts.py` as ordered tuples. New actions slot into those tuples.
+
+## Rendering notes (as built in M1 and M2)
 - **World draw order comes from `render/depth.py`, never from a scalar sort key.** It is a topological sort over geometric constraints between sprites that overlap on screen (decision D-019). To add a new kind of world sprite, give it a `DynamicItem` (position, height, exact pixel rect) and let the sorter place it.
 - The rect passed to the sorter must bound **every pixel the sprite draws**. A rect that is too small silently drops constraints.
 - `uv run pytest -m gl` includes an occlusion sweep against a geometric oracle (`tests/test_world_render.py`). Run it after any change to sorting, tile art geometry or sprite anchoring.
-- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `ui/pixel_font.py`, `scenes/sandbox.py`) must stay that way: the CI test run has no display.
+- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `ui/pixel_font.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display.
+- A fighter the stage partly hides gets a faint "x-ray" copy drawn over the world (`OCCLUDED_FIGHTER_ALPHA`, decision D-025), because platforms and the island otherwise hide fighters completely in this projection.
 
 ## Assets and legal
 - Sprites: 64×64 cells, feet pivot at (32, 8) from the bottom-left. Directions SE/NE are authored and SW/NW are mirrored. Exported from Aseprite to `assets/characters/<id>/sheet_<DIR>.png/.json`.
