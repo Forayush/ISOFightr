@@ -20,3 +20,19 @@ def window() -> Iterator["GameWindow"]:
     game_window = GameWindow(visible=False)
     yield game_window
     game_window.close()
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Add ``--update-goldens``: re-record golden state hashes after an intended change."""
+    parser.addoption(
+        "--update-goldens",
+        action="store_true",
+        default=False,
+        help="rewrite tests/goldens/*.json with the current state hashes",
+    )
+
+
+@pytest.fixture
+def update_goldens(request: pytest.FixtureRequest) -> bool:
+    """Whether this run should re-record golden hashes instead of checking them."""
+    return bool(request.config.getoption("--update-goldens"))

@@ -58,9 +58,10 @@ SURFACE_EPSILON: Final[float] = 1e-4
 PLAYER_SPAWN_COUNT: Final[int] = 4
 """Every stage defines spawn points ``p1`` to ``p4``."""
 
-# --- Stage rendering geometry (shared by the depth sorter and the tile art) ----------------
+# --- Stage geometry shared by physics, the depth sorter and the tile art -------------------
 ISLAND_THICKNESS: Final[float] = 1.0
-"""How far the island's stone sides hang below the lowest cell top, in units."""
+"""How far the island extends below its lowest cell top, in units. Solid for physics too:
+fighters can pass under the island below this depth."""
 
 DECK_THICKNESS: Final[float] = 0.25
 """Visual thickness of a soft platform deck, in units (4 px)."""

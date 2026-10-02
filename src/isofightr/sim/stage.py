@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from isofightr.config import (
+    ISLAND_THICKNESS,
     LEDGE_MIN_DROP,
     MIN_PLATFORM_CLEARANCE,
     PLAYER_SPAWN_COUNT,
@@ -27,6 +28,8 @@ from isofightr.sim.math3d import Box3, Vec2, Vec3
 
 VOID_SYMBOL: Final[str] = "."
 DEFAULT_TILE: Final[str] = "default"
+NO_PLATFORM: Final[int] = -1
+"""Stands in for a soft platform index when something is not on (or about) a platform."""
 
 # Outward normals in a fixed order, so ledge generation is deterministic.
 _SIDE_NORMALS: Final[tuple[Vec2, ...]] = (
@@ -123,6 +126,14 @@ class Stage:
     def size_y(self) -> int:
         """Number of grid rows (extent along world y)."""
         return len(self.cells)
+
+    @property
+    def underside(self) -> float:
+        """Height of the island's underside: solid cells are solid from here up to their top.
+
+        Below this a fighter can pass under the island, as under a floating stage in Smash.
+        """
+        return self.bounds.z_min - ISLAND_THICKNESS
 
     def cell(self, cx: int, cy: int) -> Cell | None:
         """Return the solid cell at grid coordinates, or ``None`` for void or out of range."""

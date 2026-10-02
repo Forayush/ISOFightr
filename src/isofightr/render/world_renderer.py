@@ -15,7 +15,7 @@ import arcade
 from arcade.types import LBWH, LRBT
 from PIL import Image
 
-from isofightr.config import ISLAND_THICKNESS, NATIVE_H, NATIVE_W, Z_PX
+from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import snap
 from isofightr.render.depth import (
@@ -140,8 +140,7 @@ class WorldRenderer:
         if item.kind is StaticKind.COLUMN:
             cell = self.stage.cell(item.cx, item.cy)
             assert cell is not None
-            bottom = self.stage.bounds.z_min - ISLAND_THICKNESS
-            side_px = snap((cell.top - bottom) * Z_PX)
+            side_px = snap((cell.top - self.stage.underside) * Z_PX)
             tile = cell.tile
             texture = self._texture(
                 ("tile", tile, light, side_px), lambda: art.build_tile(tile, light, side_px)

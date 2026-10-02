@@ -33,13 +33,10 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Final
 
-from isofightr.config import DECK_THICKNESS, ISLAND_THICKNESS, SURFACE_EPSILON, TILE_H, Z_PX
+from isofightr.config import DECK_THICKNESS, SURFACE_EPSILON, TILE_H, Z_PX
 from isofightr.render.iso import HALF_TILE_W, project
-from isofightr.sim.stage import Stage
-
-NO_PLATFORM: Final[int] = -1
+from isofightr.sim.stage import NO_PLATFORM, Stage
 
 
 @dataclass(frozen=True, slots=True)
@@ -312,7 +309,7 @@ class DepthSorter:
 
 def _build_statics(stage: Stage) -> tuple[StaticItem, ...]:
     """Return the stage's static items, back to front by cell centre, lowest first."""
-    island_bottom = stage.bounds.z_min - ISLAND_THICKNESS
+    island_bottom = stage.underside
     statics: list[StaticItem] = []
     for cy, row in enumerate(stage.cells):
         for cx, cell in enumerate(row):
