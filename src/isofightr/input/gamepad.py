@@ -102,15 +102,15 @@ _BUTTON_FIELDS = (
 )
 
 
-def process_stick(x: float, y: float) -> tuple[float, float]:
+def process_stick(x: float, y: float, deadzone: float = STICK_DEADZONE) -> tuple[float, float]:
     """Apply the radial deadzone and outer saturation, rescaling magnitude to 0..1.
 
     The direction is kept; only the magnitude is remapped, so there is no axis snapping.
     """
     magnitude = math.hypot(x, y)
-    if magnitude <= STICK_DEADZONE:
+    if magnitude <= deadzone:
         return (0.0, 0.0)
-    scaled = min(1.0, (magnitude - STICK_DEADZONE) / (STICK_SATURATION - STICK_DEADZONE))
+    scaled = min(1.0, (magnitude - deadzone) / (STICK_SATURATION - deadzone))
     return (x / magnitude * scaled, y / magnitude * scaled)
 
 
@@ -123,9 +123,13 @@ def is_held(state: PadState, controls: tuple[str, ...]) -> bool:
     return False
 
 
-def gamepad_frame(state: PadState, preset: GamepadPreset = RIGHT_STICK_MODIFIERS) -> InputFrame:
+def gamepad_frame(
+    state: PadState,
+    preset: GamepadPreset = RIGHT_STICK_MODIFIERS,
+    deadzone: float = STICK_DEADZONE,
+) -> InputFrame:
     """Return the ``InputFrame`` for a controller snapshot."""
-    stick_u, stick_v = process_stick(state.left_x, state.left_y)
+    stick_u, stick_v = process_stick(state.left_x, state.left_y, deadzone)
     move = stick_to_world(stick_u, stick_v)
 
     up, down = is_held(state, preset.up), is_held(state, preset.down)

@@ -32,7 +32,7 @@ from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import save_replay
 from isofightr.data.validation import DataError
-from isofightr.input.devices import InputSource
+from isofightr.input.devices import DeviceHub, InputSource
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import FollowCamera, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
@@ -45,9 +45,10 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.world_renderer import Overlay, WorldRenderer
 from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
 from isofightr.scenes.ticked_view import TickedView
+from isofightr.settings import Settings
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.fighter import Fighter, StateId
-from isofightr.sim.input_frame import InputFrame
+from isofightr.sim.input_frame import NEUTRAL_INPUT, InputFrame
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.replay import Recorder, Replay
@@ -99,6 +100,7 @@ BODY_CENTRE_HEIGHT = art.BODY_HEIGHT / 2 / Z_PX
 """The camera tracks a fighter's middle rather than its feet, in units above the feet."""
 
 BANNER_SCALE = 4
+FULL_PERCENT = 100
 BANNER_CAPACITY = len("SUDDEN DEATH")
 BANNER_BOTTOM = NATIVE_H // 2 + 30
 CLOCK_CAPACITY = len("99:59")
@@ -172,7 +174,13 @@ class BattleView(TickedView):
         """Once a replay has played out: whether it ended on its recorded state."""
         self.recorder: Recorder | None = None
         self.match = self._new_match()
-        self.inputs = InputSource(len(self.characters))
+        self.settings = flow.settings if flow is not None else Settings()
+        # From the menus every player has the device it joined with; a sandbox match uses
+        # the fixed default assignment (keyboards plus controllers in order).
+        self.devices = tuple(setup.devices) if setup is not None and setup.devices else ()
+        self.hub = DeviceHub(self.settings) if self.devices else None
+        self.inputs = None if self.devices else InputSource(len(self.characters))
+        self._unplugged: set[str] = set()
         self.menu_input = MenuInput()
         self.renderer = WorldRenderer(pixel_buffer, stage)
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
@@ -196,7 +204,8 @@ class BattleView(TickedView):
         glyphs = GlyphAtlas()
         self.overlay = StageOverlay(stage, glyphs)
         names = [character.display_name for character in self.characters]
-        self.hud = DamageHud(glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names)
+        colors = [fighter.color_index for fighter in self.match.fighters]
+        self.hud = DamageHud(glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors)
         self._text: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         help_lines = [*HELP_LINES, TRAINING_HELP] if training else list(HELP_LINES)
         self._help_text = list(reversed(help_lines))
@@ -394,7 +403,10 @@ class BattleView(TickedView):
     def on_hide_view(self) -> None:
         """Save the recording and release the controllers when the view goes away."""
         self.save_recording()
-        self.inputs.close()
+        if self.inputs is not None:
+            self.inputs.close()
+        if self.hub is not None:
+            self.hub.close()
 
     # --- training and debug tools ------------------------------------------------------------
 
@@ -445,9 +457,9 @@ class BattleView(TickedView):
         """Advance one fixed step: poll input, step the sim, update effects and the camera."""
         if self._message_ticks > 0:
             self._message_ticks -= 1
-        frames = self.inputs.poll(self._held_keys)
+        frames, menu_frames = self._poll()
         if self.menu_open:
-            for fired in self.menu_input.update(frames):
+            for fired in self.menu_input.update(menu_frames):
                 for action in MenuAction:
                     if action in fired and self.menu_open:
                         self.menu_action(action)
@@ -478,6 +490,25 @@ class BattleView(TickedView):
         targets = self._camera_targets()
         if targets:
             self.camera.update(targets)
+
+    def _poll(self) -> tuple[list[InputFrame], list[InputFrame]]:
+        """Read the devices. Returns the players' frames, and the frames that may drive the
+        pause menu (every device). A controller unplugged mid-match pauses the game."""
+        if self.hub is None:
+            assert self.inputs is not None
+            frames = self.inputs.poll(self._held_keys)
+            return frames, frames
+        frames = self.hub.poll(self.devices, self._held_keys)
+        frames += [NEUTRAL_INPUT] * (len(self.characters) - len(frames))
+        for device in self.devices:
+            if not device or self.hub.connected(device):
+                self._unplugged.discard(device)
+            elif device not in self._unplugged:
+                self._unplugged.add(device)
+                self.say(f"{device} was unplugged: plug it back in to carry on")
+                if not self.menu_open and self.replay is None:
+                    self.open_menu()
+        return frames, list(self.hub.frames(self._held_keys).values())
 
     def _player_frames(self, frames: list[InputFrame]) -> list[InputFrame]:
         """Replace the dummies' input with their behaviour."""
@@ -543,7 +574,8 @@ class BattleView(TickedView):
         if self.show_overlay:
             overlays.append(self.overlay)
         centre_x, centre_y = self.camera.pixel_centre
-        shake_x, shake_y = self.effects.shake.offset
+        strength = self.settings.screen_shake / FULL_PERCENT
+        shake_x, shake_y = (round(part * strength) for part in self.effects.shake.offset)
         with self.pixel_buffer.drawing():
             self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays)
             self.hud.draw()

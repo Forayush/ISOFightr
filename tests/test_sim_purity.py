@@ -84,6 +84,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.placeholder_art",
     "isofightr.render.shadows",
     "isofightr.scenes.setup",
+    "isofightr.settings",
     "isofightr.ui.hud_layout",
     "isofightr.ui.menu",
     "isofightr.ui.pixel_font",

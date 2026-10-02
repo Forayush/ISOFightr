@@ -44,18 +44,31 @@ class MatchSetup:
     stocks: int = DEFAULT_STOCKS
     minutes: int = DEFAULT_TIME_MINUTES
     training: bool = False
+    devices: tuple[str, ...] = ()
+    """Device id per player ("" = none); empty means the default device assignment."""
+    team_play: bool = False
+    teams: tuple[int, ...] = ()
+    """Team number per player, used when ``team_play`` is on."""
+    friendly_fire: bool = False
+    launch_rate: float = 1.0
+    parry: bool = False
+    air_dodge_helpless: bool = False
 
     def rules(self) -> MatchRules:
         """Return the sim rules for this setup. Training has no stocks, clock or countdown."""
         if self.training:
             return MatchRules(stocks=None)
-        if self.mode is Mode.TIME:
-            return MatchRules(
-                stocks=None,
-                time_frames=self.minutes * FRAMES_PER_MINUTE,
-                countdown_frames=COUNTDOWN_FRAMES,
-            )
-        return MatchRules(stocks=self.stocks, countdown_frames=COUNTDOWN_FRAMES)
+        timed = self.mode is Mode.TIME
+        return MatchRules(
+            stocks=None if timed else self.stocks,
+            time_frames=self.minutes * FRAMES_PER_MINUTE if timed else None,
+            countdown_frames=COUNTDOWN_FRAMES,
+            launch_rate=self.launch_rate,
+            teams=self.teams[: len(self.characters)] if self.team_play and self.teams else None,
+            friendly_fire=self.friendly_fire,
+            parry=self.parry,
+            air_dodge_helpless=self.air_dodge_helpless,
+        )
 
     def with_count(self, step: int) -> "MatchSetup":
         """Return the setup with the current mode's count (stocks or minutes) changed."""
@@ -106,6 +119,7 @@ def results_table(match: Match) -> list[str]:
         if result is not None
         else (tuple(fighter.player_index for fighter in match.fighters),)
     )
+    by_team = match.rules.teams is not None
     place = 0
     for group in groups:
         for player in group:
@@ -124,8 +138,25 @@ def results_table(match: Match) -> list[str]:
                     str(stats.longest_combo),
                 )
             )
-        place += len(group)
+        place += 1 if by_team else len(group)  # a team shares one place
     return [
         " ".join(cell.ljust(width) for cell, width in zip(row, widths, strict=True)).rstrip()
         for row in rows
     ]
+
+
+TEAM_NAMES: Final[tuple[str, ...]] = ("Red", "Blue", "Yellow", "Green")
+"""Team names, in the order of the player colors."""
+LAUNCH_RATES: Final[tuple[float, ...]] = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
+MIN_VERSUS_PLAYERS: Final[int] = 2
+
+
+def can_start(setup: MatchSetup, joined: int) -> str:
+    """Return why a match cannot start with ``joined`` players, or "" if it can."""
+    if setup.training:
+        return "" if joined >= 1 else "press ATTACK to join"
+    if joined < MIN_VERSUS_PLAYERS:
+        return "two players are needed: press ATTACK on another device to join"
+    if setup.team_play and len(set(setup.teams[:joined])) < 2:
+        return "everyone is on one team: change a team"
+    return ""

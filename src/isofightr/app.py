@@ -25,6 +25,7 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
 from isofightr.scenes.test_pattern import TestPatternView
+from isofightr.settings import load_settings, settings_path
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.replay import Replay
 from isofightr.sim.stage import Stage
@@ -86,7 +87,7 @@ def run(
     stage: Stage | None,
     characters: Sequence[CharacterDef],
     seed: int = 0,
-    scale: int = DEFAULT_WINDOW_SCALE,
+    scale: int | None = None,
     fullscreen: bool = False,
     max_ticks: int | None = None,
     training: bool = False,
@@ -99,18 +100,25 @@ def run(
         stage: the stage to play on, or ``None`` to show the pixel test pattern instead.
         characters: one character per player, in player order.
         seed: the match seed.
-        scale: integer upscale of the native buffer for the windowed size.
-        fullscreen: start fullscreen; the buffer is integer-scaled and letterboxed.
+        scale: integer upscale of the native buffer for the windowed size; ``None`` uses
+            the saved setting.
+        fullscreen: start fullscreen (the saved setting can also ask for it); the buffer
+            is integer-scaled and letterboxed.
         max_ticks: close automatically after this many simulation ticks (smoke runs).
         training: start in training mode (players 2 to 4 are dummies).
         menus: start at the title screen and let the menus set up matches; ``stage`` and
             ``characters`` are then ignored.
         record: save every match as a replay file (the path, then ``-2``, ``-3``...).
     """
-    window = GameWindow(scale=scale, fullscreen=fullscreen)
+    path = settings_path()
+    settings = load_settings(path)
+    window = GameWindow(scale=scale or settings.scale, fullscreen=fullscreen or settings.fullscreen)
     view: arcade.View
     if menus:
-        GameFlow(window, window.pixel_buffer, seed, max_ticks, record).show_title()
+        flow = GameFlow(
+            window, window.pixel_buffer, seed, max_ticks, record, settings, settings_path=path
+        )
+        flow.show_title()
         arcade.run()
         return
     if stage is None:

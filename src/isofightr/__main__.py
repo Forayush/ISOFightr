@@ -59,9 +59,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--scale",
         type=_window_scale,
-        default=DEFAULT_WINDOW_SCALE,
+        default=None,
         metavar="N",
-        help="integer window scale of the 640x360 native buffer (default: %(default)s)",
+        help="integer window scale of the 640x360 native buffer (default: the saved setting, "
+        f"at first {DEFAULT_WINDOW_SCALE})",
     )
     parser.add_argument("--fullscreen", action="store_true", help="start in fullscreen")
     parser.add_argument(
@@ -220,7 +221,8 @@ def _replay(args: argparse.Namespace) -> int:
 
     from isofightr.app import run_replay
 
-    run_replay(replay, scale=args.scale, fullscreen=args.fullscreen, max_ticks=args.frames)
+    scale = args.scale or DEFAULT_WINDOW_SCALE
+    run_replay(replay, scale=scale, fullscreen=args.fullscreen, max_ticks=args.frames)
     return 0
 
 

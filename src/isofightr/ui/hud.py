@@ -46,9 +46,18 @@ class DamageHud:
     """
 
     def __init__(
-        self, glyphs: GlyphAtlas, player_count: int, bottom: int, names: Sequence[str] = ()
+        self,
+        glyphs: GlyphAtlas,
+        player_count: int,
+        bottom: int,
+        names: Sequence[str] = (),
+        colors: Sequence[int] = (),
     ) -> None:
-        """Create the labels and icons, with their bottom edge at ``bottom`` native pixels."""
+        """Create the labels and icons, with their bottom edge at ``bottom`` native pixels.
+
+        ``colors`` gives each player's color index (its team's in a team match); by default
+        every player has its own.
+        """
         self.bottom = bottom
         self.sprites: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._lefts = panel_lefts(player_count)
@@ -61,7 +70,8 @@ class DamageHud:
         self.damage_bottom = bottom + STOCK_ROW_HEIGHT
         tag_bottom = self.damage_bottom + GLYPH_HEIGHT * DAMAGE_SCALE
         for index, left in enumerate(self._lefts):
-            red, green, blue, _ = art.player_color(index)
+            color = colors[index] if index < len(colors) else index
+            red, green, blue, _ = art.player_color(color)
             tag = PixelLabel(
                 glyphs,
                 self.sprites,
@@ -82,7 +92,7 @@ class DamageHud:
                     scale=DAMAGE_SCALE,
                 )
             )
-            icon = arcade.Texture(art.build_stock_icon(index))
+            icon = arcade.Texture(art.build_stock_icon(color))
             row = []
             for slot in range(MAX_STOCK_ICONS):
                 sprite = arcade.Sprite(
@@ -103,7 +113,7 @@ class DamageHud:
                     STOCK_TEXT_CAPACITY,
                 )
             )
-            bubble = arcade.Sprite(arcade.Texture(art.build_bubble(index)))
+            bubble = arcade.Sprite(arcade.Texture(art.build_bubble(color)))
             bubble.visible = False
             self.sprites.append(bubble)
             self._bubbles.append(bubble)

@@ -18,7 +18,9 @@ import arcade
 import pyglet
 from pyglet.math import Vec2 as PygletVec2
 
+from isofightr.config import MAX_PLAYERS
 from isofightr.input.gamepad import (
+    MODIFIER_BUMPERS,
     RIGHT_STICK_MODIFIERS,
     GamepadPreset,
     PadState,
@@ -26,6 +28,13 @@ from isofightr.input.gamepad import (
     merge_frames,
 )
 from isofightr.input.keyboard import KeyboardBindings, keyboard_frame
+from isofightr.settings import (
+    KEYBOARD_ARROWS,
+    KEYBOARD_SOLO,
+    PRESET_BUMPERS,
+    PRESET_RIGHT_STICK,
+    Settings,
+)
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, InputFrame
 
 LOG = logging.getLogger(__name__)
@@ -211,3 +220,147 @@ class InputSource:
                 pad.close()
                 self.pads[index] = None
                 LOG.info("controller of player %d disconnected", index + 1)
+
+
+# --- settings-driven devices (menus, character select, matches started from the menus) --------
+
+KEYBOARD_PREFIX = "keyboard:"
+PAD_PREFIX = "pad:"
+KEYBOARD_NAMES = {KEYBOARD_SOLO: "Keyboard (WASD)", KEYBOARD_ARROWS: "Keyboard (arrows)"}
+_BUTTON_ACTIONS = (
+    ("attack", Button.ATTACK),
+    ("special", Button.SPECIAL),
+    ("grab", Button.GRAB),
+    ("strong", Button.STRONG),
+    ("jump", Button.JUMP),
+    ("shield", Button.SHIELD),
+    ("walk", Button.WALK),
+    ("taunt", Button.TAUNT),
+)
+NO_KEY = 0
+"""Key code of an unbound action: no real key has it."""
+PRESETS = {PRESET_RIGHT_STICK: RIGHT_STICK_MODIFIERS, PRESET_BUMPERS: MODIFIER_BUMPERS}
+
+
+def key_code(name: str) -> int:
+    """Return the key code for a key name from ``settings.toml`` (``NO_KEY`` if unknown)."""
+    code = getattr(KEY, name, NO_KEY) if name else NO_KEY
+    return code if isinstance(code, int) else NO_KEY
+
+
+def key_name(code: int) -> str:
+    """Return the name a key code is stored under ("" if it has none)."""
+    for name in dir(KEY):
+        if name.isupper() and not name.startswith("MOD_") and getattr(KEY, name) == code:
+            return name
+    return ""
+
+
+def bindings_from_settings(settings: Settings, layout: str) -> KeyboardBindings:
+    """Build a keyboard layout from the key names in the settings."""
+    keys = settings.keys[layout]
+    return KeyboardBindings(
+        name=KEYBOARD_NAMES[layout],
+        move_up=key_code(keys["move_up"]),
+        move_down=key_code(keys["move_down"]),
+        move_left=key_code(keys["move_left"]),
+        move_right=key_code(keys["move_right"]),
+        up=key_code(keys["up"]),
+        down=key_code(keys["down"]),
+        buttons=tuple(
+            (key_code(keys[action]), button)
+            for action, button in _BUTTON_ACTIONS
+            if key_code(keys[action]) != NO_KEY
+        ),
+    )
+
+
+class DeviceHub:
+    """Every input device by id, each read on its own.
+
+    Ids are ``keyboard:solo``, ``keyboard:arrows`` and ``pad:0`` to ``pad:3``. A controller
+    keeps its id until it is unplugged; the next one plugged in takes the lowest free id, so
+    a player who replugs a controller gets its slot back. Hot-plug is handled by pyglet's
+    ``ControllerManager``.
+    """
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        """Build the keyboard layouts from the settings and open the connected controllers."""
+        self.settings = settings or Settings()
+        self.keyboards = {
+            KEYBOARD_PREFIX + layout: bindings_from_settings(self.settings, layout)
+            for layout in self.settings.keys
+        }
+        self.preset = PRESETS[self.settings.gamepad_preset]
+        self.pads: list[PadReader | None] = [None] * MAX_PLAYERS
+        self._manager = pyglet.input.ControllerManager()
+        self._manager.push_handlers(on_connect=self._connect, on_disconnect=self._disconnect)
+        for controller in self._manager.get_controllers():
+            self._connect(controller)
+
+    def ids(self) -> list[str]:
+        """Return every device that can be used right now: the keyboards, then the pads."""
+        pads = [f"{PAD_PREFIX}{index}" for index, pad in enumerate(self.pads) if pad is not None]
+        return [*self.keyboards, *pads]
+
+    def connected(self, device: str) -> bool:
+        """Return whether a device id is usable right now."""
+        return device in self.ids()
+
+    def name(self, device: str) -> str:
+        """Return a short name for a device, for menus."""
+        if device in self.keyboards:
+            return self.keyboards[device].name
+        pad = self._pad(device)
+        if pad is None:
+            return "no device"
+        return f"Pad {int(device[len(PAD_PREFIX) :]) + 1}"
+
+    def frame(self, device: str, held_keys: Set[int]) -> InputFrame:
+        """Return one device's input this tick (neutral for none or an unplugged pad)."""
+        bindings = self.keyboards.get(device)
+        if bindings is not None:
+            return keyboard_frame(bindings, held_keys)
+        pad = self._pad(device)
+        if pad is None:
+            return NEUTRAL_INPUT
+        return gamepad_frame(pad.state(), self.preset, self.settings.deadzone)
+
+    def frames(self, held_keys: Set[int]) -> dict[str, InputFrame]:
+        """Return every usable device's input this tick, by device id."""
+        return {device: self.frame(device, held_keys) for device in self.ids()}
+
+    def poll(self, assignment: Sequence[str], held_keys: Set[int]) -> list[InputFrame]:
+        """Return one frame per player from the device each player is assigned ("" = none)."""
+        return [self.frame(device, held_keys) for device in assignment]
+
+    def close(self) -> None:
+        """Release every controller."""
+        self._manager.remove_handlers(on_connect=self._connect, on_disconnect=self._disconnect)
+        for index, pad in enumerate(self.pads):
+            if pad is not None:
+                pad.close()
+                self.pads[index] = None
+
+    def _pad(self, device: str) -> PadReader | None:
+        if not device.startswith(PAD_PREFIX):
+            return None
+        index = device[len(PAD_PREFIX) :]
+        if not index.isdigit() or int(index) >= len(self.pads):
+            return None
+        return self.pads[int(index)]
+
+    def _connect(self, controller: "pyglet.input.Controller") -> None:
+        for index, pad in enumerate(self.pads):
+            if pad is None:
+                self.pads[index] = PadReader(controller)
+                LOG.info("controller %r connected as pad %d", controller.name, index + 1)
+                return
+        LOG.info("controller %r ignored: four are already connected", controller.name)
+
+    def _disconnect(self, controller: "pyglet.input.Controller") -> None:
+        for index, pad in enumerate(self.pads):
+            if pad is not None and pad.controller is controller:
+                pad.close()
+                self.pads[index] = None
+                LOG.info("pad %d disconnected", index + 1)

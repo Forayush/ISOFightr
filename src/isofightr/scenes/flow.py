@@ -1,7 +1,9 @@
 """Scene routing: which view the window shows, and what is carried between them.
 
 Plan note "13 - Game Modes UI and Flow" ("Screen flow"): title → main menu → character
-select → stage select → battle → results → rematch or back to character select.
+select → stage select → battle → results → rematch or back to character select. The flow
+also owns the user settings: scenes change them through :meth:`GameFlow.update_settings`,
+which applies and saves them.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from pathlib import Path
 
 import arcade
 
+from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import numbered
 from isofightr.data.stage_loader import list_stage_ids, load_stage
@@ -18,11 +21,15 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.menus import (
     CharacterSelectView,
     MainMenuView,
+    RebindView,
     ResultsView,
+    RulesView,
+    SettingsView,
     StageSelectView,
     TitleView,
 )
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
+from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
 from isofightr.sim.rng import Rng
 
@@ -37,17 +44,44 @@ class GameFlow:
         seed: int = 0,
         max_ticks: int | None = None,
         record: Path | None = None,
+        settings: Settings | None = None,
+        settings_path: Path | None = None,
     ) -> None:
-        """Create the router. ``seed`` seeds the match seeds and random stage picks, so a
-        session is reproducible; ``max_ticks`` is handed to every scene (smoke runs); with
-        ``record`` every versus match is saved as a replay (the path, then ``-2``, ``-3``...)."""
+        """Create the router.
+
+        Args:
+            window: the game window.
+            pixel_buffer: its native-resolution render target.
+            seed: seeds the match seeds and random stage picks, so a session is reproducible.
+            max_ticks: handed to every scene (smoke runs).
+            record: save every versus match as a replay (the path, then ``-2``, ``-3``...).
+            settings: the user settings to start with.
+            settings_path: where to save settings when they change; ``None`` keeps them in
+                memory only (tests).
+        """
         self.window = window
         self.pixel_buffer = pixel_buffer
         self.max_ticks = max_ticks
         self.record = record
+        self.settings = settings or Settings()
+        self.settings_path = settings_path
         self.setup = MatchSetup()
         self.rng = Rng.seeded(seed)
         self.matches_started = 0
+
+    # --- settings --------------------------------------------------------------------------
+
+    def update_settings(self, settings: Settings) -> None:
+        """Take new settings: apply what affects the window, and save them."""
+        previous, self.settings = self.settings, settings
+        if settings.fullscreen != previous.fullscreen:
+            self.window.set_fullscreen(settings.fullscreen)
+        if settings.scale != previous.scale and not settings.fullscreen:
+            self.window.set_size(NATIVE_W * settings.scale, NATIVE_H * settings.scale)
+        if self.settings_path is not None:
+            save_settings(self.settings_path, settings)
+
+    # --- scenes ----------------------------------------------------------------------------
 
     def show_title(self) -> None:
         """Go to the title screen."""
@@ -56,6 +90,18 @@ class GameFlow:
     def show_main_menu(self) -> None:
         """Go to the main menu."""
         self.window.show_view(MainMenuView(self.pixel_buffer, self))
+
+    def show_rules(self) -> None:
+        """Go to the versus rules."""
+        self.window.show_view(RulesView(self.pixel_buffer, self))
+
+    def show_settings(self) -> None:
+        """Go to the settings."""
+        self.window.show_view(SettingsView(self.pixel_buffer, self))
+
+    def show_rebind(self, layout: str) -> None:
+        """Go to the key rebinding screen of one keyboard layout."""
+        self.window.show_view(RebindView(self.pixel_buffer, self, layout))
 
     def show_character_select(self, setup: MatchSetup) -> None:
         """Go to character select with the given setup."""

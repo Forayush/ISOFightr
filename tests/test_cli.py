@@ -16,7 +16,7 @@ HASH = re.compile(r"state hash ([0-9a-f]{32})")
 
 def test_defaults() -> None:
     args = build_parser().parse_args([])
-    assert args.scale == DEFAULT_WINDOW_SCALE
+    assert args.scale is None and DEFAULT_WINDOW_SCALE == 2, "the saved setting decides"
     assert args.fullscreen is False
     assert args.frames is None
     assert args.debug is False
