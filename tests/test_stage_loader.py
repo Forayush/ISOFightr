@@ -91,9 +91,9 @@ def test_sky_ruins_is_a_rounded_13_by_9_island_with_three_platforms() -> None:
         assert stage.cell(cx, cy) is None
     assert stage.cell(2, 0) is not None and stage.cell(0, 2) is not None
     assert stage.soft_platforms == (
-        SoftPlatform(2, 2, 5, 5, 2.5),
-        SoftPlatform(8, 2, 11, 5, 2.5),
-        SoftPlatform(5, 5, 8, 8, 4.5),
+        SoftPlatform(2, 6, 5, 9, 2.5),
+        SoftPlatform(8, 0, 11, 3, 2.5),
+        SoftPlatform(5, 3, 8, 6, 4.5),
     )
     assert stage.spawns[0] == Vec2(2.5, 4.5)
     # Each of the four sides: one long edge plus two one-cell steps at each rounded corner.

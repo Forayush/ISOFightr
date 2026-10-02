@@ -249,7 +249,7 @@ def ring_pixels(
 
 def test_ring_surrounds_a_fighter_standing_on_the_ground(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
-    pos = Vec3(6.5, 4.5, 0.0)
+    pos = Vec3(6.5, 1.5, 0.0)
     left, right = ring_pixels(window, render(view, pos), pos, 0.0)
     assert left == right == P1_BODY
 
@@ -257,7 +257,7 @@ def test_ring_surrounds_a_fighter_standing_on_the_ground(window: Any) -> None:
 def test_shadow_stays_on_the_ground_while_the_fighter_jumps(window: Any) -> None:
     stage = load_stage("sky_ruins")
     view = make_view(window, stage)
-    pos = Vec3(6.5, 4.5, 3.0)
+    pos = Vec3(6.5, 1.5, 3.0)
     centre = render(view, pos)
     left, right = ring_pixels(window, centre, pos, 0.0)
     assert left == right == P1_BODY
@@ -270,13 +270,13 @@ def test_shadow_stays_on_the_ground_while_the_fighter_jumps(window: Any) -> None
 
 
 def test_shadow_lands_on_a_platform_the_fighter_is_above(window: Any) -> None:
-    # The right-hand low platform: nothing else is in front of it.
+    # The screen-right low platform (x 8..11, y 0..3, z 2.5).
     view = make_view(window, load_stage("sky_ruins"))
-    on_deck = Vec3(9.5, 3.5, 2.5)
+    on_deck = Vec3(9.5, 1.5, 2.5)
     left, right = ring_pixels(window, render(view, on_deck), on_deck, 2.5)
     assert left == right == P1_BODY
     # Under the platform instead, the ring is on the ground, not on the deck.
-    under_deck = Vec3(9.5, 3.5, 0.0)
+    under_deck = Vec3(9.5, 1.5, 0.0)
     centre = render(view, under_deck)
     assert ring_pixels(window, centre, under_deck, 0.0) == (P1_BODY, P1_BODY)
     assert P1_BODY not in ring_pixels(window, centre, under_deck, 2.5)
@@ -301,21 +301,22 @@ def test_shadow_is_clipped_at_the_island_edge(window: Any) -> None:
 
 def test_shadow_is_clipped_at_a_platform_edge(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
-    # Standing on the right-hand low platform 0.2 units from its +x edge at x = 11.
-    pos = Vec3(10.8, 3.5, 2.5)
+    # Standing on the screen-right low platform 0.2 units from its +x edge at x = 11.
+    pos = Vec3(10.8, 1.5, 2.5)
     left, right = ring_pixels(window, render(view, pos), pos, 2.5)
     assert left == P1_BODY
     assert right != P1_BODY
 
 
-def test_a_fighter_behind_a_higher_platform_is_partly_hidden_by_it(window: Any) -> None:
-    """On the left low platform the high platform's back corner is between the fighter's legs
-    and the camera, so the ring there is covered by deck: correct, if surprising."""
+def test_no_platform_hides_a_fighter_standing_on_another(window: Any) -> None:
+    """The Sky Ruins platforms are spread along the screen-horizontal diagonal so that none of
+    them covers a fighter standing on another (the plan's first layout did, decision D-023)."""
     view = make_view(window, load_stage("sky_ruins"))
-    pos = Vec3(3.5, 3.5, 2.5)
-    centre = render(view, pos)
-    deck_colors = {art.DECK_PALETTE.top_light, art.DECK_PALETTE.top_dark}
-    assert set(ring_pixels(window, centre, pos, 2.5)) <= deck_colors
+    stage = view.stage
+    for platform in stage.soft_platforms:
+        pos = Vec3((platform.x0 + platform.x1) / 2, (platform.y0 + platform.y1) / 2, platform.z)
+        left, right = ring_pixels(window, render(view, pos), pos, platform.z)
+        assert left == right == P1_BODY, platform
 
 
 # --- camera and overlay -------------------------------------------------------------------

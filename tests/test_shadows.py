@@ -61,19 +61,20 @@ def test_more_is_cut_the_closer_the_fighter_is_to_the_edge() -> None:
 
 
 def test_shadow_on_a_platform_is_cut_at_the_deck_edge() -> None:
-    assert mask_at(SKY_RUINS, 3.5, 3.5, 2.5) is FULL_MASK
-    mask = mask_at(SKY_RUINS, 4.8, 3.5, 2.5)
+    # The low screen-left platform covers x 2..5, y 6..9 at z 2.5.
+    assert mask_at(SKY_RUINS, 3.5, 7.5, 2.5) is FULL_MASK
+    mask = mask_at(SKY_RUINS, 4.8, 7.5, 2.5)
     assert ring_ends(mask) == (1, 0)
 
 
 def test_ground_shadow_under_a_platform_is_not_cut_by_the_platform() -> None:
-    assert mask_at(SKY_RUINS, 3.5, 3.5, 0.0) is FULL_MASK
+    assert mask_at(SKY_RUINS, 3.5, 7.0, 0.0) is FULL_MASK
 
 
 def test_shadow_does_not_spill_onto_a_surface_at_another_height() -> None:
-    # Standing at the edge of the deck: the ground is directly below the overhanging part,
+    # Standing at the corner of the deck: the ground is directly below the overhanging part,
     # but it is a different surface, so those pixels are still cut.
-    mask = mask_at(SKY_RUINS, 4.95, 4.95, 2.5)
+    mask = mask_at(SKY_RUINS, 4.95, 6.05, 2.5)
     assert 0 < sum(mask) < WIDTH * HEIGHT
 
 
