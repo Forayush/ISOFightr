@@ -153,7 +153,7 @@ Controls as of M7 (defaults in `settings.py`, rebindable in Settings; devices in
 - A fighter the stage partly hides gets a faint "x-ray" copy drawn over the world (`OCCLUDED_FIGHTER_ALPHA`, decision D-025), because platforms and the island otherwise hide fighters completely in this projection.
 
 ## Assets and legal
-- Sprites: 64×64 cells, feet pivot at (32, 8) from the bottom-left. Directions SE/NE are authored and SW/NW are mirrored. Exported from Aseprite to `assets/characters/<id>/sheet_<DIR>.png/.json`.
+- Sprites (planned for M8, decisions D-044 to D-047): fighters and stage blocks are 3D models scripted in Blender 4.5 LTS (source as text in `art_src/`, scripts in `tools/blender/`), rendered in **all 8 directions** (no mirroring) and packed by `tools/pack_sprites.py` (Pillow) into indexed sheets with a per-frame feet-pivot offset. Palette: Resurrect 64. Attack poses are timed in the animation data, not in move TOML. Blender is a tool dependency only; committed sheets mean CI never needs it.
 - Placeholder art is generated procedurally. Gameplay work must never block on art.
 - **Original IP only.** Never add sprites, names, music or SFX from Smash, SSF2 or Pokémon. Log every third-party asset with its license in `assets/CREDITS.md`.
 
