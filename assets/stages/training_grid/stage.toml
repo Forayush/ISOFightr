@@ -1,0 +1,39 @@
+# Training Grid: flat 12x12 debug and training stage, no platforms.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+# On screen, +x runs toward the bottom-right and +y toward the bottom-left.
+id = "training_grid"
+display_name = "Training Grid"
+tileset = "grid"
+
+grid = """
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+000000000000
+"""
+
+[legend]
+"0" = { height = 0, tile = "grid" }
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [2.5, 5.5]
+p2 = [9.5, 5.5]
+p3 = [5.5, 2.5]
+p4 = [5.5, 9.5]
+respawn = [5.5, 5.5]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 14.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
