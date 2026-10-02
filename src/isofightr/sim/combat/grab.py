@@ -103,7 +103,12 @@ def apply_throw(match: Match, grabber: Fighter, target: Fighter, throw: ThrowDef
     push_stale(grabber.stale_queue, throw.id)
     target.damage = min(target.damage + damage, c.MAX_DAMAGE)
     knockback = kb_math.knockback(
-        target.damage, damage, target.character.weight, throw.bkb, throw.kbg
+        target.damage,
+        damage,
+        target.character.weight,
+        throw.bkb,
+        throw.kbg,
+        ratio=match.rules.launch_rate,
     )
     heading = grabber.drive if grabber.drive != Vec2() else grabber.facing.world
     target.launch = Launch(

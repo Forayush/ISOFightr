@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Final
 
-from isofightr.sim import physics
+from isofightr.sim import physics, rules
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat.constants import MAX_DAMAGE, SHIELD_MAX_HP, SHIELD_REGEN
 from isofightr.sim.combat.grab_resolution import resolve_grabs
@@ -22,12 +22,13 @@ from isofightr.sim.combat.projectile_hits import resolve_projectile_hits
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
 from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
-from isofightr.sim.input_frame import Dir8, InputFrame, facing_from_move
+from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame, facing_from_move
 from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
 from isofightr.sim.move_def import ProjectileDef
 from isofightr.sim.projectile import Projectile, spawn
 from isofightr.sim.projectile import step as step_projectile
 from isofightr.sim.rng import Rng
+from isofightr.sim.rules import MatchPhase, MatchResult, PlayerStats
 from isofightr.sim.stage import Stage
 from isofightr.sim.states import STATES, change_state
 from isofightr.sim.states.ledge import try_grab_ledge
@@ -40,10 +41,17 @@ _PUSHABLE: Final[frozenset[GroundKind]] = frozenset({GroundKind.CELL, GroundKind
 
 @dataclass(frozen=True, slots=True)
 class MatchRules:
-    """The rules of a match. Timers, teams and the rest arrive in M6."""
+    """The rules of a match (plan note 13, "Modes"). Teams arrive in M7."""
 
     stocks: int | None = DEFAULT_STOCKS
-    """Stocks per fighter, or ``None`` for infinite (training)."""
+    """Stocks per fighter, or ``None`` for infinite (training, and time mode)."""
+    time_frames: int | None = None
+    """Length of a timed match in frames, or ``None`` for no clock. When the clock runs out
+    the best score (KOs minus falls) wins."""
+    countdown_frames: int = 0
+    """Frames of "3, 2, 1" before the fighters can move (0 = start at once)."""
+    launch_rate: float = 1.0
+    """Multiplier on all knockback."""
     parry: bool = False
     """Whether a hit in the first frames of dropping shield is parried (optional rule)."""
     air_dodge_helpless: bool = False
@@ -64,6 +72,17 @@ class Match:
     projectiles: list[Projectile] = field(default_factory=list)
     """Projectiles in flight, oldest first."""
     next_projectile_id: int = 0
+    phase: MatchPhase = MatchPhase.PLAYING
+    countdown: int = 0
+    """Frames of countdown left."""
+    time_left: int | None = None
+    """Frames left on the clock, or ``None`` when there is none."""
+    sudden_death: bool = False
+    stats: list[PlayerStats] = field(default_factory=list)
+    """One entry per fighter, in player index order."""
+    eliminated: list[int] = field(default_factory=list)
+    """Player indices in the order they ran out of stocks."""
+    result: MatchResult | None = None
 
     @classmethod
     def create(
@@ -94,7 +113,16 @@ class Match:
                     stocks=rules.stocks,
                 )
             )
-        return cls(stage=stage, fighters=fighters, rng=Rng.seeded(seed), rules=rules)
+        return cls(
+            stage=stage,
+            fighters=fighters,
+            rng=Rng.seeded(seed),
+            rules=rules,
+            phase=MatchPhase.COUNTDOWN if rules.countdown_frames > 0 else MatchPhase.PLAYING,
+            countdown=rules.countdown_frames,
+            time_left=rules.time_frames,
+            stats=[PlayerStats() for _ in fighters],
+        )
 
     def tick(self, inputs: Sequence[InputFrame]) -> None:
         """Advance the simulation by exactly one frame.
@@ -107,6 +135,13 @@ class Match:
             raise ValueError(f"expected {len(self.fighters)} input frames, got {len(inputs)}")
         self.frame += 1
         self.events = []
+        counting_down = self.phase is MatchPhase.COUNTDOWN
+        if counting_down:
+            # Fighters stand ready: whatever is held or pressed now does not count.
+            inputs = [NEUTRAL_INPUT] * len(self.fighters)
+            self.countdown -= 1
+            if self.countdown <= 0:
+                self.phase = MatchPhase.PLAYING
 
         # 1. Input.
         for fighter, frame in zip(self.fighters, inputs, strict=True):
@@ -158,7 +193,10 @@ class Match:
             if fighter.in_play and not self.stage.blast_zone.contains(fighter.pos):
                 self._knock_out(fighter)
 
-        # 9. Rules: timer, game end, sudden death (M6).
+        # 9. Rules: stats, the clock, game end, sudden death.
+        rules.track_hits(self)
+        if not counting_down:  # the clock starts on the first frame of play
+            rules.step(self)
 
     # --- training and debug tools ------------------------------------------------------------
     # The only ways anything outside the sim may change a running match besides input. They
@@ -227,6 +265,7 @@ class Match:
         if STATES[fighter.state].regens_shield:
             fighter.shield_hp = min(SHIELD_MAX_HP, fighter.shield_hp + SHIELD_REGEN)
         fighter.air_frames = 0 if fighter.grounded else fighter.air_frames + 1
+        rules.upkeep(fighter)
 
     def _apply(self, fighter: Fighter, result: physics.StepResult) -> None:
         """Turn what physics found into state changes and events."""
@@ -274,7 +313,10 @@ class Match:
         position, normal = _blast_crossing(self.stage.blast_zone, fighter.pos)
         if fighter.stocks is not None:
             fighter.stocks -= 1
-        self.events.append(KoEvent(fighter.player_index, position, normal, fighter.stocks))
+        credited = rules.record_knockout(self, fighter)
+        self.events.append(
+            KoEvent(fighter.player_index, position, normal, fighter.stocks, credited)
+        )
         change_state(self, fighter, StateId.KO)
 
     def _canonical(self) -> tuple[object, ...]:
@@ -285,6 +327,23 @@ class Match:
             self.rng.increment,
             tuple(_canonical_fighter(fighter) for fighter in self.fighters),
             self.next_projectile_id,
+            self.phase.value,
+            self.countdown,
+            self.time_left,
+            self.sudden_death,
+            tuple(self.eliminated),
+            tuple(
+                (
+                    stats.kos,
+                    stats.falls,
+                    stats.self_destructs,
+                    _round(stats.damage_given),
+                    _round(stats.damage_taken),
+                    _round(stats.peak_damage),
+                    stats.longest_combo,
+                )
+                for stats in self.stats
+            ),
             tuple(_canonical_projectile(projectile) for projectile in self.projectiles),
         )
 
@@ -402,6 +461,10 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         fighter.tech_window,
         fighter.tech_lockout,
         _round(fighter.counter_damage),
+        fighter.last_hit_by,
+        fighter.last_hit_timer,
+        fighter.combo_hits,
+        fighter.combo_by,
         tuple(fighter.air_moves_used),
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,

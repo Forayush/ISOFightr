@@ -78,3 +78,17 @@ RESPAWN_INVINCIBLE_FRAMES: Final[int] = 120
 
 DEFAULT_STOCKS: Final[int] = 3
 """Stocks per fighter in a stock match."""
+
+# --- Match flow ------------------------------------------------------------------------------
+COUNTDOWN_FRAMES: Final[int] = 180
+"""Length of the "3, 2, 1" countdown before a match starts (one second per number)."""
+
+DEFAULT_TIME_MINUTES: Final[int] = 3
+FRAMES_PER_MINUTE: Final[int] = 3600
+
+SUDDEN_DEATH_DAMAGE: Final[float] = 300.0
+"""Damage every fighter starts a sudden death on."""
+
+KO_CREDIT_FRAMES: Final[int] = 480
+"""A KO is credited to the last fighter that hit the victim within this many frames;
+otherwise it is a self-destruct."""

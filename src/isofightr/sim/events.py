@@ -49,6 +49,8 @@ class KoEvent:
     normal: Vec3
     """Outward unit normal of the face that was crossed."""
     stocks_left: int | None
+    credited_to: int | None = None
+    """Player index of the fighter that gets the KO, or ``None`` for a self-destruct."""
     """Stocks remaining after the KO, or ``None`` when stocks are infinite."""
 
 
@@ -158,6 +160,20 @@ class CounterEvent:
     position: Vec3
 
 
+@dataclass(frozen=True, slots=True)
+class SuddenDeathEvent:
+    """A tie is being settled: the listed players restart at high damage with one stock."""
+
+    players: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MatchEndEvent:
+    """The match is decided."""
+
+    winner: int
+
+
 type Event = (
     JumpEvent
     | LandEvent
@@ -173,4 +189,6 @@ type Event = (
     | WallBounceEvent
     | ProjectileEvent
     | CounterEvent
+    | SuddenDeathEvent
+    | MatchEndEvent
 )

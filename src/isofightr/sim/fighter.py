@@ -206,6 +206,12 @@ class Fighter:
     tech_window: int = 0
     """Frames left in which touching ground or a wall techs."""
     tech_lockout: int = 0
+    last_hit_by: int = NO_PARTNER
+    """Player index of the last fighter that hit this one (for KO credit), or -1."""
+    last_hit_timer: int = 0
+    combo_hits: int = 0
+    """Hits taken in a row without becoming able to act."""
+    combo_by: int = NO_PARTNER
     counter_damage: float = 0.0
     """Damage the current move deals at least (set when it is the reply of a counter)."""
     air_moves_used: list[str] = field(default_factory=_empty_queue)

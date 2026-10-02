@@ -143,7 +143,14 @@ def _struck(match: Match, projectile: Projectile, target: Fighter) -> None:
     hitlag = _hitlag(projectile)
     target.hitlag = max(target.hitlag, hitlag)
     invincible = target.invincible
-    knockback = strike(target, projectile.damage, projectile.hitbox, heading, target.grounded)
+    knockback = strike(
+        target,
+        projectile.damage,
+        projectile.hitbox,
+        heading,
+        target.grounded,
+        rate=match.rules.launch_rate,
+    )
     match.events.append(
         HitEvent(
             attacker=projectile.owner,

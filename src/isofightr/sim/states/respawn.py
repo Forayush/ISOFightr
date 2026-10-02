@@ -16,7 +16,7 @@ from isofightr.sim.constants import (
     REVIVAL_SPACING,
 )
 from isofightr.sim.events import RespawnEvent
-from isofightr.sim.fighter import Fighter, GroundKind, StateId
+from isofightr.sim.fighter import NO_PARTNER, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import VERTICAL_NONE, Dir8, Press
 from isofightr.sim.math3d import ZERO2, ZERO3, Vec3
 from isofightr.sim.stage import NO_PLATFORM
@@ -80,6 +80,9 @@ class Revival(State):
         fighter.pos = revival_point(match, fighter)
         fighter.ground = GroundKind.REVIVAL
         fighter.damage = 0.0
+        fighter.last_hit_by = NO_PARTNER
+        fighter.last_hit_timer = 0
+        fighter.combo_hits = 0
         fighter.shield_hp = SHIELD_MAX_HP
         fighter.dodge_stale = 0
         fighter.air_dodge_used = False

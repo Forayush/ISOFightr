@@ -205,7 +205,13 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
         invincible = target.invincible
         carry = attacker.vel if definition.direction_mode is DirectionMode.AUTOLINK else ZERO3
         knockback = strike(
-            target, damage, definition, heading, grounded[target.player_index], carry
+            target,
+            damage,
+            definition,
+            heading,
+            grounded[target.player_index],
+            carry,
+            match.rules.launch_rate,
         )
         match.events.append(
             HitEvent(
@@ -230,10 +236,12 @@ def strike(
     heading: Vec2,
     was_grounded: bool,
     carry: Vec3 = ZERO3,
+    rate: float = 1.0,
 ) -> float:
     """Damage a fighter and queue its launch. Returns the knockback (0 if invincible).
 
     ``carry`` is added to the launch velocity (autolink hits pass the attacker's velocity).
+    ``rate`` is the match's launch rate, a multiplier on all knockback.
 
     Armor on the target's current move frame lets the damage through but not the launch,
     unless the knockback reaches the armor's threshold.
@@ -248,6 +256,7 @@ def strike(
         definition.bkb,
         definition.kbg,
         definition.fkb,
+        rate,
     )
     target.last_knockback = knockback
     move = target.move
