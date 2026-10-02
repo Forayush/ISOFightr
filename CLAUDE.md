@@ -34,12 +34,13 @@ uv sync                                   # install deps
 uv run python -m isofightr                # run the game
 uv run python -m isofightr --training --p1 rook --p2 rook --stage training_grid --debug
 uv run python -m isofightr --headless --frames 10000   # headless sim run
-uv run pytest                             # fast tests (excludes @slow)
+uv run pytest                             # fast tests (excludes @slow and @gl)
 uv run pytest -m slow                     # soak tests
+uv run pytest -m gl                       # render tests; need a real display, skipped in CI
 uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
 ```
-(Until M0 is done, these commands are the target, not reality.)
+(As of M0 the window flags `--scale N`, `--fullscreen`, `--frames N` and `--debug` exist. The match flags `--training`, `--p1`/`--p2`, `--stage` and `--headless` are still the target, not reality; each arrives with the milestone that builds what it controls.)
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
@@ -76,6 +77,7 @@ uv run mypy src/isofightr/sim
 - Arcade 3's API differs significantly from 2.6, and most web examples are 2.6. **Check the pinned version's docs/source** (`uv run python -c "import arcade, inspect; ..."`) before using an API.
 - Draw via `SpriteList` (batched). Avoid per-frame `arcade.draw_*` except in debug overlays. Create `arcade.Text` once and update it.
 - Pixel art: render to the 640×360 offscreen buffer, nearest-neighbor filtering, integer upscale, round sprite positions to whole native pixels.
+- DPI: importing `arcade` sets `pyglet.options.dpi_scaling = "stretch"`, which stretches the framebuffer by the OS display scale (2.5× on a 125% display) and ruins pixel art. `app.py` sets it to `"real"` before the window exists (decision D-017). Size things from `window.get_framebuffer_size()`, and always create the window through `GameWindow`.
 - `View.on_draw` must call `self.clear()` first.
 
 ## Assets and legal
