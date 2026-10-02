@@ -113,6 +113,8 @@ LYING_HALF_LENGTH: Final[int] = BODY_HEIGHT // 2
 LYING_HEIGHT: Final[int] = BODY_HALF_WIDTH * 2
 """A knocked-down fighter is the same capsule on its side."""
 QUARTER_TURN_DEGREES: Final[int] = 90
+DIM_SHADE: Final[float] = 0.55
+"""Brightness of a helpless fighter's sprite."""
 
 # --- Hit sparks and attack swings ----------------------------------------------------------
 SPARK_SIZES: Final[tuple[int, ...]] = (15, 23, 31, 43)
@@ -135,6 +137,8 @@ SPARK_COLORS: Final[dict[str, tuple[Rgba, Rgba]]] = {
 """``(core, edge)`` colors of a spark, by hit effect name."""
 SWING_ALPHA: Final[int] = 150
 SWING_RIM_ALPHA: Final[int] = 230
+SHIELD_ALPHA: Final[int] = 120
+SHIELD_RIM_ALPHA: Final[int] = 220
 SPHERE_WIDTH_PER_UNIT: Final[float] = TILE_W / 2 * math.sqrt(2.0)
 """Screen half-width in pixels of a sphere of radius 1: the projection of ``x - y``."""
 SPHERE_HEIGHT_PER_UNIT: Final[float] = math.sqrt(2 * (TILE_H / 2) ** 2 + Z_PX**2)
@@ -251,6 +255,7 @@ def build_fighter(
     lying: bool = False,
     quarter_turns: int = 0,
     flash: bool = False,
+    dim: bool = False,
 ) -> Image.Image:
     """Return the 64x64 placeholder fighter: a capsule, a darker head and a facing arrow.
 
@@ -263,6 +268,7 @@ def build_fighter(
         lying: draw the knocked-down pose (the capsule on its side) instead.
         quarter_turns: spin the standing sprite about its middle (tumbling).
         flash: paint every pixel white (hit flash, charge blink).
+        dim: darken the sprite (helpless fall).
     """
     image = _build_lying(player_index) if lying else _build_standing(player_index, facing)
     if quarter_turns % 4 and not lying:
@@ -275,6 +281,12 @@ def build_fighter(
         white = Image.new("RGBA", image.size, WHITE)
         white.putalpha(image.getchannel("A"))
         image = white
+    elif dim:
+        alpha = image.getchannel("A")
+        image = Image.eval(image.convert("RGB"), lambda value: round(value * DIM_SHADE)).convert(
+            "RGBA"
+        )
+        image.putalpha(alpha)
     return image
 
 
@@ -405,6 +417,20 @@ def build_swing(player_index: int, radius: float) -> Image.Image:
         (0, 0, width - 1, height - 1),
         fill=(255, 255, 255, SWING_ALPHA),
         outline=(red, green, blue, SWING_RIM_ALPHA),
+    )
+    return image
+
+
+def build_shield(player_index: int, radius: float) -> Image.Image:
+    """Return the shield bubble: a translucent player-colored ellipse of the shield's size."""
+    width, height = sphere_screen_size(radius)
+    red, green, blue, _ = player_color(player_index)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.ellipse(
+        (0, 0, width - 1, height - 1),
+        fill=(red, green, blue, SHIELD_ALPHA),
+        outline=(255, 255, 255, SHIELD_RIM_ALPHA),
     )
     return image
 

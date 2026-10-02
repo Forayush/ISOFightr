@@ -151,7 +151,8 @@ class WorldRenderer:
         items: list[DynamicItem] = []
         for entity in entities:
             look = DEFAULT_LOOK if looks is None else looks.get(entity.entity_id, DEFAULT_LOOK)
-            items.append(self._sync_body(entity, look, hidden=entity.invincible and blink_off))
+            hidden = look.hidden or (entity.invincible and blink_off)
+            items.append(self._sync_body(entity, look, hidden=hidden))
             for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
                 if item is not None:
                     items.append(item)
@@ -220,8 +221,10 @@ class WorldRenderer:
         lying = look.pose is Pose.DOWN
         turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
         texture = self._texture(
-            ("fighter", entity.player_index, entity.facing, lying, turns, look.flash),
-            lambda: art.build_fighter(entity.player_index, entity.facing, lying, turns, look.flash),
+            ("fighter", entity.player_index, entity.facing, lying, turns, look.flash, look.dim),
+            lambda: art.build_fighter(
+                entity.player_index, entity.facing, lying, turns, look.flash, look.dim
+            ),
         )
         sprite = self._part(entity, Part.BODY, texture)
         pos = entity.pos

@@ -65,7 +65,7 @@ HUD_MARGIN = 4
 HUD_CAPACITY = 104
 LINE_HEIGHT = GLYPH_HEIGHT
 HELP_LINES = (
-    "WASD move  SPACE jump  I/, up/down  J attack  U smash  LCTRL walk  H hide help",
+    "WASD move  SPACE jump  I/, up/down  J attack  U smash  L grab  LSHIFT shield  H help",
     "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload data",
 )
 TRAINING_HELP = "TRAINING  -/= dummy damage  0 reset damage  TAB dummy control on/off"
@@ -330,8 +330,10 @@ def combat_info(fighter: Fighter) -> str:
     move = fighter.move_id if fighter.state is StateId.ATTACK else "-"
     charge = f" charge {fighter.charge_frames}" if fighter.charge_frames else ""
     kb_vel = fighter.kb_vel
+    intangible = f" intang {fighter.intangible_frames}" if fighter.intangible else ""
     return (
         f"   dmg {fighter.damage:.1f} move {move}{charge} hitlag {fighter.hitlag} "
         f"hitstun {fighter.hitstun} kb {fighter.last_knockback:.1f} "
-        f"kbvel {kb_vel.x:+.3f} {kb_vel.y:+.3f} {kb_vel.z:+.3f} stale {len(fighter.stale_queue)}"
+        f"kbvel {kb_vel.x:+.3f} {kb_vel.y:+.3f} {kb_vel.z:+.3f} stale {len(fighter.stale_queue)} "
+        f"shield {fighter.shield_hp:.0f}{intangible}"
     )

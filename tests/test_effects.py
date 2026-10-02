@@ -382,3 +382,71 @@ def test_overlay_ellipses_sit_on_the_projected_shapes() -> None:
     feet_y = project(attacker.pos.x, attacker.pos.y, attacker.pos.z)[1]
     assert low.y - low.height / 2 < feet_y + Z_PX, "the capsule starts near the feet"
     assert match.frame == 0
+
+
+# --- M4: shields, intangibility, helpless ----------------------------------------------------
+
+
+def test_intangible_fighters_blink_and_helpless_ones_are_dim() -> None:
+    match, attacker, _ = duel()
+    attacker.intangible_frames = 10
+    hidden = [fighter_look(attacker, frame).hidden for frame in range(8)]
+    assert hidden == [False, False, True, True, False, False, True, True]
+    attacker.intangible_frames = 0
+    assert not fighter_look(attacker, 2).hidden
+    attacker.state = StateId.HELPLESS
+    assert fighter_look(attacker, match.frame).dim
+    attacker.state = StateId.DIZZY
+    wobble = {fighter_look(attacker, frame).offset_x for frame in range(24)}
+    assert wobble == {-1, 0, 1}
+    attacker.state = StateId.ROLL
+    assert fighter_look(attacker, 0).pose is Pose.TUMBLE
+
+
+def test_dim_sprite_is_darker_with_the_same_outline() -> None:
+    normal = art.build_fighter(0, Dir8.SE)
+    dim = art.build_fighter(0, Dir8.SE, dim=True)
+    assert dim.getchannel("A").tobytes() == normal.getchannel("A").tobytes()
+    body = (art.FIGHTER_PIVOT_X - 3, art.FIGHTER_CANVAS - art.FIGHTER_PIVOT_FROM_BOTTOM - 4)
+    assert sum(dim.getpixel(body)[:3]) < sum(normal.getpixel(body)[:3])
+
+
+def test_shield_bubble_is_shield_sized_and_player_colored() -> None:
+    bubble = art.build_shield(1, 1.2)
+    assert bubble.size == art.sphere_screen_size(1.2)
+    red, green, blue, _ = art.player_color(1)
+    centre = (bubble.width // 2, bubble.height // 2)
+    assert bubble.getpixel(centre) == (red, green, blue, art.SHIELD_ALPHA)
+    assert bubble.getpixel((0, 0))[3] == 0
+    assert art.build_shield(1, 0.5).size < bubble.size
+
+
+def test_blocks_parries_breaks_and_techs_give_feedback() -> None:
+    from isofightr.sim.events import (
+        GrabEvent,
+        LedgeGrabEvent,
+        ShieldBreakEvent,
+        ShieldHitEvent,
+        TechEvent,
+    )
+
+    effects = BattleEffects()
+    effects.consume([ShieldHitEvent(0, 1, 11.0, ORIGIN, 12, False)])
+    assert [spark.tier for spark in effects.sparks] == [fx.SHIELD_SPARK_TIER]
+    assert effects.shake.current() == 0 and effects.flash == {}
+    effects.consume([ShieldHitEvent(0, 1, 0.0, ORIGIN, 12, True)])
+    assert effects.sparks[-1].tier == fx.PARRY_SPARK_TIER
+    assert effects.shake.current() == fx.PARRY_SHAKE_PIXELS
+    effects.consume([ShieldBreakEvent(1, ORIGIN)])
+    assert effects.sparks[-1].tier == fx.SHIELD_BREAK_SPARK_TIER
+    assert effects.shake.current() == fx.SHIELD_BREAK_SHAKE_PIXELS
+    count = len(effects.sparks)
+    effects.consume(
+        [
+            TechEvent(0, ORIGIN, wall=False),
+            LedgeGrabEvent(0, ORIGIN, None),
+            GrabEvent(0, 1, ORIGIN, clash=True),
+            GrabEvent(0, 1, ORIGIN, clash=False),
+        ]
+    )
+    assert len(effects.sparks) == count + 3, "an ordinary grab has no spark"

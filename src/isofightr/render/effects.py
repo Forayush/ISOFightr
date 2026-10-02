@@ -12,7 +12,18 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Final
 
-from isofightr.sim.events import ClankEvent, Event, HitEvent, KoEvent
+from isofightr.sim.events import (
+    ClankEvent,
+    Event,
+    GrabEvent,
+    HitEvent,
+    KoEvent,
+    LedgeGrabEvent,
+    ShieldBreakEvent,
+    ShieldHitEvent,
+    TechEvent,
+    WallBounceEvent,
+)
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import Effect
 
@@ -24,6 +35,11 @@ SPARK_FRAME_TICKS: Final[int] = 3
 SPARK_FRAMES: Final[int] = 3
 SPARK_LIFETIME: Final[int] = SPARK_FRAME_TICKS * SPARK_FRAMES
 CLANK_SPARK_TIER: Final[int] = 1
+SHIELD_SPARK_TIER: Final[int] = 0
+PARRY_SPARK_TIER: Final[int] = 2
+SHIELD_BREAK_SPARK_TIER: Final[int] = 3
+SMALL_SPARK_TIER: Final[int] = 0
+"""Techs, wall bounces, ledge grabs and grab clashes get the smallest spark."""
 
 # --- Screen shake --------------------------------------------------------------------------
 SHAKE_MIN_KNOCKBACK: Final[float] = 40.0
@@ -35,6 +51,8 @@ SHAKE_FRAMES_PER_PIXEL: Final[int] = 3
 SHAKE_FLIP_TICKS: Final[int] = 2
 """The shake direction flips every this many ticks."""
 KO_SHAKE_PIXELS: Final[int] = 4
+SHIELD_BREAK_SHAKE_PIXELS: Final[int] = 3
+PARRY_SHAKE_PIXELS: Final[int] = 2
 
 # --- Flash and HUD pop ---------------------------------------------------------------------
 HIT_FLASH_FRAMES: Final[int] = 3
@@ -109,6 +127,14 @@ def shake_pixels(knockback: float) -> int:
     return min(SHAKE_MAX_PIXELS, max(1, round(knockback / SHAKE_KNOCKBACK_PER_PIXEL)))
 
 
+def _small_spark(event: Event) -> bool:
+    """Return whether an event gets the smallest spark: a tech, wall bounce, ledge grab or
+    grab clash."""
+    if isinstance(event, GrabEvent):
+        return event.clash
+    return isinstance(event, TechEvent | WallBounceEvent | LedgeGrabEvent)
+
+
 @dataclass(slots=True)
 class BattleEffects:
     """Everything the battle scene shows in reaction to hits."""
@@ -132,6 +158,16 @@ class BattleEffects:
                     self.hud_pop[event.target] = (HUD_POP_FRAMES, min(pixels, HUD_POP_MAX_PIXELS))
             elif isinstance(event, ClankEvent):
                 self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
+            elif isinstance(event, ShieldHitEvent):
+                tier = PARRY_SPARK_TIER if event.parried else SHIELD_SPARK_TIER
+                self.sparks.append(Spark(event.position, tier, Effect.ICE))
+                if event.parried:
+                    self.shake.start(PARRY_SHAKE_PIXELS)
+            elif isinstance(event, ShieldBreakEvent):
+                self.sparks.append(Spark(event.position, SHIELD_BREAK_SPARK_TIER, Effect.ICE))
+                self.shake.start(SHIELD_BREAK_SHAKE_PIXELS)
+            elif _small_spark(event):
+                self.sparks.append(Spark(event.position, SMALL_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, KoEvent):
                 self.shake.start(KO_SHAKE_PIXELS)
                 self.flash.pop(event.player, None)

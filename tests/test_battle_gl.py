@@ -339,3 +339,46 @@ def test_fighter_info_has_a_combat_line_and_help_can_be_hidden(window: Any) -> N
     tap(view, keys().H)
     view.on_draw()
     assert all(label.text == "" for label in view._help)
+
+
+# --- M4: shield bubble and overlay ------------------------------------------------------------
+
+
+def test_a_raised_shield_is_drawn_and_shown_in_the_overlay(window: Any) -> None:
+    from isofightr.render.hitbox_overlay import GRAB_LINE, SHIELD_LINE
+
+    view = make_view(window, training=False)
+    view.match.fighters[1].pos = Vec3(9.5, 2.5, 0.0)
+    view.on_draw()
+    plain = frame_bytes(window)
+    view.on_key_press(keys().LSHIFT, 0)
+    ticks(view, 3)
+    fighter = view.match.fighters[0]
+    assert fighter.state is StateId.SHIELD
+    view.on_draw()
+    assert frame_bytes(window) != plain
+    assert len([sprite for sprite in view.effect_renderer.sprites if sprite.visible]) == 1
+    tap(view, keys().F1)
+    view.on_draw()
+    assert count_color(window, SHIELD_LINE) > 40
+
+    view.on_key_release(keys().LSHIFT, 0)
+    for _ in range(20):
+        ticks(view, 1)
+    view.on_key_press(keys().L, 0)
+    ticks(view, 1)
+    view.on_key_release(keys().L, 0)
+    for _ in range(5):
+        ticks(view, 1)
+    assert fighter.state is StateId.GRAB
+    view.on_draw()
+    assert count_color(window, GRAB_LINE) > 20, "the grab box is out on frame 6"
+
+
+def test_fighter_info_shows_shield_and_intangibility(window: Any) -> None:
+    view = make_view(window)
+    view.match.fighters[0].intangible_frames = 12
+    tap(view, keys().F2)
+    view.on_draw()
+    assert view._info_lines[1].text.endswith("shield 50 intang 12")
+    assert view._info_lines[3].text.endswith("shield 50")
