@@ -15,7 +15,7 @@ frames = "10-14"
   damage = 14.0
   angle = 85
   bkb = 32
-  kbg = 100
+  kbg = 114
   effect = "slash"
   [[windows.hitboxes]]
   id = 1
@@ -24,4 +24,4 @@ frames = "10-14"
   damage = 12.0
   angle = 85
   bkb = 30
-  kbg = 100
+  kbg = 108
