@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Design plan lives in a private Obsidian vault outside the repo; never commit it
+plan/
+
+# Obsidian (keep shared config, ignore per-machine workspace state)
+.obsidian/workspace*.json
+.obsidian/cache
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local
+settings.local.toml
+*.log
