@@ -70,6 +70,7 @@ def test_importing_all_of_sim_never_loads_arcade_or_pyglet() -> None:
 WINDOWLESS_MODULES = (
     "isofightr.__main__",
     "isofightr.headless",
+    "isofightr.ai.dummy",
     "isofightr.ai.random_inputs",
     "isofightr.input.gamepad",
     "isofightr.input.keyboard",
@@ -82,7 +83,9 @@ WINDOWLESS_MODULES = (
     "isofightr.render.pixel_scale",
     "isofightr.render.placeholder_art",
     "isofightr.render.shadows",
+    "isofightr.scenes.setup",
     "isofightr.ui.hud_layout",
+    "isofightr.ui.menu",
     "isofightr.ui.pixel_font",
 )
 """Presentation helpers the default test run imports. CI has no display, so none of them may

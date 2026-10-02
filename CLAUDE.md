@@ -31,8 +31,9 @@ The full design and implementation plan lives in an **Obsidian vault** outside t
 - Python **3.12**, **Arcade 3.x** (pinned), Pillow, uv, pytest, ruff, mypy
 ```bash
 uv sync                                   # install deps
-uv run python -m isofightr                # run the game (two Rooks on Sky Ruins)
-uv run python -m isofightr --p1 rook --p2 rook --stage training_grid --seed 3
+uv run python -m isofightr                # run the game: title screen and menus
+uv run python -m isofightr --battle       # skip the menus: two Rooks on Sky Ruins, endless stocks
+uv run python -m isofightr --p1 rook --p2 rook --stage training_grid --seed 3   # also skips them
 uv run python -m isofightr --training     # training mode: P2 is a dummy, on Training Grid
 uv run python -m isofightr --headless --frames 10000   # headless sim run, prints the state hash
 uv run pytest                             # fast tests (excludes @slow and @gl)
@@ -43,9 +44,9 @@ uv run ruff check . && uv run ruff format .
 uv run mypy src/isofightr/sim
 uv run python tools/kill_calc.py          # KO percent of every move, from the real sim
 ```
-(As of M5 these flags exist: `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--training`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
+(As of M6 these flags exist: `--battle`, `--stage ID`, `--p1` to `--p4 ID`, `--seed N`, `--training`, `--headless`, `--frames N`, `--test-pattern`, `--scale N`, `--fullscreen`, `--debug`. `--cpu`, `--replay` and `--record` are still the target, not reality; each arrives with the milestone that builds what it controls.)
 
-Controls as of M5 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `J` attack, `K` special, `U` strong (smash), `L` grab, `Left Shift` shield, `Left Ctrl` walk, `T` taunt; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers, `Num4` attack, `Num5` special, `Num7` strong, `Num6` grab, `Num1` shield; a connected controller also drives its player (A attack, B special, LB strong, RB grab, triggers shield, right stick up/down = modifiers, right stick sideways = forward smash). Shield + down = spot dodge, shield + stick flick = roll, shield in the air = air dodge, shield just before landing in tumble = tech. Debug keys (`scenes/battle.py`): `F1` hitboxes and hurtboxes, `F2` fighter info, `F3` stage overlay, `F5` pause, `F6` frame advance, `F8` restart, `F9` hot-reload character and move data, `H` help text, `C` camera clamp, `F11` fullscreen. In `--training`: `-` / `=` dummy damage, `0` reset it, `Tab` dummy control on/off.
+Controls as of M6 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump, `I` / `,` up and down modifiers, `J` attack, `K` special, `U` strong (smash), `L` grab, `Left Shift` shield, `Left Ctrl` walk, `T` taunt; P2 arrows, `Num0` jump, `Num8` / `Num2` modifiers, `Num4` attack, `Num5` special, `Num7` strong, `Num6` grab, `Num1` shield; a connected controller also drives its player (A attack, B special, LB strong, RB grab, triggers shield, right stick up/down = modifiers, right stick sideways = forward smash). Shield + down = spot dodge, shield + stick flick = roll, shield in the air = air dodge, shield just before landing in tumble = tech. Menus: stick to move, attack or jump to confirm, special or shield to go back; `Enter` and `Escape` do the same for P1. In a match `Escape` or `Enter` opens the pause menu (in training it holds the training tools). Debug keys (`scenes/battle.py`): `F1` hitboxes and hurtboxes, `F2` fighter info, `F3` stage overlay, `F5` pause, `F6` frame advance, `F8` restart, `F9` hot-reload character and move data, `H` help text, `C` camera clamp, `F11` fullscreen. In `--training`: `-` / `=` dummy damage, `0` reset it, `Tab` dummy control on/off.
 
 ## Architecture rules (hard rules)
 1. **`src/isofightr/sim/` must never import `arcade`, `pyglet`, or read clocks/`random`.** The sim is pure, deterministic Python driven only by `InputFrame`s. Use `match.rng` for randomness.
@@ -122,11 +123,20 @@ Controls as of M5 (`input/devices.py`): P1 keyboard `W/A/S/D` move, `Space` jump
 - **Autolink** hitboxes pull toward the hitbox centre and add the attacker's velocity to the launch (`Launch.carry`), which is what keeps a target inside a moving multi-hit.
 - `uv run python tools/frame_data_report.py --write <character note>` regenerates the frame-data table in the vault.
 
+## Match flow and UI (as built in M6)
+- **Rules live in the sim** (`sim/rules.py`, last step of the tick): `match.phase` (`COUNTDOWN`, `PLAYING`, `OVER`), `match.countdown`, `match.time_left`, `match.sudden_death`, `match.stats` (one `PlayerStats` per player), `match.result`. `MatchRules` has `stocks`, `time_frames`, `countdown_frames`, `launch_rate`. Default rules have no countdown and no clock, so tests and sandboxes behave as before. The sim keeps ticking and accepting input after `OVER`.
+- Stats come from `HitEvent`s (`rules.track_hits`), so anything that should count as damage must emit one. A KO is credited through `fighter.last_hit_by`.
+- **Scenes** (`scenes/`): `flow.py` (`GameFlow`, the router), `menus.py` (title, main menu, character select, stage select, results), `battle.py`, `setup.py` (`MatchSetup`, clock and countdown text, the results table; pure). A scene never constructs another scene: it asks the flow. `BattleView` takes `rules`, `flow` and `setup`; without a flow it is the sandbox it always was.
+- **UI kit** (`ui/`): `menu.py` (`Menu`, `MenuItem`, `MenuInput`, pure), `widgets.py` (`UiLayer`, `TextBlock`, panels), `hud.py` and `hud_layout.py`. Menus read the same per-player `InputFrame`s as the game. `MenuInput` ignores whatever is held when a menu opens, so give a new scene one tick before expecting stick input (keyboard Enter and Escape act at once).
+- Presentation-side timing in the battle: "GO!" for 40 ticks, "GAME!" slow motion (one sim tick in three for 60 ticks), results after 150 ticks.
+- Training dummies are an input source (`ai/dummy.py`), chosen in the pause menu.
+- Stage thumbnails are generated from the stage grid (`build_stage_thumbnail`); a new stage needs no extra art to appear in stage select.
+
 ## Rendering notes (as built in M1 to M5)
 - **World draw order comes from `render/depth.py`, never from a scalar sort key.** It is a topological sort over geometric constraints between sprites that overlap on screen (decision D-019). To add a new kind of world sprite, give it a `DynamicItem` (position, height, exact pixel rect) and let the sorter place it.
 - The rect passed to the sorter must bound **every pixel the sprite draws**. A rect that is too small silently drops constraints.
 - `uv run pytest -m gl` includes an occlusion sweep against a geometric oracle (`tests/test_world_render.py`). Run it after any change to sorting, tile art geometry or sprite anchoring.
-- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `effects.py`, `fighter_look.py`, `hitbox_shapes.py`, `ui/pixel_font.py`, `ui/hud_layout.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display. `tests/test_sim_purity.py` lists them; split anything that draws into its own module (`effect_renderer.py`, `hitbox_overlay.py`, `ui/hud.py`).
+- Modules without `arcade` imports (`render/iso.py`, `depth.py`, `camera.py`, `shadows.py`, `placeholder_art.py`, `pixel_scale.py`, `effects.py`, `fighter_look.py`, `hitbox_shapes.py`, `ui/pixel_font.py`, `ui/hud_layout.py`, `ui/menu.py`, `scenes/setup.py`, `ai/dummy.py`, `input/keyboard.py`, `input/gamepad.py`, `headless.py`, `ai/random_inputs.py`) must stay that way: the CI test run has no display. `tests/test_sim_purity.py` lists them; split anything that draws into its own module (`effect_renderer.py`, `hitbox_overlay.py`, `ui/hud.py`).
 - Hit feedback is presentation only: `render/effects.py` (`BattleEffects`) consumes `match.events` once per sim tick and holds sparks, screen shake, hit flash and HUD pops; `render/fighter_look.py` picks each fighter's pose, flash and hitlag shake from sim state. The VFX layer and debug overlays are drawn over the sorted world, not depth-sorted.
 - Until moves have animations, an attack is shown as a translucent blob drawn exactly where each active hitbox is (`build_swing`), so the visuals and the F1 overlay cannot disagree. Grab boxes and the shield bubble (`build_shield`) are drawn the same way, at their real size.
 - A fighter the stage partly hides gets a faint "x-ray" copy drawn over the world (`OCCLUDED_FIGHTER_ALPHA`, decision D-025), because platforms and the island otherwise hide fighters completely in this projection.
