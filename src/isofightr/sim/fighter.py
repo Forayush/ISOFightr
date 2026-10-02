@@ -15,11 +15,15 @@ from enum import Enum, IntEnum
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.input_frame import Dir8, InputBuffer
 from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3
+from isofightr.sim.move_def import MoveDef
 from isofightr.sim.stage import NO_PLATFORM
 
 
 class StateId(Enum):
-    """Every state a fighter can be in (plan note 07, "State list"). M2 has movement only."""
+    """Every state a fighter can be in so far (plan note 07, "State list").
+
+    Defense, grabs and ledges come in M4.
+    """
 
     IDLE = "idle"
     WALK = "walk"
@@ -34,6 +38,12 @@ class StateId(Enum):
     JUMP = "jump"
     DOUBLE_JUMP = "double_jump"
     FALL = "fall"
+    ATTACK = "attack"
+    REBOUND = "rebound"
+    FLINCH = "flinch"
+    TUMBLE = "tumble"
+    KNOCKDOWN = "knockdown"
+    GETUP = "getup"
     REVIVAL = "revival"
     KO = "ko"
 
@@ -51,6 +61,30 @@ class GroundKind(IntEnum):
     """The revival platform after a KO: not part of the stage, and nothing moves you off it."""
 
 
+@dataclass(frozen=True, slots=True)
+class Launch:
+    """A hit waiting to send its target flying when hitlag ends (DI is read at that moment)."""
+
+    knockback: float
+    heading: Vec2
+    """Horizontal launch direction before DI, a unit world vector."""
+    elevation: float
+    """Launch elevation in degrees, already resolved (Sakurai angle, meteor bounce)."""
+    tumble: bool
+
+
+def _no_hits() -> dict[tuple[int, int], int]:
+    return {}
+
+
+def _no_centres() -> dict[int, Vec3]:
+    return {}
+
+
+def _empty_queue() -> list[str]:
+    return []
+
+
 @dataclass(slots=True)
 class Fighter:
     """One fighter's complete runtime state."""
@@ -63,7 +97,7 @@ class Fighter:
     vel: Vec3 = ZERO3
     """Self velocity: movement the fighter controls (walk, run, jump, drift)."""
     kb_vel: Vec3 = ZERO3
-    """Knockback velocity, kept separate as in Smash. Always zero until M3."""
+    """Knockback velocity, kept separate as in Smash. Decays every frame."""
     state: StateId = StateId.IDLE
     state_frame: int = 1
     """Frames in the current state, 1-indexed: the tick a state is entered is its frame 1."""
@@ -81,6 +115,31 @@ class Fighter:
     """Stocks left, or ``None`` for infinite."""
     invincible_frames: int = 0
     """Frames of invincibility left after leaving the revival platform."""
+    land_lag: int = 0
+    """Length of the current landing lag (normal, or an aerial's own)."""
+    move_id: str = ""
+    """The move being performed while in the ``ATTACK`` state."""
+    charge_frames: int = 0
+    """Frames the current smash attack has been charged."""
+    hit_log: dict[tuple[int, int], int] = field(default_factory=_no_hits)
+    """``(target, hitbox group)`` to the move frame it last hit, for the current move."""
+    move_connected: bool = False
+    move_stale: float = 1.0
+    """Stale-move damage multiplier of the current move, fixed when the move starts."""
+    """Whether the current move has already been added to the stale queue."""
+    hitbox_centres: dict[int, Vec3] = field(default_factory=_no_centres)
+    """World centres of last tick's active hitboxes by id, to sweep fast moves."""
+    hitlag: int = 0
+    """Freeze frames left: while above 0 the fighter does not step or move."""
+    hitstun: int = 0
+    """Frames left before a hit fighter can act."""
+    launch: Launch | None = None
+    """The hit that launches this fighter when its hitlag ends."""
+    sdi_mult: float = 1.0
+    stale_queue: list[str] = field(default_factory=_empty_queue)
+    """The last moves that connected, newest first (at most ``STALE_QUEUE_LENGTH``)."""
+    last_knockback: float = 0.0
+    """Knockback of the last hit taken, for the debug panel."""
     buffer: InputBuffer = field(default_factory=InputBuffer)
 
     @property
@@ -97,6 +156,13 @@ class Fighter:
     def in_play(self) -> bool:
         """Whether the fighter exists in the world (false while KO'd and waiting to respawn)."""
         return self.state is not StateId.KO
+
+    @property
+    def move(self) -> MoveDef | None:
+        """The move being performed, or ``None`` when not attacking."""
+        if self.state is not StateId.ATTACK:
+            return None
+        return self.character.moves[self.move_id]
 
     @property
     def invincible(self) -> bool:

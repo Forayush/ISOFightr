@@ -15,6 +15,7 @@ from typing import Final
 
 from isofightr.sim import physics
 from isofightr.sim.character_def import CharacterDef
+from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
 from isofightr.sim.events import Event, KoEvent, LandEvent
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
@@ -97,24 +98,37 @@ class Match:
         for fighter, frame in zip(self.fighters, inputs, strict=True):
             fighter.buffer.push(frame)
 
-        # 2. Hitlag (M3).
+        # 2. Hitlag: frozen fighters read SDI, launch when it ends, and skip steps 3 to 5.
+        frozen = {fighter.player_index for fighter in self.fighters if fighter.hitlag > 0}
+        for fighter in self.fighters:
+            if fighter.player_index in frozen:
+                step_hitlag(self, fighter)
 
         # 3. State machine.
         for fighter in self.fighters:
+            if fighter.player_index in frozen:
+                continue
             if fighter.invincible_frames > 0:
                 fighter.invincible_frames -= 1
             fighter.state_frame += 1
             STATES[fighter.state].step(self, fighter)
 
-        # 4. Move scripts (M3).
+        # 4. Move scripts: hitbox windows and scripted motion are read from the move data
+        #    by the Attack state and by hit resolution. Special-move scripts arrive in M5.
 
         # 5. Physics.
         for fighter in self.fighters:
+            if fighter.player_index in frozen:
+                continue
+            physics.decay_knockback(fighter)
             STATES[fighter.state].motion(self, fighter)
             self._apply(fighter, physics.step(self.stage, fighter))
         self._push_fighters_apart()
 
-        # 6. Projectiles (M5). 7. Hit resolution (M3).
+        # 6. Projectiles (M5).
+
+        # 7. Hit resolution.
+        resolve_hits(self)
 
         # 8. Blast zones.
         for fighter in self.fighters:
@@ -139,9 +153,9 @@ class Match:
         """Turn what physics found into state changes and events."""
         if result.landed:
             self.events.append(LandEvent(fighter.player_index, fighter.pos, result.fall_speed))
-            change_state(self, fighter, StateId.LAND)
+            STATES[fighter.state].on_land(self, fighter)
         elif result.left_ground:
-            change_state(self, fighter, StateId.FALL)
+            STATES[fighter.state].on_leave_ground(self, fighter)
 
     def _push_fighters_apart(self) -> None:
         """Gently separate grounded fighters whose bodies overlap (plan note 04, pushboxes).
@@ -240,6 +254,28 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         _round(fighter.damage),
         fighter.stocks,
         fighter.invincible_frames,
+        fighter.land_lag,
+        fighter.move_id,
+        fighter.charge_frames,
+        tuple(sorted(fighter.hit_log.items())),
+        fighter.move_connected,
+        _round(fighter.move_stale),
+        tuple(
+            (key, _canonical_vec3(value)) for key, value in sorted(fighter.hitbox_centres.items())
+        ),
+        fighter.hitlag,
+        fighter.hitstun,
+        None
+        if fighter.launch is None
+        else (
+            _round(fighter.launch.knockback),
+            _canonical_vec2(fighter.launch.heading),
+            _round(fighter.launch.elevation),
+            fighter.launch.tumble,
+        ),
+        _round(fighter.sdi_mult),
+        tuple(fighter.stale_queue),
+        _round(fighter.last_knockback),
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,
         buffer.frame.held,

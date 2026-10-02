@@ -43,7 +43,7 @@ respawn = [6.5, 4.5]
 
 [blast_zone]                 # margins from the stage's solid bounding box
 side = 7.0
-top = 14.0
+top = 12.0
 bottom = -8.0
 
 [camera]

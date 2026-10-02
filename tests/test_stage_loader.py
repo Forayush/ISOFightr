@@ -101,7 +101,7 @@ def test_sky_ruins_is_a_rounded_13_by_9_island_with_three_platforms() -> None:
     assert sorted({ledge.length for ledge in stage.ledges}) == [1.0, 5.0, 9.0]
     blast = stage.blast_zone
     assert (blast.x_min, blast.x_max, blast.y_min, blast.y_max) == (-7.0, 20.0, -7.0, 16.0)
-    assert (blast.z_min, blast.z_max) == (-8.0, 14.0)
+    assert (blast.z_min, blast.z_max) == (-8.0, 12.0)
 
 
 # --- loading from disk --------------------------------------------------------------------

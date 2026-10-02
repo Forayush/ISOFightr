@@ -54,6 +54,9 @@ class Ko(State):
         fighter.ground = GroundKind.NONE
         fighter.platform = NO_PLATFORM
         fighter.drop_platform = NO_PLATFORM
+        fighter.hitlag = 0
+        fighter.hitstun = 0
+        fighter.launch = None
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Respawn after the delay, unless out of stocks."""

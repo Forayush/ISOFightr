@@ -62,7 +62,7 @@ class Walk(GroundState):
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump, dash, drop, turn around, keep walking, or stop."""
         if (
-            interrupts.ground_jump(match, fighter)
+            interrupts.ground_actions(match, fighter)
             or interrupts.ground_dash(match, fighter)
             or interrupts.platform_drop_tap(match, fighter)
         ):
@@ -94,7 +94,9 @@ class Dash(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump, drop, dash back the other way (dash dance), or settle into a run."""
-        if interrupts.ground_jump(match, fighter) or interrupts.platform_drop_tap(match, fighter):
+        if interrupts.running_actions(match, fighter) or interrupts.platform_drop_tap(
+            match, fighter
+        ):
             return
         direction = interrupts.stick_direction(fighter)
         buffer = fighter.buffer
@@ -123,7 +125,9 @@ class Run(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump, drop, steer, turn around, or brake."""
-        if interrupts.ground_jump(match, fighter) or interrupts.platform_drop_tap(match, fighter):
+        if interrupts.running_actions(match, fighter) or interrupts.platform_drop_tap(
+            match, fighter
+        ):
             return
         direction = interrupts.stick_direction(fighter)
         if direction == Vec2():
@@ -153,7 +157,7 @@ class RunTurn(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump out, or finish the turn into a run (or neutral if the stick was let go)."""
-        if interrupts.ground_jump(match, fighter):
+        if interrupts.ground_actions(match, fighter):
             return
         if fighter.state_frame > RUN_TURN_FRAMES:
             direction = interrupts.stick_direction(fighter)
@@ -176,7 +180,7 @@ class Skid(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump or dash out; otherwise slide until stopped."""
-        if interrupts.ground_jump(match, fighter) or interrupts.ground_dash(match, fighter):
+        if interrupts.ground_actions(match, fighter) or interrupts.ground_dash(match, fighter):
             return
         if fighter.vel.xy == Vec2():
             interrupts.become_ground_neutral(match, fighter)
@@ -194,7 +198,7 @@ class Turn(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Jump or dash out; otherwise finish the turn."""
-        if interrupts.ground_jump(match, fighter) or interrupts.ground_dash(match, fighter):
+        if interrupts.ground_actions(match, fighter) or interrupts.ground_dash(match, fighter):
             return
         if fighter.state_frame > TURN_FRAMES:
             interrupts.become_ground_neutral(match, fighter)
@@ -239,7 +243,7 @@ class Land(GroundState):
 
     def step(self, match: Match, fighter: Fighter) -> None:
         """Become actionable once the landing lag is over."""
-        if fighter.state_frame > fighter.character.movement.land_lag:
+        if fighter.state_frame > fighter.land_lag:
             interrupts.become_ground_neutral(match, fighter)
 
 

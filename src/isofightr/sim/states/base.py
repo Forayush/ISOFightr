@@ -38,6 +38,15 @@ class State:
     def exit(self, match: Match, fighter: Fighter) -> None:
         """Run once when the fighter leaves this state."""
 
+    def on_land(self, match: Match, fighter: Fighter) -> None:
+        """Physics landed the fighter this tick. By default: normal landing lag."""
+        fighter.land_lag = fighter.character.movement.land_lag
+        change_state(match, fighter, StateId.LAND)
+
+    def on_leave_ground(self, match: Match, fighter: Fighter) -> None:
+        """The fighter walked, slid or was pushed off an edge. By default: fall."""
+        change_state(match, fighter, StateId.FALL)
+
 
 class GroundState(State):
     """Default motion for grounded states: slide to a stop under traction."""

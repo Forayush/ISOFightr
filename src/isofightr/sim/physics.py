@@ -15,6 +15,7 @@ import math
 from dataclasses import dataclass
 
 from isofightr.config import SURFACE_EPSILON
+from isofightr.sim.combat.constants import KB_DECAY
 from isofightr.sim.constants import (
     EDGE_TOLERANCE,
     PLATFORM_DROP_CLEARANCE,
@@ -22,7 +23,7 @@ from isofightr.sim.constants import (
     WALL_SKIN,
 )
 from isofightr.sim.fighter import Fighter, GroundKind
-from isofightr.sim.math3d import Vec2, Vec3
+from isofightr.sim.math3d import ZERO3, Vec2, Vec3
 from isofightr.sim.stage import NO_PLATFORM, Stage
 
 # --- velocity updates (called by states before the fighter is moved) -----------------------
@@ -42,26 +43,30 @@ def set_ground_velocity(fighter: Fighter, velocity: Vec2) -> None:
     fighter.vel = Vec3(velocity.x, velocity.y, 0.0)
 
 
-def apply_gravity(fighter: Fighter) -> None:
+def apply_gravity(fighter: Fighter, multiplier: float = 1.0) -> None:
     """Accelerate an airborne fighter downward, capped at its fall speed.
 
     Fast fall replaces the cap: the fighter drops at ``fast_fall`` speed straight away.
+    ``multiplier`` scales both gravity and the cap (a launched fighter falls more slowly).
     """
     stats = fighter.character.movement
     if fighter.fast_falling:
         fall = -stats.fast_fall
     else:
-        fall = max(fighter.vel.z - stats.gravity, -stats.max_fall)
+        fall = max(fighter.vel.z - stats.gravity * multiplier, -stats.max_fall * multiplier)
     fighter.vel = Vec3(fighter.vel.x, fighter.vel.y, fall)
 
 
-def apply_air_drift(fighter: Fighter) -> None:
-    """Steer an airborne fighter toward the stick, capped as a circle at its air speed."""
+def apply_air_drift(fighter: Fighter, multiplier: float = 1.0) -> None:
+    """Steer an airborne fighter toward the stick, capped as a circle at its air speed.
+
+    ``multiplier`` scales the acceleration (drift is weaker during hitstun).
+    """
     stats = fighter.character.movement
     horizontal = fighter.vel.xy
     if fighter.buffer.stick_active:
         horizontal = clamp_length(
-            horizontal + fighter.buffer.move * stats.air_accel, stats.air_speed
+            horizontal + fighter.buffer.move * (stats.air_accel * multiplier), stats.air_speed
         )
     else:
         speed = horizontal.length()
@@ -70,6 +75,21 @@ def apply_air_drift(fighter: Fighter) -> None:
         else:
             horizontal = horizontal * ((speed - stats.air_friction) / speed)
     fighter.vel = Vec3(horizontal.x, horizontal.y, fighter.vel.z)
+
+
+def decay_knockback(fighter: Fighter) -> None:
+    """Shrink knockback velocity by ``KB_DECAY`` along its own direction, down to zero.
+
+    On the ground the fighter's traction slows the slide as well.
+    """
+    speed = fighter.kb_vel.length()
+    if speed == 0.0:
+        return
+    loss = KB_DECAY + (fighter.character.movement.traction if fighter.grounded else 0.0)
+    if speed <= loss:
+        fighter.kb_vel = ZERO3
+    else:
+        fighter.kb_vel = fighter.kb_vel * ((speed - loss) / speed)
 
 
 def clamp_length(vector: Vec2, limit: float) -> Vec2:
@@ -121,6 +141,15 @@ def step(stage: Stage, fighter: Fighter) -> StepResult:
 def nudge_grounded(stage: Stage, fighter: Fighter, offset: Vec2) -> StepResult:
     """Shift a grounded fighter sideways (pushboxes), with the same collision as walking."""
     return _move_grounded(stage, fighter, offset)
+
+
+def shift(stage: Stage, fighter: Fighter, offset: Vec2) -> None:
+    """Move a fighter sideways outside the normal step (SDI), respecting walls and edges."""
+    if fighter.grounded:
+        _move_grounded(stage, fighter, offset)
+    else:
+        x, y = _slide_along_walls(stage, fighter, offset)
+        fighter.pos = Vec3(x, y, fighter.pos.z)
 
 
 def support_under(
@@ -205,6 +234,7 @@ def _move_airborne(stage: Stage, fighter: Fighter, delta: Vec3) -> StepResult:
             fighter.platform = support.platform
             fighter.drop_platform = NO_PLATFORM
             fighter.vel = Vec3(fighter.vel.x, fighter.vel.y, 0.0)
+            fighter.kb_vel = Vec3(fighter.kb_vel.x, fighter.kb_vel.y, 0.0)
             return StepResult(landed=True, fall_speed=-delta.z)
     else:
         lip = _cell_lip(stage, x, y, pos.z, new_z)

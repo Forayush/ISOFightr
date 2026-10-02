@@ -2,8 +2,8 @@
 
 Plan note "07 - Fighter State Machine and Move Data" ("Actionability and interrupts"):
 interrupts are tried in priority order on each actionable frame, and the table is kept here
-as data so it is easy to tweak. M2 has the movement rows; the attack, special, grab and
-shield rows slot into the same tuples from M3 on.
+as data so it is easy to tweak. M2 added the movement rows and M3 the attacks; special,
+grab and shield rows slot into the same tuples from M4 on.
 
 Each check returns ``True`` if it changed the fighter's state.
 Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``random``.
@@ -14,11 +14,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from isofightr.sim.combat.constants import BACK_DOT
 from isofightr.sim.constants import FLICK_HIGH, TURN_THRESHOLD_DEGREES
 from isofightr.sim.events import JumpEvent, JumpKind
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import (
     VERTICAL_DOWN,
+    VERTICAL_UP,
     Button,
     Press,
     facing_from_move,
@@ -57,7 +59,93 @@ def snap_facing(fighter: Fighter, direction: Vec2) -> None:
         fighter.facing = facing
 
 
+def start_move(match: Match, fighter: Fighter, move_id: str) -> None:
+    """Begin performing a move (the generic ``Attack`` state runs it)."""
+    fighter.move_id = move_id
+    change_state(match, fighter, StateId.ATTACK)
+
+
+def _take_vertical(fighter: Fighter) -> int:
+    """Return the held vertical intent and use up its tap, so the same press that picked an
+    up or down move does not also fast-fall or drop through a platform."""
+    vertical = fighter.buffer.vertical
+    if vertical == VERTICAL_UP:
+        fighter.buffer.consume(Press.UP)
+    elif vertical == VERTICAL_DOWN:
+        fighter.buffer.consume(Press.DOWN)
+    return vertical
+
+
 # --- ground interrupts ---------------------------------------------------------------------
+
+
+def ground_strong(match: Match, fighter: Fighter) -> bool:
+    """Smash attack: the strong button, or a right-stick flick toward a direction.
+
+    Up or down modifier picks the up or down smash; otherwise it is a forward smash, turned
+    toward the stick (or the right-stick direction) if one is held.
+    """
+    buffer = fighter.buffer
+    moveset = fighter.character.moveset
+    if buffer.consume(Press.CSTICK) and buffer.frame.cstick is not None:
+        snap_facing(fighter, buffer.frame.cstick)
+        start_move(match, fighter, moveset.fsmash)
+        return True
+    if not buffer.consume(Press.STRONG):
+        return False
+    vertical = _take_vertical(fighter)
+    if vertical == VERTICAL_UP:
+        start_move(match, fighter, moveset.usmash)
+    elif vertical == VERTICAL_DOWN:
+        start_move(match, fighter, moveset.dsmash)
+    else:
+        snap_facing(fighter, stick_direction(fighter))
+        start_move(match, fighter, moveset.fsmash)
+    return True
+
+
+def ground_attack(match: Match, fighter: Fighter) -> bool:
+    """Jab or tilt: up and down modifiers pick the up and down tilts, a stick direction the
+    forward tilt (turning to face it), and no direction the jab."""
+    if not fighter.buffer.consume(Press.ATTACK):
+        return False
+    moveset = fighter.character.moveset
+    vertical = _take_vertical(fighter)
+    direction = stick_direction(fighter)
+    if vertical == VERTICAL_UP:
+        start_move(match, fighter, moveset.utilt)
+    elif vertical == VERTICAL_DOWN:
+        start_move(match, fighter, moveset.dtilt)
+    elif direction != Vec2():
+        snap_facing(fighter, direction)
+        start_move(match, fighter, moveset.ftilt)
+    else:
+        start_move(match, fighter, moveset.jab[0])
+    return True
+
+
+def dash_attack(match: Match, fighter: Fighter) -> bool:
+    """Dash attack: attack while dashing or running."""
+    if fighter.buffer.consume(Press.ATTACK):
+        start_move(match, fighter, fighter.character.moveset.dash_attack)
+        return True
+    return False
+
+
+def ground_actions(match: Match, fighter: Fighter) -> bool:
+    """Smash, jump or attack, in priority order: what interrupts most ground movement."""
+    return (
+        ground_strong(match, fighter)
+        or ground_jump(match, fighter)
+        or ground_attack(match, fighter)
+    )
+
+
+def running_actions(match: Match, fighter: Fighter) -> bool:
+    """Like :func:`ground_actions`, but attack is the dash attack."""
+    return (
+        ground_strong(match, fighter) or ground_jump(match, fighter) or dash_attack(match, fighter)
+    )
 
 
 def ground_jump(match: Match, fighter: Fighter) -> bool:
@@ -122,8 +210,10 @@ def platform_drop_tap(match: Match, fighter: Fighter) -> bool:
 
 
 GROUND_NEUTRAL: tuple[Interrupt, ...] = (
-    # M3+: special, strong (smash attack) go above jump; attack, grab, shield below it.
+    # M4+: special goes above strong; grab and shield below attack.
+    ground_strong,
     ground_jump,
+    ground_attack,
     ground_dash,
     ground_move,
     platform_drop_hold,
@@ -137,7 +227,9 @@ def run_interrupts(match: Match, fighter: Fighter, interrupts: tuple[Interrupt, 
 
 
 GROUND_RECOVER: tuple[Interrupt, ...] = (
+    ground_strong,
     ground_jump,
+    ground_attack,
     ground_dash,
     ground_dash_held,
     ground_move,
@@ -173,6 +265,34 @@ def air_jump(match: Match, fighter: Fighter) -> bool:
     return True
 
 
+def air_attack(match: Match, fighter: Fighter) -> bool:
+    """Aerial: attack (or strong, or a right-stick flick) in the air.
+
+    Up and down modifiers pick the up and down airs. A stick direction picks forward or back
+    air by comparing it with the facing, which never changes in the air. No direction is
+    the neutral air.
+    """
+    buffer = fighter.buffer
+    moveset = fighter.character.moveset
+    direction = stick_direction(fighter)
+    if buffer.consume(Press.CSTICK) and buffer.frame.cstick is not None:
+        direction = buffer.frame.cstick
+    elif not (buffer.consume(Press.ATTACK) or buffer.consume(Press.STRONG)):
+        return False
+    vertical = _take_vertical(fighter)
+    if vertical == VERTICAL_UP:
+        start_move(match, fighter, moveset.uair)
+    elif vertical == VERTICAL_DOWN:
+        start_move(match, fighter, moveset.dair)
+    elif direction == Vec2():
+        start_move(match, fighter, moveset.nair)
+    elif fighter.facing.world.dot(direction.normalized()) < BACK_DOT:
+        start_move(match, fighter, moveset.bair)
+    else:
+        start_move(match, fighter, moveset.fair)
+    return True
+
+
 def fast_fall(match: Match, fighter: Fighter) -> bool:
     """Fast fall: a Down tap at or after the apex. Never changes state."""
     if fighter.vel.z <= 0.0 and not fighter.fast_falling and fighter.buffer.consume(Press.DOWN):
@@ -181,7 +301,8 @@ def fast_fall(match: Match, fighter: Fighter) -> bool:
 
 
 AIR_NEUTRAL: tuple[Interrupt, ...] = (
-    # M3+: special, air dodge and aerials go above air jump.
+    # M4+: special and air dodge go above the aerials.
+    air_attack,
     air_jump,
     fast_fall,
 )

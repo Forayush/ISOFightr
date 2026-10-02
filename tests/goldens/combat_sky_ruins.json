@@ -1,0 +1,16 @@
+{
+  "description": "Four Rooks on Sky Ruins, all starting at 90%, driven by 3000 ticks of seeded random input (attacks, smashes, aerials, clanks, tumbles, knockdowns, KOs).",
+  "stage": "sky_ruins",
+  "characters": [
+    "rook",
+    "rook",
+    "rook",
+    "rook"
+  ],
+  "seed": 3,
+  "stocks": null,
+  "start_damage": 90.0,
+  "input_seed": 114,
+  "ticks": 3000,
+  "hash": "33b0ed376157c7273f0b83087143d19f"
+}

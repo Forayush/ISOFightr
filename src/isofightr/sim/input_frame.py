@@ -157,7 +157,8 @@ NEUTRAL_INPUT: Final[InputFrame] = InputFrame()
 
 
 class Press(IntEnum):
-    """Everything that can be buffered: button presses, vertical taps and stick flicks."""
+    """Everything that can be buffered: button presses, vertical taps, stick flicks and
+    right-stick ("C-stick") smash inputs."""
 
     ATTACK = 0
     SPECIAL = 1
@@ -169,6 +170,7 @@ class Press(IntEnum):
     UP = 7
     DOWN = 8
     FLICK = 9
+    CSTICK = 10
 
 
 _BUTTON_PRESSES: Final[tuple[tuple[int, Press], ...]] = (
@@ -225,6 +227,8 @@ class InputBuffer:
             self.ages[Press.UP] = 0
         if frame.vertical == VERTICAL_DOWN and previous.vertical != VERTICAL_DOWN:
             self.ages[Press.DOWN] = 0
+        if frame.cstick is not None and previous.cstick is None:
+            self.ages[Press.CSTICK] = 0
         if _is_flick(frame.move, self.history):
             self.ages[Press.FLICK] = 0
         self.history = [*self.history[1:], frame.move]

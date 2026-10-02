@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from isofightr.sim.math3d import Vec3
+from isofightr.sim.move_def import Effect
 
 
 class JumpKind(Enum):
@@ -59,4 +60,28 @@ class RespawnEvent:
     position: Vec3
 
 
-type Event = JumpEvent | LandEvent | KoEvent | RespawnEvent
+@dataclass(frozen=True, slots=True)
+class HitEvent:
+    """An attack connected (hit spark, hit sound, screen shake, HUD shake)."""
+
+    attacker: int
+    target: int
+    move_id: str
+    damage: float
+    """Damage dealt after charge and staling (0 against an invincible target)."""
+    knockback: float
+    position: Vec3
+    """World position of the hitbox that connected."""
+    effect: Effect
+    hitlag: int
+
+
+@dataclass(frozen=True, slots=True)
+class ClankEvent:
+    """A fighter's attack was stopped by clashing with another attack (clank spark)."""
+
+    player: int
+    position: Vec3
+
+
+type Event = JumpEvent | LandEvent | KoEvent | RespawnEvent | HitEvent | ClankEvent

@@ -7,6 +7,7 @@ Plan notes "02 - Technical Architecture" (determinism rules, entity model) and
 import copy
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -155,6 +156,20 @@ def test_random_play_survives_and_keeps_fighters_inside_the_blast_zone_or_ko() -
 # --- goldens ------------------------------------------------------------------------------
 
 
+def golden_match(golden: dict[str, Any]) -> Match:
+    """Build the match a golden file describes. ``start_damage`` (optional) is the percent
+    every fighter starts on, so that random hits launch hard enough to tumble."""
+    match = make_match(
+        golden["stage"],
+        tuple(golden["characters"]),
+        seed=golden["seed"],
+        stocks=golden["stocks"],
+    )
+    for fighter in match.fighters:
+        fighter.damage = golden.get("start_damage", 0.0)
+    return match
+
+
 @pytest.mark.parametrize("path", sorted(GOLDENS_DIR.glob("*.json")), ids=lambda path: path.stem)
 def test_golden_state_hash(path: Path, update_goldens: bool) -> None:
     """A recorded run must end in the recorded state hash.
@@ -163,12 +178,7 @@ def test_golden_state_hash(path: Path, update_goldens: bool) -> None:
     ``uv run pytest --update-goldens`` and say so in the commit message.
     """
     golden = json.loads(path.read_text(encoding="utf-8"))
-    match = make_match(
-        golden["stage"],
-        tuple(golden["characters"]),
-        seed=golden["seed"],
-        stocks=golden["stocks"],
-    )
+    match = golden_match(golden)
     inputs = random_inputs(golden["input_seed"], golden["ticks"], len(golden["characters"]))
     actual = play(match, inputs).state_hash()
     if update_goldens:
@@ -183,9 +193,9 @@ def test_golden_runs_between_them_visit_every_state() -> None:
     visited: set[StateId] = set()
     for path in sorted(GOLDENS_DIR.glob("*.json")):
         golden = json.loads(path.read_text(encoding="utf-8"))
-        characters = tuple(golden["characters"])
-        match = make_match(golden["stage"], characters, golden["seed"], golden["stocks"])
-        for frames in random_inputs(golden["input_seed"], golden["ticks"], len(characters)):
+        match = golden_match(golden)
+        players = len(golden["characters"])
+        for frames in random_inputs(golden["input_seed"], golden["ticks"], players):
             match.tick(frames)
             visited.update(fighter.state for fighter in match.fighters)
     assert visited == set(StateId)
@@ -193,6 +203,8 @@ def test_golden_runs_between_them_visit_every_state() -> None:
 
 def test_goldens_exist() -> None:
     assert sorted(path.stem for path in GOLDENS_DIR.glob("*.json")) == [
+        "combat_sky_ruins",
+        "combat_training_grid",
         "movement_sky_ruins",
         "movement_training_grid",
     ]

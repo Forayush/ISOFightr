@@ -1,0 +1,16 @@
+{
+  "description": "Four Rooks on Training Grid, all starting at 90%, driven by 3000 ticks of seeded random input (attacks, smashes, aerials, clanks, tumbles, knockdowns, KOs).",
+  "stage": "training_grid",
+  "characters": [
+    "rook",
+    "rook",
+    "rook",
+    "rook"
+  ],
+  "seed": 3,
+  "stocks": null,
+  "start_damage": 90.0,
+  "input_seed": 154,
+  "ticks": 3000,
+  "hash": "bc4111ab4378f3a54a678db2d0e91352"
+}
