@@ -34,7 +34,14 @@ from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import save_replay
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.validation import DataError
-from isofightr.input.devices import DeviceHub, InputSource
+from isofightr.input.devices import (
+    KEYBOARD_PREFIX,
+    PAD_PREFIX,
+    PRESETS,
+    DeviceHub,
+    InputSource,
+)
+from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import FollowCamera, StepZoom, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
@@ -48,7 +55,7 @@ from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
 from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
 from isofightr.scenes.ticked_view import TickedView
-from isofightr.settings import ZOOM_STEPPED, Settings
+from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, ZOOM_STEPPED, Settings
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, InputFrame
@@ -58,8 +65,15 @@ from isofightr.sim.replay import Recorder, Replay
 from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui.hud import DamageHud
+from isofightr.ui.input_display import input_lines
 from isofightr.ui.menu import Menu, MenuAction, MenuInput, MenuItem
-from isofightr.ui.pixel_font import GLYPH_HEIGHT
+from isofightr.ui.move_list import (
+    build_move_list,
+    gamepad_labels,
+    keyboard_labels,
+    page_columns,
+)
+from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
 from isofightr.ui.widgets import HIGHLIGHT, TextBlock, UiLayer, centred_left
 
@@ -75,6 +89,7 @@ KEY_PAUSE = arcade.key.F5
 KEY_FRAME_ADVANCE = arcade.key.F6
 KEY_RESET = arcade.key.F8
 KEY_RELOAD = arcade.key.F9
+KEY_INPUTS = arcade.key.F10
 KEY_CAMERA_CLAMP = arcade.key.C
 KEY_ZOOM = arcade.key.Z
 KEY_HELP = arcade.key.H
@@ -89,7 +104,9 @@ HUD_CAPACITY = 104
 LINE_HEIGHT = GLYPH_HEIGHT
 HELP_LINES = (
     "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
-    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload  Z zoom  H help",
+    "AIR  J + direction  I up  , down  SPACE+J = short hop aerial",
+    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload  F10 inputs  "
+    "Z zoom  H help",
 )
 TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
 DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
@@ -120,6 +137,12 @@ GAME_HOLD_TICKS = 150
 """Ticks between "GAME!" and the results screen."""
 PAUSE_PANEL_WIDTH = 300
 PAUSE_ROW_CAPACITY = 44
+MOVES_COLUMN_CAPACITY = 48
+MOVES_MAX_ROWS = 18
+MOVES_COLUMN_GAP = 12
+MOVES_TITLE_CAPACITY = 100
+SANDBOX_KEYBOARDS = (KEYBOARD_SOLO, KEYBOARD_ARROWS)
+"""Keyboard layout of each player in a battle started without a setup (``InputSource``)."""
 
 MENU_RESUME = "resume"
 MENU_HELP = "help"
@@ -129,6 +152,7 @@ MENU_DAMAGE = "damage"
 MENU_HITBOXES = "hitboxes"
 MENU_INFO = "info"
 MENU_RESET = "reset"
+MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
 
 
@@ -200,6 +224,7 @@ class BattleView(TickedView):
         self.show_hitboxes = False
         self.show_overlay = False
         self.show_fighter_info = False
+        self.show_inputs = False
         self.show_help = flow is None
         self.paused = False
         self.menu_open = False
@@ -208,7 +233,7 @@ class BattleView(TickedView):
         self._message_ticks = 0
         self._go_ticks = 0
         self._over_ticks = 0
-        self._held_keys: set[int] = set()
+        self._keys = KeyLatch()
 
         glyphs = GlyphAtlas()
         self.overlay = StageOverlay(stage, glyphs)
@@ -225,7 +250,7 @@ class BattleView(TickedView):
             for row, line in enumerate(self._help_text)
         ]
         top = NATIVE_H - HUD_MARGIN - LINE_HEIGHT
-        rows = len(self.characters) * INFO_LINES_PER_FIGHTER + 1
+        rows = len(self.characters) * (INFO_LINES_PER_FIGHTER + 1) + 1
         self._info_lines = [
             PixelLabel(glyphs, self._text, HUD_MARGIN, top - row * LINE_HEIGHT, HUD_CAPACITY)
             for row in range(rows)
@@ -250,6 +275,9 @@ class BattleView(TickedView):
         self.pause_menu = self._build_pause_menu()
         self.pause_ui = UiLayer(glyphs)
         self._build_pause_ui()
+        self.move_list_player: int | None = None
+        self.moves_ui = UiLayer(glyphs)
+        self._build_moves_ui()
 
     def _new_match(self) -> Match:
         if self.record_path is not None:
@@ -286,6 +314,7 @@ class BattleView(TickedView):
                 MenuItem(MENU_INFO, "Fighter info", ON_OFF),
                 MenuItem(MENU_RESET, "Reset positions"),
             ]
+        items.append(MenuItem(MENU_MOVES, "Move list"))
         items.append(MenuItem(MENU_HELP, "Controls help", ON_OFF, int(self.show_help)))
         back = "Quit to character select" if self.flow is not None else "Quit"
         items.append(MenuItem(MENU_QUIT, back))
@@ -307,9 +336,81 @@ class BattleView(TickedView):
             PAUSE_ROW_CAPACITY,
         )
 
+    def _build_moves_ui(self) -> None:
+        width = MOVES_COLUMN_CAPACITY * 2 * GLYPH_ADVANCE + MOVES_COLUMN_GAP + 32
+        height = (MOVES_MAX_ROWS + 3) * (GLYPH_HEIGHT + 2) + 16
+        left = (NATIVE_W - width) // 2
+        bottom = (NATIVE_H - height) // 2
+        top = bottom + height - GLYPH_HEIGHT - 8
+        self.moves_ui.panel(0, 0, NATIVE_W, NATIVE_H, art.DIM_OVERLAY, art.DIM_OVERLAY)
+        self.moves_ui.panel(left, bottom, width, height)
+        self._moves_title = self.moves_ui.label(left + 16, top, MOVES_TITLE_CAPACITY, HIGHLIGHT)
+        column_left = (
+            left + 16,
+            left + 16 + MOVES_COLUMN_CAPACITY * GLYPH_ADVANCE + MOVES_COLUMN_GAP,
+        )
+        self._moves_columns = [
+            TextBlock(self.moves_ui, x, top - 6, MOVES_MAX_ROWS, MOVES_COLUMN_CAPACITY)
+            for x in column_left
+        ]
+
+    def move_list_players(self) -> list[int]:
+        """Return the players who get a move list page: everyone with a device (not the
+        training dummies), or everyone in a battle started without a setup."""
+        players = range(len(self.characters))
+        if not self.devices:
+            return list(players)
+        with_device = [p for p in players if p < len(self.devices) and self.devices[p]]
+        return with_device or [0]
+
+    def move_list_device(self, player: int) -> str:
+        """Return the device whose labels a player's move list shows."""
+        if self.devices:
+            return self.devices[player] if player < len(self.devices) else ""
+        if player < len(SANDBOX_KEYBOARDS):
+            return KEYBOARD_PREFIX + SANDBOX_KEYBOARDS[player]
+        return f"{PAD_PREFIX}{player}"
+
+    def move_list_lines(self, player: int) -> tuple[str, list[str], list[str]]:
+        """Return the title and the two columns of a player's move list page."""
+        device = self.move_list_device(player)
+        if device.startswith(KEYBOARD_PREFIX):
+            labels = keyboard_labels(self.settings.keys[device.removeprefix(KEYBOARD_PREFIX)])
+            source = "keys"
+        else:
+            labels = gamepad_labels(PRESETS[self.settings.gamepad_preset])
+            source = "gamepad"
+        character = self.match.fighters[player].character
+        sections = build_move_list(character.moveset, labels, self.match.rules.short_hop_macro)
+        left, right = page_columns(sections, MOVES_COLUMN_CAPACITY)
+        switch = "  < > player" if len(self.move_list_players()) > 1 else ""
+        title = (
+            f"P{player + 1} {character.display_name.upper()} MOVES ({source}){switch}  back: close"
+        )
+        return title, left, right
+
+    def show_move_list(self, player: int) -> None:
+        """Show a player's move list page over the pause menu."""
+        self.move_list_player = player
+        title, left, right = self.move_list_lines(player)
+        self._moves_title.text = title
+        self._moves_columns[0].set_lines(left)
+        self._moves_columns[1].set_lines(right)
+
+    def _move_list_action(self, action: MenuAction) -> None:
+        players = self.move_list_players()
+        assert self.move_list_player is not None
+        if action in (MenuAction.LEFT, MenuAction.RIGHT):
+            step = 1 if action is MenuAction.RIGHT else -1
+            index = players.index(self.move_list_player) if self.move_list_player in players else 0
+            self.show_move_list(players[(index + step) % len(players)])
+        elif action in (MenuAction.BACK, MenuAction.CONFIRM):
+            self.move_list_player = None
+
     def open_menu(self) -> None:
         """Pause and show the pause menu."""
         self.menu_open = True
+        self.move_list_player = None
         self.pause_menu.cursor = 0
         self.menu_input.reset()
         self._sync_pause_menu()
@@ -333,6 +434,9 @@ class BattleView(TickedView):
 
     def menu_action(self, action: MenuAction) -> None:
         """Handle one navigation action in the pause menu."""
+        if self.move_list_player is not None:
+            self._move_list_action(action)
+            return
         menu = self.pause_menu
         if action is MenuAction.BACK:
             self.close_menu()
@@ -346,6 +450,8 @@ class BattleView(TickedView):
         elif chosen == MENU_RESET:
             self.restart()
             self.close_menu()
+        elif chosen == MENU_MOVES:
+            self.show_move_list(self.move_list_players()[0])
         elif chosen == MENU_QUIT:
             self.quit_match()
         self.show_help = bool(menu.item(MENU_HELP).index)
@@ -366,12 +472,12 @@ class BattleView(TickedView):
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Track held keys for the players and handle the menu, debug and training keys."""
-        self._held_keys.add(symbol)
+        self._keys.press(symbol)
         if symbol in KEYS_MENU:
             if not self.menu_open:
                 self.open_menu()
             elif symbol == arcade.key.ESCAPE:
-                self.close_menu()
+                self.menu_action(MenuAction.BACK)
             else:
                 self.menu_action(MenuAction.CONFIRM)
         elif symbol == KEY_HITBOXES:
@@ -393,6 +499,8 @@ class BattleView(TickedView):
             self.reload_data()
         elif symbol == KEY_CAMERA_CLAMP:
             self.camera.clamped = not self.camera.clamped
+        elif symbol == KEY_INPUTS:
+            self.show_inputs = not self.show_inputs
         elif symbol == KEY_ZOOM:
             self.zoom.enabled = not self.zoom.enabled
             self.say("stepped zoom " + ("on" if self.zoom.enabled else "off"))
@@ -412,7 +520,7 @@ class BattleView(TickedView):
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Stop tracking a released key."""
-        self._held_keys.discard(symbol)
+        self._keys.release(symbol)
 
     def on_hide_view(self) -> None:
         """Save the recording and release the controllers when the view goes away."""
@@ -542,11 +650,16 @@ class BattleView(TickedView):
     def _poll(self) -> tuple[list[InputFrame], list[InputFrame]]:
         """Read the devices. Returns the players' frames, and the frames that may drive the
         pause menu (every device). A controller unplugged mid-match pauses the game."""
+        keys = self._keys.keys()
+        self._keys.end_tick()
         if self.hub is None:
             assert self.inputs is not None
-            frames = self.inputs.poll(self._held_keys)
+            frames = self.inputs.poll(keys)
+            self.inputs.end_tick()
             return frames, frames
-        frames = self.hub.poll(self.devices, self._held_keys)
+        frames = self.hub.poll(self.devices, keys)
+        menu_frames = list(self.hub.frames(keys).values())
+        self.hub.end_tick()
         frames += [NEUTRAL_INPUT] * (len(self.characters) - len(frames))
         for device in self.devices:
             if not device or self.hub.connected(device):
@@ -556,7 +669,7 @@ class BattleView(TickedView):
                 self.say(f"{device} was unplugged: plug it back in to carry on")
                 if not self.menu_open and self.replay is None:
                     self.open_menu()
-        return frames, list(self.hub.frames(self._held_keys).values())
+        return frames, menu_frames
 
     def _player_frames(self, frames: list[InputFrame]) -> list[InputFrame]:
         """Replace the dummies' input with their behaviour."""
@@ -652,7 +765,10 @@ class BattleView(TickedView):
             self._text.draw(pixelated=True)
             if self.menu_open:
                 self._pause_rows.set_lines(self.pause_menu.lines(), self.pause_menu.cursor)
-                self.pause_ui.draw()
+                if self.move_list_player is None:
+                    self.pause_ui.draw()
+                else:
+                    self.moves_ui.draw()
         self.blit_to_window()
 
     # --- text ------------------------------------------------------------------------------
@@ -687,6 +803,8 @@ class BattleView(TickedView):
             for fighter in self.match.fighters:
                 lines.append(fighter_info(fighter))
                 lines.append(combat_info(fighter))
+        if self.show_inputs:
+            lines += input_lines(self.match.fighters, HUD_CAPACITY)
         status = self.status_line()
         if status:
             lines.append(status)

@@ -98,7 +98,9 @@ WINDOWLESS_MODULES = (
     "isofightr.scenes.setup",
     "isofightr.settings",
     "isofightr.ui.hud_layout",
+    "isofightr.ui.input_display",
     "isofightr.ui.menu",
+    "isofightr.ui.move_list",
     "isofightr.ui.pixel_font",
 )
 """Presentation helpers the default test run imports. CI has no display, so none of them may

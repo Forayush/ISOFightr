@@ -211,6 +211,9 @@ class InputBuffer:
     """Frames since each :class:`Press` last happened; ``BUFFER_FRAMES`` or more = expired."""
     history: list[Vec2] = field(default_factory=_neutral_history)
     """The stick vectors of the previous ``FLICK_FRAMES`` frames, oldest first."""
+    cstick_press: Vec2 = ZERO2
+    """The direction of the last right-stick press, kept while it is buffered: a quick flick
+    is often back in the centre by the time a state uses it (e.g. after a jumpsquat)."""
 
     def push(self, frame: InputFrame) -> None:
         """Take this tick's frame and update edges, buffered presses and flick detection."""
@@ -229,6 +232,7 @@ class InputBuffer:
             self.ages[Press.DOWN] = 0
         if frame.cstick is not None and previous.cstick is None:
             self.ages[Press.CSTICK] = 0
+            self.cstick_press = frame.cstick
         if _is_flick(frame.move, self.history):
             self.ages[Press.FLICK] = 0
         self.history = [*self.history[1:], frame.move]

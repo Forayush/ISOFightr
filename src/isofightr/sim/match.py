@@ -60,6 +60,9 @@ class MatchRules:
     """Whether a hit in the first frames of dropping shield is parried (optional rule)."""
     air_dodge_helpless: bool = False
     """Whether a directional air dodge ends in the helpless fall (optional rule)."""
+    short_hop_macro: bool = True
+    """Whether an attack pressed with the jump makes a short hop even while jump is held, so
+    jump and attack together give a short-hop aerial (decision D-053; on by default)."""
 
 
 @dataclass(slots=True)
@@ -503,4 +506,5 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         int(buffer.released),
         tuple(buffer.ages),
         tuple(_canonical_vec2(move) for move in buffer.history),
+        _canonical_vec2(buffer.cstick_press),
     )

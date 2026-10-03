@@ -132,6 +132,15 @@ def test_loading_reports_the_file(tmp_path: Path) -> None:
         load_replay(broken)
 
 
+def test_a_replay_from_before_the_short_hop_macro_plays_without_it() -> None:
+    """Replays recorded before decision D-053 have no ``short_hop_macro`` key; those matches
+    were played without the macro, so it loads as off (a new recording stores it)."""
+    data = to_data(recorded(ticks=10))
+    assert data["rules"]["short_hop_macro"] is True
+    del data["rules"]["short_hop_macro"]
+    assert from_data(data).rules.short_hop_macro is False
+
+
 def test_session_recordings_are_numbered() -> None:
     path = Path("replays/night.json")
     assert numbered(path, 1) == path

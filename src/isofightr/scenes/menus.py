@@ -19,6 +19,7 @@ from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.input.devices import KEYBOARD_PREFIX, DeviceHub, key_name
+from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
@@ -81,7 +82,7 @@ class MenuView(TickedView):
         self.hub = DeviceHub(flow.settings)
         self.menu_input = MenuInput()
         self.ui = UiLayer(GlyphAtlas())
-        self._held_keys: set[int] = set()
+        self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
         black = arcade.Texture(art.build_panel(NATIVE_W, NATIVE_H, art.INK, art.INK))
         self._fade = arcade.Sprite(black, center_x=NATIVE_W / 2, center_y=NATIVE_H / 2)
@@ -98,7 +99,7 @@ class MenuView(TickedView):
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Track held keys; Enter and Escape confirm and go back."""
-        self._held_keys.add(symbol)
+        self._keys.press(symbol)
         if symbol == KEY_CONFIRM:
             self._key_actions.append(MenuAction.CONFIRM)
         elif symbol == KEY_BACK:
@@ -106,7 +107,7 @@ class MenuView(TickedView):
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Stop tracking a released key."""
-        self._held_keys.discard(symbol)
+        self._keys.release(symbol)
 
     def on_hide_view(self) -> None:
         """Release the controllers when the scene goes away."""
@@ -114,7 +115,9 @@ class MenuView(TickedView):
 
     def tick(self) -> None:
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""
-        frames = self.hub.frames(self._held_keys)
+        frames = self.hub.frames(self._keys.keys())
+        self._keys.end_tick()
+        self.hub.end_tick()
         devices = list(frames)
         fired = self.menu_input.update([frames[device] for device in devices])
         for action in self._key_actions:
@@ -266,6 +269,12 @@ class RulesView(MenuListView):
                 MenuItem("launch_rate", "Launch rate", rates, rate),
                 MenuItem("parry", "Parry", ON_OFF, int(setup.parry)),
                 MenuItem(
+                    "short_hop_macro",
+                    "Jump + attack = short-hop aerial",
+                    ON_OFF,
+                    int(setup.short_hop_macro),
+                ),
+                MenuItem(
                     "helpless",
                     "Helpless after a directional air dodge",
                     ON_OFF,
@@ -296,6 +305,7 @@ class RulesView(MenuListView):
             launch_rate=LAUNCH_RATES[menu.item("launch_rate").index],
             parry=bool(menu.item("parry").index),
             air_dodge_helpless=bool(menu.item("helpless").index),
+            short_hop_macro=bool(menu.item("short_hop_macro").index),
         )
 
     def choose(self, key: str) -> None:

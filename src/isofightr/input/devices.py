@@ -117,14 +117,24 @@ class PadReader:
         self.controller = controller
         self._left = (0.0, 0.0)
         self._right = (0.0, 0.0)
+        self._tapped: set[str] = set()
         controller.open()
-        controller.push_handlers(on_stick_motion=self._on_stick_motion)
+        controller.push_handlers(
+            on_stick_motion=self._on_stick_motion, on_button_press=self._on_button_press
+        )
 
     def _on_stick_motion(self, controller: object, stick: str, vector: PygletVec2) -> None:
         if stick == "leftstick":
             self._left = (vector.x, vector.y)
         elif stick == "rightstick":
             self._right = (vector.x, vector.y)
+
+    def _on_button_press(self, controller: object, button: str) -> None:
+        self._tapped.add(button)
+
+    def _button(self, name: str) -> bool:
+        """Whether a button is held, or was pressed since the last tick (a quick tap)."""
+        return bool(getattr(self.controller, name)) or name in self._tapped
 
     def state(self) -> PadState:
         """Return the controller's current state."""
@@ -136,17 +146,23 @@ class PadReader:
             right_y=self._right[1],
             left_trigger=pad.lefttrigger,
             right_trigger=pad.righttrigger,
-            a=bool(pad.a),
-            b=bool(pad.b),
-            x=bool(pad.x),
-            y=bool(pad.y),
-            left_shoulder=bool(pad.leftshoulder),
-            right_shoulder=bool(pad.rightshoulder),
+            a=self._button("a"),
+            b=self._button("b"),
+            x=self._button("x"),
+            y=self._button("y"),
+            left_shoulder=self._button("leftshoulder"),
+            right_shoulder=self._button("rightshoulder"),
         )
+
+    def end_tick(self) -> None:
+        """Forget the quick taps once this tick has read them."""
+        self._tapped.clear()
 
     def close(self) -> None:
         """Stop listening and release the controller."""
-        self.controller.remove_handlers(on_stick_motion=self._on_stick_motion)
+        self.controller.remove_handlers(
+            on_stick_motion=self._on_stick_motion, on_button_press=self._on_button_press
+        )
         self.controller.close()
 
 
@@ -196,6 +212,12 @@ class InputSource:
                 devices.append(pad.controller.name or "controller")
             lines.append(" + ".join(devices) or "no device")
         return lines
+
+    def end_tick(self) -> None:
+        """Forget every controller's quick taps once this tick has read them."""
+        for pad in self.pads:
+            if pad is not None:
+                pad.end_tick()
 
     def close(self) -> None:
         """Release every controller."""
@@ -333,6 +355,12 @@ class DeviceHub:
     def poll(self, assignment: Sequence[str], held_keys: Set[int]) -> list[InputFrame]:
         """Return one frame per player from the device each player is assigned ("" = none)."""
         return [self.frame(device, held_keys) for device in assignment]
+
+    def end_tick(self) -> None:
+        """Forget every controller's quick taps once this tick has read them."""
+        for pad in self.pads:
+            if pad is not None:
+                pad.end_tick()
 
     def close(self) -> None:
         """Release every controller."""

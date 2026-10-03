@@ -139,6 +139,8 @@ def from_data(data: object) -> Replay:
     try:
         characters = tuple(str(name) for name in data["characters"])
         rule_values = dict(data["rules"])
+        # Replays from before the short-hop macro (D-053) were played without it.
+        rule_values.setdefault("short_hop_macro", False)
         if rule_values.get("teams") is not None:
             rule_values["teams"] = tuple(rule_values["teams"])
         rules = MatchRules(**rule_values)

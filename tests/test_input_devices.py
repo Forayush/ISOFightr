@@ -22,7 +22,7 @@ from isofightr.input.gamepad import (
     merge_frames,
     process_stick,
 )
-from isofightr.input.keyboard import KeyboardBindings, keyboard_frame
+from isofightr.input.keyboard import KeyboardBindings, KeyLatch, keyboard_frame
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame
 
 UP, DOWN, LEFT, RIGHT, MOD_UP, MOD_DOWN, JUMP, ATTACK, WALK = range(1, 10)
@@ -44,6 +44,25 @@ def approx_vec(frame: InputFrame, direction: Dir8, magnitude: float = 1.0) -> No
 
 
 # --- keyboard -----------------------------------------------------------------------------
+
+
+def test_a_key_tapped_between_two_ticks_counts_as_held_for_one_tick() -> None:
+    latch = KeyLatch()
+    latch.press(ATTACK)
+    latch.release(ATTACK)
+    assert keyboard_frame(BINDINGS, latch.keys()).held == Button.ATTACK
+    latch.end_tick()
+    assert keyboard_frame(BINDINGS, latch.keys()).held == 0
+
+
+def test_a_held_key_stays_held_across_ticks_until_released() -> None:
+    latch = KeyLatch()
+    latch.press(JUMP)
+    for _ in range(3):
+        assert latch.keys() == {JUMP}
+        latch.end_tick()
+    latch.release(JUMP)
+    assert latch.keys() == set()
 
 
 def test_no_keys_is_neutral() -> None:

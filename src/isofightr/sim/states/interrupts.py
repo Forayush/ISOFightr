@@ -129,8 +129,8 @@ def ground_strong(match: Match, fighter: Fighter) -> bool:
     """
     buffer = fighter.buffer
     moveset = fighter.character.moveset
-    if buffer.consume(Press.CSTICK) and buffer.frame.cstick is not None:
-        snap_facing(fighter, buffer.frame.cstick)
+    if buffer.consume(Press.CSTICK):
+        snap_facing(fighter, buffer.cstick_press)
         start_move(match, fighter, moveset.fsmash)
         return True
     if not buffer.consume(Press.STRONG):
@@ -356,8 +356,8 @@ def air_attack(match: Match, fighter: Fighter) -> bool:
     buffer = fighter.buffer
     moveset = fighter.character.moveset
     direction = stick_direction(fighter)
-    if buffer.consume(Press.CSTICK) and buffer.frame.cstick is not None:
-        direction = buffer.frame.cstick
+    if buffer.consume(Press.CSTICK):
+        direction = buffer.cstick_press
     elif not (buffer.consume(Press.ATTACK) or buffer.consume(Press.STRONG)):
         return False
     vertical = _take_vertical(fighter)

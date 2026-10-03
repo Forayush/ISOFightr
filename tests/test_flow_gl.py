@@ -156,6 +156,25 @@ def set_one_stock(window: Any) -> None:
     assert name(window) == "MainMenuView"
 
 
+def test_the_rules_screen_turns_the_short_hop_macro_off(window: Any) -> None:
+    flow = to_main_menu(window)
+    assert flow.setup.short_hop_macro, "on by default (decision D-053)"
+    press(window, keys().S)
+    press(window, keys().S)
+    press(window, keys().ENTER)
+    assert name(window) == "RulesView"
+    menu = window.current_view.menu
+    keys_in_order = [item.key for item in menu.items]
+    assert keys_in_order.index("short_hop_macro") == keys_in_order.index("parry") + 1
+    while menu.selected.key != "short_hop_macro":
+        press(window, keys().S)
+    press(window, keys().D)
+    assert window.current_view.setup.short_hop_macro is False
+    press(window, keys().ESCAPE)
+    assert flow.setup.short_hop_macro is False
+    assert flow.setup.rules().short_hop_macro is False
+
+
 def two_players_to_stage_select(window: Any) -> None:
     """From the main menu: Versus, player 2 joins on the arrows keyboard, both ready."""
     press(window, keys().ENTER)
@@ -466,7 +485,7 @@ def test_pause_menu_freezes_the_match_and_quits_to_character_select(window: Any)
     assert battle.menu_open
     step(window, 20)
     assert battle.match.frame == frame, "paused"
-    assert [item.key for item in battle.pause_menu.items] == ["resume", "help", "quit"]
+    assert [item.key for item in battle.pause_menu.items] == ["resume", "moves", "help", "quit"]
     press(window, keys().ESCAPE)
     assert not battle.menu_open
     step(window, 5)
@@ -507,6 +526,7 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
         "hitboxes",
         "info",
         "reset",
+        "moves",
         "help",
         "quit",
     ]
@@ -526,6 +546,42 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
     assert not battle.menu_open
     step(window, 5)
     assert battle.match.fighters[1].state is StateId.SHIELD, "the dummy is shielding"
+
+
+def test_the_move_list_shows_each_players_own_keys(window: Any) -> None:
+    to_main_menu(window)
+    two_players_to_stage_select(window)
+    press(window, keys().ENTER)
+    battle = window.current_view
+    press(window, keys().ESCAPE)
+    while battle.pause_menu.selected.key != "moves":
+        press(window, keys().S)
+    press(window, keys().J)
+    assert battle.menu_open and battle.move_list_player == 0
+    title = battle._moves_title.text
+    assert title.startswith("P1 ROOK MOVES (keys)")
+    left = [label.text for label in battle._moves_columns[0].labels]
+    assert "AIR" in left
+    aerials = left[left.index("AIR") + 1 :][:6]
+    assert [line.split("  ")[0].strip() for line in aerials] == [
+        "Neutral air",
+        "Forward air",
+        "Back air",
+        "Up air",
+        "Down air",
+        "Short-hop air",
+    ]
+    assert aerials[3].endswith("I + J") and aerials[5].endswith("SPACE + J together")
+    step(window, 1)
+    press(window, keys().D)
+    assert battle.move_list_player == 1
+    assert battle._moves_title.text.startswith("P2 ROOK MOVES (keys)")
+    p2_left = [label.text for label in battle._moves_columns[0].labels]
+    assert p2_left[left.index("AIR") + 4].endswith("NUM_8 + NUM_4"), "P2's up air"
+    press(window, keys().ESCAPE)
+    assert battle.menu_open and battle.move_list_player is None, "back to the pause menu"
+    press(window, keys().ESCAPE)
+    assert not battle.menu_open
 
 
 # --- settings -----------------------------------------------------------------------------

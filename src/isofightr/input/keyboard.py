@@ -60,3 +60,33 @@ def keyboard_frame(bindings: KeyboardBindings, held_keys: Set[int]) -> InputFram
         if key in held_keys:
             held |= button
     return InputFrame(move=move, vertical=vertical, held=held)
+
+
+class KeyLatch:
+    """The keys to read this tick: those held now, plus any pressed since the last tick.
+
+    The game polls the keyboard once per 60 Hz tick. A quick tap can go down and up between
+    two polls; latching it makes it count as held for one tick, so the press is not lost
+    (decision D-053).
+    """
+
+    def __init__(self) -> None:
+        self.held: set[int] = set()
+        self._tapped: set[int] = set()
+
+    def press(self, key: int) -> None:
+        """A key went down."""
+        self.held.add(key)
+        self._tapped.add(key)
+
+    def release(self, key: int) -> None:
+        """A key went up."""
+        self.held.discard(key)
+
+    def keys(self) -> frozenset[int]:
+        """Return the keys this tick sees as held."""
+        return frozenset(self.held | self._tapped)
+
+    def end_tick(self) -> None:
+        """Forget the taps once this tick has read them."""
+        self._tapped.clear()

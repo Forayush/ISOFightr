@@ -39,6 +39,10 @@ class FakeController:
         for name in handlers:
             self.handlers.pop(name, None)
 
+    def tap(self, button: str) -> None:
+        """Press and release a button between two polls."""
+        self.handlers["on_button_press"](self, button)
+
     def move_stick(self, stick: str, x: float, y: float) -> None:
         from pyglet.math import Vec2
 
@@ -59,6 +63,20 @@ def test_pad_reader_tracks_sticks_buttons_and_triggers(window: Any) -> None:
     assert (state.a, state.b, state.right_shoulder, state.left_trigger) == (True, False, True, 0.75)
     reader.close()
     assert not pad.opened and pad.handlers == {}
+
+
+def test_a_button_tapped_between_two_ticks_counts_as_held_for_one_tick(window: Any) -> None:
+    from isofightr.input.devices import PadReader
+
+    pad = FakeController()
+    reader = PadReader(pad)  # type: ignore[arg-type]
+    pad.tap("a")
+    pad.tap("rightshoulder")
+    assert (reader.state().a, reader.state().right_shoulder) == (True, True)
+    reader.end_tick()
+    assert (reader.state().a, reader.state().right_shoulder) == (False, False)
+    reader.close()
+    assert "on_button_press" not in pad.handlers
 
 
 def test_controllers_are_given_to_players_in_order_and_can_be_unplugged(window: Any) -> None:

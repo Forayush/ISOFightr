@@ -211,11 +211,19 @@ class JumpSquat(GroundState):
     id = StateId.JUMP_SQUAT
 
     def step(self, match: Match, fighter: Fighter) -> None:
-        """Take off after the last jumpsquat frame: full hop if jump is still held."""
+        """Take off after the last jumpsquat frame: full hop if jump is still held.
+
+        An attack, strong or right-stick press still buffered at takeoff starts the aerial on
+        this first airborne frame (plan note 08, airborne table). With the short-hop macro
+        rule on, that press also makes the hop a short hop even while jump is held, so jump and
+        attack pressed together give a short-hop aerial (decision D-053).
+        """
         stats = fighter.character.movement
         if fighter.state_frame <= stats.jumpsquat:
             return
-        full_hop = fighter.buffer.holds(Button.JUMP)
+        buffer = fighter.buffer
+        aerial = buffer.has(Press.ATTACK) or buffer.has(Press.STRONG) or buffer.has(Press.CSTICK)
+        full_hop = buffer.holds(Button.JUMP) and not (aerial and match.rules.short_hop_macro)
         carried = physics.clamp_length(fighter.vel.xy, stats.air_speed)
         rise = stats.full_hop_vz if full_hop else stats.short_hop_vz
         fighter.vel = Vec3(carried.x, carried.y, rise)
@@ -225,6 +233,10 @@ class JumpSquat(GroundState):
         kind = JumpKind.FULL_HOP if full_hop else JumpKind.SHORT_HOP
         match.events.append(JumpEvent(fighter.player_index, kind, fighter.pos))
         change_state(match, fighter, StateId.JUMP)
+        if aerial:
+            # Now, not on the jump's second frame: a press made with the jump would otherwise
+            # run out of buffer during a long jumpsquat (Bramble's is 5 frames).
+            interrupts.air_attack(match, fighter)
 
     def motion(self, match: Match, fighter: Fighter) -> None:
         """Keep the ground momentum through the squat (no traction)."""

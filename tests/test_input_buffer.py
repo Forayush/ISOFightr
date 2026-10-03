@@ -146,6 +146,15 @@ def test_vertical_taps_are_buffered_like_presses() -> None:
     assert buffer.has(Press.UP)
 
 
+def test_a_right_stick_press_remembers_its_direction_after_the_stick_returns() -> None:
+    buffer = InputBuffer()
+    feed(buffer, InputFrame(cstick=LEFT), NEUTRAL_INPUT, NEUTRAL_INPUT)
+    assert buffer.has(Press.CSTICK) and buffer.frame.cstick is None
+    assert buffer.cstick_press == LEFT
+    feed(buffer, InputFrame(cstick=RIGHT))
+    assert buffer.cstick_press == RIGHT
+
+
 def test_clear_forgets_buffered_presses() -> None:
     buffer = InputBuffer()
     buffer.push(InputFrame(held=Button.JUMP, vertical=-1, move=RIGHT))

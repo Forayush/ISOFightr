@@ -53,6 +53,7 @@ class MatchSetup:
     launch_rate: float = 1.0
     parry: bool = False
     air_dodge_helpless: bool = False
+    short_hop_macro: bool = True
 
     def rules(self) -> MatchRules:
         """Return the sim rules for this setup. Training has no stocks, clock or countdown."""
@@ -68,6 +69,7 @@ class MatchSetup:
             friendly_fire=self.friendly_fire,
             parry=self.parry,
             air_dodge_helpless=self.air_dodge_helpless,
+            short_hop_macro=self.short_hop_macro,
         )
 
     def with_count(self, step: int) -> "MatchSetup":

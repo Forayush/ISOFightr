@@ -204,7 +204,8 @@ first input after a knockdown). Scenario tests cover them:
 def test_golden_runs_between_them_visit_every_state() -> None:
     """A golden that never reaches a state cannot notice that state changing.
 
-    Every state must be visited, except the few listed in ``SCENARIO_ONLY_STATES``.
+    Every state must be visited, except the few listed in ``SCENARIO_ONLY_STATES`` (which
+    random play may still happen to reach).
     """
     visited: set[StateId] = set()
     for path in sorted(GOLDENS_DIR.glob("*.json")):
@@ -214,7 +215,7 @@ def test_golden_runs_between_them_visit_every_state() -> None:
         for frames in random_inputs(golden["input_seed"], golden["ticks"], players):
             match.tick(frames)
             visited.update(fighter.state for fighter in match.fighters)
-    assert visited == set(StateId) - SCENARIO_ONLY_STATES
+    assert set(StateId) - SCENARIO_ONLY_STATES - visited == set()
 
 
 def test_goldens_exist() -> None:

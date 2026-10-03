@@ -347,6 +347,32 @@ def test_fighter_info_has_a_combat_line_and_help_can_be_hidden(window: Any) -> N
     assert all(label.text == "" for label in view._help)
 
 
+def test_f10_shows_what_each_player_sent_this_tick(window: Any) -> None:
+    view = make_view(window)
+    tap(view, keys().F10)
+    view.on_key_press(keys().J, 0)
+    ticks(view, 1)
+    view.on_draw()
+    lines = [label.text for label in view._info_lines if label.text]
+    assert lines[0].startswith("P1 stick - mod - c - held ATK ")
+    assert lines[0].endswith("> attack f1 move jab1")
+    assert lines[1].startswith("P2 stick - mod - c - held - ")
+    tap(view, keys().F10)
+    view.on_draw()
+    assert all(label.text == "" for label in view._info_lines)
+
+
+def test_a_key_tapped_between_two_ticks_still_reaches_the_game(window: Any) -> None:
+    """A press and release inside one 16 ms tick used to be lost (decision D-053)."""
+    view = make_view(window)
+    tap(view, keys().J)
+    ticks(view, 1)
+    assert (view.match.fighters[0].state, view.match.fighters[0].move_id) == (
+        StateId.ATTACK,
+        "jab1",
+    )
+
+
 # --- M4: shield bubble and overlay ------------------------------------------------------------
 
 
