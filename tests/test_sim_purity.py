@@ -70,6 +70,10 @@ def test_importing_all_of_sim_never_loads_arcade_or_pyglet() -> None:
 WINDOWLESS_MODULES = (
     "isofightr.__main__",
     "isofightr.headless",
+    "isofightr.audio.cues",
+    "isofightr.audio.recipes",
+    "isofightr.audio.sound_director",
+    "isofightr.audio.synth",
     "isofightr.ai.controller",
     "isofightr.ai.dummy",
     "isofightr.ai.knowledge",

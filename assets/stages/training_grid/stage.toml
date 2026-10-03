@@ -4,6 +4,7 @@
 id = "training_grid"
 display_name = "Training Grid"
 tileset = "grid"
+music = "training_grid"            # a song in assets/audio/music
 
 grid = """
 000000000000

@@ -1,0 +1,114 @@
+{
+  "sample_rate": 22050,
+  "synth_version": "1",
+  "sfx": {
+    "source": "7b1bb4b2cddfe784",
+    "sounds": {
+      "charge": 0.5,
+      "clank": 0.12,
+      "countdown": 0.14,
+      "counter": 0.14,
+      "darkness": 0.22,
+      "dash": 0.13,
+      "dodge": 0.16,
+      "double_jump": 0.14,
+      "electric": 0.16,
+      "fire": 0.17,
+      "game": 0.96,
+      "go": 0.4,
+      "grab": 0.07,
+      "hit_heavy": 0.22,
+      "hit_heavy_darkness": 0.22,
+      "hit_heavy_electric": 0.22,
+      "hit_heavy_fire": 0.22,
+      "hit_heavy_ice": 0.22,
+      "hit_heavy_slash": 0.22,
+      "hit_ko": 0.42,
+      "hit_ko_darkness": 0.42,
+      "hit_ko_electric": 0.42,
+      "hit_ko_fire": 0.42,
+      "hit_ko_ice": 0.42,
+      "hit_ko_slash": 0.42,
+      "hit_light": 0.06,
+      "hit_light_darkness": 0.22,
+      "hit_light_electric": 0.16,
+      "hit_light_fire": 0.17,
+      "hit_light_ice": 0.14,
+      "hit_light_slash": 0.1,
+      "hit_medium": 0.12,
+      "hit_medium_darkness": 0.22,
+      "hit_medium_electric": 0.16,
+      "hit_medium_fire": 0.17,
+      "hit_medium_ice": 0.14,
+      "hit_medium_slash": 0.12,
+      "ice": 0.14,
+      "jump": 0.12,
+      "ko_blast": 0.8,
+      "land_heavy": 0.2,
+      "land_light": 0.08,
+      "ledge_grab": 0.06,
+      "parry": 0.14,
+      "platform_drop": 0.08,
+      "pummel": 0.06,
+      "respawn": 0.32,
+      "shield_break": 0.5,
+      "shield_hit": 0.11,
+      "shield_up": 0.1,
+      "shockwave": 0.34,
+      "shoot": 0.15,
+      "skid": 0.2,
+      "slash": 0.1,
+      "special": 0.16,
+      "sudden_death": 1.15,
+      "swing_heavy": 0.2,
+      "swing_light": 0.09,
+      "swing_medium": 0.13,
+      "tech": 0.07,
+      "throw": 0.2,
+      "ui_back": 0.09,
+      "ui_error": 0.18,
+      "ui_move": 0.035,
+      "ui_pick": 0.18,
+      "ui_select": 0.09,
+      "ui_start": 0.35,
+      "wall_bounce": 0.11
+    }
+  },
+  "music": {
+    "final_plateau": {
+      "source": "272480241e90b197",
+      "title": "Last Stone Standing",
+      "seconds": 29.268
+    },
+    "lily_pads": {
+      "source": "0ec9331ab6e76451",
+      "title": "Dusk on the Water",
+      "seconds": 40.678
+    },
+    "menu": {
+      "source": "82a76c2afcc04881",
+      "title": "Island Call",
+      "seconds": 36.364
+    },
+    "sky_ruins": {
+      "source": "097f463e90c038ae",
+      "title": "Above the Ruins",
+      "seconds": 32.0
+    },
+    "training_grid": {
+      "source": "ff4c69f083f8298f",
+      "title": "Practice Makes",
+      "seconds": 44.444
+    },
+    "twin_isles": {
+      "source": "11b867184d4de808",
+      "title": "Hop the Gap",
+      "seconds": 34.286
+    },
+    "victory": {
+      "source": "f60db8cecb522494",
+      "title": "Winner",
+      "seconds": 6.4
+    }
+  }
+}

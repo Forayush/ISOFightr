@@ -1,0 +1,175 @@
+# Practice Makes: Training Grid; D dorian, a relaxed two-chord vamp (decision D-055). Rendered by tools/build_audio.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
+id = "training_grid"
+title = "Practice Makes"
+tempo = 108
+steps_per_beat = 4
+# Sections in order; the patterns in one section play together.
+sequence = [
+  ["bass", "kick", "hat"],
+  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
+  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
+  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
+  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
+]
+
+[instruments.lead]
+wave = "square"
+duty = 0.25
+attack = 0.004
+decay = 0.07
+sustain = 0.55
+release = 0.04
+volume = 0.24
+vibrato_depth = 0.12
+vibrato_rate = 5.5
+
+[instruments.harmony]
+wave = "square"
+duty = 0.5
+attack = 0.004
+decay = 0.08
+sustain = 0.5
+release = 0.04
+volume = 0.13
+
+[instruments.bass]
+wave = "triangle"
+attack = 0.003
+release = 0.03
+volume = 0.5
+
+[instruments.chord_major]
+wave = "square"
+duty = 0.125
+arpeggio = [0, 4, 7, 12]
+arpeggio_rate = 12
+attack = 0.01
+release = 0.08
+volume = 0.1
+
+[instruments.chord_minor]
+wave = "square"
+duty = 0.125
+arpeggio = [0, 3, 7, 12]
+arpeggio_rate = 12
+attack = 0.01
+release = 0.08
+volume = 0.1
+
+[instruments.kick]
+wave = "sine"
+freq = 150
+freq_end = 45
+length = 0.11
+release = 0.04
+volume = 0.85
+
+[instruments.snare]
+wave = "noise"
+freq = 3600
+length = 0.1
+decay = 0.07
+sustain = 0.25
+lowpass = 0.7
+release = 0.04
+volume = 0.36
+
+[instruments.hat]
+wave = "noise"
+freq = 9000
+length = 0.035
+release = 0.02
+volume = 0.14
+
+[patterns.lead_a]
+instrument = "lead"
+stride = 2
+steps = """
+D5 - F5 - A5 - - G5
+F5 - D5 - B4 - - -
+D5 - F5 - A5 - C6 -
+B5 - G5 - D5 - - -
+"""
+
+[patterns.lead_b]
+instrument = "lead"
+stride = 2
+steps = """
+A5 - - F5 - D5 - -
+G5 - - D5 - B4 - -
+C6 - A5 - F5 - D5 -
+D5 - - - . . . .
+"""
+
+[patterns.echo_a]
+instrument = "harmony"
+stride = 2
+steps = """
+D5 - F5 - A5 - - G5
+F5 - D5 - B4 - - -
+D5 - F5 - A5 - C6 -
+B5 - G5 - D5 - - -
+"""
+
+[patterns.echo_b]
+instrument = "harmony"
+stride = 2
+steps = """
+A5 - - F5 - D5 - -
+G5 - - D5 - B4 - -
+C6 - A5 - F5 - D5 -
+D5 - - - . . . .
+"""
+
+[patterns.bass]
+instrument = "bass"
+stride = 2
+steps = """
+D3 - A3 - D3 - C3 -
+G2 - D3 - G2 - B2 -
+D3 - A3 - D3 - C3 -
+G2 - D3 - G2 - B2 -
+"""
+
+[patterns.major]
+instrument = "chord_major"
+stride = 2
+steps = """
+. . . . . . . .
+G3 - - - - - - -
+. . . . . . . .
+G3 - - - - - - -
+"""
+
+[patterns.minor]
+instrument = "chord_minor"
+stride = 2
+steps = """
+D4 - - - - - - -
+. . . . . . . .
+D4 - - - - - - -
+. . . . . . . .
+"""
+
+[patterns.kick]
+instrument = "kick"
+stride = 1
+steps = """
+x . . . . . . . . . x . . . . .
+"""
+
+[patterns.snare]
+instrument = "snare"
+stride = 1
+steps = """
+. . . . x . . . . . . . x . . .
+"""
+
+[patterns.hat]
+instrument = "hat"
+stride = 1
+steps = """
+x . . . x . . . x . . . x . x .
+"""
+

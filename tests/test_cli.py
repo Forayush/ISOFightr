@@ -26,6 +26,7 @@ def test_defaults() -> None:
     assert (args.p1, args.p2, args.p3, args.p4) == ("rook", "rook", None, None)
     assert args.seed == 0
     assert args.headless is False
+    assert args.mute is False and build_parser().parse_args(["--mute"]).mute
 
 
 def test_window_and_smoke_run_flags() -> None:

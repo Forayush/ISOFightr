@@ -1,0 +1,719 @@
+# ISOFightr sound effects, as synthesizer recipes (decision D-055).
+# Rendered to assets/audio/sfx/<name>.wav by `uv run python tools/build_audio.py`.
+# Each [[name.layers]] is one voice (fields of isofightr.audio.synth.Voice; times in seconds,
+# freq in Hz or a note name). `include` layers other whole sounds on top.
+
+# --- movement ----------------------------------------------------------------------------------
+
+[[jump.layers]]
+wave = "square"
+duty = 0.25
+freq = 280
+freq_end = 640
+length = 0.12
+release = 0.05
+volume = 0.4
+
+[[double_jump.layers]]
+wave = "square"
+duty = 0.125
+freq = 420
+freq_end = 940
+length = 0.14
+release = 0.06
+volume = 0.36
+[[double_jump.layers]]
+wave = "triangle"
+freq = 840
+freq_end = 1500
+length = 0.1
+delay = 0.03
+volume = 0.3
+
+[[land_light.layers]]
+wave = "noise"
+freq = 2400
+length = 0.07
+lowpass = 0.3
+release = 0.05
+volume = 0.5
+[[land_light.layers]]
+wave = "sine"
+freq = 130
+freq_end = 70
+length = 0.08
+volume = 0.5
+
+[[land_heavy.layers]]
+wave = "noise"
+freq = 1800
+length = 0.16
+lowpass = 0.25
+release = 0.1
+volume = 0.7
+[[land_heavy.layers]]
+wave = "sine"
+freq = 120
+freq_end = 45
+length = 0.2
+release = 0.1
+volume = 0.8
+
+[[dash.layers]]
+wave = "noise"
+freq = 5200
+freq_end = 2600
+length = 0.13
+attack = 0.02
+lowpass = 0.45
+release = 0.08
+volume = 0.34
+
+[[skid.layers]]
+wave = "noise"
+freq = 3200
+freq_end = 1200
+length = 0.2
+attack = 0.01
+lowpass = 0.35
+release = 0.14
+volume = 0.3
+
+[[platform_drop.layers]]
+wave = "triangle"
+freq = 520
+freq_end = 260
+length = 0.08
+release = 0.04
+volume = 0.4
+
+[[ledge_grab.layers]]
+wave = "triangle"
+freq = 620
+freq_end = 700
+length = 0.06
+volume = 0.45
+[[ledge_grab.layers]]
+wave = "noise"
+freq = 6000
+length = 0.025
+volume = 0.25
+
+# --- attacks -----------------------------------------------------------------------------------
+
+[[swing_light.layers]]
+wave = "noise"
+freq = 2600
+freq_end = 6400
+length = 0.09
+attack = 0.02
+lowpass = 0.3
+release = 0.05
+volume = 0.4
+
+[[swing_medium.layers]]
+wave = "noise"
+freq = 1900
+freq_end = 5600
+length = 0.13
+attack = 0.03
+lowpass = 0.28
+release = 0.07
+volume = 0.46
+
+[[swing_heavy.layers]]
+wave = "noise"
+freq = 1200
+freq_end = 4600
+length = 0.2
+attack = 0.05
+lowpass = 0.24
+release = 0.1
+volume = 0.55
+[[swing_heavy.layers]]
+wave = "saw"
+freq = 190
+freq_end = 80
+length = 0.18
+attack = 0.03
+lowpass = 0.2
+volume = 0.25
+
+[[charge.layers]]
+wave = "square"
+duty = 0.25
+freq = 180
+freq_end = 520
+length = 0.5
+attack = 0.08
+vibrato_depth = 0.5
+vibrato_rate = 14
+release = 0.1
+volume = 0.24
+
+[[shoot.layers]]
+wave = "square"
+duty = 0.25
+freq = 980
+freq_end = 300
+length = 0.15
+release = 0.07
+volume = 0.36
+[[shoot.layers]]
+wave = "noise"
+freq = 7000
+length = 0.05
+volume = 0.2
+
+[[special.layers]]
+wave = "square"
+duty = 0.125
+freq = 520
+freq_end = 1040
+length = 0.16
+arpeggio = [0, 7, 12]
+arpeggio_rate = 28
+release = 0.08
+volume = 0.3
+
+# --- hits --------------------------------------------------------------------------------------
+
+[[hit_light.layers]]
+wave = "noise"
+freq = 5200
+length = 0.06
+lowpass = 0.6
+release = 0.04
+volume = 0.5
+[[hit_light.layers]]
+wave = "square"
+freq = 420
+freq_end = 210
+length = 0.05
+volume = 0.35
+
+[[hit_medium.layers]]
+wave = "noise"
+freq = 4200
+length = 0.1
+lowpass = 0.5
+release = 0.07
+volume = 0.6
+[[hit_medium.layers]]
+wave = "square"
+freq = 320
+freq_end = 120
+length = 0.09
+volume = 0.4
+[[hit_medium.layers]]
+wave = "sine"
+freq = 160
+freq_end = 70
+length = 0.12
+volume = 0.5
+
+[[hit_heavy.layers]]
+wave = "noise"
+freq = 3400
+length = 0.17
+lowpass = 0.45
+release = 0.12
+volume = 0.7
+[[hit_heavy.layers]]
+wave = "saw"
+freq = 230
+freq_end = 60
+length = 0.17
+lowpass = 0.4
+volume = 0.45
+[[hit_heavy.layers]]
+wave = "sine"
+freq = 115
+freq_end = 40
+length = 0.22
+release = 0.1
+volume = 0.75
+
+[[hit_ko.layers]]
+wave = "noise"
+freq = 3000
+freq_end = 900
+length = 0.34
+lowpass = 0.5
+release = 0.22
+crush = 6
+volume = 0.8
+[[hit_ko.layers]]
+wave = "saw"
+freq = 320
+freq_end = 40
+length = 0.36
+lowpass = 0.45
+volume = 0.5
+[[hit_ko.layers]]
+wave = "sine"
+freq = 95
+freq_end = 30
+length = 0.42
+release = 0.2
+volume = 0.9
+[[hit_ko.layers]]
+wave = "square"
+duty = 0.125
+freq = 1500
+freq_end = 500
+length = 0.12
+volume = 0.25
+
+# Element layers, added on top of a tier.
+[[slash.layers]]
+wave = "noise"
+freq = 7600
+freq_end = 3000
+length = 0.1
+noise_steps = 6
+release = 0.07
+volume = 0.34
+
+[[fire.layers]]
+wave = "noise"
+freq = 1500
+length = 0.07
+lowpass = 0.35
+repeat = 3
+repeat_gap = 0.05
+release = 0.05
+volume = 0.36
+
+[[electric.layers]]
+wave = "square"
+duty = 0.125
+freq = 1250
+length = 0.05
+arpeggio = [0, 12, 7, 19]
+arpeggio_rate = 70
+repeat = 3
+repeat_gap = 0.055
+volume = 0.26
+
+[[ice.layers]]
+wave = "sine"
+freq = 2100
+freq_end = 2700
+length = 0.14
+arpeggio = [0, 5, 12]
+arpeggio_rate = 40
+release = 0.1
+volume = 0.26
+
+[[darkness.layers]]
+wave = "saw"
+freq = 85
+freq_end = 60
+length = 0.22
+vibrato_depth = 1.0
+vibrato_rate = 18
+lowpass = 0.3
+release = 0.12
+volume = 0.4
+
+[hit_light_slash]
+include = ["hit_light", "slash"]
+[hit_medium_slash]
+include = ["hit_medium", "slash"]
+[hit_heavy_slash]
+include = ["hit_heavy", "slash"]
+[hit_ko_slash]
+include = ["hit_ko", "slash"]
+[hit_light_fire]
+include = ["hit_light", "fire"]
+[hit_medium_fire]
+include = ["hit_medium", "fire"]
+[hit_heavy_fire]
+include = ["hit_heavy", "fire"]
+[hit_ko_fire]
+include = ["hit_ko", "fire"]
+[hit_light_electric]
+include = ["hit_light", "electric"]
+[hit_medium_electric]
+include = ["hit_medium", "electric"]
+[hit_heavy_electric]
+include = ["hit_heavy", "electric"]
+[hit_ko_electric]
+include = ["hit_ko", "electric"]
+[hit_light_ice]
+include = ["hit_light", "ice"]
+[hit_medium_ice]
+include = ["hit_medium", "ice"]
+[hit_heavy_ice]
+include = ["hit_heavy", "ice"]
+[hit_ko_ice]
+include = ["hit_ko", "ice"]
+[hit_light_darkness]
+include = ["hit_light", "darkness"]
+[hit_medium_darkness]
+include = ["hit_medium", "darkness"]
+[hit_heavy_darkness]
+include = ["hit_heavy", "darkness"]
+[hit_ko_darkness]
+include = ["hit_ko", "darkness"]
+
+[[clank.layers]]
+wave = "square"
+duty = 0.3
+freq = 1400
+length = 0.1
+release = 0.08
+volume = 0.3
+[[clank.layers]]
+wave = "square"
+duty = 0.2
+freq = 2130
+length = 0.12
+release = 0.1
+volume = 0.24
+[[clank.layers]]
+wave = "noise"
+freq = 8000
+length = 0.03
+noise_steps = 5
+volume = 0.3
+
+# --- defence -----------------------------------------------------------------------------------
+
+[[shield_up.layers]]
+wave = "sine"
+freq = 300
+freq_end = 620
+length = 0.1
+attack = 0.01
+release = 0.06
+volume = 0.34
+
+[[shield_hit.layers]]
+wave = "triangle"
+freq = 540
+freq_end = 340
+length = 0.11
+release = 0.07
+volume = 0.5
+[[shield_hit.layers]]
+wave = "noise"
+freq = 3000
+length = 0.05
+lowpass = 0.4
+volume = 0.35
+
+[[shield_break.layers]]
+wave = "noise"
+freq = 5000
+freq_end = 800
+length = 0.5
+release = 0.35
+crush = 5
+volume = 0.6
+[[shield_break.layers]]
+wave = "saw"
+freq = 900
+freq_end = 60
+length = 0.5
+release = 0.2
+volume = 0.4
+[[shield_break.layers]]
+wave = "square"
+duty = 0.125
+freq = 1800
+freq_end = 300
+length = 0.3
+arpeggio = [0, -5, -12]
+arpeggio_rate = 24
+volume = 0.25
+
+[[parry.layers]]
+wave = "square"
+duty = 0.125
+freq = 1800
+length = 0.06
+repeat = 2
+repeat_gap = 0.07
+release = 0.04
+volume = 0.3
+[[parry.layers]]
+wave = "sine"
+freq = 2400
+freq_end = 3200
+length = 0.14
+release = 0.1
+volume = 0.3
+
+[[dodge.layers]]
+wave = "noise"
+freq = 3400
+freq_end = 900
+length = 0.16
+attack = 0.02
+lowpass = 0.3
+release = 0.1
+volume = 0.36
+
+[[tech.layers]]
+wave = "square"
+duty = 0.25
+freq = 700
+freq_end = 1050
+length = 0.07
+release = 0.04
+volume = 0.36
+[[tech.layers]]
+wave = "noise"
+freq = 6000
+length = 0.03
+volume = 0.25
+
+[[counter.layers]]
+wave = "square"
+duty = 0.125
+freq = 1000
+freq_end = 2000
+length = 0.14
+arpeggio = [0, 4, 7, 12]
+arpeggio_rate = 40
+release = 0.08
+volume = 0.3
+
+# --- grabs -------------------------------------------------------------------------------------
+
+[[grab.layers]]
+wave = "square"
+freq = 210
+freq_end = 150
+length = 0.07
+volume = 0.4
+[[grab.layers]]
+wave = "noise"
+freq = 2600
+length = 0.04
+lowpass = 0.4
+volume = 0.35
+
+[[pummel.layers]]
+wave = "noise"
+freq = 3200
+length = 0.05
+lowpass = 0.45
+volume = 0.45
+[[pummel.layers]]
+wave = "sine"
+freq = 190
+freq_end = 110
+length = 0.06
+volume = 0.45
+
+[[throw.layers]]
+wave = "noise"
+freq = 900
+freq_end = 3800
+length = 0.2
+attack = 0.06
+lowpass = 0.3
+release = 0.08
+volume = 0.5
+
+# --- match -------------------------------------------------------------------------------------
+
+[[countdown.layers]]
+wave = "square"
+duty = 0.5
+freq = "E5"
+length = 0.14
+release = 0.08
+volume = 0.36
+
+[[go.layers]]
+wave = "square"
+duty = 0.25
+freq = "E6"
+length = 0.4
+arpeggio = [0, 4, 7]
+arpeggio_rate = 22
+release = 0.25
+volume = 0.36
+
+[[ko_blast.layers]]
+wave = "noise"
+freq = 4200
+freq_end = 500
+length = 0.75
+lowpass = 0.5
+release = 0.5
+crush = 5
+volume = 0.85
+[[ko_blast.layers]]
+wave = "sine"
+freq = 85
+freq_end = 25
+length = 0.8
+release = 0.4
+volume = 0.9
+[[ko_blast.layers]]
+wave = "saw"
+freq = 520
+freq_end = 50
+length = 0.5
+lowpass = 0.4
+release = 0.25
+volume = 0.4
+
+[[game.layers]]
+wave = "square"
+duty = 0.25
+freq = "C5"
+length = 0.16
+volume = 0.34
+[[game.layers]]
+wave = "square"
+duty = 0.25
+freq = "E5"
+length = 0.16
+delay = 0.12
+volume = 0.34
+[[game.layers]]
+wave = "square"
+duty = 0.25
+freq = "G5"
+length = 0.16
+delay = 0.24
+volume = 0.34
+[[game.layers]]
+wave = "square"
+duty = 0.25
+freq = "C6"
+length = 0.6
+delay = 0.36
+vibrato_depth = 0.2
+release = 0.35
+volume = 0.36
+[[game.layers]]
+wave = "triangle"
+freq = "C3"
+length = 0.9
+release = 0.4
+volume = 0.5
+
+[[respawn.layers]]
+wave = "sine"
+freq = "A5"
+length = 0.12
+release = 0.08
+volume = 0.34
+[[respawn.layers]]
+wave = "sine"
+freq = "E6"
+length = 0.22
+delay = 0.1
+release = 0.16
+volume = 0.34
+
+[[sudden_death.layers]]
+wave = "saw"
+freq = 220
+freq_end = 208
+length = 0.35
+vibrato_depth = 0.6
+vibrato_rate = 12
+lowpass = 0.5
+repeat = 3
+repeat_gap = 0.4
+release = 0.1
+volume = 0.4
+
+[[wall_bounce.layers]]
+wave = "sine"
+freq = 210
+freq_end = 90
+length = 0.11
+volume = 0.6
+[[wall_bounce.layers]]
+wave = "noise"
+freq = 2400
+length = 0.05
+lowpass = 0.4
+volume = 0.35
+
+[[shockwave.layers]]
+wave = "noise"
+freq = 1400
+freq_end = 500
+length = 0.3
+lowpass = 0.22
+release = 0.2
+volume = 0.6
+[[shockwave.layers]]
+wave = "sine"
+freq = 72
+freq_end = 34
+length = 0.34
+release = 0.2
+volume = 0.8
+
+# --- menus -------------------------------------------------------------------------------------
+
+[[ui_move.layers]]
+wave = "square"
+duty = 0.25
+freq = "A5"
+length = 0.035
+release = 0.02
+volume = 0.22
+
+[[ui_select.layers]]
+wave = "square"
+duty = 0.25
+freq = "E5"
+freq_end = "B5"
+length = 0.09
+release = 0.05
+volume = 0.3
+
+[[ui_back.layers]]
+wave = "square"
+duty = 0.25
+freq = "B4"
+freq_end = "E4"
+length = 0.09
+release = 0.05
+volume = 0.3
+
+[[ui_pick.layers]]
+wave = "square"
+duty = 0.125
+freq = "E5"
+length = 0.18
+arpeggio = [0, 7, 12]
+arpeggio_rate = 20
+release = 0.1
+volume = 0.3
+
+[[ui_error.layers]]
+wave = "square"
+duty = 0.5
+freq = 175
+length = 0.08
+repeat = 2
+repeat_gap = 0.1
+volume = 0.3
+
+[[ui_start.layers]]
+wave = "square"
+duty = 0.25
+freq = "C5"
+length = 0.1
+volume = 0.32
+[[ui_start.layers]]
+wave = "square"
+duty = 0.25
+freq = "G5"
+length = 0.26
+delay = 0.09
+release = 0.16
+volume = 0.32

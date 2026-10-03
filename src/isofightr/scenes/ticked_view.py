@@ -6,6 +6,7 @@ Architecture". Subclasses put everything that advances the game in :meth:`Ticked
 
 import arcade
 
+from isofightr.audio.sound_director import SoundDirector
 from isofightr.config import TICK_RATE, WINDOW_TITLE
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import ScaledViewport, integer_scale_viewport
@@ -27,6 +28,7 @@ class TickedView(arcade.View):
         self.timestep = FixedTimestep()
         self.tick_count = 0
         self.max_ticks = max_ticks
+        self._silent = SoundDirector()
 
     def on_update(self, delta_time: float) -> None:
         """Convert the variable frame time into whole ticks and run them."""
@@ -36,11 +38,20 @@ class TickedView(arcade.View):
                 return
             self.tick_count += 1
             self.tick()
+            self.audio.tick()
             if self.tick_count % TICK_RATE == 0:
                 self.window.set_caption(self.caption())
 
     def tick(self) -> None:
         """Advance exactly one fixed step. Override in subclasses."""
+
+    @property
+    def audio(self) -> SoundDirector:
+        """The window's sound director (a silent one if the window has none)."""
+        director = getattr(self.window, "audio", None)
+        if director is None:
+            director = self._silent
+        return director  # type: ignore[no-any-return]
 
     def caption(self) -> str:
         """Return the window title, refreshed once per second of ticks."""

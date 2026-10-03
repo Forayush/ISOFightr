@@ -373,6 +373,38 @@ def test_a_key_tapped_between_two_ticks_still_reaches_the_game(window: Any) -> N
     )
 
 
+# --- M11: audio ------------------------------------------------------------------------------
+
+
+def test_a_battle_plays_its_stage_music_and_the_sounds_of_the_fight(window: Any) -> None:
+    from isofightr.scenes.battle import BattleView
+
+    window.switch_to()
+    backend = window.audio.backend
+    window.audio.stop_music()
+    backend.played.clear()
+    view = BattleView(
+        window.pixel_buffer,
+        load_stage("sky_ruins"),
+        [load_character("rook")] * 2,
+        seed=4,
+        cpus=[9, 9],
+    )
+    window.show_view(view)
+    assert window.audio.song == "sky_ruins"
+    for _ in range(600):
+        ticks(view, 1)
+    heard = set(backend.names())
+    assert "sky_ruins" in heard
+    assert heard & {"hit_light", "hit_medium", "hit_light_slash", "hit_medium_slash"}
+    assert heard & {"swing_light", "swing_medium", "swing_heavy", "special"}
+    assert "jump" in heard or "dash" in heard
+    pans = {played.pan for played in backend.played if played.name.startswith("swing")}
+    assert len(pans) > 1, "sounds are panned by where they happen"
+    tap(view, keys().ESCAPE)
+    assert backend.names()[-1] == "ui_select"
+
+
 # --- M10: CPU players ------------------------------------------------------------------------
 
 

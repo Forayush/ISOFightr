@@ -17,6 +17,10 @@ committed, with a license that allows redistribution in this project.
 - Fighter sprites (`assets/characters/*/sprites/`) are rendered from original 3D models that
   Claude Code scripts in Blender (`art_src/`, `tools/blender/`) and packed by
   `tools/build_art.py` (decision D-044). Blender is only a tool; nothing of Blender is shipped.
+- Sound effects and music (`assets/audio/`) are original: they are written as synthesizer
+  recipes and note patterns (`art_src/audio/`) and rendered by the game's own chiptune synth
+  (`isofightr.audio.synth`, `tools/build_audio.py`; decision D-055). Nothing is sampled or
+  downloaded.
 - Placeholder art is generated procedurally in code (Pillow) and needs no credit. The M0 test
   pattern's label text uses Pillow's built-in bitmap font, drawn at runtime; no font file is
   shipped.

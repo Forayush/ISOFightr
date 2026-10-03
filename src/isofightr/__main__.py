@@ -151,6 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="play a replay file back; with --headless, only check that it still ends in "
         "the recorded state",
     )
+    parser.add_argument("--mute", action="store_true", help="no sound effects or music")
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     return parser
 
@@ -242,6 +243,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         menus=not (skips_menus(args) or args.test_pattern),
         record=args.record,
         cpus=cpus,
+        sound=not args.mute,
     )
     return 0
 

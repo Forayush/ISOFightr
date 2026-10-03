@@ -78,6 +78,9 @@ class GameFlow:
             self.window.set_fullscreen(settings.fullscreen)
         if settings.scale != previous.scale and not settings.fullscreen:
             self.window.set_size(NATIVE_W * settings.scale, NATIVE_H * settings.scale)
+        audio = getattr(self.window, "audio", None)
+        if audio is not None:
+            audio.apply_settings(settings)
         if self.settings_path is not None:
             save_settings(self.settings_path, settings)
 

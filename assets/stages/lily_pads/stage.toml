@@ -3,6 +3,7 @@
 id = "lily_pads"
 display_name = "Lily Pads"
 tileset = "grass_stone"
+music = "lily_pads"            # a song in assets/audio/music
 
 # Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
 grid = """

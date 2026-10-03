@@ -510,6 +510,29 @@ def test_everyone_on_one_team_cannot_start(window: Any) -> None:
     assert name(window) == "CharacterSelectView" and "one team" in css.message
 
 
+def test_menus_play_the_menu_theme_and_blips_and_results_play_the_fanfare(window: Any) -> None:
+    backend = window.audio.backend
+    window.audio.stop_music()
+    backend.played.clear()
+    to_main_menu(window)
+    assert window.audio.song == "menu"
+    press(window, keys().S)
+    assert backend.names()[-1] == "ui_move"
+    press(window, keys().W)
+    set_one_stock(window)
+    two_players_to_stage_select(window)
+    assert window.audio.song == "menu", "one theme through all the menus"
+    assert backend.names().count("menu") == 1
+    press(window, keys().ENTER)
+    battle = window.current_view
+    assert window.audio.song == battle.stage.id
+    step(window, 250)
+    knock_out(window, 1)
+    step(window, 200)
+    assert name(window) == "ResultsView"
+    assert window.audio.song == "victory" and "game" in backend.names()
+
+
 # --- pause and training -------------------------------------------------------------------
 
 

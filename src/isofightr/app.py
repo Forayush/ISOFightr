@@ -12,6 +12,8 @@ from pathlib import Path
 import arcade
 import pyglet
 
+from isofightr.audio.arcade_backend import ArcadeBackend
+from isofightr.audio.sound_director import NullBackend, SoundDirector
 from isofightr.config import (
     DEFAULT_WINDOW_SCALE,
     NATIVE_H,
@@ -51,10 +53,12 @@ class GameWindow(arcade.Window):
         scale: int = DEFAULT_WINDOW_SCALE,
         fullscreen: bool = False,
         visible: bool = True,
+        sound: bool = True,
     ) -> None:
         """Open a window sized to ``scale`` times the native resolution.
 
-        Multisample antialiasing is off: it would soften the pixel art for no benefit.
+        Multisample antialiasing is off: it would soften the pixel art for no benefit. A
+        hidden window (tests) or ``sound=False`` (``--mute``) gets a silent sound director.
         """
         super().__init__(
             width=NATIVE_W * scale,
@@ -71,6 +75,7 @@ class GameWindow(arcade.Window):
         )
         self.background_color = LETTERBOX_COLOR
         self.pixel_buffer = PixelBuffer(self)
+        self.audio = SoundDirector(ArcadeBackend() if sound and visible else NullBackend())
         if self.get_pixel_ratio() != REAL_PIXEL_RATIO:
             LOG.warning(
                 "Window pixel ratio is %s, not 1: the pixel-art upscale may not be crisp.",
@@ -94,6 +99,7 @@ def run(
     menus: bool = False,
     record: Path | None = None,
     cpus: Sequence[int] = (),
+    sound: bool = True,
 ) -> None:
     """Open the game window and block until it closes.
 
@@ -111,10 +117,16 @@ def run(
             ``characters`` are then ignored.
         record: save every match as a replay file (the path, then ``-2``, ``-3``...).
         cpus: CPU level per player (0 = a person), for a match started without the menus.
+        sound: play sound effects and music (``--mute`` turns them off).
     """
     path = settings_path()
     settings = load_settings(path)
-    window = GameWindow(scale=scale or settings.scale, fullscreen=fullscreen or settings.fullscreen)
+    window = GameWindow(
+        scale=scale or settings.scale,
+        fullscreen=fullscreen or settings.fullscreen,
+        sound=sound,
+    )
+    window.audio.apply_settings(settings)
     view: arcade.View
     if menus:
         flow = GameFlow(

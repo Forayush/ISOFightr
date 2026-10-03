@@ -5,6 +5,7 @@
 id = "twin_isles"
 display_name = "Twin Isles"
 tileset = "grass_stone"
+music = "twin_isles"            # a song in assets/audio/music
 
 # Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
 grid = """

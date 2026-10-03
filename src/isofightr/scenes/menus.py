@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr.config import (
+    AUDIO_MENU_SONG,
+    AUDIO_VICTORY_SONG,
     CPU_DEFAULT_LEVEL,
     CPU_MAX_LEVEL,
     CPU_MIN_LEVEL,
@@ -56,7 +58,7 @@ from isofightr.settings import (
     Settings,
 )
 from isofightr.sim.match import Match
-from isofightr.ui.menu import Menu, MenuAction, MenuInput, MenuItem
+from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import HIGHLIGHT, MUTED, TextBlock, UiLayer, centred_left
@@ -121,6 +123,14 @@ class MenuView(TickedView):
         """Release the controllers when the scene goes away."""
         self.hub.close()
 
+    music = AUDIO_MENU_SONG
+    """The song a menu scene plays (it carries on from scene to scene)."""
+    music_loops = True
+
+    def on_show_view(self) -> None:
+        """Start (or keep) the scene's music."""
+        self.audio.play_music(self.music, self.music_loops)
+
     def tick(self) -> None:
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""
         frames = self.hub.frames(self._keys.keys())
@@ -130,11 +140,13 @@ class MenuView(TickedView):
         fired = self.menu_input.update([frames[device] for device in devices])
         for action in self._key_actions:
             if self.window.current_view is self:
+                self.audio.play(MENU_SOUNDS[action])
                 self.act(KEYBOARD_DEVICE, action)
         self._key_actions = []
         for device, actions in zip(devices, fired, strict=True):
             for action in MenuAction:
                 if action in actions and self.window.current_view is self:
+                    self.audio.play(MENU_SOUNDS[action])
                     self.act(device, action)
         if self.window.current_view is self:
             self.refresh()
@@ -876,6 +888,8 @@ class ResultsView(MenuListView):
     """Placements and stats after a match; rematch or go back to character select."""
 
     STATS_TOP = HEADING_BOTTOM - 20
+    music = AUDIO_VICTORY_SONG
+    music_loops = False
 
     def __init__(
         self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup, match: Match

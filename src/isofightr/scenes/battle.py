@@ -30,6 +30,7 @@ import arcade
 
 from isofightr.ai.controller import CpuController
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
+from isofightr.audio.cues import MatchSounds, event_cues
 from isofightr.config import (
     CPU_DEFAULT_LEVEL,
     CPU_MAX_LEVEL,
@@ -57,7 +58,7 @@ from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
 from isofightr.render.fighter_look import costume_for, fighter_look
 from isofightr.render.hitbox_overlay import HitboxOverlay
-from isofightr.render.iso import project
+from isofightr.render.iso import project, project_point
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
@@ -74,7 +75,7 @@ from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui.hud import DamageHud
 from isofightr.ui.input_display import input_lines
-from isofightr.ui.menu import Menu, MenuAction, MenuInput, MenuItem
+from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.move_list import (
     build_move_list,
     gamepad_labels,
@@ -212,6 +213,7 @@ class BattleView(TickedView):
         self.setup = setup
         self.dummy = DummyBehavior.STAND if training else DummyBehavior.MANUAL
         self.dummy_level = CPU_DEFAULT_LEVEL
+        self._sounds = MatchSounds()
         chosen = cpus if cpus is not None else (setup.cpus if setup is not None else ())
         self.cpu_levels = tuple(chosen) + (0,) * (len(self.characters) - len(chosen))
         self._cpus: dict[int, CpuController] = {}
@@ -436,6 +438,7 @@ class BattleView(TickedView):
     def open_menu(self) -> None:
         """Pause and show the pause menu."""
         self.menu_open = True
+        self.audio.play("ui_select")
         self.move_list_player = None
         self.pause_menu.cursor = 0
         self.menu_input.reset()
@@ -461,6 +464,7 @@ class BattleView(TickedView):
 
     def menu_action(self, action: MenuAction) -> None:
         """Handle one navigation action in the pause menu."""
+        self.audio.play(MENU_SOUNDS[action])
         if self.move_list_player is not None:
             self._move_list_action(action)
             return
@@ -550,6 +554,15 @@ class BattleView(TickedView):
         """Stop tracking a released key."""
         self._keys.release(symbol)
 
+    def on_show_view(self) -> None:
+        """Start the stage's music (silence for a stage without any)."""
+        self.audio.play_music(self.stage.music or "")
+
+    def _pan_of(self, position: Vec3) -> float:
+        """Where a world position is on screen, from -1 (left edge) to 1 (right edge)."""
+        screen_x = project_point(position)[0] - self.camera.pixel_centre[0]
+        return screen_x * self.camera.zoom / (NATIVE_W / 2)
+
     def on_hide_view(self) -> None:
         """Save the recording and release the controllers when the view goes away."""
         self.save_recording()
@@ -594,6 +607,7 @@ class BattleView(TickedView):
     def restart(self) -> None:
         """Start the match over (F8)."""
         self.match = self._new_match()
+        self._sounds.reset()
         self.effects.clear()
         self._go_ticks = 0
         self._over_ticks = 0
@@ -671,6 +685,8 @@ class BattleView(TickedView):
         self.effects.tick()
         self.effects.consume(self.match.events)
         self.effects.observe(self.match.fighters)
+        cues = event_cues(self.match.events) + self._sounds.observe(self.match)
+        self.audio.play_cues(cues, self._pan_of)
         targets = self._camera_targets()
         if targets:
             self.camera.zoom = self.zoom.update(targets)

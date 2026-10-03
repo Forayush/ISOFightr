@@ -212,3 +212,21 @@ CPU_KILL_HEADROOM: Final[float] = 1.0
 as a KO (it keeps flying a little after its knockback runs out)."""
 CPU_SOFTLOCK_FRAMES: Final[int] = 20 * 60
 """The soak test's soft-lock limit: no fighter may stay in one state longer than this."""
+
+# --- Audio (plan note "14 - Audio") ----------------------------------------------------------
+AUDIO_HIT_TIERS: Final[tuple[float, float, float]] = (40.0, 80.0, 120.0)
+"""Knockback at which a hit sounds medium, heavy and KO-level."""
+AUDIO_HEAVY_LANDING_SPEED: Final[float] = 0.2
+"""A landing at this fall speed or more (units per frame) uses the heavy landing sound."""
+AUDIO_PITCH_VARIATION: Final[float] = 0.05
+"""Repeated sounds are played up to this much faster or slower, so they do not machine-gun."""
+AUDIO_MAX_PAN: Final[float] = 0.5
+"""Stereo pan of a sound at the edge of the screen."""
+AUDIO_MAX_INSTANCES: Final[int] = 3
+"""How many copies of one sound may start within ``AUDIO_INSTANCE_TICKS``."""
+AUDIO_INSTANCE_TICKS: Final[int] = 6
+AUDIO_DUCK_VOLUME: Final[float] = 0.5
+"""Music volume factor while ducked (about -6 dB), on KOs and at "GAME!"."""
+AUDIO_DUCK_TICKS: Final[int] = 70
+AUDIO_MENU_SONG: Final[str] = "menu"
+AUDIO_VICTORY_SONG: Final[str] = "victory"

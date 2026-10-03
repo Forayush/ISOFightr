@@ -38,6 +38,17 @@ class MenuAction(Enum):
     """The grab button: a scene's extra action (character select adds a CPU with it)."""
 
 
+MENU_SOUNDS: Final[dict[MenuAction, str]] = {
+    MenuAction.UP: "ui_move",
+    MenuAction.DOWN: "ui_move",
+    MenuAction.LEFT: "ui_move",
+    MenuAction.RIGHT: "ui_move",
+    MenuAction.CONFIRM: "ui_select",
+    MenuAction.BACK: "ui_back",
+    MenuAction.EXTRA: "ui_pick",
+}
+"""The sound each menu action makes (plan note 14, "UI")."""
+
 DIRECTIONS: Final[tuple[MenuAction, ...]] = (
     MenuAction.UP,
     MenuAction.DOWN,
