@@ -223,6 +223,7 @@ def test_goldens_exist() -> None:
         "combat_training_grid",
         "movement_sky_ruins",
         "movement_training_grid",
+        "roster_sky_ruins",
     ]
 
 

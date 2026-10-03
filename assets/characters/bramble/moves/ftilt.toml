@@ -1,0 +1,25 @@
+# Bramble: forward tilt, a long stone backhand
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "ftilt"
+kind = "tilt"
+total = 38
+faf = 39
+
+[[windows]]
+frames = "10-12"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.35, 0.0, 1.3]   # forward, left, up
+  radius = 0.6
+  damage = 13.0
+  angle = 361
+  bkb = 25
+  kbg = 95
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.7, 0.0, 1.3]   # forward, left, up
+  radius = 0.5
+  damage = 11.0
+  angle = 361
+  bkb = 22
+  kbg = 90

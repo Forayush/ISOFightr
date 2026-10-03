@@ -1,0 +1,32 @@
+# Zephyr: down air, a drill dive that pops the target up at the end
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dair"
+kind = "aerial"
+total = 40
+faf = 41
+landing_lag = 14
+
+[[windows]]
+frames = "8-16"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.1, 0.0, -0.1]   # forward, left, up
+  radius = 0.5
+  damage = 1.5
+  angle = -60
+  fkb = 25
+  rehit = 3
+  direction_mode = "autolink"
+  hitlag_mult = 0.5
+
+[[windows]]
+frames = "17-19"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.1, 0.0, 0.2]   # forward, left, up
+  radius = 0.55
+  damage = 4.0
+  angle = 45
+  bkb = 30
+  kbg = 80
+  group = 1

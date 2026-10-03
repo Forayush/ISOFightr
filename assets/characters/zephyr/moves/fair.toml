@@ -1,0 +1,32 @@
+# Zephyr: forward air, a flurry of pecks that ends in a strong one
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "fair"
+kind = "aerial"
+total = 36
+faf = 37
+landing_lag = 8
+
+[[windows]]
+frames = "6-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.8, 0.0, 1.1]   # forward, left, up
+  radius = 0.5
+  damage = 1.5
+  angle = 361
+  fkb = 20
+  rehit = 3
+  direction_mode = "autolink"
+  hitlag_mult = 0.5
+
+[[windows]]
+frames = "15-17"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.85, 0.0, 1.1]   # forward, left, up
+  radius = 0.55
+  damage = 4.0
+  angle = 361
+  bkb = 40
+  kbg = 90
+  group = 1

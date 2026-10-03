@@ -579,7 +579,8 @@ def parse(text: str) -> MoveDef:
 
 
 def test_rook_registers_three_scripts_and_the_moves_name_them() -> None:
-    assert sorted(SCRIPTS) == ["rook.neutral_special", "rook.side_special", "rook.up_special"]
+    rook_scripts = sorted(name for name in SCRIPTS if name.startswith("rook."))
+    assert rook_scripts == ["rook.neutral_special", "rook.side_special", "rook.up_special"]
     assert all(isinstance(script, MoveScript) for script in SCRIPTS.values())
     named = {move.id: move.script for move in ROOK.moves.values() if move.script}
     assert named == {
@@ -627,7 +628,10 @@ def test_special_move_keys_parse() -> None:
 @pytest.mark.parametrize(
     ("extra", "message"),
     [
-        ('script = "rook.nope"\n', r"script: no such move script 'rook.nope' \(registered: rook\."),
+        (
+            'script = "rook.nope"\n',
+            r"script: no such move script 'rook.nope' \(registered: .*rook\.",
+        ),
         ("ledge_grab_from = 40\n", r"ledge_grab_from: must be between 1 and total \(30\)"),
         ('[counter]\nframes = "5-45"\ninto = "zap"\n', "counter.frames: frames '5-45' must lie"),
         ('[counter]\nframes = "5-9"\ninto = "zap"\ndamage_mult = 0.5\n', "damage_mult: must be 1"),

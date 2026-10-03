@@ -1,0 +1,18 @@
+# Zephyr: up air, a scissor kick
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uair"
+kind = "aerial"
+total = 28
+faf = 29
+landing_lag = 6
+
+[[windows]]
+frames = "4-8"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.1, 0.0, 2.1]   # forward, left, up
+  radius = 0.55
+  damage = 6.0
+  angle = 85
+  bkb = 15
+  kbg = 95

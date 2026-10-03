@@ -153,6 +153,15 @@ class ProjectileEvent:
 
 
 @dataclass(frozen=True, slots=True)
+class ShockwaveEvent:
+    """A shockwave spreads on the ground (a landed boulder, a quake slam): ring VFX, rumble."""
+
+    player: int
+    position: Vec3
+    radius: float
+
+
+@dataclass(frozen=True, slots=True)
 class CounterEvent:
     """A counter caught a hit and is replying."""
 
@@ -189,6 +198,7 @@ type Event = (
     | WallBounceEvent
     | ProjectileEvent
     | CounterEvent
+    | ShockwaveEvent
     | SuddenDeathEvent
     | MatchEndEvent
 )

@@ -145,8 +145,11 @@ class Attack(State):
             physics.set_ground_velocity(fighter, world.xy)
 
     def on_land(self, match: Match, fighter: Fighter) -> None:
-        """Landing interrupts an aerial with its own landing lag, unless it autocancels."""
+        """Landing interrupts an aerial with its own landing lag, unless it autocancels or the
+        move's script handles the landing itself."""
         move = fighter.character.moves[fighter.move_id]
+        if move.script is not None and SCRIPTS[move.script].on_land(match, fighter):
+            return
         frame = fighter.state_frame
         normal = fighter.character.movement.land_lag
         if any(frame in window for window in move.autocancel):

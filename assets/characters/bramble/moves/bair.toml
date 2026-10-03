@@ -1,0 +1,19 @@
+# Bramble: back air, a backward elbow
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "bair"
+kind = "aerial"
+total = 42
+faf = 43
+landing_lag = 12
+
+[[windows]]
+frames = "10-13"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [-1.2, 0.0, 1.3]   # forward, left, up
+  radius = 0.7
+  damage = 15.0
+  angle = 361
+  bkb = 25
+  kbg = 100
+  yaw = 180

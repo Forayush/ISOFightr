@@ -1,0 +1,21 @@
+# Bramble: jab 1, a heavy jab
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab1"
+kind = "jab"
+total = 22
+faf = 23
+
+[[windows]]
+frames = "5-6"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.95, 0.0, 1.5]   # forward, left, up
+  radius = 0.5
+  damage = 4.0
+  angle = 70
+  bkb = 12
+  kbg = 30
+
+[cancel]
+frames = "8-22"
+into = "jab2"

@@ -209,6 +209,14 @@ class Fighter:
     tech_window: int = 0
     """Frames left in which touching ground or a wall techs."""
     tech_lockout: int = 0
+    stored_charge: int = 0
+    """Charge frames kept from a special that was cancelled while charging (Mote's Ember
+    Orb); the next use of that special starts with them."""
+    special_dir: Vec3 = ZERO3
+    """A direction a special picked when it started (Gust Hop, Blink): unit length or zero."""
+    tether_ledge: int = NO_LEDGE
+    """Ledge a tether recovery has caught and is reeling toward (Vine Lash)."""
+    tether_point: Vec2 = ZERO2
     last_hit_by: int = NO_PARTNER
     """Player index of the last fighter that hit this one (for KO credit), or -1."""
     last_hit_timer: int = 0

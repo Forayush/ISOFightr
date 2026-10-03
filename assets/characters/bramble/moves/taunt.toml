@@ -1,0 +1,6 @@
+# Bramble: taunt, a ground-shaking flex
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "taunt"
+kind = "taunt"
+total = 70
+faf = 71

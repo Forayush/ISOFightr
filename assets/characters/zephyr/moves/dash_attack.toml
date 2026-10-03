@@ -1,0 +1,21 @@
+# Zephyr: dash attack, a sliding kick
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dash_attack"
+kind = "dash_attack"
+total = 34
+faf = 35
+
+[[windows]]
+frames = "5-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.7, 0.0, 0.9]   # forward, left, up
+  radius = 0.5
+  damage = 8.0
+  angle = 60
+  bkb = 45
+  kbg = 60
+
+[[motion]]
+frames = "1-14"
+velocity = [0.1, 0.0, 0.0]

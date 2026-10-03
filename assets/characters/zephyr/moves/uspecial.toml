@@ -1,0 +1,21 @@
+# Zephyr: Gust Hop, a burst in any 3D direction after a short windup, then helpless
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uspecial"
+kind = "special"
+total = 44
+faf = 45
+script = "zephyr.up_special"
+landing_lag = 16
+helpless = true
+ledge_grab_from = 7
+
+[[windows]]
+frames = "7-12"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.0]   # forward, left, up
+  radius = 0.6
+  damage = 5.0
+  angle = 80
+  bkb = 40
+  kbg = 50

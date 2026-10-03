@@ -1,0 +1,51 @@
+# Zephyr: Feather Darts, three quick, weak darts along the facing
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "nspecial"
+kind = "special"
+total = 34
+faf = 35
+
+[[projectiles]]
+frame = 8
+speed = 0.3
+lifetime = 18
+ground = "destroy"
+  [projectiles.hitbox]
+  id = 0
+  offset = [0.6, 0.0, 1.2]   # forward, left, up
+  radius = 0.25
+  damage = 2.0
+  angle = 361
+  bkb = 5
+  kbg = 20
+  hitlag_mult = 0.5
+
+[[projectiles]]
+frame = 12
+speed = 0.3
+lifetime = 18
+ground = "destroy"
+  [projectiles.hitbox]
+  id = 0
+  offset = [0.6, 0.0, 1.2]   # forward, left, up
+  radius = 0.25
+  damage = 2.0
+  angle = 361
+  bkb = 5
+  kbg = 20
+  hitlag_mult = 0.5
+
+[[projectiles]]
+frame = 16
+speed = 0.3
+lifetime = 18
+ground = "destroy"
+  [projectiles.hitbox]
+  id = 0
+  offset = [0.6, 0.0, 1.2]   # forward, left, up
+  radius = 0.25
+  damage = 2.0
+  angle = 361
+  bkb = 5
+  kbg = 20
+  hitlag_mult = 0.5

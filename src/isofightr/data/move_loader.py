@@ -66,6 +66,11 @@ _PROJECTILE_KEYS = (
     "absorbable",
     "ground",
     "hitbox",
+    "burst",
+    "burst_frames",
+    "returns",
+    "curve",
+    "max_per_owner",
 )
 _LANDING_LAG_KINDS = (MoveKind.AERIAL, MoveKind.SPECIAL)
 _CHARGE_KINDS = (MoveKind.SMASH, MoveKind.SPECIAL)
@@ -238,6 +243,18 @@ def _projectile(table: object, source: str, index: int, total: int) -> Projectil
     pierce = reader.integer("pierce") if reader.has("pierce") else 0
     if pierce < 0:
         raise reader.error("must be 0 or greater", "pierce")
+    burst = None
+    if reader.has("burst"):
+        burst = _hitbox(reader.raw("burst"), source, f"{where}.burst", clank_default=False)
+    burst_frames = reader.integer("burst_frames") if reader.has("burst_frames") else 0
+    if (burst is None) != (burst_frames == 0) or burst_frames < 0:
+        raise reader.error("a burst needs burst_frames above 0, and only a burst has them", "burst")
+    returns = reader.integer("returns") if reader.has("returns") else 0
+    if not 0 <= returns <= lifetime:
+        raise reader.error(f"must be between 0 and lifetime ({lifetime})", "returns")
+    max_per_owner = reader.integer("max_per_owner") if reader.has("max_per_owner") else 0
+    if max_per_owner < 0:
+        raise reader.error("must be 0 or greater", "max_per_owner")
     return ProjectileDef(
         frame=frame,
         hitbox=_hitbox(reader.raw("hitbox"), source, f"{where}.hitbox", clank_default=True),
@@ -249,6 +266,11 @@ def _projectile(table: object, source: str, index: int, total: int) -> Projectil
         reflectable=reader.boolean("reflectable", default=True),
         absorbable=reader.boolean("absorbable", default=False),
         ground=_enum(reader, "ground", GroundBehavior, GroundBehavior.DESTROY),
+        burst=burst,
+        burst_frames=burst_frames,
+        returns=returns,
+        curve=reader.number("curve", 0.0),
+        max_per_owner=max_per_owner,
     )
 
 

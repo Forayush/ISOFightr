@@ -24,3 +24,5 @@ Thumbs.db
 # Local
 settings.local.toml
 *.log
+
+CLAUDE.md

@@ -1,0 +1,18 @@
+# Mote: up tilt, a shadowy flare overhead
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "utilt"
+kind = "tilt"
+total = 34
+faf = 35
+
+[[windows]]
+frames = "8-16"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 2.6]   # forward, left, up
+  radius = 0.8
+  damage = 8.0
+  angle = 88
+  bkb = 30
+  kbg = 95
+  effect = "darkness"

@@ -1,0 +1,17 @@
+# Zephyr: up tilt, a flip kick that starts combos
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "utilt"
+kind = "tilt"
+total = 22
+faf = 23
+
+[[windows]]
+frames = "4-9"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 2.1]   # forward, left, up
+  radius = 0.55
+  damage = 6.0
+  angle = 90
+  bkb = 25
+  kbg = 105

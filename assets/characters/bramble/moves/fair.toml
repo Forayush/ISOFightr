@@ -1,0 +1,18 @@
+# Bramble: forward air, a falling hammer fist
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "fair"
+kind = "aerial"
+total = 50
+faf = 51
+landing_lag = 16
+
+[[windows]]
+frames = "16-19"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.2, 0.0, 1.4]   # forward, left, up
+  radius = 0.7
+  damage = 16.0
+  angle = 361
+  bkb = 30
+  kbg = 95

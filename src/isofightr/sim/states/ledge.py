@@ -104,6 +104,42 @@ def occupant_of(match: Match, newcomer: Fighter, index: int, point: Vec2) -> Fig
     return None
 
 
+def ledge_within(
+    stage: Stage, fighter: Fighter, reach: float, below: float, above: float
+) -> tuple[int, Vec2] | None:
+    """Return the nearest ledge a tether can reach: within ``reach`` on the ground plane, its
+    top between ``below`` under and ``above`` over the fighter's feet, and on the side the
+    fighter is facing or beside."""
+    position = fighter.pos.xy
+    best: tuple[float, int, Vec2] | None = None
+    for index, ledge in enumerate(stage.ledges):
+        if not fighter.pos.z - below <= ledge.z <= fighter.pos.z + above:
+            continue
+        point = closest_point(ledge, position)
+        offset = position - point
+        distance = offset.length()
+        if distance > reach or offset.dot(ledge.normal) < 0.0:
+            continue
+        if best is None or distance < best[0]:
+            best = (distance, index, point)
+    return None if best is None else (best[1], best[2])
+
+
+def grab_ledge_at(match: Match, fighter: Fighter, index: int, point: Vec2) -> None:
+    """Hang the fighter from ``point`` on ledge ``index`` (trumping anyone already there)."""
+    trumped = occupant_of(match, fighter, index, point)
+    if trumped is not None:
+        change_state(match, trumped, StateId.LEDGE_TRUMPED)
+    fighter.ledge = index
+    fighter.ledge_point = point
+    change_state(match, fighter, StateId.LEDGE_HANG)
+    match.events.append(
+        LedgeGrabEvent(
+            fighter.player_index, fighter.pos, None if trumped is None else trumped.player_index
+        )
+    )
+
+
 def try_grab_ledge(match: Match, fighter: Fighter) -> bool:
     """Catch a ledge if the fighter is falling next to one (tick step 5, after moving)."""
     if not STATES[fighter.state].can_grab_ledge(fighter) or fighter.grounded:
@@ -122,18 +158,7 @@ def try_grab_ledge(match: Match, fighter: Fighter) -> bool:
     ledge = match.stage.ledges[index]
     if velocity.xy.dot(ledge.normal) > c.LEDGE_AWAY_SPEED:
         return False
-
-    trumped = occupant_of(match, fighter, index, point)
-    if trumped is not None:
-        change_state(match, trumped, StateId.LEDGE_TRUMPED)
-    fighter.ledge = index
-    fighter.ledge_point = point
-    change_state(match, fighter, StateId.LEDGE_HANG)
-    match.events.append(
-        LedgeGrabEvent(
-            fighter.player_index, fighter.pos, None if trumped is None else trumped.player_index
-        )
-    )
+    grab_ledge_at(match, fighter, index, point)
     return True
 
 

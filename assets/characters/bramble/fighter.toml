@@ -1,0 +1,63 @@
+# Bramble: the heavyweight. A mossy stone golem: slow, short jumps, huge reach and power.
+# Units: world units (1 = one tile edge) and frames (60 per second).
+id = "bramble"
+display_name = "Bramble"
+weight = 120
+
+[movement]
+walk_speed = 0.045
+dash_speed = 0.085
+dash_frames = 14
+run_speed = 0.075
+traction = 0.008
+jumpsquat = 5
+full_hop_vz = 0.29
+short_hop_vz = 0.17
+double_jump_vz = 0.27
+air_jumps = 1
+air_accel = 0.005
+air_speed = 0.06
+air_friction = 0.002
+gravity = 0.014
+max_fall = 0.2
+fast_fall = 0.28
+land_lag = 5
+
+[body]
+radius = 0.38
+height = 2.9
+hurtbox = { radius = 0.48, z0 = 0.2, z1 = 2.6 }
+shield_radius_max = 1.4
+
+[moveset]
+jab = ["jab1", "jab2"]
+ftilt = "ftilt"
+utilt = "utilt"
+dtilt = "dtilt"
+dash_attack = "dash_attack"
+fsmash = "fsmash"
+usmash = "usmash"
+dsmash = "dsmash"
+nair = "nair"
+fair = "fair"
+bair = "bair"
+uair = "uair"
+dair = "dair"
+getup_attack = "getup_attack"
+ledge_attack = "ledge_attack"
+nspecial = "nspecial"   # Boulder Toss
+sspecial = "sspecial"   # Shoulder Charge
+uspecial = "uspecial"   # Vine Lash
+dspecial = "dspecial"   # Quake Slam (lands as quake_land)
+taunt = "taunt"
+
+[grab]
+standing = { frames = "8-9", total = 38, offset = [1.0, 0.0, 1.3], radius = 0.55 }
+dash = { frames = "11-13", total = 46, offset = [1.1, 0.0, 1.3], radius = 0.55, slide = 0.06 }
+pummel = { damage = 2.5, cooldown = 22 }
+
+[throws]
+forward = { damage = 11.0, angle = 40, bkb = 65, kbg = 70, release = 16, total = 40 }
+back = { damage = 12.0, angle = 45, bkb = 65, kbg = 80, release = 20, total = 44 }
+up = { damage = 10.0, angle = 88, bkb = 70, kbg = 80, release = 18, total = 40 }
+down = { damage = 7.0, angle = 70, bkb = 60, kbg = 50, release = 22, total = 40 }

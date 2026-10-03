@@ -1,0 +1,22 @@
+# Zephyr: forward smash, a lunging double kick
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "fsmash"
+kind = "smash"
+total = 42
+faf = 43
+charge = { frame = 5, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "12-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.0, 0.0, 1.0]   # forward, left, up
+  radius = 0.5
+  damage = 14.0
+  angle = 38
+  bkb = 30
+  kbg = 100
+
+[[motion]]
+frames = "10-14"
+velocity = [0.06, 0.0, 0.0]

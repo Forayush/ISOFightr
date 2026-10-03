@@ -20,7 +20,7 @@ from isofightr.sim.combat.grab_resolution import resolve_grabs
 from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.combat.projectile_hits import resolve_projectile_hits
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
-from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent
+from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent, ShockwaveEvent
 from isofightr.sim.fighter import NO_TEAM, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame, facing_from_move
 from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
@@ -189,7 +189,10 @@ class Match:
 
         # 6. Projectiles fly.
         for projectile in self.projectiles:
-            step_projectile(self.stage, projectile)
+            owner = self.fighters[projectile.owner]
+            if step_projectile(self.stage, projectile, owner):
+                radius = projectile.hitbox.radius
+                self.events.append(ShockwaveEvent(projectile.owner, projectile.pos, radius))
 
         # 7. Hit resolution, then grabs (a grabber that was just hit does not grab).
         resolve_hits(self)
@@ -242,7 +245,18 @@ class Match:
     def spawn_projectile(
         self, owner: Fighter, definition: ProjectileDef, damage: float
     ) -> Projectile:
-        """Add a projectile fired by ``owner``'s current move, and return it."""
+        """Add a projectile fired by ``owner``'s current move, and return it. A move with a
+        per-owner limit removes its oldest projectile when the limit is reached."""
+        if definition.max_per_owner:
+            mine = [
+                projectile
+                for projectile in self.projectiles
+                if projectile.alive
+                and projectile.owner == owner.player_index
+                and projectile.definition is definition
+            ]
+            for old in mine[: len(mine) - definition.max_per_owner + 1]:
+                old.alive = False
         projectile = spawn(self.next_projectile_id, owner, definition, damage)
         self.next_projectile_id += 1
         self.projectiles.append(projectile)
@@ -404,6 +418,7 @@ def _canonical_projectile(projectile: Projectile) -> tuple[object, ...]:
         projectile.age,
         projectile.pierce_left,
         tuple(projectile.hit),
+        projectile.bursting,
     )
 
 
@@ -476,6 +491,10 @@ def _canonical_fighter(fighter: Fighter) -> tuple[object, ...]:
         fighter.combo_hits,
         fighter.combo_by,
         tuple(fighter.air_moves_used),
+        fighter.stored_charge,
+        _canonical_vec3(fighter.special_dir),
+        fighter.tether_ledge,
+        _canonical_vec2(fighter.tether_point),
         _canonical_vec2(buffer.frame.move),
         buffer.frame.vertical,
         int(buffer.frame.held),

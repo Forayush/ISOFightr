@@ -35,6 +35,11 @@ class MoveScript:
     def on_projectile(self, match: Match, fighter: Fighter, projectile: Projectile) -> None:
         """Adjust a projectile the move just spawned (speed, lifetime, damage...)."""
 
+    def on_land(self, match: Match, fighter: Fighter) -> bool:
+        """React to landing during the move. Return ``True`` if the script handled it (for
+        example by starting another move), ``False`` for the usual landing lag."""
+        return False
+
 
 SCRIPTS: dict[str, MoveScript] = {}
 """Every registered script, by name."""
@@ -48,4 +53,4 @@ def register_script(name: str, script: MoveScript) -> None:
 
 
 # Registered last, so the character modules can import the names above.
-from isofightr.sim.characters import rook  # noqa: E402, F401
+from isofightr.sim.characters import bramble, mote, rook, zephyr  # noqa: E402, F401

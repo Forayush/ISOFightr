@@ -1,0 +1,17 @@
+# Bramble: jab 2, a hammering second punch
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab2"
+kind = "jab"
+total = 34
+faf = 35
+
+[[windows]]
+frames = "6-8"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.1, 0.0, 1.4]   # forward, left, up
+  radius = 0.6
+  damage = 7.0
+  angle = 361
+  bkb = 40
+  kbg = 85

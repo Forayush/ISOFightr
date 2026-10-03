@@ -1,0 +1,21 @@
+# Zephyr: Whirl, a spinning reflector that slows the fall
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dspecial"
+kind = "special"
+total = 40
+faf = 41
+script = "zephyr.down_special"
+landing_lag = 10
+reflect = "4-22"
+
+[[windows]]
+frames = "4-22"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.0]   # forward, left, up
+  radius = 0.8
+  damage = 1.0
+  angle = 50
+  fkb = 30
+  rehit = 6
+  hitlag_mult = 0.5

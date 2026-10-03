@@ -1,0 +1,6 @@
+# Mote: taunt, a lantern twirl
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "taunt"
+kind = "taunt"
+total = 60
+faf = 61

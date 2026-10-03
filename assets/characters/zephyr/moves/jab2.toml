@@ -1,0 +1,21 @@
+# Zephyr: jab 2, the other claw
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab2"
+kind = "jab"
+total = 16
+faf = 17
+
+[[windows]]
+frames = "2-3"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.65, 0.0, 1.1]   # forward, left, up
+  radius = 0.35
+  damage = 2.0
+  angle = 70
+  bkb = 6
+  kbg = 25
+
+[cancel]
+frames = "4-16"
+into = "jab3"

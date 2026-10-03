@@ -1,0 +1,35 @@
+# Mote: neutral air, a swirl of embers that ends in a burst
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "nair"
+kind = "aerial"
+total = 42
+faf = 43
+landing_lag = 8
+autocancel = ["1-3", "34-"]
+
+[[windows]]
+frames = "5-24"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.2]   # forward, left, up
+  radius = 0.85
+  damage = 2.0
+  angle = 361
+  fkb = 25
+  rehit = 5
+  direction_mode = "autolink"
+  hitlag_mult = 0.5
+  effect = "fire"
+
+[[windows]]
+frames = "25-27"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.2]   # forward, left, up
+  radius = 0.9
+  damage = 4.0
+  angle = 361
+  bkb = 40
+  kbg = 80
+  group = 1
+  effect = "fire"

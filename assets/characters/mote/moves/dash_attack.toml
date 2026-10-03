@@ -1,0 +1,22 @@
+# Mote: dash attack, a gliding lantern bump
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dash_attack"
+kind = "dash_attack"
+total = 40
+faf = 41
+
+[[windows]]
+frames = "7-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.8, 0.0, 1.0]   # forward, left, up
+  radius = 0.6
+  damage = 9.0
+  angle = 55
+  bkb = 45
+  kbg = 65
+  effect = "fire"
+
+[[motion]]
+frames = "1-14"
+velocity = [0.08, 0.0, 0.0]

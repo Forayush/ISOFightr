@@ -1,0 +1,30 @@
+# Zephyr: neutral air, a spinning kick
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "nair"
+kind = "aerial"
+total = 34
+faf = 35
+landing_lag = 6
+autocancel = ["1-2", "28-"]
+
+[[windows]]
+frames = "3-6"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.1, 0.0, 1.0]   # forward, left, up
+  radius = 0.6
+  damage = 7.0
+  angle = 361
+  bkb = 15
+  kbg = 85
+
+[[windows]]
+frames = "7-18"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.1, 0.0, 1.0]   # forward, left, up
+  radius = 0.5
+  damage = 4.0
+  angle = 361
+  bkb = 10
+  kbg = 70

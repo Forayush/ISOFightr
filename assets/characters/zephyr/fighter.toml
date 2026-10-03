@@ -1,0 +1,63 @@
+# Zephyr: the rushdown speedster. A small bird-fox courier: light, fastest run, two air jumps.
+# Units: world units (1 = one tile edge) and frames (60 per second).
+id = "zephyr"
+display_name = "Zephyr"
+weight = 78
+
+[movement]
+walk_speed = 0.07
+dash_speed = 0.14
+dash_frames = 10
+run_speed = 0.135
+traction = 0.007
+jumpsquat = 3
+full_hop_vz = 0.31
+short_hop_vz = 0.19
+double_jump_vz = 0.28
+air_jumps = 2
+air_accel = 0.008
+air_speed = 0.085
+air_friction = 0.003
+gravity = 0.015
+max_fall = 0.22
+fast_fall = 0.32
+land_lag = 2
+
+[body]
+radius = 0.26
+height = 2.0
+hurtbox = { radius = 0.3, z0 = 0.15, z1 = 1.85 }
+shield_radius_max = 1.0
+
+[moveset]
+jab = ["jab1", "jab2", "jab3"]
+ftilt = "ftilt"
+utilt = "utilt"
+dtilt = "dtilt"
+dash_attack = "dash_attack"
+fsmash = "fsmash"
+usmash = "usmash"
+dsmash = "dsmash"
+nair = "nair"
+fair = "fair"
+bair = "bair"
+uair = "uair"
+dair = "dair"
+getup_attack = "getup_attack"
+ledge_attack = "ledge_attack"
+nspecial = "nspecial"   # Feather Darts
+sspecial = "sspecial"   # Slipstream
+uspecial = "uspecial"   # Gust Hop
+dspecial = "dspecial"   # Whirl
+taunt = "taunt"
+
+[grab]
+standing = { frames = "5-6", total = 30, offset = [0.65, 0.0, 1.0], radius = 0.4 }
+dash = { frames = "8-10", total = 40, offset = [0.75, 0.0, 1.0], radius = 0.4, slide = 0.09 }
+pummel = { damage = 1.0, cooldown = 12 }
+
+[throws]
+forward = { damage = 6.0, angle = 45, bkb = 55, kbg = 55, release = 10, total = 30 }
+back = { damage = 8.0, angle = 40, bkb = 60, kbg = 65, release = 12, total = 32 }
+up = { damage = 5.0, angle = 88, bkb = 55, kbg = 60, release = 10, total = 30 }
+down = { damage = 4.0, angle = 75, bkb = 50, kbg = 40, release = 14, total = 30 }

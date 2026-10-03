@@ -140,3 +140,12 @@ def test_ko_beam_starts_inside_the_view_and_points_back() -> None:
     near = Vec3(1.0, 1.0, 0.0)
     _, base = vfx_art.ko_beam_placement(near, Vec3(1.0, 0.0, 0.0), centre)
     assert base == project(near.x, near.y, near.z), "an exit inside the view stays put"
+
+
+def test_a_shockwave_rings_and_raises_dust() -> None:
+    from isofightr.sim.events import ShockwaveEvent
+
+    effects = BattleEffects()
+    effects.consume([ShockwaveEvent(0, FEET, 1.2)])
+    assert len(effects.rings) == 1 and [puff.size for puff in effects.puffs] == ["big"]
+    assert effects.shake.current() == fx.SHOCKWAVE_SHAKE_PIXELS

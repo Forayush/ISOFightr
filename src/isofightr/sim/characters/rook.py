@@ -15,10 +15,8 @@ from typing import TYPE_CHECKING, Final
 
 from isofightr.sim import physics
 from isofightr.sim.characters import MoveScript, register_script
-from isofightr.sim.fighter import GroundKind
-from isofightr.sim.input_frame import facing_from_move
+from isofightr.sim.characters.common import aim_with_stick, dash_motion, leave_ground, stick
 from isofightr.sim.math3d import ZERO3, Vec3
-from isofightr.sim.stage import NO_PLATFORM
 
 if TYPE_CHECKING:
     from isofightr.sim.fighter import Fighter
@@ -35,11 +33,6 @@ RISING_SPIN_FRAMES: Final[tuple[int, int]] = (6, 27)
 RISING_SPIN_RISE: Final[float] = 0.2
 RISING_SPIN_STEER: Final[float] = 0.045
 """Horizontal speed at full stick while climbing."""
-
-
-def _stick(fighter: Fighter) -> Vec3:
-    move = fighter.buffer.move if fighter.buffer.stick_active else None
-    return ZERO3 if move is None else Vec3(move.x, move.y, 0.0)
 
 
 class CrescentWave(MoveScript):
@@ -61,31 +54,11 @@ class Lunge(MoveScript):
 
     def on_start(self, match: Match, fighter: Fighter) -> None:
         """Aim with the stick (eight ways); with no direction held, lunge forward."""
-        if fighter.buffer.stick_active:
-            facing = facing_from_move(fighter.buffer.move)
-            if facing is not None:
-                fighter.facing = facing
+        aim_with_stick(fighter)
 
     def motion(self, match: Match, fighter: Fighter) -> bool:
         """Dash along the facing; in the air the dash holds its height."""
-        first, last = LUNGE_FRAMES
-        if first <= fighter.state_frame <= last:
-            dash = fighter.facing.world * LUNGE_SPEED
-            fighter.vel = Vec3(dash.x, dash.y, 0.0)
-            fighter.fast_falling = False
-            return True
-        if fighter.state_frame < first:
-            # Winding up: hang in place rather than keep falling or sliding.
-            fighter.vel = ZERO3
-            return True
-        if fighter.grounded:
-            return False
-        if fighter.state_frame == last + 1:
-            # Coming out of an air dash: keep only a little of its speed.
-            slow = fighter.facing.world * fighter.character.movement.air_speed
-            fighter.vel = Vec3(slow.x, slow.y, 0.0)
-        physics.apply_gravity(fighter)
-        return True
+        return dash_motion(fighter, LUNGE_FRAMES, LUNGE_SPEED)
 
 
 class RisingSpin(MoveScript):
@@ -99,10 +72,8 @@ class RisingSpin(MoveScript):
             fighter.vel = ZERO3
             return True
         if frame <= last:
-            if fighter.grounded:
-                fighter.ground = GroundKind.NONE
-                fighter.platform = NO_PLATFORM
-            steer = _stick(fighter) * RISING_SPIN_STEER
+            leave_ground(fighter)
+            steer = stick(fighter) * RISING_SPIN_STEER
             fighter.vel = Vec3(steer.x, steer.y, RISING_SPIN_RISE)
             fighter.fast_falling = False
             return True

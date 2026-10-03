@@ -1,0 +1,27 @@
+# Bramble: down smash, fists pounding the ground on both sides at once
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dsmash"
+kind = "smash"
+total = 54
+faf = 55
+charge = { frame = 6, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "15-18"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.2, 0.0, 0.4]   # forward, left, up
+  radius = 0.7
+  damage = 17.0
+  angle = 25
+  bkb = 35
+  kbg = 95
+  [[windows.hitboxes]]
+  id = 1
+  offset = [-1.2, 0.0, 0.4]   # forward, left, up
+  radius = 0.7
+  damage = 17.0
+  angle = 25
+  bkb = 35
+  kbg = 95
+  yaw = 180

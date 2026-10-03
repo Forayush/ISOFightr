@@ -1,0 +1,18 @@
+# Mote: down tilt, a low ember flick
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dtilt"
+kind = "tilt"
+total = 28
+faf = 29
+
+[[windows]]
+frames = "7-9"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.3, 0.0, 0.3]   # forward, left, up
+  radius = 0.45
+  damage = 7.0
+  angle = 30
+  bkb = 25
+  kbg = 75
+  effect = "fire"

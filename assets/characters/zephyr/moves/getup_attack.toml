@@ -1,0 +1,31 @@
+# Zephyr: getup attack, a sweep to both sides
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "getup_attack"
+kind = "recovery"
+total = 46
+faf = 47
+intangible = "1-22"
+
+[[windows]]
+frames = "17-19"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.9, 0.0, 0.6]   # forward, left, up
+  radius = 0.55
+  damage = 6.0
+  angle = 48
+  bkb = 70
+  kbg = 40
+
+[[windows]]
+frames = "21-23"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [-0.9, 0.0, 0.6]   # forward, left, up
+  radius = 0.55
+  damage = 6.0
+  angle = 48
+  bkb = 70
+  kbg = 40
+  group = 1
+  yaw = 180

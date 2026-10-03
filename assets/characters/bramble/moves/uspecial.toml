@@ -1,0 +1,21 @@
+# Bramble: Vine Lash, a tether that reels Bramble to a ledge in reach (or a short leap)
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uspecial"
+kind = "special"
+total = 50
+faf = 51
+script = "bramble.up_special"
+landing_lag = 20
+helpless = true
+ledge_grab_from = 21
+
+[[windows]]
+frames = "9-12"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [2.0, 0.0, 2.6]   # forward, left, up
+  radius = 0.6
+  damage = 6.0
+  angle = 70
+  bkb = 40
+  kbg = 40

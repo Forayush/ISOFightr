@@ -1,0 +1,18 @@
+# Bramble: up air, a headbutt upward
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uair"
+kind = "aerial"
+total = 40
+faf = 41
+landing_lag = 11
+
+[[windows]]
+frames = "8-13"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 3.0]   # forward, left, up
+  radius = 0.8
+  damage = 12.0
+  angle = 80
+  bkb = 20
+  kbg = 100

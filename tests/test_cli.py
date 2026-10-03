@@ -73,7 +73,10 @@ def test_player_slots_must_be_filled_in_order(capsys: pytest.CaptureFixture[str]
 
 def test_unknown_character_exits_with_a_clear_message(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--p2", "nobody", "--headless", "--frames", "10"]) == EXIT_DATA_ERROR
-    assert "no such character 'nobody' (available: rook)" in capsys.readouterr().err
+    assert (
+        "no such character 'nobody' (available: bramble, mote, rook, zephyr)"
+        in capsys.readouterr().err
+    )
 
 
 # --- headless -----------------------------------------------------------------------------

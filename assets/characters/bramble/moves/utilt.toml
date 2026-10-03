@@ -1,0 +1,25 @@
+# Bramble: up tilt, an overhead arm sweep
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "utilt"
+kind = "tilt"
+total = 40
+faf = 41
+
+[[windows]]
+frames = "9-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.4, 0.0, 2.9]   # forward, left, up
+  radius = 0.75
+  damage = 12.0
+  angle = 85
+  bkb = 30
+  kbg = 100
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.6, 0.0, 1.9]   # forward, left, up
+  radius = 0.55
+  damage = 10.0
+  angle = 85
+  bkb = 28
+  kbg = 95

@@ -155,6 +155,17 @@ class ProjectileDef:
     reflectable: bool
     absorbable: bool
     ground: GroundBehavior
+    burst: HitboxDef | None = None
+    """If set, landing turns the projectile into this hitbox on the ground (a shockwave)."""
+    burst_frames: int = 0
+    """How long the burst stays out."""
+    returns: int = 0
+    """From this age on, the projectile flies back to its owner (a boomerang); 0 = never."""
+    curve: float = 0.0
+    """Degrees its heading turns each frame on its way out (positive: to its left)."""
+    max_per_owner: int = 0
+    """At most this many of the move's projectiles per owner; firing another removes the
+    oldest (0 = no limit)."""
 
 
 @dataclass(frozen=True, slots=True)

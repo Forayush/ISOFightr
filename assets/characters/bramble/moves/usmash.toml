@@ -1,0 +1,30 @@
+# Bramble: up smash, both fists thrust skyward; heavy armor while winding up
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "usmash"
+kind = "smash"
+total = 56
+faf = 57
+charge = { frame = 7, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "16-20"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 3.0]   # forward, left, up
+  radius = 0.9
+  damage = 20.0
+  angle = 88
+  bkb = 35
+  kbg = 100
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.0, 0.0, 2.0]   # forward, left, up
+  radius = 0.7
+  damage = 16.0
+  angle = 85
+  bkb = 30
+  kbg = 95
+
+[[armor]]
+frames = "8-15"
+threshold = 60.0

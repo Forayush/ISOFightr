@@ -1,0 +1,19 @@
+# Mote: up smash, a pillar of fire overhead
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "usmash"
+kind = "smash"
+total = 48
+faf = 49
+charge = { frame = 6, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "12-18"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 2.8]   # forward, left, up
+  radius = 0.9
+  damage = 15.0
+  angle = 88
+  bkb = 32
+  kbg = 100
+  effect = "fire"

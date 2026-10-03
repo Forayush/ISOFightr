@@ -1,0 +1,21 @@
+# Zephyr: Slipstream, a dash through opponents, intangible mid-way, that hits on the way out
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "sspecial"
+kind = "special"
+total = 38
+faf = 39
+script = "zephyr.side_special"
+landing_lag = 10
+intangible = "6-13"
+once_per_airtime = true
+
+[[windows]]
+frames = "14-18"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.0]   # forward, left, up
+  radius = 0.7
+  damage = 8.0
+  angle = 50
+  bkb = 45
+  kbg = 65

@@ -1,0 +1,22 @@
+# Mote: jab 1, a lantern tap
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab1"
+kind = "jab"
+total = 20
+faf = 21
+
+[[windows]]
+frames = "4-5"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.9, 0.0, 1.3]   # forward, left, up
+  radius = 0.45
+  damage = 3.0
+  angle = 70
+  bkb = 10
+  kbg = 30
+  effect = "fire"
+
+[cancel]
+frames = "7-20"
+into = "jab2"

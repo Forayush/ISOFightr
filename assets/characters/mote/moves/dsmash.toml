@@ -1,0 +1,29 @@
+# Mote: down smash, shadow flames on both sides
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dsmash"
+kind = "smash"
+total = 46
+faf = 47
+charge = { frame = 6, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "11-14"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.1, 0.0, 0.3]   # forward, left, up
+  radius = 0.6
+  damage = 13.0
+  angle = 30
+  bkb = 30
+  kbg = 95
+  effect = "darkness"
+  [[windows.hitboxes]]
+  id = 1
+  offset = [-1.1, 0.0, 0.3]   # forward, left, up
+  radius = 0.6
+  damage = 13.0
+  angle = 30
+  bkb = 30
+  kbg = 95
+  yaw = 180
+  effect = "darkness"

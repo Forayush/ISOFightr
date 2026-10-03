@@ -1,0 +1,34 @@
+# Bramble: forward smash, a two-fisted hammer blow; heavy armor while winding up
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "fsmash"
+kind = "smash"
+total = 60
+faf = 61
+charge = { frame = 8, max_frames = 60, damage_mult = 1.4 }
+
+[[windows]]
+frames = "20-22"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.5, 0.0, 1.3]   # forward, left, up
+  radius = 0.7
+  damage = 22.0
+  angle = 35
+  bkb = 35
+  kbg = 100
+  [[windows.hitboxes]]
+  id = 1
+  offset = [0.8, 0.0, 1.3]   # forward, left, up
+  radius = 0.6
+  damage = 18.0
+  angle = 35
+  bkb = 30
+  kbg = 95
+
+[[motion]]
+frames = "18-22"
+velocity = [0.05, 0.0, 0.0]
+
+[[armor]]
+frames = "8-19"
+threshold = 60.0

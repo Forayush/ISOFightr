@@ -1,0 +1,17 @@
+# Zephyr: jab 3, a spinning tail swipe
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab3"
+kind = "jab"
+total = 26
+faf = 27
+
+[[windows]]
+frames = "4-6"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.8, 0.0, 1.1]   # forward, left, up
+  radius = 0.45
+  damage = 4.0
+  angle = 361
+  bkb = 35
+  kbg = 80

@@ -1,0 +1,30 @@
+# Bramble: neutral air, a spinning body slam
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "nair"
+kind = "aerial"
+total = 44
+faf = 45
+landing_lag = 12
+autocancel = ["1-4", "38-"]
+
+[[windows]]
+frames = "8-12"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 1.3]   # forward, left, up
+  radius = 0.95
+  damage = 12.0
+  angle = 361
+  bkb = 25
+  kbg = 90
+
+[[windows]]
+frames = "13-20"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.2, 0.0, 1.3]   # forward, left, up
+  radius = 0.85
+  damage = 8.0
+  angle = 361
+  bkb = 15
+  kbg = 80

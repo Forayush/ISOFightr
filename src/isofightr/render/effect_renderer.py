@@ -79,6 +79,8 @@ class EffectRenderer:
                 wanted.append((texture, box.centre))
         colors = {fighter.player_index: fighter.color_index for fighter in fighters}
         for projectile in projectiles:
+            if projectile.bursting:
+                continue  # the shockwave ring shows it
             color = colors.get(projectile.owner, projectile.owner)
             ball = (color, projectile.hitbox.radius)
             texture = self._texture(("projectile", *ball), partial(art.build_projectile, *ball))

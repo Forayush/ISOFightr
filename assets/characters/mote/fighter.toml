@@ -1,0 +1,63 @@
+# Mote: the zoner. A floaty lantern mage: slow on the ground, great in the air, controls space.
+# Units: world units (1 = one tile edge) and frames (60 per second).
+id = "mote"
+display_name = "Mote"
+weight = 85
+
+[movement]
+walk_speed = 0.05
+dash_speed = 0.09
+dash_frames = 12
+run_speed = 0.08
+traction = 0.005
+jumpsquat = 4
+full_hop_vz = 0.26
+short_hop_vz = 0.15
+double_jump_vz = 0.24
+air_jumps = 1
+air_accel = 0.007
+air_speed = 0.09
+air_friction = 0.002
+gravity = 0.008
+max_fall = 0.13
+fast_fall = 0.2
+land_lag = 4
+
+[body]
+radius = 0.3
+height = 2.3
+hurtbox = { radius = 0.34, z0 = 0.2, z1 = 2.1 }
+shield_radius_max = 1.15
+
+[moveset]
+jab = ["jab1", "jab2"]
+ftilt = "ftilt"
+utilt = "utilt"
+dtilt = "dtilt"
+dash_attack = "dash_attack"
+fsmash = "fsmash"
+usmash = "usmash"
+dsmash = "dsmash"
+nair = "nair"
+fair = "fair"
+bair = "bair"
+uair = "uair"
+dair = "dair"
+getup_attack = "getup_attack"
+ledge_attack = "ledge_attack"
+nspecial = "nspecial"   # Ember Orb
+sspecial = "sspecial"   # Orbit Lamp
+uspecial = "uspecial"   # Blink
+dspecial = "dspecial"   # Snare Glyph
+taunt = "taunt"
+
+[grab]
+standing = { frames = "7-8", total = 36, offset = [0.8, 0.0, 1.2], radius = 0.45 }
+dash = { frames = "10-12", total = 44, offset = [0.9, 0.0, 1.2], radius = 0.45, slide = 0.06 }
+pummel = { damage = 1.2, cooldown = 16 }
+
+[throws]
+forward = { damage = 9.0, angle = 40, bkb = 60, kbg = 60, release = 14, total = 36 }
+back = { damage = 9.0, angle = 40, bkb = 60, kbg = 65, release = 18, total = 40 }
+up = { damage = 9.0, angle = 88, bkb = 62, kbg = 70, release = 16, total = 38 }
+down = { damage = 6.0, angle = 70, bkb = 55, kbg = 45, release = 18, total = 36 }

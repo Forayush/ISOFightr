@@ -1,0 +1,20 @@
+{
+  "description": "Bramble, Zephyr, Mote and Rook on Sky Ruins, all starting at 90%, with the parry and helpless-air-dodge rules on, driven by 6000 ticks of seeded random input: every character's specials (bursting, returning and limited projectiles, tethers, stored charge, 3D-aimed recoveries) under random play.",
+  "stage": "sky_ruins",
+  "characters": [
+    "bramble",
+    "zephyr",
+    "mote",
+    "rook"
+  ],
+  "seed": 3,
+  "stocks": null,
+  "start_damage": 90.0,
+  "input_seed": 277,
+  "ticks": 6000,
+  "rules": {
+    "parry": true,
+    "air_dodge_helpless": true
+  },
+  "hash": "5c3b34b5fb23a7bab32b416778ce3b76"
+}

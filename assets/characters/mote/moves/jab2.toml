@@ -1,0 +1,18 @@
+# Mote: jab 2, a puff of flame
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "jab2"
+kind = "jab"
+total = 28
+faf = 29
+
+[[windows]]
+frames = "5-8"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.1, 0.0, 1.3]   # forward, left, up
+  radius = 0.6
+  damage = 5.0
+  angle = 361
+  bkb = 35
+  kbg = 75
+  effect = "fire"

@@ -1,0 +1,6 @@
+# Zephyr: taunt, a showy preen
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "taunt"
+kind = "taunt"
+total = 50
+faf = 51

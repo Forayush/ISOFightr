@@ -26,6 +26,7 @@ from isofightr.sim.events import (
     ProjectileEvent,
     ShieldBreakEvent,
     ShieldHitEvent,
+    ShockwaveEvent,
     TechEvent,
     WallBounceEvent,
 )
@@ -80,6 +81,7 @@ SHAKE_FRAMES_PER_PIXEL: Final[int] = 3
 SHAKE_FLIP_TICKS: Final[int] = 2
 """The shake direction flips every this many ticks."""
 KO_SHAKE_PIXELS: Final[int] = 4
+SHOCKWAVE_SHAKE_PIXELS: Final[int] = 2
 SHIELD_BREAK_SHAKE_PIXELS: Final[int] = 3
 PARRY_SHAKE_PIXELS: Final[int] = 2
 
@@ -278,6 +280,10 @@ class BattleEffects:
                         self.rings.append(Ring(event.position))
             elif isinstance(event, JumpEvent) and event.kind is not JumpKind.AIR:
                 self.puffs.append(Puff(event.position, "small"))
+            elif isinstance(event, ShockwaveEvent):
+                self.rings.append(Ring(event.position))
+                self.puffs.append(Puff(event.position, "big"))
+                self.shake.start(SHOCKWAVE_SHAKE_PIXELS)
             else:
                 point = _small_spark_at(event)
                 if point is not None:

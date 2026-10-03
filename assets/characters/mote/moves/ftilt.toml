@@ -1,0 +1,18 @@
+# Mote: forward tilt, a long lantern swing
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "ftilt"
+kind = "tilt"
+total = 32
+faf = 33
+
+[[windows]]
+frames = "8-11"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [1.5, 0.0, 1.2]   # forward, left, up
+  radius = 0.5
+  damage = 9.0
+  angle = 361
+  bkb = 20
+  kbg = 90
+  effect = "fire"

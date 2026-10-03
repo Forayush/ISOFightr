@@ -1,0 +1,24 @@
+# Bramble: Shoulder Charge, an armored rush along the stick that catches ledges at the end
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "sspecial"
+kind = "special"
+total = 46
+faf = 47
+script = "bramble.side_special"
+landing_lag = 16
+ledge_grab_from = 24
+once_per_airtime = true
+
+[[windows]]
+frames = "10-26"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.7, 0.0, 1.3]   # forward, left, up
+  radius = 0.7
+  damage = 12.0
+  angle = 40
+  bkb = 55
+  kbg = 70
+
+[[armor]]
+frames = "8-26"

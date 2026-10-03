@@ -1,0 +1,25 @@
+# Mote: Snare Glyph, a rune left on the ground that launches the first foe to step on it
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "dspecial"
+kind = "special"
+total = 40
+faf = 41
+
+[[projectiles]]
+frame = 14
+speed = 0.0
+gravity = 0.05
+lifetime = 600
+ground = "slide"
+max_per_owner = 1
+reflectable = false
+  [projectiles.hitbox]
+  id = 0
+  offset = [1.2, 0.0, 0.7]   # forward, left, up (it settles onto the ground)
+  radius = 0.55
+  damage = 6.0
+  angle = 80
+  bkb = 60
+  kbg = 45
+  hits = ["ground"]
+  effect = "darkness"

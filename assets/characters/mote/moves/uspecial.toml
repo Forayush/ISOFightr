@@ -1,0 +1,23 @@
+# Mote: Blink, an intangible hop in any 3D direction, then helpless
+# Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
+id = "uspecial"
+kind = "special"
+total = 44
+faf = 45
+script = "mote.up_special"
+landing_lag = 18
+intangible = "1-16"
+helpless = true
+ledge_grab_from = 12
+
+[[windows]]
+frames = "15-17"
+  [[windows.hitboxes]]
+  id = 0
+  offset = [0.0, 0.0, 1.2]   # forward, left, up
+  radius = 0.8
+  damage = 6.0
+  angle = 70
+  bkb = 50
+  kbg = 50
+  effect = "darkness"
