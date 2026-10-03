@@ -49,4 +49,20 @@ bottom = -8.0
 [camera]
 bounds_margin = 4.0
 
-# `music` and `[[background]]` layers are added when those assets exist (M8 art, M11 audio).
+# Parallax backdrop (tools/build_backdrop.py sky_ruins): 0 = fixed to the screen, 1 = moves
+# with the stage. `music` arrives with M11 audio.
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.08
+
+[[background]]
+image = "bg_2_islands.png"
+parallax = 0.18
+
+[[background]]
+image = "bg_3_near_clouds.png"
+parallax = 0.35

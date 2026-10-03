@@ -1,0 +1,7 @@
+# The grass_stone tileset has no rig: each tile's geometry is in its own file ([[parts]]).
+# Blender space, like the fighters: a cell spans x, y in 0..1, its top at z = 0.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]

@@ -23,6 +23,8 @@ FACING_NAME = "facing"
 ROOT_JOINT = "hips"
 POSE_KEYS = frozenset({"offset", "show", "start", "use"})
 SMEAR_MATERIAL = "smear"
+MAX_PART_INDEX = 63
+"""Part indices are written into 8 bits as ``index * 4`` (``isoscene.PART_STEP``)."""
 
 
 class PoseError(ValueError):
@@ -49,11 +51,13 @@ class Rig:
             self.joints[joint["name"]] = empty
             self.rest[joint["name"]] = Vector(joint["at"])
         self.hideable: dict[str, bpy.types.Object] = {}
-        for index, part in enumerate(data["parts"], start=1):
+        self.part_count = 0
+        for index, part in enumerate(data.get("parts", []), start=1):
             obj = self._build(part)
             obj["part_index"] = index
             if part.get("hidden", False):
                 self.hideable[part["name"]] = obj
+            self.part_count = index
 
     def _build(self, part: dict[str, Any]) -> bpy.types.Object:
         material = part.get("material", SMEAR_MATERIAL)
@@ -71,6 +75,17 @@ class Rig:
             obj["part_index"] = 0
             obj.hide_render = True
             self.hideable[smear["name"]] = obj
+            built.append(obj)
+        return built
+
+    def add_parts(self, parts: list[dict[str, Any]]) -> list[bpy.types.Object]:
+        """Build an animation's own always-visible parts (a tile's stones, planks, tufts)."""
+        built = []
+        for offset, part in enumerate(parts):
+            obj = self._build(part)
+            # Part numbers only decide interior lines between neighbouring parts, so beyond the
+            # 63 the id pass can hold they wrap around.
+            obj["part_index"] = (self.part_count + offset) % MAX_PART_INDEX + 1
             built.append(obj)
         return built
 
@@ -100,7 +115,8 @@ class Rig:
             joint.rotation_euler = tuple(math.radians(value) for value in angles)
             joint.location = self.rest[name]
         offset = Vector(pose.get("offset", (0.0, 0.0, 0.0)))
-        self.joints[ROOT_JOINT].location = self.rest[ROOT_JOINT] + offset
+        if ROOT_JOINT in self.joints:
+            self.joints[ROOT_JOINT].location = self.rest[ROOT_JOINT] + offset
         for name, obj in self.hideable.items():
             obj.hide_render = name not in shown
 

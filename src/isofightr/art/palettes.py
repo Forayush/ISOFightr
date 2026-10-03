@@ -104,7 +104,12 @@ def parse_hex(value: str) -> Rgb:
 
 def load_palettes(character_id: str, root: Path = ART_SRC) -> CharacterPalettes:
     """Load and validate a character's ``palettes.toml``."""
-    path = root / "characters" / character_id / "palettes.toml"
+    return load_palettes_in(root / "characters" / character_id, root)
+
+
+def load_palettes_in(folder: Path, root: Path = ART_SRC) -> CharacterPalettes:
+    """Load and validate the ``palettes.toml`` in an art source folder (character or tileset)."""
+    path = folder / "palettes.toml"
     return parse_palettes(tomllib.loads(path.read_text(encoding="utf-8")), root)
 
 

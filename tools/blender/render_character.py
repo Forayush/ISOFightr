@@ -31,7 +31,7 @@ def main(job_path: Path) -> None:
     out = Path(job["out"])
     for anim in job["anims"]:
         data = tomllib.loads(Path(anim["path"]).read_text(encoding="utf-8"))
-        smears = rig.add_smears(data.get("smears", []))
+        smears = rig.add_smears(data.get("smears", [])) + rig.add_parts(data.get("parts", []))
         for pose_index, pose in enumerate(merged_poses(data, library)):
             rig.pose(pose)
             for direction in job["directions"]:

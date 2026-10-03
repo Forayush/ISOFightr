@@ -1,0 +1,52 @@
+# grass_stone tileset materials (decision D-045). Tiles have no outlines: they tessellate.
+# Costume 0 is the light cell of the board's checker pattern, costume 1 the dark one.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "grass"
+outline = false
+
+[[materials]]
+name = "grass_dark"
+outline = false
+
+[[materials]]
+name = "earth"
+outline = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "stone_dark"
+outline = false
+
+[[materials]]
+name = "wood"
+outline = false
+
+[[materials]]
+name = "wood_dark"
+outline = false
+
+[[costumes]]
+name = "light"
+grass = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+grass_dark = ["1ebc73", "239063", "165a4c", "374e4a", "313638"]
+earth = ["7f708a", "625565", "45293f", "2e222f", "2e222f"]
+stone = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+stone_dark = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+wood = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+wood_dark = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+
+[[costumes]]
+name = "dark"
+grass = ["91db69", "1ebc73", "239063", "165a4c", "313638"]
+grass_dark = ["239063", "165a4c", "374e4a", "313638", "313638"]
+stone = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+stone_dark = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+wood = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+wood_dark = ["9e4539", "7a3045", "45293f", "2e222f", "2e222f"]

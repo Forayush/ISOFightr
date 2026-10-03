@@ -20,7 +20,7 @@ from isofightr.art.palettes import ART_SRC
 
 POSE_KEYS: Final[frozenset[str]] = frozenset({"offset", "show", "start", "use"})
 """Keys a pose may hold besides joint rotations."""
-ANIM_KEYS: Final[frozenset[str]] = frozenset({"loop", "fps", "base", "poses", "smears"})
+ANIM_KEYS: Final[frozenset[str]] = frozenset({"loop", "fps", "base", "poses", "smears", "parts"})
 
 
 class AnimError(ValueError):
@@ -48,6 +48,11 @@ def anims_dir(character_id: str, root: Path = ART_SRC) -> Path:
 def list_anims(character_id: str, root: Path = ART_SRC) -> list[str]:
     """Return a character's animation names, sorted."""
     return sorted(path.stem for path in anims_dir(character_id, root).glob("*.toml"))
+
+
+def list_anims_in(folder: Path) -> list[str]:
+    """Return the animation (or tile) names in an art source folder's ``anims``, sorted."""
+    return sorted(path.stem for path in (folder / "anims").glob("*.toml"))
 
 
 def load_timing(character_id: str, name: str, root: Path = ART_SRC) -> AnimTiming:

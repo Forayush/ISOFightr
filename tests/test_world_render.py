@@ -412,7 +412,9 @@ def test_a_fighter_behind_a_platform_shows_through_it(window: Any) -> None:
     finally:
         world_renderer.OCCLUDED_FIGHTER_ALPHA = 96
 
-    deck_colors = {art.DECK_PALETTE.top_light, art.DECK_PALETTE.top_dark}
+    # The deck's colours, from the rendered tileset (or the procedural deck without one).
+    decks = [view.renderer._deck_image(light) for light in (True, False)]
+    deck_colors = {pixel for deck in decks for pixel in deck.getdata() if pixel[3] == 255}
     assert without_xray in deck_colors, "without the x-ray copy only the deck is seen"
     assert with_xray not in deck_colors
     assert not same_color(with_xray, P1_BODY), "it is a faint copy, not the fighter in front"
@@ -463,3 +465,23 @@ def test_keyboard_presets_do_not_collide(window: Any) -> None:
     # Either player-1 layout can share a keyboard with player 2's.
     assert not set(SOLO_KEYBOARD.keys()) & set(ARROWS_NUMPAD.keys())
     assert not set(LEFT_CLUSTER.keys()) & set(ARROWS_NUMPAD.keys())
+
+
+def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
+    view = make_view(window, load_stage("sky_ruins"))
+    renderer = view.renderer
+    assert [parallax for parallax, _ in renderer._layers] == [0.0, 0.08, 0.18, 0.35]
+    reference = tuple(round(value) for value in renderer._backdrop_reference)
+    renderer._place_backdrop(reference)
+    before = [copies[1].center_x for _, copies in renderer._layers]
+    renderer._place_backdrop((reference[0] + 100, reference[1]))
+    after = [copies[1].center_x for _, copies in renderer._layers]
+    widths = [copies[1].width for _, copies in renderer._layers]
+    moved = [
+        round(start - end) % width for start, end, width in zip(before, after, widths, strict=True)
+    ]
+    assert moved == [0, 8, 18, 35], "nearer layers move further, the sky not at all"
+    renderer._place_backdrop((reference[0] + 100_000, reference[1]))
+    for _, copies in renderer._layers:
+        lefts = [sprite.left for sprite in copies]
+        assert min(lefts) <= 0 and max(sprite.right for sprite in copies) >= 640, "it wraps"

@@ -1,0 +1,45 @@
+# Deck: planks of a soft platform.
+loop = true
+fps = 1
+
+[[parts]]
+name = "beam"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.190]
+material = "wood_dark"
+
+[[parts]]
+name = "plank0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.012, -0.210]
+high = [1.000, 0.238, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.262, -0.210]
+high = [1.000, 0.488, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "plank2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.512, -0.210]
+high = [1.000, 0.738, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank3"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.762, -0.210]
+high = [1.000, 0.988, 0.000]
+material = "wood_dark"
+
+[[poses]]

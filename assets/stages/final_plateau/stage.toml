@@ -3,7 +3,7 @@
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "final_plateau"
 display_name = "Final Plateau"
-tileset = "stone"
+tileset = "grass_stone"
 
 # Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
 grid = """

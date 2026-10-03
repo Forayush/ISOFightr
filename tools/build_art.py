@@ -1,13 +1,15 @@
-"""Render a character in Blender and pack it into sprite sheets.
+"""Render a character or a tileset in Blender and pack it for the game.
 
 Usage::
 
     uv run python tools/build_art.py rook               # render what changed, then pack
     uv run python tools/build_art.py rook --force       # re-render everything
     uv run python tools/build_art.py rook --anim idle   # only some animations (still packs all)
+    uv run python tools/build_art.py grass_stone        # a tileset (art_src/tilesets/<id>)
 
-Renders go to ``build/art/<id>/`` (git-ignored); sheets and ``sprites.json`` to
-``assets/characters/<id>/sprites/``. Plan note "10 - Animation and Asset Pipeline".
+Renders go to ``build/art/<id>/`` (git-ignored). A character's sheets, ``sprites.json`` and
+portraits go to ``assets/characters/<id>/sprites/``; a tileset's tile images and
+``tileset.json`` to ``assets/tilesets/<id>/``. Plan note "10 - Animation and Asset Pipeline".
 """
 
 import argparse
@@ -17,7 +19,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from isofightr.art.anims import anims_dir, list_anims, load_timing
+from isofightr.art.anims import anims_dir, list_anims, list_anims_in, load_timing
 from isofightr.art.blender import (
     BUILD_DIR,
     PIVOT,
@@ -27,7 +29,13 @@ from isofightr.art.blender import (
     require_blender,
 )
 from isofightr.art.packer import compose, palette_bytes, trim, write_sheets
-from isofightr.art.palettes import ART_SRC, TRANSPARENT_INDEX, CharacterPalettes, load_palettes
+from isofightr.art.palettes import (
+    ART_SRC,
+    TRANSPARENT_INDEX,
+    CharacterPalettes,
+    load_palettes,
+    load_palettes_in,
+)
 from isofightr.art.portraits import (
     BUST_SIZE,
     ICON_SCALE,
@@ -35,7 +43,15 @@ from isofightr.art.portraits import (
     PORTRAIT_FACING,
     crop_top,
 )
+from isofightr.art.tileset import (
+    TILE_CANVAS,
+    TILE_FACING,
+    TILE_PIVOT,
+    cut_tile,
+    write_tileset,
+)
 from isofightr.data.paths import CHARACTERS_DIR
+from isofightr.data.tileset_art import TILESETS_DIR
 from isofightr.sim.input_frame import Dir8
 
 SPRITES_DIR_NAME = "sprites"
@@ -50,6 +66,9 @@ def main() -> None:
     args = parser.parse_args()
 
     character = args.character
+    if (ART_SRC / "tilesets" / character).is_dir():
+        build_tileset(character, args.force)
+        return
     palettes = load_palettes(character)
     names = list_anims(character)
     timings = [load_timing(character, name) for name in names]
@@ -90,6 +109,33 @@ def main() -> None:
         f"in {time.perf_counter() - started:.1f} s"
     )
     build_portraits(blender, job, palettes)
+
+
+def build_tileset(tileset_id: str, force: bool) -> None:
+    """Render every tile of a tileset from the fixed camera and cut the blocks out."""
+    source = ART_SRC / "tilesets" / tileset_id
+    palettes = load_palettes_in(source)
+    names = list_anims_in(source)
+    blender = require_blender()
+    job = RenderJob(
+        tileset_id,
+        source / "rig.toml",
+        source / "poses.toml",
+        tuple(material.name for material in palettes.materials),
+        {name: source / "anims" / f"{name}.toml" for name in names},
+        BUILD_DIR / "tilesets" / tileset_id,
+        directions=(TILE_FACING,),
+        canvas=TILE_CANVAS,
+        pivot=TILE_PIVOT,
+    )
+    rendered = render(blender, job, force=force)
+    tiles = {}
+    for name in names:
+        stem = job.out / name / f"00_{TILE_FACING}"
+        composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
+        tiles[name] = cut_tile(composed)
+    write_tileset(TILESETS_DIR / tileset_id, tileset_id, tiles, palettes, blender_version(blender))
+    print(f"tileset {tileset_id}: rendered {len(rendered)}, wrote {len(tiles)} tiles")
 
 
 def build_portraits(blender: Path, job: RenderJob, palettes: CharacterPalettes) -> None:

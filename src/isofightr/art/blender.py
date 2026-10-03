@@ -120,6 +120,8 @@ class RenderJob:
     """Pixels per unit relative to the game (portrait icons render smaller)."""
     directions: tuple[str, ...] = ()
     """Facings to render (by ``Dir8`` name); empty means all eight."""
+    canvas: tuple[int, int] = CANVAS
+    pivot: tuple[int, int] = PIVOT
 
 
 def stamp_for(job: RenderJob, anim: str) -> str:
@@ -127,7 +129,8 @@ def stamp_for(job: RenderJob, anim: str) -> str:
     digest = hashlib.sha256()
     for path in (job.rig, job.library, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
         digest.update(path.read_bytes() if path.is_file() else b"-")
-    digest.update(json.dumps([job.materials, CANVAS, PIVOT, _directions(job), job.scale]).encode())
+    settings = [job.materials, job.canvas, job.pivot, _directions(job), job.scale]
+    digest.update(json.dumps(settings).encode())
     return digest.hexdigest()
 
 
@@ -155,8 +158,8 @@ def render(blender: Path, job: RenderJob, force: bool = False) -> list[str]:
                 "anims": [{"name": anim, "path": str(job.anims[anim])} for anim in stale],
                 "directions": _directions(job),
                 "scale": job.scale,
-                "canvas": list(CANVAS),
-                "pivot": list(PIVOT),
+                "canvas": list(job.canvas),
+                "pivot": list(job.pivot),
                 "out": str(job.out),
             },
             indent=1,

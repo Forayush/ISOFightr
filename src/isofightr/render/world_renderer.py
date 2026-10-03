@@ -8,6 +8,7 @@ so the whole world is a single batched draw call (decision D-019).
 Reads state only: it never changes what it draws.
 """
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
 from enum import IntEnum
 from typing import Protocol
@@ -24,6 +25,8 @@ from isofightr.config import (
     TILE_H,
     Z_PX,
 )
+from isofightr.data.paths import STAGES_DIR
+from isofightr.data.tileset_art import TilesetArtError, load_tileset_art
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import snap
 from isofightr.render.depth import (
@@ -39,11 +42,14 @@ from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
+from isofightr.render.stage_art import StageArt
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import Stage
 
+LOG = logging.getLogger(__name__)
 HIDDEN_DRAW_RANK = -1
+BACKDROP_COPIES = 3
 BODY_RECT_HALF_WIDTH = art.BODY_HALF_WIDTH + 3
 """Half-width of everything the fighter sprite draws: the body plus the arrow tips."""
 BODY_HEIGHT_UNITS = art.BODY_HEIGHT / Z_PX
@@ -119,6 +125,12 @@ class WorldRenderer:
         """
         self.stage = stage
         self.banks: Mapping[str, SpriteBank] = banks or {}
+        try:
+            tileset = load_tileset_art(stage.tileset)
+        except TilesetArtError as error:
+            LOG.error("tileset %s not loaded: %s", stage.tileset, error)
+            tileset = None
+        self.stage_art = None if tileset is None else StageArt(tileset)
         self.sorter = DepthSorter(stage)
         self.sprites: arcade.SpriteList[_RankedSprite] = arcade.SpriteList()
         self.camera = arcade.Camera2D(
@@ -140,13 +152,18 @@ class WorldRenderer:
         self._ghost_of: dict[int, arcade.Sprite] = {}
 
         self._background: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
-        self._background.append(
-            arcade.Sprite(
-                self._texture(("sky",), art.build_sky),
-                center_x=NATIVE_W / 2,
-                center_y=NATIVE_H / 2,
+        self._layers = self._load_backdrop()
+        if not self._layers:
+            self._background.append(
+                arcade.Sprite(
+                    self._texture(("sky",), art.build_sky),
+                    center_x=NATIVE_W / 2,
+                    center_y=NATIVE_H / 2,
+                )
             )
-        )
+        rows, columns = len(stage.cells), len(stage.cells[0]) if stage.cells else 0
+        self._backdrop_reference = project(columns / 2, rows / 2, 0.0)
+        """The camera centre at which every backdrop layer sits centred on the screen."""
 
     # --- per-frame -------------------------------------------------------------------------
 
@@ -177,6 +194,35 @@ class WorldRenderer:
             self._order = order
             self._apply_order(order)
 
+    def _load_backdrop(self) -> list[tuple[float, list[arcade.Sprite]]]:
+        """Load the stage's parallax layers: each repeats three times across."""
+        layers = []
+        for layer in self.stage.backgrounds:
+            path = STAGES_DIR / self.stage.id / layer.image
+            try:
+                image = Image.open(path).convert("RGBA")
+            except OSError as error:
+                LOG.error("background %s not loaded: %s", path, error)
+                continue
+            texture = arcade.Texture(image, hash=f"backdrop:{self.stage.id}:{layer.image}")
+            copies = [arcade.Sprite(texture) for _ in range(BACKDROP_COPIES)]
+            for sprite in copies:
+                self._background.append(sprite)
+            layers.append((layer.parallax, copies))
+        return layers
+
+    def _place_backdrop(self, camera_centre: tuple[int, int]) -> None:
+        """Scroll each layer by its share of how far the camera is from the stage centre."""
+        reference_x, reference_y = self._backdrop_reference
+        for parallax, copies in self._layers:
+            width = copies[0].texture.width
+            shift_x = -round((camera_centre[0] - reference_x) * parallax)
+            shift_y = -round((camera_centre[1] - reference_y) * parallax)
+            # Wrap so one copy always covers the screen, with its neighbours either side.
+            centre_x = NATIVE_W / 2 + (shift_x % width) - width / 2
+            for index, sprite in enumerate(copies):
+                sprite.position = (centre_x + (index - 1) * width, NATIVE_H / 2 + shift_y)
+
     def draw(self, camera_centre: tuple[int, int], overlays: Sequence[Overlay] = ()) -> None:
         """Draw the background, then the sorted world as seen from ``camera_centre``.
 
@@ -184,6 +230,7 @@ class WorldRenderer:
         ``overlays`` are drawn last and in order, in the same world pixel space (the VFX
         layer, debug overlays).
         """
+        self._place_backdrop(camera_centre)
         self._background.draw(pixelated=True)
         self.camera.position = camera_centre
         with self.camera.activate():
@@ -203,12 +250,12 @@ class WorldRenderer:
             side_px = snap((cell.top - self.stage.underside) * Z_PX)
             tile = cell.tile
             texture = self._texture(
-                ("tile", tile, light, side_px), lambda: art.build_tile(tile, light, side_px)
+                ("tile", tile, light, side_px), lambda: self._tile_image(tile, light, side_px)
             )
         elif item.kind is StaticKind.DECAL:
             texture = self._texture(("platform_shadow",), art.build_platform_shadow)
         else:
-            texture = self._texture(("deck", light), lambda: art.build_deck(light))
+            texture = self._texture(("deck", light), lambda: self._deck_image(light))
 
         centre_x, back_y = project(item.cx, item.cy, item.top)
         sprite = _RankedSprite(
@@ -216,6 +263,14 @@ class WorldRenderer:
         )
         self.sprites.append(sprite)
         return sprite
+
+    def _tile_image(self, tile: str, light: bool, side_px: int) -> Image.Image:
+        rendered = None if self.stage_art is None else self.stage_art.tile(tile, light, side_px)
+        return rendered or art.build_tile(tile, light, side_px)
+
+    def _deck_image(self, light: bool) -> Image.Image:
+        rendered = None if self.stage_art is None else self.stage_art.deck(light)
+        return rendered or art.build_deck(light)
 
     # --- dynamics --------------------------------------------------------------------------
 
