@@ -8,6 +8,7 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 
 from typing import Final
 
+from isofightr.art.portraits import ICON_SIZE
 from isofightr.config import NATIVE_W
 from isofightr.ui.pixel_font import GLYPH_ADVANCE
 
@@ -53,9 +54,11 @@ def panel_lefts(player_count: int) -> list[int]:
     ]
 
 
+STOCK_SLOT_SIZE: Final[int] = ICON_SIZE
+"""A stock icon's square slot: a character's head icon, or the placeholder disc centred in it."""
 MAX_STOCK_ICONS: Final[int] = 5
 """More stocks than this are shown as one icon and a number."""
-STOCK_ICON_STEP: Final[int] = 9
+STOCK_ICON_STEP: Final[int] = STOCK_SLOT_SIZE + 1
 """Horizontal distance between stock icons, in pixels."""
 BUBBLE_MARGIN: Final[int] = 12
 """Distance of an off-screen marker's centre from the screen edge, in pixels."""

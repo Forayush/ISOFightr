@@ -22,6 +22,7 @@ from isofightr.ui.hud_layout import (
     KO_TEXT,
     MAX_STOCK_ICONS,
     STOCK_ICON_STEP,
+    STOCK_SLOT_SIZE,
     TAG_CAPACITY,
     Rgb,
     bubble_position,
@@ -35,7 +36,7 @@ from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
 
 NAME_CAPACITY = 10
-STOCK_ROW_HEIGHT = art.STOCK_ICON_SIZE + 2
+STOCK_ROW_HEIGHT = STOCK_SLOT_SIZE + 2
 STOCK_TEXT_CAPACITY = len("x99")
 
 
@@ -52,11 +53,13 @@ class DamageHud:
         bottom: int,
         names: Sequence[str] = (),
         colors: Sequence[int] = (),
+        icons: Sequence[arcade.Texture | None] = (),
     ) -> None:
         """Create the labels and icons, with their bottom edge at ``bottom`` native pixels.
 
         ``colors`` gives each player's color index (its team's in a team match); by default
-        every player has its own.
+        every player has its own. ``icons`` gives each player's stock icon (the character's
+        head in its costume); without one a disc in the player's color is used.
         """
         self.bottom = bottom
         self.sprites: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
@@ -92,13 +95,14 @@ class DamageHud:
                     scale=DAMAGE_SCALE,
                 )
             )
-            icon = arcade.Texture(art.build_stock_icon(color))
+            given = icons[index] if index < len(icons) else None
+            icon = given or arcade.Texture(art.build_stock_icon(color))
             row = []
             for slot in range(MAX_STOCK_ICONS):
                 sprite = arcade.Sprite(
                     icon,
-                    center_x=left + slot * STOCK_ICON_STEP + art.STOCK_ICON_SIZE / 2,
-                    center_y=bottom + art.STOCK_ICON_SIZE / 2,
+                    center_x=left + slot * STOCK_ICON_STEP + STOCK_SLOT_SIZE / 2,
+                    center_y=bottom + STOCK_SLOT_SIZE / 2,
                 )
                 sprite.visible = False
                 self.sprites.append(sprite)

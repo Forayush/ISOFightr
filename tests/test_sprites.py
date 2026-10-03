@@ -11,6 +11,7 @@ from PIL import Image
 from helpers import make_match
 from isofightr.art.anims import list_anims, load_timing
 from isofightr.art.palettes import load_palettes
+from isofightr.art.portraits import BUST_SIZE, ICON_SIZE, crop_top
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import (
     AnimInfo,
@@ -183,3 +184,31 @@ def test_look_carries_the_pose() -> None:
     assert look.sprite is not None and look.sprite.anim == "idle"
     assert look.costume == 2 and look.character == "rook"
     assert fighter_look(fighter, 1).sprite is None, "no sprites: the placeholder"
+
+
+# --- portraits ----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("character_id", ANIMATED)
+def test_portraits_are_indexed_squares(character_id: str) -> None:
+    sprite_set = load_sprite_set(character_id)
+    assert sprite_set is not None
+    index_count = len(sprite_set.costumes[0][1])
+    for name, size in (("bust", BUST_SIZE), ("icon", ICON_SIZE)):
+        path = sprite_set.portrait_path(name)
+        assert path is not None, f"{name}.png missing; rebuild"
+        image = Image.open(path)
+        assert image.mode == "P" and image.size == (size, size)
+        assert 0 < max(image.getdata()) < index_count
+    assert sprite_set.portrait_path("nothing") is None
+
+
+def test_crop_top_centres_on_the_head() -> None:
+    image = Image.new("L", (40, 40))
+    for x in range(20, 26):
+        for y in range(10, 30):
+            image.putpixel((x, y), 2)
+    square = crop_top(image, 8)
+    assert square.size == (8, 8)
+    assert list(square.getdata()).count(2) == 6 * 8, "the column, centred"
+    assert crop_top(Image.new("L", (5, 5)), 4).getbbox() is None

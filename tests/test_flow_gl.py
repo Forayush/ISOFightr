@@ -195,6 +195,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     css = window.current_view
     assert name(window) == "CharacterSelectView"
     assert [slot.device for slot in css.slots] == ["keyboard:solo", "", "", ""]
+    assert css._busts[0].visible and not css._busts[1].visible, "a bust for each joined player"
     press(window, keys().J)
     assert name(window) == "CharacterSelectView"
     assert "two players" in css.message, "one player cannot start a versus match"

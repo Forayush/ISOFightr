@@ -479,3 +479,14 @@ def test_an_animated_move_shows_its_smear_instead_of_a_swing_blob(window: Any) -
     assert active_hitboxes(attacker), "fsmash is active on frame 14"
     view.on_draw()
     assert len(view.effect_renderer.sprites) == 0, "no blob: the sprite has the smear"
+
+
+def test_stock_icons_are_the_characters_head(window: Any) -> None:
+    from isofightr.art.portraits import ICON_SIZE
+
+    view = make_view(window, training=False)
+    icon = view.hud._stock_icons[0][0].texture
+    assert icon.size == (ICON_SIZE, ICON_SIZE)
+    assert view.hud._stock_icons[1][0].texture is not icon, "player 2 wears another costume"
+    placeholder = make_view(window, training=False, placeholder_art=True)
+    assert placeholder.hud._stock_icons[0][0].texture.size != (ICON_SIZE, ICON_SIZE)

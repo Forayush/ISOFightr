@@ -24,7 +24,7 @@ from rig import Rig, load_library, merged_poses
 def main(job_path: Path) -> None:
     job = json.loads(job_path.read_text(encoding="utf-8"))
     scene = isoscene.reset_scene()
-    isoscene.setup_camera(scene, *job["canvas"], tuple(job["pivot"]))
+    isoscene.setup_camera(scene, *job["canvas"], tuple(job["pivot"]), job.get("scale", 1.0))
     isoscene.setup_sun(scene)
     rig = Rig(Path(job["rig"]), job["materials"], isoscene.root())
     library = load_library(Path(job["library"]))

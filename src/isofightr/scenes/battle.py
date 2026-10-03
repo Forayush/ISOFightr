@@ -211,7 +211,9 @@ class BattleView(TickedView):
         self.overlay = StageOverlay(stage, glyphs)
         names = [character.display_name for character in self.characters]
         colors = [fighter.color_index for fighter in self.match.fighters]
-        self.hud = DamageHud(glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors)
+        self.hud = DamageHud(
+            glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors, self._stock_icons()
+        )
         self._text: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         help_lines = [*HELP_LINES, TRAINING_HELP] if training else list(HELP_LINES)
         self._help_text = list(reversed(help_lines))
@@ -437,6 +439,15 @@ class BattleView(TickedView):
             if bank is not None:
                 bank.warm(costume_for(fighter, len(bank.sprite_set.costumes)))
         return banks
+
+    def _stock_icons(self) -> list[arcade.Texture | None]:
+        """Each player's stock icon: the character's head in its costume, if it has art."""
+        icons: list[arcade.Texture | None] = []
+        for fighter in self.match.fighters:
+            bank = self.renderer.banks.get(fighter.character.id)
+            costume = 0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes))
+            icons.append(None if bank is None else bank.portrait("icon", costume))
+        return icons
 
     def restart(self) -> None:
         """Start the match over (F8)."""

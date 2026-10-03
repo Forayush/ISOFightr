@@ -75,6 +75,13 @@ def blender_directions() -> list[dict[str, object]]:
     return [{"name": facing.name, "blender": [facing.world.y, facing.world.x]} for facing in Dir8]
 
 
+def _directions(job: RenderJob) -> list[dict[str, object]]:
+    every = blender_directions()
+    if not job.directions:
+        return every
+    return [direction for direction in every if direction["name"] in job.directions]
+
+
 def run_script(blender: Path, script: str, job: Path) -> None:
     """Run ``tools/blender/<script>`` headless with a job file."""
     result = subprocess.run(
@@ -109,6 +116,10 @@ class RenderJob:
     materials: tuple[str, ...]
     anims: dict[str, Path]
     out: Path
+    scale: float = 1.0
+    """Pixels per unit relative to the game (portrait icons render smaller)."""
+    directions: tuple[str, ...] = ()
+    """Facings to render (by ``Dir8`` name); empty means all eight."""
 
 
 def stamp_for(job: RenderJob, anim: str) -> str:
@@ -116,7 +127,7 @@ def stamp_for(job: RenderJob, anim: str) -> str:
     digest = hashlib.sha256()
     for path in (job.rig, job.library, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
         digest.update(path.read_bytes() if path.is_file() else b"-")
-    digest.update(json.dumps([job.materials, CANVAS, PIVOT, blender_directions()]).encode())
+    digest.update(json.dumps([job.materials, CANVAS, PIVOT, _directions(job), job.scale]).encode())
     return digest.hexdigest()
 
 
@@ -142,7 +153,8 @@ def render(blender: Path, job: RenderJob, force: bool = False) -> list[str]:
                 "library": str(job.library),
                 "materials": list(job.materials),
                 "anims": [{"name": anim, "path": str(job.anims[anim])} for anim in stale],
-                "directions": blender_directions(),
+                "directions": _directions(job),
+                "scale": job.scale,
                 "canvas": list(CANVAS),
                 "pivot": list(PIVOT),
                 "out": str(job.out),

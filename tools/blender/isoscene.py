@@ -111,13 +111,21 @@ def root() -> bpy.types.Object:
     return bpy.data.objects[ROOT_NAME]
 
 
-def setup_camera(scene: bpy.types.Scene, width: int, height: int, pivot: tuple[int, int]) -> None:
+def setup_camera(
+    scene: bpy.types.Scene,
+    width: int,
+    height: int,
+    pivot: tuple[int, int],
+    scale: float = 1.0,
+) -> None:
     """Add the orthographic camera.
 
     Args:
         width, height: the canvas in pixels.
         pivot: the pixel corner, from the top-left, where world ``(0, 0, 0)`` lands.
+        scale: pixels per unit relative to the game (0.5 renders half size, for icons).
     """
+    px_per_unit = PX_PER_UNIT * scale
     scene.render.resolution_x = width
     scene.render.resolution_y = height
     scene.render.resolution_percentage = 100
@@ -125,7 +133,7 @@ def setup_camera(scene: bpy.types.Scene, width: int, height: int, pivot: tuple[i
     scene.render.pixel_aspect_y = 1.0
     data = bpy.data.cameras.new("iso_camera")
     data.type = "ORTHO"
-    data.ortho_scale = max(width, height) / PX_PER_UNIT
+    data.ortho_scale = max(width, height) / px_per_unit
     data.clip_start = 0.1
     data.clip_end = CAMERA_DISTANCE * 2
     camera = bpy.data.objects.new("iso_camera", data)
@@ -134,8 +142,8 @@ def setup_camera(scene: bpy.types.Scene, width: int, height: int, pivot: tuple[i
 
     right, up, toward_viewer = screen_axes()
     # The image centre shows the world point that is this many pixels right/up of the origin.
-    centre_right = (width / 2 - pivot[0]) / PX_PER_UNIT
-    centre_up = (pivot[1] - height / 2) / PX_PER_UNIT
+    centre_right = (width / 2 - pivot[0]) / px_per_unit
+    centre_up = (pivot[1] - height / 2) / px_per_unit
     target = right * centre_right + up * centre_up
     camera.location = target + toward_viewer * CAMERA_DISTANCE
     camera.rotation_euler = (math.radians(90.0 - ELEVATION_DEGREES), 0.0, math.radians(135.0))

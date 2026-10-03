@@ -69,17 +69,22 @@ class FighterLook:
 DEFAULT_LOOK: Final[FighterLook] = FighterLook()
 
 
-def costume_for(fighter: Fighter, costumes: int) -> int:
-    """Return the costume a fighter wears.
+def costume_index(color_index: int, team_play: bool, costumes: int) -> int:
+    """Return the costume worn by a player of ``color_index`` (its team's in team play).
 
     In a free-for-all player 1 wears costume 0 (the character's default) and the others the
     costume of their player colour; in a team match everyone wears their team's colour.
     Costumes 1 to 4 are red, blue, yellow and green, in player-colour order (plan note
     "09 - Art Direction", "Palette swaps").
     """
-    if fighter.team == NO_TEAM and fighter.color_index == 0:
+    if not team_play and color_index == 0:
         return 0
-    return (1 + fighter.color_index) % max(costumes, 1)
+    return (1 + color_index) % max(costumes, 1)
+
+
+def costume_for(fighter: Fighter, costumes: int) -> int:
+    """Return the costume a fighter wears (see :func:`costume_index`)."""
+    return costume_index(fighter.color_index, fighter.team != NO_TEAM, costumes)
 
 
 def fighter_look(

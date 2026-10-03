@@ -16,10 +16,13 @@ import arcade
 
 from isofightr.config import MAX_PLAYERS, NATIVE_H, NATIVE_W, WINDOW_TITLE
 from isofightr.data.character_loader import list_character_ids, load_character
+from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.input.devices import KEYBOARD_PREFIX, DeviceHub, key_name
 from isofightr.render import placeholder_art as art
+from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
+from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.setup import (
     LAUNCH_RATES,
     RANDOM_STAGE,
@@ -481,8 +484,10 @@ class CharacterSelectView(MenuView):
 
     PANEL_BOTTOM = 70
     PANEL_HEIGHT = 170
-    PANEL_ROWS = 6
+    PANEL_ROWS = 5
     PANEL_CAPACITY = 24
+    BUST_SCALE = 2
+    BUST_CENTRE_Y = PANEL_BOTTOM + 36
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup) -> None:
         """Build four slot panels and rejoin the devices that were here last time."""
@@ -519,9 +524,41 @@ class CharacterSelectView(MenuView):
                     spacing=6,
                 )
             )
+        self._busts: list[arcade.Sprite] = []
+        blank = arcade.Texture(art.build_panel(1, 1, (0, 0, 0, 0), (0, 0, 0, 0)))
+        for index in range(MAX_PLAYERS):
+            bust = self.ui.image(blank, 0, 0)
+            bust.scale = self.BUST_SCALE
+            bust.position = (index * width + width / 2, self.BUST_CENTRE_Y)
+            bust.visible = False
+            self._busts.append(bust)
+        self._banks: dict[str, SpriteBank | None] = {}
         self._status = self.ui.label(centred_left(70), self.PANEL_BOTTOM - 26, 70, MUTED)
         self.footer("attack: join / ready   left/right: change   special: un-ready / leave")
         self.refresh()
+
+    def _bank(self, character_id: str) -> SpriteBank | None:
+        if character_id not in self._banks:
+            try:
+                sprite_set = load_sprite_set(character_id)
+            except SpriteSheetError:
+                sprite_set = None
+            self._banks[character_id] = None if sprite_set is None else SpriteBank(sprite_set)
+        return self._banks[character_id]
+
+    def _show_bust(self, index: int, slot: Slot) -> None:
+        """Show the slot's character in the costume it will wear, if it has art."""
+        bust = self._busts[index]
+        bank = self._bank(self.character_ids[slot.character]) if slot.device else None
+        team_play = self._rows() == 2
+        color = slot.team if team_play else index
+        texture = None
+        if bank is not None:
+            costumes = len(bank.sprite_set.costumes)
+            texture = bank.portrait("bust", costume_index(color, team_play, costumes))
+        bust.visible = texture is not None
+        if texture is not None and bust.texture is not texture:
+            bust.texture = texture
 
     def _slot_of(self, device: str) -> Slot | None:
         return next((slot for slot in self.slots if slot.device == device), None)
@@ -605,6 +642,7 @@ class CharacterSelectView(MenuView):
                 slot.device, slot.ready = "", False
         teams = self._rows() == 2
         for index, (slot, panel) in enumerate(zip(self.slots, self._panels, strict=True)):
+            self._show_bust(index, slot)
             if not slot.device:
                 panel.set_lines([f"P{index + 1}", "", "press ATTACK", "to join"])
                 continue
@@ -614,10 +652,9 @@ class CharacterSelectView(MenuView):
                 self.hub.name(slot.device),
                 f"{marks[0]} < {self.character_names[slot.character]} >",
                 f"{marks[1]} < {TEAM_NAMES[slot.team]} team >" if teams else "",
-                "",
                 "READY" if slot.ready else "attack when ready",
             ]
-            panel.set_lines(lines, 5 if slot.ready else None)
+            panel.set_lines(lines, len(lines) - 1 if slot.ready else None)
         self._status.text = self.message
         if self.message:
             self._status.move_to(centred_left(len(self.message)), self.PANEL_BOTTOM - 26)

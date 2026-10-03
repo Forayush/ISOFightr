@@ -44,6 +44,7 @@ class SpriteBank:
         ]
         self._coloured: dict[tuple[int, Tint], list[Image.Image]] = {}
         self._textures: dict[tuple[str, int, Dir8, int, Tint], arcade.Texture] = {}
+        self._portraits: dict[tuple[str, int], arcade.Texture | None] = {}
 
     def frame(self, anim: str, pose: int, facing: Dir8) -> FrameRect:
         """Return a frame's rect and pivot."""
@@ -67,6 +68,23 @@ class SpriteBank:
             )
             self._textures[key] = texture
         return texture
+
+    def portrait(self, name: str, costume: int) -> arcade.Texture | None:
+        """Return the ``"bust"`` or ``"icon"`` portrait in a costume, if the character has it."""
+        key = (name, costume)
+        if key not in self._portraits:
+            path = self.sprite_set.portrait_path(name)
+            texture = None
+            if path is not None:
+                image = Image.open(path).convert("P")
+                palette = _palette(self.sprite_set.costumes[costume][1], Tint.NORMAL)
+                image.putpalette(palette, rawmode="RGBA")
+                texture = arcade.Texture(
+                    image.convert("RGBA"),
+                    hash=f"portrait:{self.sprite_set.character_id}:{name}:{costume}",
+                )
+            self._portraits[key] = texture
+        return self._portraits[key]
 
     def warm(self, costume: int) -> None:
         """Make every normal texture of a costume now (at match start, not mid-fight)."""

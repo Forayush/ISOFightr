@@ -79,6 +79,11 @@ class SpriteSet:
         """Return one frame's rect."""
         return self.frames[f"{anim}/{pose}/{direction}"]
 
+    def portrait_path(self, name: str) -> Path | None:
+        """Return ``bust.png`` or ``icon.png`` if the character has it."""
+        path = self.folder / f"{name}.png"
+        return path if path.is_file() else None
+
 
 def sprites_folder(character_id: str, characters_dir: Path = CHARACTERS_DIR) -> Path:
     """Return where a character's sheets live."""

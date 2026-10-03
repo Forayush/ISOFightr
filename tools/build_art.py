@@ -12,6 +12,8 @@ Renders go to ``build/art/<id>/`` (git-ignored); sheets and ``sprites.json`` to
 
 import argparse
 import time
+from dataclasses import replace
+from pathlib import Path
 
 from PIL import Image
 
@@ -24,8 +26,15 @@ from isofightr.art.blender import (
     render,
     require_blender,
 )
-from isofightr.art.packer import compose, trim, write_sheets
-from isofightr.art.palettes import ART_SRC, load_palettes
+from isofightr.art.packer import compose, palette_bytes, trim, write_sheets
+from isofightr.art.palettes import ART_SRC, TRANSPARENT_INDEX, CharacterPalettes, load_palettes
+from isofightr.art.portraits import (
+    BUST_SIZE,
+    ICON_SCALE,
+    ICON_SIZE,
+    PORTRAIT_FACING,
+    crop_top,
+)
 from isofightr.data.paths import CHARACTERS_DIR
 from isofightr.sim.input_frame import Dir8
 
@@ -80,6 +89,30 @@ def main() -> None:
         f"packed {len(frames)} frames into {len(data['sheets'])} sheets "
         f"in {time.perf_counter() - started:.1f} s"
     )
+    build_portraits(blender, job, palettes)
+
+
+def build_portraits(blender: Path, job: RenderJob, palettes: CharacterPalettes) -> None:
+    """Render ``portrait.toml`` facing the viewer at full and half scale; cut the bust and
+    the stock icon; save them indexed next to the sheets."""
+    source = ART_SRC / "characters" / job.character_id / "portrait.toml"
+    if not source.is_file():
+        return
+    folder = CHARACTERS_DIR / job.character_id / SPRITES_DIR_NAME
+    for name, scale, size in (("bust", 1.0, BUST_SIZE), ("icon", ICON_SCALE, ICON_SIZE)):
+        out = job.out / f"_{name}"
+        render(
+            blender,
+            replace(
+                job, anims={"portrait": source}, out=out, scale=scale, directions=(PORTRAIT_FACING,)
+            ),
+        )
+        stem = out / "portrait" / f"00_{PORTRAIT_FACING}"
+        composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
+        image = crop_top(composed, size).convert("P")
+        image.putpalette(palette_bytes(palettes.costumes[0]))
+        image.save(folder / f"{name}.png", transparency=TRANSPARENT_INDEX, optimize=True)
+    print("portraits: bust.png, icon.png")
 
 
 if __name__ == "__main__":
