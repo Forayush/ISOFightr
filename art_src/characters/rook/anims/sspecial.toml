@@ -1,0 +1,59 @@
+# Lunge: a dashing stab along the stick (active 8-19).
+
+[[smears]]
+name = "streak"
+joint = "origin"
+shape = "rod"
+a = [0.3, -0.4, 1.12]
+b = [0.2, 1.6, 1.15]
+r1 = 0.01
+r2 = 0.14
+
+[[smears]]
+name = "streak2"
+joint = "origin"
+shape = "rod"
+a = [0.0, -0.8, 1.4]
+b = [0.0, 0.6, 1.4]
+r1 = 0.0
+r2 = 0.04
+
+[[smears]]
+name = "streak3"
+joint = "origin"
+shape = "rod"
+a = [-0.1, -0.8, 0.8]
+b = [-0.1, 0.4, 0.8]
+r1 = 0.0
+r2 = 0.04
+
+[[poses]]
+start = 1
+use = "crouch"
+offset = [0.0, -0.1, -0.2]
+chest = [-20.0, 0.0, -20.0]
+shoulder_r = [-30.0, 0.0, -10.0]
+elbow_r = [60.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]
+cape = [-20.0, 0.0, 0.0]
+
+[[poses]]
+start = 8
+use = "lunge"
+offset = [0.0, 0.2, -0.22]
+show = ["streak", "streak2", "streak3"]
+
+[[poses]]
+start = 14
+use = "lunge"
+offset = [0.0, 0.2, -0.22]
+show = ["streak"]
+
+[[poses]]
+start = 20
+use = "lunge"
+offset = [0.0, 0.1, -0.2]
+
+[[poses]]
+start = 30
+use = "ready"

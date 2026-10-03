@@ -1,0 +1,44 @@
+# Taunt: a knightly salute, then the sword raised high.
+
+[[poses]]
+start = 1
+use = "ready"
+
+[[poses]]
+start = 8
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+chest = [4.0, 0.0, 0.0]
+head = [0.0, 0.0, 0.0]
+shoulder_r = [90.0, 0.0, 30.0]
+elbow_r = [60.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+hip_r = [0.0, 0.0, 0.0]
+knee_r = [0.0, 0.0, 0.0]
+hip_l = [0.0, 0.0, 0.0]
+knee_l = [0.0, 0.0, 0.0]
+ankle_r = [0.0, 0.0, 0.0]
+ankle_l = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 30
+use = "ready"
+offset = [0.0, 0.0, 0.02]
+hips = [0.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+head = [20.0, 0.0, 0.0]
+shoulder_r = [170.0, -20.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [30.0, 40.0, 0.0]
+elbow_l = [60.0, 0.0, 0.0]
+hip_r = [0.0, 0.0, 0.0]
+knee_r = [0.0, 0.0, 0.0]
+hip_l = [0.0, 0.0, 0.0]
+knee_l = [0.0, 0.0, 0.0]
+ankle_r = [0.0, 0.0, 0.0]
+ankle_l = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 48
+use = "ready"

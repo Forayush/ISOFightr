@@ -1,0 +1,27 @@
+# Riposte: a parry stance that counters (counter 5-25).
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [0.0, 0.0, 20.0]
+head = [6.0, 0.0, 10.0]
+shoulder_r = [60.0, 0.0, 30.0]
+elbow_r = [75.0, 0.0, 0.0]
+hand_r = [-45.0, 0.0, 0.0]
+
+[[poses]]
+start = 5
+use = "guard"
+chest = [0.0, 0.0, 20.0]
+head = [6.0, 0.0, 10.0]
+shoulder_r = [60.0, 0.0, 30.0]
+elbow_r = [75.0, 0.0, 0.0]
+hand_r = [-45.0, 0.0, 0.0]
+
+[[poses]]
+start = 26
+use = "guard"
+
+[[poses]]
+start = 36
+use = "ready"

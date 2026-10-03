@@ -56,7 +56,7 @@ STATE_ANIMS: Final[Mapping[StateId, str]] = {
     StateId.GRAB_RELEASE: "grab_release",
     StateId.LEDGE_HANG: "ledge_hang",
     StateId.LEDGE_GETUP: "ledge_getup",
-    StateId.LEDGE_ATTACK: "ledge_attack",
+    StateId.LEDGE_ATTACK: "ledge_climb",  # the climb before the ledge_attack move
     StateId.LEDGE_ROLL: "ledge_roll",
     StateId.LEDGE_TRUMPED: "ledge_trumped",
     StateId.TECH: "tech",
@@ -96,6 +96,7 @@ FALLBACKS: Final[Mapping[str, str]] = {
     "tech_roll": "roll",
     "getup_roll": "roll",
     "ledge_roll": "roll",
+    "ledge_climb": "ledge_getup",
     "wall_tech": "tech",
     "revival": "idle",
     "riposte_hit": "dspecial",

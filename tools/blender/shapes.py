@@ -6,9 +6,12 @@ context. Every part gets its own mesh data (its material is swapped per render p
 
 from __future__ import annotations
 
+import math
+from itertools import pairwise
+
 import bmesh
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Euler, Matrix, Vector
 
 
 def _object(name: str, mesh: bmesh.types.BMesh, material_id: int, parent: bpy.types.Object):
@@ -109,6 +112,50 @@ def ball(
     bmesh.ops.transform(
         mesh, matrix=Matrix.Translation(centre) @ Matrix.Diagonal((*scale, 1.0)), verts=mesh.verts
     )
+    return _object(name, mesh, material_id, parent)
+
+
+def arc(
+    name: str,
+    centre: tuple[float, float, float],
+    r_in: float,
+    r_out: float,
+    a0: float,
+    a1: float,
+    thickness: float,
+    turn: tuple[float, float, float],
+    material_id: int,
+    parent: bpy.types.Object,
+) -> bpy.types.Object:
+    """A flat ring sector: the smear of a swing.
+
+    It lies in the joint's xy plane before ``turn`` (degrees, XYZ) tilts it. Angles are in
+    degrees from +y (forward), increasing toward -x (the character's left), so ``a0 = -90,
+    a1 = 90`` sweeps from the right side, across the front, to the left side.
+    """
+    mesh = bmesh.new()
+    steps = max(4, int(abs(a1 - a0) / 10))
+    rings: list[list[bmesh.types.BMVert]] = []
+    for step in range(steps + 1):
+        angle = math.radians(a0 + (a1 - a0) * step / steps)
+        direction = Vector((-math.sin(angle), math.cos(angle), 0.0))
+        # Taper toward the start of the swing, like a brush stroke.
+        inner = r_out - (r_out - r_in) * (0.25 + 0.75 * step / steps)
+        rings.append(
+            [
+                mesh.verts.new(direction * radius + Vector((0.0, 0.0, z)))
+                for radius in (inner, r_out)
+                for z in (-thickness / 2, thickness / 2)
+            ]
+        )
+    for current, following in pairwise(rings):
+        for a, b in ((0, 2), (1, 3), (0, 1), (2, 3)):
+            mesh.faces.new((current[a], current[b], following[b], following[a]))
+    for end in (rings[0], rings[-1]):
+        mesh.faces.new((end[0], end[1], end[3], end[2]))
+    rotation = Euler(tuple(math.radians(value) for value in turn), "XYZ").to_matrix().to_4x4()
+    bmesh.ops.transform(mesh, matrix=Matrix.Translation(centre) @ rotation, verts=mesh.verts)
+    bmesh.ops.recalc_face_normals(mesh, faces=mesh.faces)
     return _object(name, mesh, material_id, parent)
 
 

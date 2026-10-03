@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import isoscene
-from rig import Rig, merged_poses
+from rig import Rig, load_library, merged_poses
 
 
 def main(job_path: Path) -> None:
@@ -27,10 +27,12 @@ def main(job_path: Path) -> None:
     isoscene.setup_camera(scene, *job["canvas"], tuple(job["pivot"]))
     isoscene.setup_sun(scene)
     rig = Rig(Path(job["rig"]), job["materials"], isoscene.root())
+    library = load_library(Path(job["library"]))
     out = Path(job["out"])
     for anim in job["anims"]:
         data = tomllib.loads(Path(anim["path"]).read_text(encoding="utf-8"))
-        for pose_index, pose in enumerate(merged_poses(data)):
+        smears = rig.add_smears(data.get("smears", []))
+        for pose_index, pose in enumerate(merged_poses(data, library)):
             rig.pose(pose)
             for direction in job["directions"]:
                 rig.face(tuple(direction["blender"]))
@@ -40,6 +42,7 @@ def main(job_path: Path) -> None:
                     stem.with_name(stem.name + "_id.png"),
                     stem.with_name(stem.name + "_light.png"),
                 )
+        rig.remove(smears)
     print("RENDER_DONE")
 
 

@@ -1,0 +1,20 @@
+# Run turn: digging in and pivoting.
+
+[[poses]]
+start = 1
+use = "ready"
+offset = [0.0, -0.05, -0.1]
+hips = [14.0, 0.0, 0.0]
+chest = [20.0, 0.0, 0.0]
+head = [0.0, 0.0, 0.0]
+cape = [30.0, 0.0, 0.0]
+hip_r = [50.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+hip_l = [20.0, 0.0, 0.0]
+knee_l = [-50.0, 0.0, 0.0]
+
+[[poses]]
+start = 6
+use = "crouch"
+hips = [0.0, 0.0, 90.0]
+chest = [-10.0, 0.0, 20.0]

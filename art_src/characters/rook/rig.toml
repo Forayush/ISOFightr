@@ -11,8 +11,18 @@
 # Parts hang from a joint; their coordinates are in that joint's space.
 #   box:  low, high              ball: centre, radius, scale = [sx, sy, sz] (optional)
 #   rod:  a, b, r1, r2 (a tapered cylinder from a to b; r2 = 0 makes a cone)
+#   arc:  centre, r_in, r_out, a0, a1, thickness, turn (a flat ring sector, for smears; see
+#         tools/blender/shapes.py). Smears live in the animation files, on the `origin` joint.
+#
+# Handy sums (all rotations about x): an arm points s + e degrees up from hanging (90 =
+# forward, 180 = up); the sword blade points s + e + h degrees up from forward.
 # Every part has a material from palettes.toml. `hidden = true` parts (smears) only appear
 # in poses that `show` them.
+
+[[joints]]
+name = "origin"        # never posed: smears hang from it so they stay put while the body turns
+parent = ""
+at = [0.0, 0.0, 0.0]
 
 [[joints]]
 name = "hips"

@@ -1,0 +1,42 @@
+# Down air: a plunging stab (active 14-17).
+
+[[smears]]
+name = "plunge"
+joint = "origin"
+shape = "rod"
+a = [0.33, 0.2, 0.7]
+b = [0.3, 0.2, -0.55]
+r1 = 0.02
+r2 = 0.12
+
+[[poses]]
+start = 1
+use = "air"
+
+[[poses]]
+start = 6
+use = "tuck"
+shoulder_r = [150.0, 0.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+start = 14
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+show = ["plunge"]
+shoulder_r = [0.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 18
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+shoulder_r = [0.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 30
+use = "air"

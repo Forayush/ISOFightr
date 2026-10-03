@@ -1,0 +1,15 @@
+# Air dodge: twisting out of the way.
+
+[[poses]]
+start = 1
+use = "tuck"
+
+[[poses]]
+start = 4
+use = "tuck"
+hips = [-20.0, 0.0, 90.0]
+chest = [-10.0, 0.0, 20.0]
+
+[[poses]]
+start = 20
+use = "air"

@@ -18,9 +18,9 @@ from typing import Any, Final
 
 from isofightr.art.palettes import ART_SRC
 
-POSE_KEYS: Final[frozenset[str]] = frozenset({"offset", "show", "start"})
+POSE_KEYS: Final[frozenset[str]] = frozenset({"offset", "show", "start", "use"})
 """Keys a pose may hold besides joint rotations."""
-ANIM_KEYS: Final[frozenset[str]] = frozenset({"loop", "fps", "base", "poses"})
+ANIM_KEYS: Final[frozenset[str]] = frozenset({"loop", "fps", "base", "poses", "smears"})
 
 
 class AnimError(ValueError):

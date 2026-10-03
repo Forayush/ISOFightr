@@ -1,0 +1,5 @@
+# Knockdown: flat on the ground.
+
+[[poses]]
+start = 1
+use = "lying"

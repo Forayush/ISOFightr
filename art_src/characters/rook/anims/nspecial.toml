@@ -1,0 +1,52 @@
+# Crescent Wave: a charged slash that throws a sword wave (charge on 10, wave on 16).
+
+[[smears]]
+name = "crescent"
+joint = "origin"
+shape = "arc"
+centre = [0.3, 0.0, 1.2]
+r_in = 0.7
+r_out = 1.35
+a0 = -40
+a1 = 80
+thickness = 0.07
+turn = [0.0, 90.0, 0.0]
+
+[[poses]]
+start = 1
+use = "ready"
+
+[[poses]]
+start = 6
+use = "windup"
+shoulder_r = [160.0, -30.0, -30.0]
+elbow_r = [30.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "windup"
+offset = [0.0, -0.05, -0.08]
+shoulder_r = [170.0, -30.0, -30.0]
+elbow_r = [40.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]
+chest = [14.0, 0.0, -30.0]
+
+[[poses]]
+start = 16
+use = "lunge"
+show = ["crescent"]
+shoulder_r = [75.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-75.0, 0.0, 0.0]
+
+[[poses]]
+start = 20
+use = "lunge"
+shoulder_r = [40.0, 0.0, 10.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+start = 32
+use = "ready"

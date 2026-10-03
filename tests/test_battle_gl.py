@@ -171,7 +171,7 @@ def test_inputs_held_while_frame_advancing_reach_the_sim(window: Any) -> None:
 
 
 def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
-    view = make_view(window)
+    view = make_view(window, placeholder_art=True)
     view.match.set_damage(1, 60.0)
     view.on_draw()
     assert view.hud._damage[1].text == "60%"
@@ -228,7 +228,7 @@ def test_restart_clears_the_effects(window: Any) -> None:
 def test_hitbox_overlay_draws_hurtboxes_and_active_hitboxes_where_they_are(window: Any) -> None:
     from isofightr.render.hitbox_overlay import HITBOX_LINE, HURTBOX_LINE
 
-    view = make_view(window)
+    view = make_view(window, placeholder_art=True)
     view.match.fighters[1].pos = Vec3(9.5, 2.5, 0.0)  # out of reach
     view.on_draw()
     assert count_color(window, HURTBOX_LINE) == 0 and count_color(window, HITBOX_LINE) == 0
@@ -259,7 +259,7 @@ def test_hitbox_overlay_draws_hurtboxes_and_active_hitboxes_where_they_are(windo
 
 def test_the_attack_swing_is_drawn_exactly_where_the_hitbox_is(window: Any) -> None:
     """M3 exit criterion: the hitbox overlay matches the visuals."""
-    view = make_view(window)
+    view = make_view(window, placeholder_art=True)
     view.match.fighters[1].pos = Vec3(9.5, 2.5, 0.0)
     view.on_key_press(keys().U, 0)
     ticks(view, 1)
@@ -470,3 +470,12 @@ def test_placeholder_art_option_draws_capsules(window: Any) -> None:
     assert view.renderer.banks == {}
     view.on_draw()
     assert count_color(window, (232, 59, 59, 255)) > 100
+
+
+def test_an_animated_move_shows_its_smear_instead_of_a_swing_blob(window: Any) -> None:
+    view = make_view(window, training=False)
+    attacker = view.match.fighters[0]
+    attacker.state, attacker.move_id, attacker.state_frame = StateId.ATTACK, "fsmash", 14
+    assert active_hitboxes(attacker), "fsmash is active on frame 14"
+    view.on_draw()
+    assert len(view.effect_renderer.sprites) == 0, "no blob: the sprite has the smear"

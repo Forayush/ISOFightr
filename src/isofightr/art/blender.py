@@ -28,6 +28,7 @@ CANVAS: Final[tuple[int, int]] = (128, 128)
 PIVOT: Final[tuple[int, int]] = (64, 96)
 """The pixel corner, from the canvas's top-left, where the feet (world origin) land."""
 RENDER_TIMEOUT_SECONDS: Final[int] = 3600
+VERSION_TIMEOUT_SECONDS: Final[int] = 60
 
 
 class BlenderError(RuntimeError):
@@ -61,6 +62,7 @@ def blender_version(blender: Path) -> str:
         capture_output=True,
         text=True,
         check=True,
+        timeout=VERSION_TIMEOUT_SECONDS,
     )
     match = re.search(r"Blender (\d+\.\d+\.\d+)", result.stdout)
     if match is None:
@@ -102,6 +104,8 @@ class RenderJob:
 
     character_id: str
     rig: Path
+    library: Path
+    """``poses.toml``: named poses animations can ``use`` (may not exist)."""
     materials: tuple[str, ...]
     anims: dict[str, Path]
     out: Path
@@ -110,8 +114,8 @@ class RenderJob:
 def stamp_for(job: RenderJob, anim: str) -> str:
     """Return a hash of everything that decides an animation's renders."""
     digest = hashlib.sha256()
-    for path in (job.rig, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
-        digest.update(path.read_bytes())
+    for path in (job.rig, job.library, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
+        digest.update(path.read_bytes() if path.is_file() else b"-")
     digest.update(json.dumps([job.materials, CANVAS, PIVOT, blender_directions()]).encode())
     return digest.hexdigest()
 
@@ -135,6 +139,7 @@ def render(blender: Path, job: RenderJob, force: bool = False) -> list[str]:
         json.dumps(
             {
                 "rig": str(job.rig),
+                "library": str(job.library),
                 "materials": list(job.materials),
                 "anims": [{"name": anim, "path": str(job.anims[anim])} for anim in stale],
                 "directions": blender_directions(),

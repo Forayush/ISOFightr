@@ -71,9 +71,10 @@ def test_every_pose_exists_in_all_eight_directions(character_id: str) -> None:
     for key, rect in sprite_set.frames.items():
         sheet = sheets[rect.sheet]
         assert rect.x + rect.width <= sheet.width and rect.y + rect.height <= sheet.height, key
-        # The feet are under the drawing: the pivot sits inside it horizontally, near its bottom.
+        # The feet are under the drawing horizontally; they are below its top (in the air
+        # the body is lifted, so they may be below its bottom too).
         assert 0 <= rect.pivot_x <= rect.width, key
-        assert 0 < rect.pivot_y <= rect.height + 1, key
+        assert rect.pivot_y > 0, key
         crop = sheet.crop((rect.x, rect.y, rect.x + rect.width, rect.y + rect.height))
         assert max(crop.getdata()) < index_count, f"{key} uses a colour no costume defines"
 
@@ -89,7 +90,7 @@ def test_attack_animations_fit_their_moves(character_id: str) -> None:
             continue
         assert not info.loop, f"{move_id}: a move's animation is timed, not looped"
         assert info.starts[-1] <= move.total, f"{move_id}: a pose starts after the move ends"
-        first = move.first_active_frame()
+        first = move.first_active_frame
         if first is not None:
             assert first in info.starts, f"{move_id}: no pose starts on active frame {first}"
 

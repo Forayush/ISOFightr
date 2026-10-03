@@ -1,0 +1,30 @@
+# Up throw: heaving the victim overhead.
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 8
+use = "crouch"
+shoulder_l = [60.0, 0.0, -10.0]
+elbow_l = [40.0, 0.0, 0.0]
+
+[[poses]]
+start = 14
+use = "ready"
+offset = [0.0, 0.0, 0.05]
+chest = [16.0, 0.0, 0.0]
+head = [30.0, 0.0, 0.0]
+shoulder_l = [175.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+shoulder_r = [150.0, -20.0, 0.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+start = 24
+use = "ready"

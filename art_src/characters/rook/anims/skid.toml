@@ -1,0 +1,15 @@
+# Skid: leaning back to stop.
+
+[[poses]]
+start = 1
+use = "ready"
+offset = [0.0, -0.05, -0.1]
+hips = [14.0, 0.0, 0.0]
+chest = [20.0, 0.0, 0.0]
+head = [0.0, 0.0, 0.0]
+cape = [30.0, 0.0, 0.0]
+hip_r = [50.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [-20.0, 0.0, 0.0]
+hip_l = [20.0, 0.0, 0.0]
+knee_l = [-50.0, 0.0, 0.0]

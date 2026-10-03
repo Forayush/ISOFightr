@@ -1,0 +1,15 @@
+# Land: absorbing the landing.
+
+[[poses]]
+start = 1
+use = "crouch"
+offset = [0.0, 0.0, -0.22]
+
+[[poses]]
+start = 3
+use = "crouch"
+offset = [0.0, 0.0, -0.08]
+hip_r = [30.0, 0.0, -8.0]
+knee_r = [-50.0, 0.0, 0.0]
+hip_l = [24.0, 0.0, 14.0]
+knee_l = [-46.0, 0.0, 0.0]

@@ -1,0 +1,49 @@
+# Forward tilt: a reaching horizontal slash (active 7-9).
+
+[[smears]]
+name = "slash"
+joint = "origin"
+shape = "arc"
+centre = [0.25, 0.0, 1.2]
+r_in = 0.55
+r_out = 1.45
+a0 = -75
+a1 = 25
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [6.0, 0.0, -20.0]
+shoulder_r = [75.0, 0.0, -70.0]
+elbow_r = [30.0, 0.0, 0.0]
+hand_r = [-100.0, 0.0, 0.0]
+
+[[poses]]
+start = 4
+use = "windup"
+shoulder_r = [85.0, 0.0, -100.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-100.0, 0.0, 0.0]
+
+[[poses]]
+start = 7
+use = "lunge"
+show = ["slash"]
+shoulder_r = [86.0, 0.0, 12.0]
+chest = [-20.0, 0.0, 25.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-85.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "lunge"
+shoulder_r = [80.0, 0.0, 50.0]
+chest = [-20.0, 0.0, 35.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-85.0, 0.0, 0.0]
+
+[[poses]]
+start = 20
+use = "ready"

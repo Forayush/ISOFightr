@@ -1,0 +1,26 @@
+# Back throw: spinning round and hurling behind.
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "ready"
+hips = [0.0, 0.0, 90.0]
+chest = [0.0, 0.0, 20.0]
+shoulder_l = [90.0, 0.0, -10.0]
+
+[[poses]]
+start = 16
+use = "lunge"
+hips = [-10.0, 0.0, 180.0]
+shoulder_l = [90.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 26
+use = "ready"

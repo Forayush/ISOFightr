@@ -72,6 +72,7 @@ def test_a_rebuild_reproduces_the_committed_sheet(tmp_path: Path) -> None:
     job = RenderJob(
         "rook",
         ART_SRC / "characters" / "rook" / "rig.toml",
+        ART_SRC / "characters" / "rook" / "poses.toml",
         tuple(material.name for material in palettes.materials),
         {"idle": ART_SRC / "characters" / "rook" / "anims" / "idle.toml"},
         tmp_path,

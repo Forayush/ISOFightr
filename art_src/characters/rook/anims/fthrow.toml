@@ -1,0 +1,27 @@
+# Forward throw: a shove with the buckler.
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 8
+use = "ready"
+chest = [10.0, 0.0, -30.0]
+shoulder_l = [60.0, 30.0, 20.0]
+elbow_l = [60.0, 0.0, 0.0]
+
+[[poses]]
+start = 13
+use = "lunge"
+shoulder_l = [90.0, 0.0, -10.0]
+elbow_l = [0.0, 0.0, 0.0]
+shoulder_r = [20.0, -40.0, 0.0]
+hand_r = [-40.0, 0.0, 0.0]
+
+[[poses]]
+start = 22
+use = "ready"

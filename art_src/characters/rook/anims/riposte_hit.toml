@@ -1,0 +1,43 @@
+# Riposte reply: a fast, wide cut (active 6-9).
+
+[[smears]]
+name = "cut"
+joint = "origin"
+shape = "arc"
+centre = [0.2, 0.0, 1.2]
+r_in = 0.5
+r_out = 1.7
+a0 = -110
+a1 = 70
+thickness = 0.06
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "windup"
+shoulder_r = [95.0, 0.0, -95.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 6
+use = "lunge"
+show = ["cut"]
+shoulder_r = [88.0, 0.0, 40.0]
+chest = [-20.0, 0.0, 35.0]
+hips = [-10.0, 0.0, 40.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-85.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "lunge"
+shoulder_r = [85.0, 0.0, 60.0]
+chest = [-20.0, 0.0, 40.0]
+hips = [-10.0, 0.0, 40.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-85.0, 0.0, 0.0]
+
+[[poses]]
+start = 20
+use = "ready"

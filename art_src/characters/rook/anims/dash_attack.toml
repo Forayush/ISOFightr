@@ -1,0 +1,43 @@
+# Dash attack: a running stab (active 6-12).
+
+[[smears]]
+name = "streak"
+joint = "origin"
+shape = "rod"
+a = [0.3, 0.2, 1.0]
+b = [0.2, 1.5, 1.05]
+r1 = 0.02
+r2 = 0.12
+
+[[smears]]
+name = "streak2"
+joint = "origin"
+shape = "rod"
+a = [0.1, 0.0, 0.85]
+b = [0.15, 1.1, 0.9]
+r1 = 0.01
+r2 = 0.05
+
+[[poses]]
+start = 1
+use = "crouch"
+chest = [-30.0, 0.0, 0.0]
+cape = [-50.0, 0.0, 0.0]
+shoulder_r = [20.0, 0.0, -10.0]
+elbow_r = [90.0, 0.0, 0.0]
+hand_r = [-80.0, 0.0, 0.0]
+
+[[poses]]
+start = 6
+use = "lunge"
+offset = [0.0, 0.2, -0.2]
+show = ["streak", "streak2"]
+
+[[poses]]
+start = 13
+use = "lunge"
+offset = [0.0, 0.2, -0.2]
+
+[[poses]]
+start = 24
+use = "ready"

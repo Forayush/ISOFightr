@@ -1,0 +1,74 @@
+# Neutral air: a full spinning slash (active 4-7 strong, 8-24 weak).
+
+[[smears]]
+name = "spin"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.2]
+r_in = 0.5
+r_out = 1.35
+a0 = -90
+a1 = 250
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[smears]]
+name = "trail"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.2]
+r_in = 0.75
+r_out = 1.25
+a0 = -90
+a1 = 150
+thickness = 0.03
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "tuck"
+
+[[poses]]
+start = 4
+use = "air"
+show = ["spin"]
+hips = [0.0, 0.0, 0.0]
+shoulder_r = [90.0, 0.0, -90.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 8
+use = "air"
+show = ["trail"]
+hips = [0.0, 0.0, 120.0]
+shoulder_r = [90.0, 0.0, -90.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 12
+use = "air"
+show = ["trail"]
+hips = [0.0, 0.0, 240.0]
+shoulder_r = [90.0, 0.0, -90.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 16
+use = "air"
+show = ["trail"]
+hips = [0.0, 0.0, 360.0]
+shoulder_r = [90.0, 0.0, -90.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 25
+use = "air"
+shoulder_r = [60.0, -40.0, 0.0]
+
+[[poses]]
+start = 32
+use = "air"

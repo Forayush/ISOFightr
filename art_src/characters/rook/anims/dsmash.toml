@@ -1,0 +1,85 @@
+# Down smash: low sweeps in front, then behind (charge on 5, active 9-11 and 17-19).
+
+[[smears]]
+name = "front"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 0.5]
+r_in = 0.45
+r_out = 1.45
+a0 = -70
+a1 = 40
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[smears]]
+name = "back"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 0.5]
+r_in = 0.45
+r_out = 1.45
+a0 = 110
+a1 = 220
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+
+[[poses]]
+start = 5
+use = "crouch"
+offset = [0.0, 0.0, -0.22]
+shoulder_r = [90.0, -40.0, -40.0]
+elbow_r = [40.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+start = 9
+use = "crouch"
+offset = [0.0, 0.0, -0.24]
+show = ["front"]
+chest = [-30.0, 0.0, 15.0]
+shoulder_r = [65.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 12
+use = "crouch"
+offset = [0.0, 0.0, -0.24]
+chest = [-30.0, 0.0, 60.0]
+shoulder_r = [65.0, 0.0, 60.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 17
+use = "crouch"
+offset = [0.0, 0.0, -0.24]
+show = ["back"]
+hips = [0.0, 0.0, 170.0]
+chest = [-30.0, 0.0, 15.0]
+shoulder_r = [65.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 20
+use = "crouch"
+offset = [0.0, 0.0, -0.24]
+hips = [0.0, 0.0, 190.0]
+chest = [-30.0, 0.0, 20.0]
+shoulder_r = [65.0, 0.0, 20.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 32
+use = "crouch"
+
+[[poses]]
+start = 40
+use = "ready"

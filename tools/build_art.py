@@ -49,6 +49,7 @@ def main() -> None:
     job = RenderJob(
         character,
         ART_SRC / "characters" / character / "rig.toml",
+        ART_SRC / "characters" / character / "poses.toml",
         tuple(material.name for material in palettes.materials),
         {name: anims_dir(character) / f"{name}.toml" for name in (args.anim or names)},
         out,

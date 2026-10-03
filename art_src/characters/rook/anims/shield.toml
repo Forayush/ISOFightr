@@ -1,0 +1,6 @@
+# Shield: crouched behind the buckler (the bubble is drawn by the game).
+loop = true
+fps = 1
+
+[[poses]]
+use = "guard"
