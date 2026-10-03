@@ -1,0 +1,362 @@
+# Bramble: a mossy stone golem. Hunched, with a small head sunk between huge shoulders, long
+# arms ending in boulder fists, stubby legs, moss on his back and head, a glowing crystal in his
+# chest and glowing eyes. Puppet rig (decision D-044): rigid parts on joints, no skinning.
+#
+# Blender space: forward +y, the character's right +x, up +z, feet at the origin; 1 unit = one
+# tile edge. Joint names match Rook's (rig.toml there explains the conventions), so poses and
+# animations carry over; `cape` is whatever hangs behind (Bramble's mantle, Zephyr's tail,
+# Mote's robe flap). See art_src/characters/rook/rig.toml for the shapes.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]
+
+[[joints]]
+name = "hips"
+parent = ""
+at = [0.0, 0.0, 0.95]
+
+[[joints]]
+name = "chest"
+parent = "hips"
+at = [0.0, 0.0, 0.15]
+
+[[joints]]
+name = "head"
+parent = "chest"
+at = [0.0, 0.2, 0.92]
+
+[[joints]]
+name = "cape"
+parent = "chest"
+at = [0.0, -0.48, 0.7]
+
+[[joints]]
+name = "shoulder_r"
+parent = "chest"
+at = [0.62, 0.0, 0.72]
+
+[[joints]]
+name = "elbow_r"
+parent = "shoulder_r"
+at = [0.0, 0.0, -0.5]
+
+[[joints]]
+name = "hand_r"
+parent = "elbow_r"
+at = [0.0, 0.0, -0.45]
+
+[[joints]]
+name = "shoulder_l"
+parent = "chest"
+at = [-0.62, 0.0, 0.72]
+
+[[joints]]
+name = "elbow_l"
+parent = "shoulder_l"
+at = [0.0, 0.0, -0.5]
+
+[[joints]]
+name = "hand_l"
+parent = "elbow_l"
+at = [0.0, 0.0, -0.45]
+
+[[joints]]
+name = "hip_r"
+parent = "hips"
+at = [0.24, 0.0, -0.05]
+
+[[joints]]
+name = "knee_r"
+parent = "hip_r"
+at = [0.0, 0.0, -0.38]
+
+[[joints]]
+name = "ankle_r"
+parent = "knee_r"
+at = [0.0, 0.0, -0.38]
+
+[[joints]]
+name = "hip_l"
+parent = "hips"
+at = [-0.24, 0.0, -0.05]
+
+[[joints]]
+name = "knee_l"
+parent = "hip_l"
+at = [0.0, 0.0, -0.38]
+
+[[joints]]
+name = "ankle_l"
+parent = "knee_l"
+at = [0.0, 0.0, -0.38]
+
+# --- body ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "pelvis"
+joint = "hips"
+shape = "ball"
+centre = [0.0, 0.0, 0.0]
+radius = 0.42
+scale = [1.1, 0.9, 0.7]
+material = "stone"
+
+[[parts]]
+name = "belt"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, 0.1]
+b = [0.0, 0.0, 0.2]
+r1 = 0.47
+r2 = 0.5
+material = "vine"
+
+[[parts]]
+name = "torso"
+joint = "chest"
+shape = "ball"
+centre = [0.0, 0.05, 0.42]
+radius = 0.62
+scale = [1.15, 0.85, 0.95]
+material = "stone"
+
+[[parts]]
+name = "back_moss"
+joint = "chest"
+shape = "ball"
+centre = [0.0, -0.12, 0.8]
+radius = 0.52
+scale = [1.2, 0.85, 0.5]
+material = "moss"
+
+[[parts]]
+name = "core"
+joint = "chest"
+shape = "ball"
+centre = [0.0, 0.53, 0.42]
+radius = 0.13
+material = "glow"
+
+[[parts]]
+name = "mantle"
+joint = "cape"
+shape = "box"
+low = [-0.45, -0.1, -0.75]
+high = [0.45, 0.02, 0.0]
+material = "moss"
+
+# --- head ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "head"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.06, 0.18]
+radius = 0.3
+scale = [1.1, 1.0, 0.9]
+material = "stone"
+
+[[parts]]
+name = "head_moss"
+joint = "head"
+shape = "ball"
+centre = [0.0, -0.04, 0.34]
+radius = 0.25
+scale = [1.2, 1.1, 0.5]
+material = "moss"
+
+[[parts]]
+name = "brow"
+joint = "head"
+shape = "box"
+low = [-0.24, 0.24, 0.24]
+high = [0.24, 0.36, 0.32]
+material = "stone_dark"
+
+[[parts]]
+name = "eye_r"
+joint = "head"
+shape = "box"
+low = [0.06, 0.3, 0.14]
+high = [0.16, 0.38, 0.22]
+material = "glow"
+
+[[parts]]
+name = "eye_l"
+joint = "head"
+shape = "box"
+low = [-0.16, 0.3, 0.14]
+high = [-0.06, 0.38, 0.22]
+material = "glow"
+
+# --- arms ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "shoulder_rock_r"
+joint = "shoulder_r"
+shape = "ball"
+centre = [0.02, 0.0, 0.02]
+radius = 0.3
+material = "stone"
+
+[[parts]]
+name = "shoulder_moss_r"
+joint = "shoulder_r"
+shape = "ball"
+centre = [0.02, -0.04, 0.2]
+radius = 0.22
+scale = [1.1, 1.1, 0.6]
+material = "moss"
+
+[[parts]]
+name = "upper_arm_r"
+joint = "shoulder_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.5]
+r1 = 0.2
+r2 = 0.18
+material = "stone"
+
+[[parts]]
+name = "forearm_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.45]
+r1 = 0.2
+r2 = 0.24
+material = "stone"
+
+[[parts]]
+name = "vine_wrap_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, -0.18]
+b = [0.0, 0.0, -0.26]
+r1 = 0.25
+r2 = 0.25
+material = "vine"
+
+[[parts]]
+name = "fist_r"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, 0.02, -0.1]
+radius = 0.29
+material = "stone_dark"
+
+[[parts]]
+name = "shoulder_rock_l"
+joint = "shoulder_l"
+shape = "ball"
+centre = [-0.02, 0.0, 0.02]
+radius = 0.3
+material = "stone"
+
+[[parts]]
+name = "shoulder_moss_l"
+joint = "shoulder_l"
+shape = "ball"
+centre = [-0.02, -0.04, 0.2]
+radius = 0.22
+scale = [1.1, 1.1, 0.6]
+material = "moss"
+
+[[parts]]
+name = "upper_arm_l"
+joint = "shoulder_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.5]
+r1 = 0.2
+r2 = 0.18
+material = "stone"
+
+[[parts]]
+name = "forearm_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.45]
+r1 = 0.2
+r2 = 0.24
+material = "stone"
+
+[[parts]]
+name = "vine_wrap_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, -0.18]
+b = [0.0, 0.0, -0.26]
+r1 = 0.25
+r2 = 0.25
+material = "vine"
+
+[[parts]]
+name = "fist_l"
+joint = "hand_l"
+shape = "ball"
+centre = [0.0, 0.02, -0.1]
+radius = 0.29
+material = "stone_dark"
+
+# --- legs ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "thigh_r"
+joint = "hip_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.38]
+r1 = 0.2
+r2 = 0.19
+material = "stone"
+
+[[parts]]
+name = "shin_r"
+joint = "knee_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.32]
+r1 = 0.19
+r2 = 0.22
+material = "stone"
+
+[[parts]]
+name = "foot_r"
+joint = "ankle_r"
+shape = "box"
+low = [-0.18, -0.16, -0.14]
+high = [0.18, 0.3, 0.1]
+material = "stone_dark"
+
+[[parts]]
+name = "thigh_l"
+joint = "hip_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.38]
+r1 = 0.2
+r2 = 0.19
+material = "stone"
+
+[[parts]]
+name = "shin_l"
+joint = "knee_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.32]
+r1 = 0.19
+r2 = 0.22
+material = "stone"
+
+[[parts]]
+name = "foot_l"
+joint = "ankle_l"
+shape = "box"
+low = [-0.18, -0.16, -0.14]
+high = [0.18, 0.3, 0.1]
+material = "stone_dark"

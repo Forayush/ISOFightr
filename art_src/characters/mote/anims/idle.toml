@@ -1,0 +1,26 @@
+# Idle: the ready stance, breathing.
+loop = true
+fps = 6
+
+[[poses]]
+use = "ready"
+
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, -0.02]
+chest = [8.0, 0.0, -8.0]
+cape = [-5.0, 0.0, 0.0]
+
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, -0.04]
+chest = [10.0, 0.0, -8.0]
+cape = [-3.0, 0.0, 2.0]
+knee_r = [-30.0, 0.0, 0.0]
+knee_l = [-22.0, 0.0, 0.0]
+
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, -0.02]
+chest = [8.0, 0.0, -8.0]
+cape = [-6.0, 0.0, 1.0]

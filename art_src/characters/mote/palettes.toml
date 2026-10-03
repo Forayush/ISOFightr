@@ -1,0 +1,69 @@
+# Mote's materials and costumes (decision D-045). Colours must come from the master palette
+# (art_src/palettes/resurrect64.toml). Each ramp: highlight, light, mid, shadow, outline.
+# Costume 0 is the default; costumes 1-4 are the red, blue, yellow and green team colours
+# (only the main and accent ramps change); costume 5 is an alternative.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]   # light >= bands[0]: highlight; >= bands[1]: light; >= bands[2]: mid; else shadow
+
+[[materials]]
+name = "robe"
+# the main costume colour
+
+[[materials]]
+name = "trim"
+# gold trim and feet
+
+[[materials]]
+name = "shadow"
+# the darkness inside the hood, hands and legs
+
+[[materials]]
+name = "glow"
+lit = false
+# eyes and the lantern flame
+
+[[materials]]
+name = "metal"
+
+[[materials]]
+name = "wood"
+
+[[materials]]
+name = "smear"
+lit = false
+outline = false
+
+[[costumes]]
+name = "Lamplight"
+robe = ["0eaf9b", "0b8a8f", "0b5e65", "323353", "2e222f"]
+trim = ["fbff86", "fbb954", "f79617", "cd683d", "7a3045"]
+shadow = ["484a77", "323353", "2e222f", "2e222f", "2e222f"]
+glow = ["fbff86", "fbff86", "f9c22b", "f79617", "cd683d"]
+metal = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+wood = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+smear = ["fbff86", "fbff86", "f9c22b", "f79617", "fbff86"]
+
+[[costumes]]
+name = "Ember"
+robe = ["f57d4a", "ea4f36", "b33831", "6e2727", "2e222f"]
+glow = ["ffffff", "ffffff", "fbff86", "f9c22b", "e6904e"]
+
+[[costumes]]
+name = "Tide"
+robe = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+glow = ["8ff8e2", "8ff8e2", "30e1b9", "0eaf9b", "0b8a8f"]
+
+[[costumes]]
+name = "Sun"
+robe = ["fbff86", "f9c22b", "e6904e", "9e4539", "4c3e24"]
+trim = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+
+[[costumes]]
+name = "Grove"
+robe = ["91db69", "1ebc73", "239063", "165a4c", "313638"]
+
+[[costumes]]
+name = "Wisp"
+robe = ["eaaded", "a884f3", "905ea9", "6b3e75", "45293f"]
+glow = ["8fd3ff", "8fd3ff", "4d9be6", "4d65b4", "484a77"]

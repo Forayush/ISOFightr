@@ -1,0 +1,11 @@
+# The pose Rook's portraits are cut from (bust for menus, head for stock icons): facing the
+# viewer, sword lowered to the side. Rendered facing S only.
+[[poses]]
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+chest = [4.0, 0.0, 0.0]
+head = [-6.0, 0.0, 0.0]
+cape = [-10.0, 0.0, 0.0]
+shoulder_r = [25.0, -20.0, -25.0]
+elbow_r = [45.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]

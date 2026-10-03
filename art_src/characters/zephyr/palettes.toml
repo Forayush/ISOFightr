@@ -1,0 +1,75 @@
+# Zephyr's materials and costumes (decision D-045). Colours must come from the master palette
+# (art_src/palettes/resurrect64.toml). Each ramp: highlight, light, mid, shadow, outline.
+# Costume 0 is the default; costumes 1-4 are the red, blue, yellow and green team colours
+# (only the main and accent ramps change); costume 5 is an alternative.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]   # light >= bands[0]: highlight; >= bands[1]: light; >= bands[2]: mid; else shadow
+
+[[materials]]
+name = "fur"
+# the main costume colour
+
+[[materials]]
+name = "fur_dark"
+
+[[materials]]
+name = "cream"
+
+[[materials]]
+name = "feather"
+# crest, wings and tail accents
+
+[[materials]]
+name = "accent"
+# the courier scarf
+
+[[materials]]
+name = "leather"
+
+[[materials]]
+name = "ink"
+lit = false
+
+[[materials]]
+name = "smear"
+lit = false
+outline = false
+
+[[costumes]]
+name = "Courier"
+fur = ["fbb954", "f79617", "e6904e", "cd683d", "7a3045"]
+fur_dark = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+cream = ["ffffff", "fdcbb0", "fca790", "e6904e", "9e4539"]
+feather = ["8ff8e2", "30e1b9", "0eaf9b", "0b8a8f", "0b5e65"]
+accent = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+leather = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+ink = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+smear = ["ffffff", "ffffff", "c7dcd0", "9babb2", "ffffff"]
+
+[[costumes]]
+name = "Ember"
+fur = ["f57d4a", "ea4f36", "b33831", "6e2727", "2e222f"]
+accent = ["fbff86", "f9c22b", "e6904e", "9e4539", "4c3e24"]
+
+[[costumes]]
+name = "Tide"
+fur = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+feather = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+accent = ["f57d4a", "ea4f36", "b33831", "6e2727", "2e222f"]
+
+[[costumes]]
+name = "Sun"
+fur = ["fbff86", "f9c22b", "e6904e", "9e4539", "4c3e24"]
+accent = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+
+[[costumes]]
+name = "Grove"
+fur = ["91db69", "1ebc73", "239063", "165a4c", "313638"]
+accent = ["fbff86", "f9c22b", "e6904e", "9e4539", "4c3e24"]
+
+[[costumes]]
+name = "Snow"
+fur = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+feather = ["eaaded", "a884f3", "905ea9", "6b3e75", "45293f"]
+accent = ["f68181", "f04f78", "c32454", "831c5d", "45293f"]

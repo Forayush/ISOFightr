@@ -1,0 +1,422 @@
+# Zephyr: a small bird-fox courier. A fox head with tall ears and a feathered crest, a cream
+# muzzle and belly, wing-feathered arms, a courier's scarf and satchel, and a bushy tail.
+# Puppet rig (decision D-044): rigid parts on joints, no skinning.
+#
+# Blender space: forward +y, the character's right +x, up +z, feet at the origin; 1 unit = one
+# tile edge. Joint names match Rook's (rig.toml there explains the conventions), so poses and
+# animations carry over; `cape` is whatever hangs behind (Bramble's mantle, Zephyr's tail,
+# Mote's robe flap). See art_src/characters/rook/rig.toml for the shapes.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]
+
+[[joints]]
+name = "hips"
+parent = ""
+at = [0.0, 0.0, 0.62]
+
+[[joints]]
+name = "chest"
+parent = "hips"
+at = [0.0, 0.0, 0.08]
+
+[[joints]]
+name = "head"
+parent = "chest"
+at = [0.0, 0.04, 0.42]
+
+[[joints]]
+name = "cape"
+parent = "chest"
+at = [0.0, -0.2, -0.02]
+
+[[joints]]
+name = "shoulder_r"
+parent = "chest"
+at = [0.22, 0.0, 0.3]
+
+[[joints]]
+name = "elbow_r"
+parent = "shoulder_r"
+at = [0.0, 0.0, -0.2]
+
+[[joints]]
+name = "hand_r"
+parent = "elbow_r"
+at = [0.0, 0.0, -0.18]
+
+[[joints]]
+name = "shoulder_l"
+parent = "chest"
+at = [-0.22, 0.0, 0.3]
+
+[[joints]]
+name = "elbow_l"
+parent = "shoulder_l"
+at = [0.0, 0.0, -0.2]
+
+[[joints]]
+name = "hand_l"
+parent = "elbow_l"
+at = [0.0, 0.0, -0.18]
+
+[[joints]]
+name = "hip_r"
+parent = "hips"
+at = [0.11, 0.0, -0.03]
+
+[[joints]]
+name = "knee_r"
+parent = "hip_r"
+at = [0.0, 0.0, -0.24]
+
+[[joints]]
+name = "ankle_r"
+parent = "knee_r"
+at = [0.0, 0.0, -0.25]
+
+[[joints]]
+name = "hip_l"
+parent = "hips"
+at = [-0.11, 0.0, -0.03]
+
+[[joints]]
+name = "knee_l"
+parent = "hip_l"
+at = [0.0, 0.0, -0.24]
+
+[[joints]]
+name = "ankle_l"
+parent = "knee_l"
+at = [0.0, 0.0, -0.25]
+
+# --- body ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "torso"
+joint = "chest"
+shape = "ball"
+centre = [0.0, 0.0, 0.18]
+radius = 0.23
+scale = [1.0, 0.9, 1.2]
+material = "fur"
+
+[[parts]]
+name = "belly"
+joint = "chest"
+shape = "ball"
+centre = [0.0, 0.08, 0.14]
+radius = 0.17
+scale = [1.0, 0.9, 1.2]
+material = "cream"
+
+[[parts]]
+name = "seat"
+joint = "hips"
+shape = "ball"
+centre = [0.0, -0.02, 0.02]
+radius = 0.2
+scale = [1.0, 0.9, 0.8]
+material = "fur"
+
+[[parts]]
+name = "scarf"
+joint = "chest"
+shape = "rod"
+a = [0.0, 0.0, 0.36]
+b = [0.0, 0.0, 0.44]
+r1 = 0.2
+r2 = 0.19
+material = "accent"
+
+[[parts]]
+name = "scarf_tail"
+joint = "chest"
+shape = "box"
+low = [0.04, -0.24, 0.12]
+high = [0.14, -0.18, 0.42]
+material = "accent"
+
+[[parts]]
+name = "satchel"
+joint = "hips"
+shape = "box"
+low = [-0.3, -0.08, -0.12]
+high = [-0.16, 0.14, 0.1]
+material = "leather"
+
+[[parts]]
+name = "strap"
+joint = "chest"
+shape = "rod"
+a = [0.18, 0.12, 0.38]
+b = [-0.2, 0.12, -0.05]
+r1 = 0.025
+r2 = 0.025
+material = "leather"
+
+# --- tail ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "tail_base"
+joint = "cape"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, -0.3, -0.18]
+r1 = 0.09
+r2 = 0.15
+material = "fur"
+
+[[parts]]
+name = "tail_bush"
+joint = "cape"
+shape = "ball"
+centre = [0.0, -0.45, -0.24]
+radius = 0.2
+scale = [1.0, 1.3, 0.9]
+material = "fur"
+
+[[parts]]
+name = "tail_tip"
+joint = "cape"
+shape = "ball"
+centre = [0.0, -0.68, -0.28]
+radius = 0.13
+material = "cream"
+
+# --- head ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "head"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.02, 0.28]
+radius = 0.3
+material = "fur"
+
+[[parts]]
+name = "muzzle"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.24, 0.2]
+radius = 0.14
+scale = [1.0, 1.3, 0.8]
+material = "cream"
+
+[[parts]]
+name = "nose"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.42, 0.24]
+radius = 0.05
+material = "ink"
+
+[[parts]]
+name = "eye_r"
+joint = "head"
+shape = "box"
+low = [0.07, 0.26, 0.3]
+high = [0.15, 0.3, 0.4]
+material = "ink"
+
+[[parts]]
+name = "eye_l"
+joint = "head"
+shape = "box"
+low = [-0.15, 0.26, 0.3]
+high = [-0.07, 0.3, 0.4]
+material = "ink"
+
+[[parts]]
+name = "ear_r"
+joint = "head"
+shape = "rod"
+a = [0.15, -0.02, 0.46]
+b = [0.25, -0.06, 0.86]
+r1 = 0.11
+r2 = 0.0
+material = "fur"
+
+[[parts]]
+name = "ear_inner_r"
+joint = "head"
+shape = "rod"
+a = [0.15, 0.04, 0.5]
+b = [0.23, 0.0, 0.76]
+r1 = 0.06
+r2 = 0.0
+material = "cream"
+
+[[parts]]
+name = "ear_l"
+joint = "head"
+shape = "rod"
+a = [-0.15, -0.02, 0.46]
+b = [-0.25, -0.06, 0.86]
+r1 = 0.11
+r2 = 0.0
+material = "fur"
+
+[[parts]]
+name = "ear_inner_l"
+joint = "head"
+shape = "rod"
+a = [-0.15, 0.04, 0.5]
+b = [-0.23, 0.0, 0.76]
+r1 = 0.06
+r2 = 0.0
+material = "cream"
+
+[[parts]]
+name = "crest_1"
+joint = "head"
+shape = "rod"
+a = [0.0, -0.12, 0.52]
+b = [0.0, -0.36, 0.7]
+r1 = 0.06
+r2 = 0.0
+material = "feather"
+
+[[parts]]
+name = "crest_2"
+joint = "head"
+shape = "rod"
+a = [0.0, -0.18, 0.46]
+b = [0.0, -0.44, 0.52]
+r1 = 0.05
+r2 = 0.0
+material = "feather"
+
+# --- arms (wings) ----------------------------------------------------------------------------
+
+[[parts]]
+name = "upper_arm_r"
+joint = "shoulder_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.2]
+r1 = 0.07
+r2 = 0.06
+material = "fur"
+
+[[parts]]
+name = "forearm_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.18]
+r1 = 0.06
+r2 = 0.07
+material = "feather"
+
+[[parts]]
+name = "wing_r"
+joint = "elbow_r"
+shape = "box"
+low = [-0.01, -0.2, -0.24]
+high = [0.03, 0.0, 0.02]
+material = "feather"
+
+[[parts]]
+name = "paw_r"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, 0.02, -0.04]
+radius = 0.08
+material = "fur"
+
+[[parts]]
+name = "upper_arm_l"
+joint = "shoulder_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.2]
+r1 = 0.07
+r2 = 0.06
+material = "fur"
+
+[[parts]]
+name = "forearm_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.18]
+r1 = 0.06
+r2 = 0.07
+material = "feather"
+
+[[parts]]
+name = "wing_l"
+joint = "elbow_l"
+shape = "box"
+low = [-0.03, -0.2, -0.24]
+high = [0.01, 0.0, 0.02]
+material = "feather"
+
+[[parts]]
+name = "paw_l"
+joint = "hand_l"
+shape = "ball"
+centre = [0.0, 0.02, -0.04]
+radius = 0.08
+material = "fur"
+
+# --- legs ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "thigh_r"
+joint = "hip_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.24]
+r1 = 0.1
+r2 = 0.08
+material = "fur"
+
+[[parts]]
+name = "shin_r"
+joint = "knee_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.17]
+r1 = 0.07
+r2 = 0.07
+material = "fur_dark"
+
+[[parts]]
+name = "foot_r"
+joint = "ankle_r"
+shape = "box"
+low = [-0.08, -0.06, -0.08]
+high = [0.08, 0.18, 0.04]
+material = "fur_dark"
+
+[[parts]]
+name = "thigh_l"
+joint = "hip_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.24]
+r1 = 0.1
+r2 = 0.08
+material = "fur"
+
+[[parts]]
+name = "shin_l"
+joint = "knee_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.17]
+r1 = 0.07
+r2 = 0.07
+material = "fur_dark"
+
+[[parts]]
+name = "foot_l"
+joint = "ankle_l"
+shape = "box"
+low = [-0.08, -0.06, -0.08]
+high = [0.08, 0.18, 0.04]
+material = "fur_dark"

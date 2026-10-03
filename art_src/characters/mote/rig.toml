@@ -1,0 +1,402 @@
+# Mote: a floaty lantern mage. A hooded robe whose hood holds only darkness and two glowing eyes;
+# a lantern hangs from a short staff in the right hand; the robe hides the legs but for the
+# feet. Puppet rig (decision D-044): rigid parts on joints, no skinning.
+#
+# Blender space: forward +y, the character's right +x, up +z, feet at the origin; 1 unit = one
+# tile edge. Joint names match Rook's (rig.toml there explains the conventions), so poses and
+# animations carry over; `cape` is whatever hangs behind (Bramble's mantle, Zephyr's tail,
+# Mote's robe flap). See art_src/characters/rook/rig.toml for the shapes.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]
+
+[[joints]]
+name = "hips"
+parent = ""
+at = [0.0, 0.0, 0.85]
+
+[[joints]]
+name = "chest"
+parent = "hips"
+at = [0.0, 0.0, 0.12]
+
+[[joints]]
+name = "head"
+parent = "chest"
+at = [0.0, 0.02, 0.6]
+
+[[joints]]
+name = "cape"
+parent = "chest"
+at = [0.0, -0.26, 0.5]
+
+[[joints]]
+name = "shoulder_r"
+parent = "chest"
+at = [0.3, 0.0, 0.48]
+
+[[joints]]
+name = "elbow_r"
+parent = "shoulder_r"
+at = [0.0, 0.0, -0.27]
+
+[[joints]]
+name = "hand_r"
+parent = "elbow_r"
+at = [0.0, 0.0, -0.25]
+
+[[joints]]
+name = "shoulder_l"
+parent = "chest"
+at = [-0.3, 0.0, 0.48]
+
+[[joints]]
+name = "elbow_l"
+parent = "shoulder_l"
+at = [0.0, 0.0, -0.27]
+
+[[joints]]
+name = "hand_l"
+parent = "elbow_l"
+at = [0.0, 0.0, -0.25]
+
+[[joints]]
+name = "hip_r"
+parent = "hips"
+at = [0.12, 0.0, -0.05]
+
+[[joints]]
+name = "knee_r"
+parent = "hip_r"
+at = [0.0, 0.0, -0.36]
+
+[[joints]]
+name = "ankle_r"
+parent = "knee_r"
+at = [0.0, 0.0, -0.34]
+
+[[joints]]
+name = "hip_l"
+parent = "hips"
+at = [-0.12, 0.0, -0.05]
+
+[[joints]]
+name = "knee_l"
+parent = "hip_l"
+at = [0.0, 0.0, -0.36]
+
+[[joints]]
+name = "ankle_l"
+parent = "knee_l"
+at = [0.0, 0.0, -0.34]
+
+# --- robe ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "skirt"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, -0.76]
+b = [0.0, 0.0, 0.12]
+r1 = 0.5
+r2 = 0.26
+material = "robe"
+
+[[parts]]
+name = "hem"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, -0.78]
+b = [0.0, 0.0, -0.7]
+r1 = 0.52
+r2 = 0.51
+material = "trim"
+
+[[parts]]
+name = "sash"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, 0.08]
+b = [0.0, 0.0, 0.16]
+r1 = 0.28
+r2 = 0.27
+material = "trim"
+
+[[parts]]
+name = "torso"
+joint = "chest"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, 0.5]
+r1 = 0.26
+r2 = 0.3
+material = "robe"
+
+[[parts]]
+name = "collar"
+joint = "chest"
+shape = "rod"
+a = [0.0, 0.0, 0.44]
+b = [0.0, 0.0, 0.52]
+r1 = 0.32
+r2 = 0.3
+material = "trim"
+
+[[parts]]
+name = "back_flap"
+joint = "cape"
+shape = "box"
+low = [-0.26, -0.04, -0.85]
+high = [0.26, 0.0, 0.0]
+material = "robe"
+
+# --- hood ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "hood"
+joint = "head"
+shape = "ball"
+centre = [0.0, -0.04, 0.34]
+radius = 0.38
+scale = [1.0, 1.05, 1.05]
+material = "robe"
+
+[[parts]]
+name = "hood_tip"
+joint = "head"
+shape = "rod"
+a = [0.0, -0.26, 0.6]
+b = [0.0, -0.58, 0.44]
+r1 = 0.14
+r2 = 0.0
+material = "robe"
+
+[[parts]]
+name = "face"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.13, 0.3]
+radius = 0.28
+material = "shadow"
+
+[[parts]]
+name = "eye_r"
+joint = "head"
+shape = "box"
+low = [0.05, 0.38, 0.3]
+high = [0.13, 0.43, 0.38]
+material = "glow"
+
+[[parts]]
+name = "eye_l"
+joint = "head"
+shape = "box"
+low = [-0.13, 0.38, 0.3]
+high = [-0.05, 0.43, 0.38]
+material = "glow"
+
+# --- arms ------------------------------------------------------------------------------------
+
+[[parts]]
+name = "upper_arm_r"
+joint = "shoulder_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.27]
+r1 = 0.1
+r2 = 0.13
+material = "robe"
+
+[[parts]]
+name = "sleeve_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.25]
+r1 = 0.13
+r2 = 0.18
+material = "robe"
+
+[[parts]]
+name = "cuff_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, -0.22]
+b = [0.0, 0.0, -0.26]
+r1 = 0.185
+r2 = 0.185
+material = "trim"
+
+[[parts]]
+name = "hand_r"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, 0.0, -0.04]
+radius = 0.08
+material = "shadow"
+
+[[parts]]
+name = "upper_arm_l"
+joint = "shoulder_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.27]
+r1 = 0.1
+r2 = 0.13
+material = "robe"
+
+[[parts]]
+name = "sleeve_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.25]
+r1 = 0.13
+r2 = 0.18
+material = "robe"
+
+[[parts]]
+name = "cuff_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, -0.22]
+b = [0.0, 0.0, -0.26]
+r1 = 0.185
+r2 = 0.185
+material = "trim"
+
+[[parts]]
+name = "hand_l"
+joint = "hand_l"
+shape = "ball"
+centre = [0.0, 0.0, -0.04]
+radius = 0.08
+material = "shadow"
+
+# --- lantern (right hand; at rest the staff points forward) ----------------------------------
+
+[[parts]]
+name = "staff"
+joint = "hand_r"
+shape = "rod"
+a = [0.0, -0.1, -0.04]
+b = [0.0, 0.55, -0.04]
+r1 = 0.03
+r2 = 0.03
+material = "wood"
+
+[[parts]]
+name = "lantern_cap"
+joint = "hand_r"
+shape = "box"
+low = [-0.1, 0.5, -0.12]
+high = [0.1, 0.7, -0.08]
+material = "metal"
+
+[[parts]]
+name = "flame"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, 0.6, -0.22]
+radius = 0.1
+material = "glow"
+
+[[parts]]
+name = "lantern_base"
+joint = "hand_r"
+shape = "box"
+low = [-0.1, 0.5, -0.36]
+high = [0.1, 0.7, -0.32]
+material = "metal"
+
+[[parts]]
+name = "lantern_bar_0"
+joint = "hand_r"
+shape = "box"
+low = [-0.105, 0.495, -0.33]
+high = [-0.075, 0.525, -0.11]
+material = "metal"
+
+[[parts]]
+name = "lantern_bar_1"
+joint = "hand_r"
+shape = "box"
+low = [0.075, 0.495, -0.33]
+high = [0.105, 0.525, -0.11]
+material = "metal"
+
+[[parts]]
+name = "lantern_bar_2"
+joint = "hand_r"
+shape = "box"
+low = [-0.105, 0.675, -0.33]
+high = [-0.075, 0.705, -0.11]
+material = "metal"
+
+[[parts]]
+name = "lantern_bar_3"
+joint = "hand_r"
+shape = "box"
+low = [0.075, 0.675, -0.33]
+high = [0.105, 0.705, -0.11]
+material = "metal"
+
+# --- legs (under the robe) -------------------------------------------------------------------
+
+[[parts]]
+name = "thigh_r"
+joint = "hip_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.36]
+r1 = 0.08
+r2 = 0.07
+material = "shadow"
+
+[[parts]]
+name = "shin_r"
+joint = "knee_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.3]
+r1 = 0.07
+r2 = 0.07
+material = "shadow"
+
+[[parts]]
+name = "foot_r"
+joint = "ankle_r"
+shape = "box"
+low = [-0.08, -0.06, -0.06]
+high = [0.08, 0.2, 0.06]
+material = "trim"
+
+[[parts]]
+name = "thigh_l"
+joint = "hip_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.36]
+r1 = 0.08
+r2 = 0.07
+material = "shadow"
+
+[[parts]]
+name = "shin_l"
+joint = "knee_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.3]
+r1 = 0.07
+r2 = 0.07
+material = "shadow"
+
+[[parts]]
+name = "foot_l"
+joint = "ankle_l"
+shape = "box"
+low = [-0.08, -0.06, -0.06]
+high = [0.08, 0.2, 0.06]
+material = "trim"
