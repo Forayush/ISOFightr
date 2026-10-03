@@ -64,7 +64,12 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
     assert load_settings(path) == settings
     assert b"\r" not in path.read_bytes()
     parsed = tomllib.loads(path.read_text(encoding="utf-8"))
-    assert parsed["video"] == {"scale": 3, "fullscreen": True, "screen_shake": 25}
+    assert parsed["video"] == {
+        "scale": 3,
+        "fullscreen": True,
+        "screen_shake": 25,
+        "camera_zoom": "static",
+    }
     assert parsed["keyboard"]["solo"]["attack"] == "F"
     assert to_toml(settings) == path.read_text(encoding="utf-8")
 

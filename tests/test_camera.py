@@ -104,3 +104,36 @@ def test_main_islands_fit_on_screen_with_the_camera_at_rest(stage_id: str) -> No
     assert visible.right <= centre_x + NATIVE_W / 2
     assert visible.bottom >= centre_y - NATIVE_H / 2
     assert visible.top <= centre_y + NATIVE_H / 2
+
+
+# --- stepped zoom (M8 experiment, D-048) -----------------------------------------------------
+
+
+def test_stepped_zoom_waits_before_zooming_in_and_leaves_at_once() -> None:
+    from isofightr.config import CAMERA_ZOOM_IN_TICKS, CAMERA_ZOOM_STEP
+    from isofightr.render.camera import StepZoom, fits_zoomed
+
+    close = [Vec3(5.0, 5.0, 1.0), Vec3(6.0, 5.0, 1.0)]
+    far = [Vec3(1.0, 5.0, 1.0), Vec3(11.0, 5.0, 1.0)]
+    assert fits_zoomed(close) and not fits_zoomed(far)
+    zoom = StepZoom()
+    assert all(zoom.update(close) == 1 for _ in range(100)), "off by default"
+    zoom.enabled = True
+    levels = [zoom.update(close) for _ in range(CAMERA_ZOOM_IN_TICKS)]
+    assert levels[:-1] == [1] * (CAMERA_ZOOM_IN_TICKS - 1) and levels[-1] == CAMERA_ZOOM_STEP
+    assert zoom.update(far) == 1, "zooms out the moment someone would leave the view"
+    assert zoom.update(close) == 1, "and waits again before zooming back in"
+
+
+def test_a_zoomed_camera_clamps_to_its_smaller_view() -> None:
+    from isofightr.render.camera import FollowCamera
+
+    limits = ScreenRect(-400.0, -300.0, 400.0, 300.0)
+    camera = FollowCamera(limits=limits)
+    edge = [Vec3(0.0, -24.0, 0.0)]  # far to the right on screen
+    camera.snap_to(edge)
+    wide = camera.x
+    camera.zoom = 2
+    camera.snap_to(edge)
+    assert camera.x > wide, "a smaller view can go closer to the edge"
+    assert camera.x == limits.right - 320 / 2

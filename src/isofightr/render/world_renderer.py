@@ -223,7 +223,9 @@ class WorldRenderer:
             for index, sprite in enumerate(copies):
                 sprite.position = (centre_x + (index - 1) * width, NATIVE_H / 2 + shift_y)
 
-    def draw(self, camera_centre: tuple[int, int], overlays: Sequence[Overlay] = ()) -> None:
+    def draw(
+        self, camera_centre: tuple[int, int], overlays: Sequence[Overlay] = (), zoom: int = 1
+    ) -> None:
         """Draw the background, then the sorted world as seen from ``camera_centre``.
 
         Call inside ``pixel_buffer.drawing()``. ``camera_centre`` is in whole world pixels.
@@ -233,6 +235,7 @@ class WorldRenderer:
         self._place_backdrop(camera_centre)
         self._background.draw(pixelated=True)
         self.camera.position = camera_centre
+        self.camera.zoom = zoom
         with self.camera.activate():
             self.sprites.draw(pixelated=True)
             if OCCLUDED_FIGHTER_ALPHA > 0:

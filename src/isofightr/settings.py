@@ -36,6 +36,9 @@ DEADZONES: Final[tuple[float, ...]] = (0.10, 0.15, 0.20, 0.25, 0.30, 0.35)
 PRESET_RIGHT_STICK: Final[str] = "right_stick_modifiers"
 PRESET_BUMPERS: Final[str] = "modifier_bumpers"
 GAMEPAD_PRESETS: Final[tuple[str, ...]] = (PRESET_RIGHT_STICK, PRESET_BUMPERS)
+ZOOM_STATIC: Final[str] = "static"
+ZOOM_STEPPED: Final[str] = "stepped"
+CAMERA_ZOOMS: Final[tuple[str, ...]] = (ZOOM_STATIC, ZOOM_STEPPED)
 
 KEYBOARD_SOLO: Final[str] = "solo"
 KEYBOARD_ARROWS: Final[str] = "arrows"
@@ -111,6 +114,8 @@ class Settings:
     fullscreen: bool = False
     screen_shake: int = 100
     """Screen shake intensity in percent."""
+    camera_zoom: str = ZOOM_STATIC
+    """``"static"`` or ``"stepped"`` (2x when the fighters are close; decision D-048)."""
     master_volume: int = VOLUME_MAX
     music_volume: int = 8
     sfx_volume: int = VOLUME_MAX
@@ -200,6 +205,7 @@ def from_data(data: Mapping[str, Any]) -> Settings:
         scale=_pick(video.get("scale"), SCALES, defaults.scale),
         fullscreen=fullscreen if isinstance(fullscreen, bool) else defaults.fullscreen,
         screen_shake=_pick(video.get("screen_shake"), SHAKE_STEPS, defaults.screen_shake),
+        camera_zoom=_pick(video.get("camera_zoom"), CAMERA_ZOOMS, defaults.camera_zoom),
         master_volume=_volume(audio.get("master"), defaults.master_volume),
         music_volume=_volume(audio.get("music"), defaults.music_volume),
         sfx_volume=_volume(audio.get("sfx"), defaults.sfx_volume),
@@ -227,6 +233,7 @@ def to_toml(settings: Settings) -> str:
         f"scale = {settings.scale}",
         f"fullscreen = {'true' if settings.fullscreen else 'false'}",
         f"screen_shake = {settings.screen_shake}",
+        f"camera_zoom = {text(settings.camera_zoom)}",
         "",
         "[audio]",
         f"master = {settings.master_volume}",

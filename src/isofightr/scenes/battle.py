@@ -12,7 +12,8 @@ Escape or Enter opens the pause menu, which in training mode holds the training 
 
 Debug keys (plan note 13, "Training mode"): F1 hitboxes and hurtboxes, F2 fighter info,
 F3 stage overlay, F5 pause, F6 advance one frame, F8 restart the match, F9 reload character
-and move data from disk, C toggles the camera clamp, H hides the help text. In training mode
+and move data from disk, C toggles the camera clamp, Z the stepped zoom, H hides the help
+text. In training mode
 ``-`` and ``=`` change the dummies' damage by 10%, ``0`` resets it and Tab switches them
 between standing still and their own controls. Player controls are in
 :mod:`isofightr.input.devices`.
@@ -35,7 +36,7 @@ from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.validation import DataError
 from isofightr.input.devices import DeviceHub, InputSource
 from isofightr.render import placeholder_art as art
-from isofightr.render.camera import FollowCamera, bounds_on_screen
+from isofightr.render.camera import FollowCamera, StepZoom, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
 from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
@@ -47,7 +48,7 @@ from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
 from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
 from isofightr.scenes.ticked_view import TickedView
-from isofightr.settings import Settings
+from isofightr.settings import ZOOM_STEPPED, Settings
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, InputFrame
@@ -75,6 +76,7 @@ KEY_FRAME_ADVANCE = arcade.key.F6
 KEY_RESET = arcade.key.F8
 KEY_RELOAD = arcade.key.F9
 KEY_CAMERA_CLAMP = arcade.key.C
+KEY_ZOOM = arcade.key.Z
 KEY_HELP = arcade.key.H
 KEY_DUMMY_DAMAGE_DOWN = arcade.key.MINUS
 KEY_DUMMY_DAMAGE_UP = arcade.key.EQUAL
@@ -87,7 +89,7 @@ HUD_CAPACITY = 104
 LINE_HEIGHT = GLYPH_HEIGHT
 HELP_LINES = (
     "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
-    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload data  H help",
+    "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload  Z zoom  H help",
 )
 TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
 DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
@@ -190,6 +192,7 @@ class BattleView(TickedView):
         self.menu_input = MenuInput()
         self.renderer = WorldRenderer(pixel_buffer, stage, self._load_banks())
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
+        self.zoom = StepZoom(enabled=self.settings.camera_zoom == ZOOM_STEPPED)
         self.camera.snap_to(self._camera_targets())
         self.effects = BattleEffects()
         self.effect_renderer = EffectRenderer()
@@ -390,6 +393,9 @@ class BattleView(TickedView):
             self.reload_data()
         elif symbol == KEY_CAMERA_CLAMP:
             self.camera.clamped = not self.camera.clamped
+        elif symbol == KEY_ZOOM:
+            self.zoom.enabled = not self.zoom.enabled
+            self.say("stepped zoom " + ("on" if self.zoom.enabled else "off"))
         elif self.training:
             self._on_training_key(symbol)
 
@@ -530,6 +536,7 @@ class BattleView(TickedView):
         self.effects.observe(self.match.fighters)
         targets = self._camera_targets()
         if targets:
+            self.camera.zoom = self.zoom.update(targets)
             self.camera.update(targets)
 
     def _poll(self) -> tuple[list[InputFrame], list[InputFrame]]:
@@ -587,7 +594,10 @@ class BattleView(TickedView):
         for fighter in fighters:
             pos = fighter.pos
             sx, sy = project(pos.x, pos.y, pos.z + BODY_CENTRE_HEIGHT)
-            positions.append((sx - centre_x + NATIVE_W / 2, sy - centre_y + NATIVE_H / 2))
+            zoom = self.camera.zoom
+            positions.append(
+                ((sx - centre_x) * zoom + NATIVE_W / 2, (sy - centre_y) * zoom + NATIVE_H / 2)
+            )
         return positions
 
     def on_draw(self) -> None:
@@ -637,7 +647,7 @@ class BattleView(TickedView):
         strength = self.settings.screen_shake / FULL_PERCENT
         shake_x, shake_y = (round(part * strength) for part in self.effects.shake.offset)
         with self.pixel_buffer.drawing():
-            self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays)
+            self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays, self.camera.zoom)
             self.hud.draw()
             self._text.draw(pixelated=True)
             if self.menu_open:

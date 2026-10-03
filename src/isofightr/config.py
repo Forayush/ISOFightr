@@ -82,6 +82,12 @@ DECK_THICKNESS: Final[float] = 0.25
 # --- Camera ---------------------------------------------------------------------------------
 CAMERA_LERP: Final[float] = 0.1
 """Fraction of the remaining distance the camera pans toward its target each tick."""
+CAMERA_ZOOM_STEP: Final[int] = 2
+"""Stepped zoom (an M8 experiment, decision D-048): the world is drawn at 1x or exactly 2x."""
+CAMERA_ZOOM_MARGIN: Final[int] = 56
+"""Room kept around the fighters, in native pixels, when deciding whether 2x still fits."""
+CAMERA_ZOOM_IN_TICKS: Final[int] = 45
+"""How long everyone must fit the zoomed view before the camera zooms in."""
 
 # --- Fighter presentation -------------------------------------------------------------------
 OCCLUDED_FIGHTER_ALPHA: Final[int] = 96

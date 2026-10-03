@@ -490,3 +490,24 @@ def test_stock_icons_are_the_characters_head(window: Any) -> None:
     assert view.hud._stock_icons[1][0].texture is not icon, "player 2 wears another costume"
     placeholder = make_view(window, training=False, placeholder_art=True)
     assert placeholder.hud._stock_icons[0][0].texture.size != (ICON_SIZE, ICON_SIZE)
+
+
+def test_stepped_zoom_draws_the_world_twice_as_big(window: Any) -> None:
+    from isofightr.config import CAMERA_ZOOM_IN_TICKS
+
+    view = make_view(window, training=False)
+    first, second = view.match.fighters[:2]
+    first.pos, second.pos = P1_POS, P1_POS + Vec3(1.0, 0.0, 0.0)
+    view.camera.snap_to(view._camera_targets())
+    view.on_draw()
+    wide = view._screen_positions([first, second])
+    gap = wide[1][0] - wide[0][0]
+    tap(view, keys().Z)
+    assert view.zoom.enabled and view.status_line() == "stepped zoom on"
+    for _ in range(CAMERA_ZOOM_IN_TICKS + 2):
+        ticks(view, 1)
+    assert view.camera.zoom == 2
+    view.on_draw()
+    near = view._screen_positions([first, second])
+    assert near[1][0] - near[0][0] == pytest.approx(gap * 2, abs=1.0), "markers follow the zoom"
+    assert view.renderer.camera.zoom == 2

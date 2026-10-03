@@ -35,6 +35,7 @@ from isofightr.scenes.setup import (
 )
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
+    CAMERA_ZOOMS,
     DEADZONES,
     GAMEPAD_PRESETS,
     KEYBOARD_ACTIONS,
@@ -355,6 +356,13 @@ class SettingsView(MenuListView):
                 ),
                 MenuItem("keys_solo", "Keys: keyboard (WASD)..."),
                 MenuItem("keys_arrows", "Keys: keyboard (arrows)..."),
+                _setting(
+                    "camera_zoom",
+                    "Camera zoom",
+                    ["static", "stepped 2x"],
+                    CAMERA_ZOOMS,
+                    settings.camera_zoom,
+                ),
                 MenuItem("defaults", "Reset everything to defaults"),
                 MenuItem("back", "Back"),
             ]
@@ -376,6 +384,7 @@ class SettingsView(MenuListView):
                 sfx_volume=menu.item("sfx_volume").index,
                 gamepad_preset=GAMEPAD_PRESETS[menu.item("gamepad_preset").index],
                 deadzone=DEADZONES[menu.item("deadzone").index],
+                camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
             )
         )
 

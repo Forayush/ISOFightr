@@ -1,8 +1,9 @@
-"""Fixed-zoom follow camera: where the 640x360 view sits in world pixels.
+"""Follow camera: where the 640x360 view sits in world pixels, and how far it is zoomed.
 
 Implements "Camera" in the plan note "03 - Isometric World and Rendering": centre on the
 bounding box of the tracked positions, clamp to the stage's camera bounds, pan at about 0.1
-per tick. Zoom stays at 1.0 for the MVP (decision D-012).
+per tick. Zoom is static by default (decision D-012); :class:`StepZoom` is the M8 experiment
+(D-048): the world at exactly 1x or 2x, so pixel art never shimmers.
 
 The centre is tracked as floats and rounded to whole pixels only when drawing, so everything
 on screen shifts together and pixel art never shimmers.
@@ -16,7 +17,14 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from isofightr.config import CAMERA_LERP, NATIVE_H, NATIVE_W
+from isofightr.config import (
+    CAMERA_LERP,
+    CAMERA_ZOOM_IN_TICKS,
+    CAMERA_ZOOM_MARGIN,
+    CAMERA_ZOOM_STEP,
+    NATIVE_H,
+    NATIVE_W,
+)
 from isofightr.render.depth import ScreenRect
 from isofightr.render.iso import project_point
 from isofightr.sim.math3d import Box3, Vec3
@@ -77,11 +85,15 @@ class FollowCamera:
     y: float = 0.0
     clamped: bool = True
     """Debug switch: when off, the camera follows its target past the stage bounds."""
+    zoom: int = 1
+    """1, or ``CAMERA_ZOOM_STEP`` while stepped zoom is in: the view is then that much smaller."""
 
     def target(self, positions: Sequence[Vec3]) -> tuple[float, float]:
         """Return where the camera wants to be for these positions."""
         wanted = follow_target(positions)
-        return clamp_centre(wanted, self.limits) if self.clamped else wanted
+        if not self.clamped:
+            return wanted
+        return clamp_centre(wanted, self.limits, NATIVE_W / self.zoom, NATIVE_H / self.zoom)
 
     def snap_to(self, positions: Sequence[Vec3]) -> None:
         """Jump straight to the target (stage load, reset)."""
@@ -97,3 +109,37 @@ class FollowCamera:
     def pixel_centre(self) -> tuple[int, int]:
         """The centre rounded to whole pixels, which is what drawing uses."""
         return (snap(self.x), snap(self.y))
+
+
+def fits_zoomed(positions: Sequence[Vec3], step: int = CAMERA_ZOOM_STEP) -> bool:
+    """Return whether the positions, with ``CAMERA_ZOOM_MARGIN`` around them, fit the view
+    zoomed ``step`` times."""
+    points = [project_point(position) for position in positions]
+    width = max(sx for sx, _ in points) - min(sx for sx, _ in points)
+    height = max(sy for _, sy in points) - min(sy for _, sy in points)
+    margin = 2 * CAMERA_ZOOM_MARGIN
+    return width + margin <= NATIVE_W / step and height + margin <= NATIVE_H / step
+
+
+@dataclass(slots=True)
+class StepZoom:
+    """Stepped zoom: 2x once everyone has fit the zoomed view for a while, back to 1x the
+    moment someone would not."""
+
+    enabled: bool = False
+    level: int = 1
+    fitting: int = 0
+    """Ticks in a row everyone has fit the zoomed view."""
+
+    def update(self, positions: Sequence[Vec3]) -> int:
+        """Advance one tick and return the zoom level to draw with."""
+        if not self.enabled or not positions:
+            self.level, self.fitting = 1, 0
+            return self.level
+        if fits_zoomed(positions):
+            self.fitting += 1
+            if self.fitting >= CAMERA_ZOOM_IN_TICKS:
+                self.level = CAMERA_ZOOM_STEP
+        else:
+            self.level, self.fitting = 1, 0
+        return self.level
