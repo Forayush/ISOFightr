@@ -15,7 +15,7 @@ frames = "12-14"
   damage = 14.0
   angle = 38
   bkb = 30
-  kbg = 100
+  kbg = 106
 
 [[motion]]
 frames = "10-14"

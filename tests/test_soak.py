@@ -26,7 +26,7 @@ SEED = 7
 @pytest.mark.slow
 def test_four_player_free_for_all_is_stable_for_thirty_minutes() -> None:
     rules = MatchRules(stocks=None, parry=True)
-    characters = ("rook",) * PLAYERS
+    characters = ("rook", "bramble", "zephyr", "mote")[:PLAYERS]
     recorder = Recorder("sky_ruins", characters, SEED, rules)
     match = match_for(Replay("sky_ruins", characters, SEED, rules, (), ""))
     knockouts = 0

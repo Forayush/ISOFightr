@@ -15,7 +15,7 @@ frames = "16-20"
   damage = 20.0
   angle = 88
   bkb = 35
-  kbg = 100
+  kbg = 112
   [[windows.hitboxes]]
   id = 1
   offset = [0.0, 0.0, 2.0]   # forward, left, up
@@ -23,7 +23,7 @@ frames = "16-20"
   damage = 16.0
   angle = 85
   bkb = 30
-  kbg = 95
+  kbg = 106
 
 [[armor]]
 frames = "8-15"

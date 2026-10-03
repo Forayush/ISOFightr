@@ -305,3 +305,28 @@ def test_only_one_glyph_at_a_time() -> None:
     run(match, down + neutral(45))
     assert [projectile.id for projectile in match.projectiles] != [first]
     assert len(match.projectiles) == 1
+
+
+# --- recovery ---------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("character", [ROOK, BRAMBLE, ZEPHYR, MOTE], ids=lambda c: c.id)
+def test_everyone_recovers_from_off_stage_with_a_jump_and_the_up_special(
+    character: CharacterDef,
+) -> None:
+    match, fighter, rival = duel(character, gap=8.0)
+    place(match, rival, 9.0, 9.0)
+    # Knocked 3 units out past the west edge (Training Grid's ledge at x = 0) and 1 below it.
+    place(match, fighter, -3.0, Y, z=-1.0, facing=Dir8.SE)
+    fighter.air_jumps_left = character.movement.air_jumps
+    toward = hold(Dir8.SE, frames=1)
+    run(match, hold(Dir8.SE, Button.JUMP, frames=1) + toward * 12)
+    run(match, hold(Dir8.SE, Button.SPECIAL, frames=1, vertical=VERTICAL_UP))
+    run(match, hold(Dir8.SE, frames=10, vertical=VERTICAL_UP))
+    for _ in range(120):
+        if fighter.state is StateId.LEDGE_HANG or fighter.grounded:
+            break
+        run(match, toward)
+    assert fighter.state is StateId.LEDGE_HANG or fighter.grounded, (
+        f"{character.id} fell ({fighter.pos})"
+    )
