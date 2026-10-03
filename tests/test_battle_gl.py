@@ -26,13 +26,19 @@ P1_POS = Vec3(4.5, 6.5, 0.0)
 P2_POS = Vec3(5.5, 6.5, 0.0)
 
 
-def make_view(window: Any, training: bool = True, players: int = 2) -> Any:
+def make_view(
+    window: Any, training: bool = True, players: int = 2, placeholder_art: bool = False
+) -> Any:
     from isofightr.scenes.battle import BattleView
 
     window.switch_to()
     stage = load_stage("training_grid")
     view = BattleView(
-        window.pixel_buffer, stage, [load_character("rook")] * players, training=training
+        window.pixel_buffer,
+        stage,
+        [load_character("rook")] * players,
+        training=training,
+        placeholder_art=placeholder_art,
     )
     window.show_view(view)
     first, second = view.match.fighters[:2]
@@ -276,7 +282,7 @@ def test_the_attack_swing_is_drawn_exactly_where_the_hitbox_is(window: Any) -> N
 
 
 def test_a_knocked_down_fighter_is_drawn_lying_down(window: Any) -> None:
-    view = make_view(window)
+    view = make_view(window, placeholder_art=True)
     target = view.match.fighters[1]
     view.on_draw()
     head = Vec3(P2_POS.x, P2_POS.y, 2.2)
@@ -413,3 +419,54 @@ def test_a_projectile_is_drawn_and_outlined_in_the_overlay(window: Any) -> None:
 
     for bindings, key in ((SOLO_KEYBOARD, keys().T), (ARROWS_NUMPAD, keys().NUM_9)):
         assert (key, Button.TAUNT) in bindings.buttons
+
+
+# --- packed sprites (M8) ------------------------------------------------------------------
+
+
+def _costume_color(view: Any, player: int, material: str, slot: int) -> tuple[int, int, int, int]:
+    from isofightr.art.palettes import load_palettes, ramp_index
+    from isofightr.render.fighter_look import costume_for
+
+    bank = view.renderer.banks["rook"]
+    fighter = view.match.fighters[player]
+    costume = costume_for(fighter, len(bank.sprite_set.costumes))
+    names = [m.name for m in load_palettes("rook").materials]
+    colors = bank.sprite_set.costumes[costume][1]
+    return (*colors[ramp_index(names.index(material) + 1, slot)], 255)
+
+
+def test_fighters_with_sprites_are_drawn_in_their_costumes(window: Any) -> None:
+    view = make_view(window, training=False)
+    assert "rook" in view.renderer.banks
+    view.on_draw()
+    first = [_costume_color(view, 0, "cloth", slot) for slot in range(4)]
+    second = [_costume_color(view, 1, "cloth", slot) for slot in range(4)]
+    assert not set(first) & set(second), "player 2 wears another costume"
+    assert sum(count_color(window, color) for color in first) > 20
+    assert sum(count_color(window, color) for color in second) > 20
+
+
+def test_hit_flash_and_helpless_tint_the_sprite(window: Any) -> None:
+    view = make_view(window, training=False)
+    view.on_draw()
+    white = count_color(window, (255, 255, 255, 255))
+    view.effects.flash[1] = 3
+    view.on_draw()
+    assert count_color(window, (255, 255, 255, 255)) > white + 100, "a white silhouette"
+    view.effects.flash.clear()
+    view.on_draw()
+    target = view.match.fighters[1]
+    cloth = [_costume_color(view, 1, "cloth", slot) for slot in range(4)]
+    before = sum(count_color(window, color) for color in cloth)
+    target.state = StateId.HELPLESS
+    view.on_draw()
+    after = sum(count_color(window, color) for color in cloth)
+    assert after < before - 20, "darkened (the ring and HUD tag keep the player colour)"
+
+
+def test_placeholder_art_option_draws_capsules(window: Any) -> None:
+    view = make_view(window, training=False, placeholder_art=True)
+    assert view.renderer.banks == {}
+    view.on_draw()
+    assert count_color(window, (232, 59, 59, 255)) > 100

@@ -142,7 +142,11 @@ def make_view(window: Any, stage: Stage) -> Any:
     from isofightr.scenes.battle import BattleView
 
     window.switch_to()
-    view = BattleView(window.pixel_buffer, stage, [load_character("rook")] * 2)
+    # The occlusion oracle samples columns of the solid placeholder capsule; the sorter treats
+    # real sprites the same way, from their exact frame rects.
+    view = BattleView(
+        window.pixel_buffer, stage, [load_character("rook")] * 2, placeholder_art=True
+    )
     window.show_view(view)
     view.camera.clamped = False
     view.match.fighters[1].pos = FAR_AWAY

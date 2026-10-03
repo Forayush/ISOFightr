@@ -31,6 +31,7 @@ from isofightr.ai.dummy import DummyBehavior, dummy_frame
 from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import save_replay
+from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.validation import DataError
 from isofightr.input.devices import DeviceHub, InputSource
 from isofightr.render import placeholder_art as art
@@ -38,10 +39,11 @@ from isofightr.render.camera import FollowCamera, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
 from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
-from isofightr.render.fighter_look import fighter_look
+from isofightr.render.fighter_look import costume_for, fighter_look
 from isofightr.render.hitbox_overlay import HitboxOverlay
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
+from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
 from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
 from isofightr.scenes.ticked_view import TickedView
@@ -144,6 +146,7 @@ class BattleView(TickedView):
         setup: MatchSetup | None = None,
         record: Path | None = None,
         replay: Replay | None = None,
+        placeholder_art: bool = False,
     ) -> None:
         """Create the view. See :class:`TickedView` for ``pixel_buffer`` and ``max_ticks``.
 
@@ -155,6 +158,8 @@ class BattleView(TickedView):
             rules: the match rules; by default endless stocks and no countdown (a sandbox).
             flow: the scene router to go to results or back to the menus with, if any.
             setup: what the menus chose, kept for "Rematch".
+            placeholder_art: draw every fighter as the placeholder capsule, even characters
+                that have sprites (tests that sample the capsule's pixels).
             record: file to save this match's replay to (never in training, whose tools
                 change the match from outside).
             replay: a replay to play back instead of reading the players' devices.
@@ -173,6 +178,7 @@ class BattleView(TickedView):
         self.replay_matches: bool | None = None
         """Once a replay has played out: whether it ended on its recorded state."""
         self.recorder: Recorder | None = None
+        self.placeholder_art = placeholder_art
         self.match = self._new_match()
         self.settings = flow.settings if flow is not None else Settings()
         # From the menus every player has the device it joined with; a sandbox match uses
@@ -182,7 +188,7 @@ class BattleView(TickedView):
         self.inputs = None if self.devices else InputSource(len(self.characters))
         self._unplugged: set[str] = set()
         self.menu_input = MenuInput()
-        self.renderer = WorldRenderer(pixel_buffer, stage)
+        self.renderer = WorldRenderer(pixel_buffer, stage, self._load_banks())
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
         self.camera.snap_to(self._camera_targets())
         self.effects = BattleEffects()
@@ -410,6 +416,28 @@ class BattleView(TickedView):
 
     # --- training and debug tools ------------------------------------------------------------
 
+    def _load_banks(self) -> dict[str, SpriteBank]:
+        """Load the packed sprites of every character that has them, and make the textures
+        of the costumes in play now rather than mid-fight."""
+        banks: dict[str, SpriteBank] = {}
+        if self.placeholder_art:
+            return banks
+        for character in self.characters:
+            if character.id in banks:
+                continue
+            try:
+                sprite_set = load_sprite_set(character.id)
+            except SpriteSheetError as error:
+                LOG.error("%s: sprites not loaded: %s", character.id, error)
+                continue
+            if sprite_set is not None:
+                banks[character.id] = SpriteBank(sprite_set)
+        for fighter in self.match.fighters:
+            bank = banks.get(fighter.character.id)
+            if bank is not None:
+                bank.warm(costume_for(fighter, len(bank.sprite_set.costumes)))
+        return banks
+
     def restart(self) -> None:
         """Start the match over (F8)."""
         self.match = self._new_match()
@@ -431,6 +459,7 @@ class BattleView(TickedView):
             return
         self.characters = characters
         self.match.reload_characters(characters)
+        self.renderer.banks = self._load_banks()
         if self.recorder is not None:
             self.recorder = None  # a replay cannot reproduce a mid-match data change
             self.say("recording stopped: data was reloaded")
@@ -554,14 +583,25 @@ class BattleView(TickedView):
         self.clear()
         fighters = self._in_play()
         frame = self.match.frame
-        looks = {
-            fighter.entity_id: fighter_look(
-                fighter, frame, self.effects.flash.get(fighter.player_index, 0)
+        looks = {}
+        for fighter in fighters:
+            bank = self.renderer.banks.get(fighter.character.id)
+            looks[fighter.entity_id] = fighter_look(
+                fighter,
+                frame,
+                self.effects.flash.get(fighter.player_index, 0),
+                None if bank is None else bank.sprite_set.anims,
+                0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes)),
             )
-            for fighter in fighters
-        }
         self.renderer.sync(fighters, frame, looks)
-        self.effect_renderer.sync(self.effects, fighters, self.match.projectiles)
+        # A move that has its own animation shows its swing in the sprite (a smear), so its
+        # hitboxes are only drawn by the F1 overlay.
+        animated = {
+            entity_id
+            for entity_id, look in looks.items()
+            if look.sprite is not None and look.sprite.exact
+        }
+        self.effect_renderer.sync(self.effects, fighters, self.match.projectiles, animated)
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
         self.hud.update(self.match.fighters, self.effects)

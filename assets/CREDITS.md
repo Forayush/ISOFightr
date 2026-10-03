@@ -10,10 +10,13 @@ committed, with a license that allows redistribution in this project.
 
 | Asset (path) | Author | Source | License |
 |---|---|---|---|
-| *(none yet)* | | | |
+| Resurrect 64 colour palette (`art_src/palettes/resurrect64.toml`; every sprite colour comes from it) | Kerrie Lake | https://lospec.com/palette-list/resurrect-64 | No formal licence on the page; the author answered "Absolutely!" when asked about use in a commercial game (comment on that page, checked 2026-10-03). A list of colours, not artwork. |
 
 ## Original and generated assets
 
+- Fighter sprites (`assets/characters/*/sprites/`) are rendered from original 3D models that
+  Claude Code scripts in Blender (`art_src/`, `tools/blender/`) and packed by
+  `tools/build_art.py` (decision D-044). Blender is only a tool; nothing of Blender is shipped.
 - Placeholder art is generated procedurally in code (Pillow) and needs no credit. The M0 test
   pattern's label text uses Pillow's built-in bitmap font, drawn at runtime; no font file is
   shipped.

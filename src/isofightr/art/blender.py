@@ -1,0 +1,155 @@
+"""Finds Blender and runs the render scripts in ``tools/blender`` (decision D-044).
+
+Blender is a tool dependency, not a runtime one: only ``tools/build_art.py`` and the
+``blender`` test marker need it. Its own Python cannot import ``isofightr``, so everything the
+scripts need from the game (direction vectors, the canvas) is written to a JSON job file.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Final
+
+from isofightr.data.paths import REPO_ROOT
+from isofightr.sim.input_frame import Dir8
+
+BLENDER_ENV: Final[str] = "ISOFIGHTR_BLENDER"
+DEFAULT_BLENDER: Final[Path] = Path(r"C:\Program Files\Blender Foundation\Blender 4.5\blender.exe")
+SCRIPTS_DIR: Final[Path] = REPO_ROOT / "tools" / "blender"
+BUILD_DIR: Final[Path] = REPO_ROOT / "build" / "art"
+CANVAS: Final[tuple[int, int]] = (128, 128)
+"""Render canvas in pixels; frames are trimmed afterwards."""
+PIVOT: Final[tuple[int, int]] = (64, 96)
+"""The pixel corner, from the canvas's top-left, where the feet (world origin) land."""
+RENDER_TIMEOUT_SECONDS: Final[int] = 3600
+
+
+class BlenderError(RuntimeError):
+    """Blender is missing or a render failed."""
+
+
+def find_blender() -> Path | None:
+    """Return the Blender executable: ``ISOFIGHTR_BLENDER`` if set, else the default install."""
+    override = os.environ.get(BLENDER_ENV)
+    if override:
+        path = Path(override)
+        return path if path.is_file() else None
+    return DEFAULT_BLENDER if DEFAULT_BLENDER.is_file() else None
+
+
+def require_blender() -> Path:
+    """Return the Blender executable or raise :class:`BlenderError` saying how to get it."""
+    blender = find_blender()
+    if blender is None:
+        raise BlenderError(
+            f"Blender 4.5 LTS not found. Install it (winget install BlenderFoundation.Blender "
+            f"--version 4.5.5) or set {BLENDER_ENV} to blender.exe."
+        )
+    return blender
+
+
+def blender_version(blender: Path) -> str:
+    """Return Blender's version string, e.g. ``"4.5.5"``."""
+    result = subprocess.run(
+        [str(blender), "-b", "--factory-startup", "--version"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    match = re.search(r"Blender (\d+\.\d+\.\d+)", result.stdout)
+    if match is None:
+        raise BlenderError(f"cannot read Blender's version from: {result.stdout[:200]}")
+    return match.group(1)
+
+
+def blender_directions() -> list[dict[str, object]]:
+    """Every facing as a Blender ground vector (game x and y swapped; see ``isoscene.py``)."""
+    return [{"name": facing.name, "blender": [facing.world.y, facing.world.x]} for facing in Dir8]
+
+
+def run_script(blender: Path, script: str, job: Path) -> None:
+    """Run ``tools/blender/<script>`` headless with a job file."""
+    result = subprocess.run(
+        [
+            str(blender),
+            "-b",
+            "--factory-startup",
+            "--python-exit-code",
+            "1",
+            "--python",
+            str(SCRIPTS_DIR / script),
+            "--",
+            str(job),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=RENDER_TIMEOUT_SECONDS,
+    )
+    if result.returncode != 0 or "RENDER_DONE" not in result.stdout:
+        tail = (result.stdout + result.stderr)[-3000:]
+        raise BlenderError(f"{script} failed:\n{tail}")
+
+
+@dataclass(frozen=True, slots=True)
+class RenderJob:
+    """One character's animations to render."""
+
+    character_id: str
+    rig: Path
+    materials: tuple[str, ...]
+    anims: dict[str, Path]
+    out: Path
+
+
+def stamp_for(job: RenderJob, anim: str) -> str:
+    """Return a hash of everything that decides an animation's renders."""
+    digest = hashlib.sha256()
+    for path in (job.rig, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
+        digest.update(path.read_bytes())
+    digest.update(json.dumps([job.materials, CANVAS, PIVOT, blender_directions()]).encode())
+    return digest.hexdigest()
+
+
+def render(blender: Path, job: RenderJob, force: bool = False) -> list[str]:
+    """Render every animation whose inputs changed since its last render.
+
+    Returns the names of the animations rendered.
+    """
+    stale = []
+    for anim in sorted(job.anims):
+        stamp_path = job.out / anim / "stamp.txt"
+        stamp = stamp_for(job, anim)
+        if force or not stamp_path.is_file() or stamp_path.read_text() != stamp:
+            stale.append(anim)
+    if not stale:
+        return []
+    job.out.mkdir(parents=True, exist_ok=True)
+    job_path = job.out / "job.json"
+    job_path.write_text(
+        json.dumps(
+            {
+                "rig": str(job.rig),
+                "materials": list(job.materials),
+                "anims": [{"name": anim, "path": str(job.anims[anim])} for anim in stale],
+                "directions": blender_directions(),
+                "canvas": list(CANVAS),
+                "pivot": list(PIVOT),
+                "out": str(job.out),
+            },
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
+    for anim in stale:
+        for old in (job.out / anim).glob("*.png"):
+            old.unlink()
+    run_script(blender, "render_character.py", job_path)
+    for anim in stale:
+        (job.out / anim / "stamp.txt").write_text(stamp_for(job, anim))
+    return stale

@@ -1,0 +1,425 @@
+# Rook: a young knight with a short sword (right hand) and a buckler (left forearm).
+# Puppet rig (decision D-044): rigid parts on joints, no skinning.
+#
+# Blender space: forward +y, the character's right +x, up +z, feet at the origin. 1 unit = one
+# tile edge; Rook is 2.5 units tall (40 px), the height of his body in fighter.toml.
+#
+# Joints: `at` is relative to the parent joint. Pose rotations are [x, y, z] degrees in the
+# joint's own space (XYZ order): +x swings a limb forward (a hanging arm comes up in front),
+# +y rolls it toward the character's left, +z turns it to the left.
+#
+# Parts hang from a joint; their coordinates are in that joint's space.
+#   box:  low, high              ball: centre, radius, scale = [sx, sy, sz] (optional)
+#   rod:  a, b, r1, r2 (a tapered cylinder from a to b; r2 = 0 makes a cone)
+# Every part has a material from palettes.toml. `hidden = true` parts (smears) only appear
+# in poses that `show` them.
+
+[[joints]]
+name = "hips"
+parent = ""
+at = [0.0, 0.0, 0.88]
+
+[[joints]]
+name = "chest"
+parent = "hips"
+at = [0.0, 0.0, 0.10]
+
+[[joints]]
+name = "head"
+parent = "chest"
+at = [0.0, 0.0, 0.50]
+
+[[joints]]
+name = "cape"
+parent = "chest"
+at = [0.0, -0.27, 0.42]
+
+[[joints]]
+name = "shoulder_r"
+parent = "chest"
+at = [0.33, 0.0, 0.38]
+
+[[joints]]
+name = "elbow_r"
+parent = "shoulder_r"
+at = [0.0, 0.0, -0.27]
+
+[[joints]]
+name = "hand_r"
+parent = "elbow_r"
+at = [0.0, 0.0, -0.25]
+
+[[joints]]
+name = "shoulder_l"
+parent = "chest"
+at = [-0.33, 0.0, 0.38]
+
+[[joints]]
+name = "elbow_l"
+parent = "shoulder_l"
+at = [0.0, 0.0, -0.27]
+
+[[joints]]
+name = "hand_l"
+parent = "elbow_l"
+at = [0.0, 0.0, -0.25]
+
+[[joints]]
+name = "hip_r"
+parent = "hips"
+at = [0.14, 0.0, -0.04]
+
+[[joints]]
+name = "knee_r"
+parent = "hip_r"
+at = [0.0, 0.0, -0.38]
+
+[[joints]]
+name = "ankle_r"
+parent = "knee_r"
+at = [0.0, 0.0, -0.36]
+
+[[joints]]
+name = "hip_l"
+parent = "hips"
+at = [-0.14, 0.0, -0.04]
+
+[[joints]]
+name = "knee_l"
+parent = "hip_l"
+at = [0.0, 0.0, -0.38]
+
+[[joints]]
+name = "ankle_l"
+parent = "knee_l"
+at = [0.0, 0.0, -0.36]
+
+# --- body -------------------------------------------------------------------------------------
+
+[[parts]]
+name = "skirt"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, -0.30]
+b = [0.0, 0.0, 0.06]
+r1 = 0.32
+r2 = 0.26
+material = "cloth"
+
+[[parts]]
+name = "belt"
+joint = "hips"
+shape = "rod"
+a = [0.0, 0.0, 0.02]
+b = [0.0, 0.0, 0.11]
+r1 = 0.275
+r2 = 0.275
+material = "leather"
+
+[[parts]]
+name = "buckle"
+joint = "hips"
+shape = "box"
+low = [-0.06, 0.24, 0.02]
+high = [0.06, 0.30, 0.11]
+material = "gold"
+
+[[parts]]
+name = "tunic"
+joint = "chest"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, 0.44]
+r1 = 0.26
+r2 = 0.30
+material = "cloth"
+
+[[parts]]
+name = "breastplate"
+joint = "chest"
+shape = "ball"
+centre = [0.0, 0.05, 0.26]
+radius = 0.27
+scale = [1.0, 0.85, 1.0]
+material = "metal"
+
+[[parts]]
+name = "pauldron_r"
+joint = "shoulder_r"
+shape = "ball"
+centre = [0.02, 0.0, 0.02]
+radius = 0.16
+scale = [1.0, 1.0, 0.8]
+material = "metal"
+
+[[parts]]
+name = "pauldron_l"
+joint = "shoulder_l"
+shape = "ball"
+centre = [-0.02, 0.0, 0.02]
+radius = 0.16
+scale = [1.0, 1.0, 0.8]
+material = "metal"
+
+[[parts]]
+name = "cape_outer"
+joint = "cape"
+shape = "box"
+low = [-0.27, -0.05, -0.92]
+high = [0.27, -0.02, 0.0]
+material = "cloth"
+
+[[parts]]
+name = "cape_lining"
+joint = "cape"
+shape = "box"
+low = [-0.25, -0.02, -0.90]
+high = [0.25, 0.0, -0.02]
+material = "accent"
+
+# --- head -------------------------------------------------------------------------------------
+
+[[parts]]
+name = "face"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.03, 0.38]
+radius = 0.38
+material = "skin"
+
+[[parts]]
+name = "helmet"
+joint = "head"
+shape = "ball"
+centre = [0.0, -0.07, 0.52]
+radius = 0.40
+scale = [1.0, 1.0, 0.78]
+material = "metal"
+
+[[parts]]
+name = "eye_r"
+joint = "head"
+shape = "box"
+low = [0.07, 0.36, 0.30]
+high = [0.15, 0.42, 0.42]
+material = "ink"
+
+[[parts]]
+name = "eye_l"
+joint = "head"
+shape = "box"
+low = [-0.15, 0.36, 0.30]
+high = [-0.07, 0.42, 0.42]
+material = "ink"
+
+[[parts]]
+name = "plume_base"
+joint = "head"
+shape = "rod"
+a = [0.0, -0.05, 0.78]
+b = [0.0, -0.18, 1.02]
+r1 = 0.09
+r2 = 0.12
+material = "accent"
+
+[[parts]]
+name = "plume_tail"
+joint = "head"
+shape = "rod"
+a = [0.0, -0.18, 1.02]
+b = [0.0, -0.48, 0.92]
+r1 = 0.12
+r2 = 0.04
+material = "accent"
+
+# --- arms -------------------------------------------------------------------------------------
+
+[[parts]]
+name = "upper_arm_r"
+joint = "shoulder_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.27]
+r1 = 0.10
+r2 = 0.09
+material = "cloth"
+
+[[parts]]
+name = "forearm_r"
+joint = "elbow_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.25]
+r1 = 0.09
+r2 = 0.10
+material = "leather"
+
+[[parts]]
+name = "fist_r"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, 0.0, -0.04]
+radius = 0.12
+material = "leather"
+
+[[parts]]
+name = "upper_arm_l"
+joint = "shoulder_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.27]
+r1 = 0.10
+r2 = 0.09
+material = "cloth"
+
+[[parts]]
+name = "forearm_l"
+joint = "elbow_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.25]
+r1 = 0.09
+r2 = 0.10
+material = "leather"
+
+[[parts]]
+name = "fist_l"
+joint = "hand_l"
+shape = "ball"
+centre = [0.0, 0.0, -0.04]
+radius = 0.12
+material = "leather"
+
+# --- sword (right hand; at rest the blade points forward) --------------------------------------
+
+[[parts]]
+name = "pommel"
+joint = "hand_r"
+shape = "ball"
+centre = [0.0, -0.13, -0.04]
+radius = 0.05
+material = "gold"
+
+[[parts]]
+name = "grip"
+joint = "hand_r"
+shape = "rod"
+a = [0.0, -0.10, -0.04]
+b = [0.0, 0.10, -0.04]
+r1 = 0.035
+r2 = 0.035
+material = "leather"
+
+[[parts]]
+name = "crossguard"
+joint = "hand_r"
+shape = "box"
+low = [-0.15, 0.10, -0.08]
+high = [0.15, 0.15, 0.00]
+material = "gold"
+
+[[parts]]
+name = "blade"
+joint = "hand_r"
+shape = "box"
+low = [-0.06, 0.15, -0.065]
+high = [0.06, 0.98, -0.015]
+material = "blade"
+
+[[parts]]
+name = "blade_tip"
+joint = "hand_r"
+shape = "rod"
+a = [0.0, 0.98, -0.04]
+b = [0.0, 1.12, -0.04]
+r1 = 0.05
+r2 = 0.0
+material = "blade"
+
+# --- buckler (left forearm, facing outward) ----------------------------------------------------
+
+[[parts]]
+name = "buckler_rim"
+joint = "elbow_l"
+shape = "rod"
+a = [-0.09, 0.0, -0.14]
+b = [-0.13, 0.0, -0.14]
+r1 = 0.29
+r2 = 0.29
+material = "gold"
+
+[[parts]]
+name = "buckler_face"
+joint = "elbow_l"
+shape = "rod"
+a = [-0.12, 0.0, -0.14]
+b = [-0.16, 0.0, -0.14]
+r1 = 0.25
+r2 = 0.25
+material = "accent"
+
+[[parts]]
+name = "buckler_boss"
+joint = "elbow_l"
+shape = "ball"
+centre = [-0.17, 0.0, -0.14]
+radius = 0.07
+material = "gold"
+
+# --- legs -------------------------------------------------------------------------------------
+
+[[parts]]
+name = "thigh_r"
+joint = "hip_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.38]
+r1 = 0.12
+r2 = 0.11
+material = "metal"
+
+[[parts]]
+name = "shin_r"
+joint = "knee_r"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.30]
+r1 = 0.11
+r2 = 0.12
+material = "leather"
+
+[[parts]]
+name = "boot_r"
+joint = "ankle_r"
+shape = "box"
+low = [-0.11, -0.11, -0.10]
+high = [0.11, 0.20, 0.12]
+material = "leather"
+
+[[parts]]
+name = "thigh_l"
+joint = "hip_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.38]
+r1 = 0.12
+r2 = 0.11
+material = "metal"
+
+[[parts]]
+name = "shin_l"
+joint = "knee_l"
+shape = "rod"
+a = [0.0, 0.0, 0.0]
+b = [0.0, 0.0, -0.30]
+r1 = 0.11
+r2 = 0.12
+material = "leather"
+
+[[parts]]
+name = "boot_l"
+joint = "ankle_l"
+shape = "box"
+low = [-0.11, -0.11, -0.10]
+high = [0.11, 0.20, 0.12]
+material = "leather"

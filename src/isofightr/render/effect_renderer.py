@@ -7,7 +7,7 @@ drawn as one batched ``SpriteList``.
 Reads state only: it never changes what it draws.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from functools import partial
 
 import arcade
@@ -42,8 +42,13 @@ class EffectRenderer:
         effects: BattleEffects,
         fighters: Sequence[Fighter],
         projectiles: Sequence[Projectile] = (),
+        animated: Collection[int] = (),
     ) -> None:
-        """Place a sprite for every live spark, raised shield, grab box and hitbox."""
+        """Place a sprite for every live spark, raised shield, grab box and hitbox.
+
+        Fighters whose ``entity_id`` is in ``animated`` show their attack in their own sprite,
+        so their hitboxes get no swing blob.
+        """
         wanted: list[tuple[arcade.Texture, Vec3]] = []
         for fighter in fighters:
             player = fighter.color_index
@@ -59,6 +64,8 @@ class EffectRenderer:
                     ("swing", player, grab.radius), partial(art.build_swing, player, grab.radius)
                 )
                 wanted.append((texture, grab.start))
+            if fighter.entity_id in animated:
+                continue
             for box in active_hitboxes(fighter):
                 radius = box.definition.radius
                 texture = self._texture(

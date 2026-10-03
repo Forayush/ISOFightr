@@ -1,0 +1,80 @@
+# Rook's materials and costumes (decision D-045). Colours must come from the master palette
+# (art_src/palettes/resurrect64.toml).
+#
+# Each ramp lists five colours: highlight, light, mid, shadow, then the outline colour used
+# where that material meets the background or a part behind it ("selout": dark, never black).
+# The packer picks highlight/light/mid/shadow from how directly the surface faces the key light
+# (the `bands` thresholds below, on the cosine of that angle).
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]   # light >= bands[0]: highlight; >= bands[1]: light; >= bands[2]: mid; else shadow
+
+# Material order fixes the material ids the Blender scripts render (1, 2, 3, ...).
+[[materials]]
+name = "skin"
+
+[[materials]]
+name = "metal"
+
+[[materials]]
+name = "cloth"         # tunic and cape: the main costume colour
+
+[[materials]]
+name = "accent"        # plume, cape lining, buckler face
+
+[[materials]]
+name = "leather"       # boots, belt, gloves, sword grip
+
+[[materials]]
+name = "gold"          # crossguard, buckler rim, buckle
+
+[[materials]]
+name = "ink"           # eyes
+lit = false
+
+[[materials]]
+name = "blade"         # the sword: brighter than armour, with a light outline so a 2 px blade reads
+
+[[materials]]
+name = "smear"         # attack swooshes: flat, bright, no outline
+lit = false
+outline = false
+
+# Costume 0 is the default. A costume lists every material; later costumes only change cloth
+# and accent, so they inherit the rest from costume 0.
+[[costumes]]
+name = "Royal"
+skin = ["fdcbb0", "fca790", "f68181", "cf657f", "753c54"]
+metal = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+cloth = ["a884f3", "905ea9", "6b3e75", "45293f", "2e222f"]
+accent = ["f68181", "f04f78", "c32454", "831c5d", "45293f"]
+leather = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+gold = ["fbff86", "fbb954", "f79617", "cd683d", "7a3045"]
+ink = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+blade = ["ffffff", "c7dcd0", "9babb2", "7f708a", "625565"]
+smear = ["ffffff", "ffffff", "c7dcd0", "9babb2", "ffffff"]
+
+[[costumes]]
+name = "Ember"
+cloth = ["f57d4a", "ea4f36", "b33831", "6e2727", "2e222f"]
+accent = ["fbff86", "fbb954", "f79617", "cd683d", "7a3045"]
+
+[[costumes]]
+name = "Tide"
+cloth = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+accent = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+
+[[costumes]]
+name = "Sun"
+cloth = ["fbff86", "f9c22b", "e6904e", "9e4539", "4c3e24"]
+accent = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+
+[[costumes]]
+name = "Grove"
+cloth = ["91db69", "1ebc73", "239063", "165a4c", "313638"]
+accent = ["fbb954", "f79617", "fb6b1d", "b33831", "6e2727"]
+
+[[costumes]]
+name = "Ash"
+cloth = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+accent = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]

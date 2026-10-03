@@ -23,10 +23,11 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-m", "not slow and not gl", "--strict-markers"]
+addopts = ["-m", "not slow and not gl and not blender", "--strict-markers"]
 markers = [
     "slow: long soak tests; run with `pytest -m slow`",
     "gl: needs a real OpenGL window; run locally with `pytest -m gl`",
+    "blender: runs Blender 4.5 LTS (tools only); run locally with `pytest -m blender`",
 ]
 
 [tool.ruff]

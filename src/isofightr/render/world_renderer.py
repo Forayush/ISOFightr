@@ -38,6 +38,7 @@ from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
+from isofightr.render.sprite_bank import SpriteBank, Tint
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import Stage
@@ -105,9 +106,19 @@ class _RankedSprite(arcade.Sprite):
 class WorldRenderer:
     """Owns the sprites for one stage and its entities, and keeps them sorted."""
 
-    def __init__(self, pixel_buffer: PixelBuffer, stage: Stage) -> None:
-        """Build the static stage sprites and the world camera."""
+    def __init__(
+        self,
+        pixel_buffer: PixelBuffer,
+        stage: Stage,
+        banks: Mapping[str, SpriteBank] | None = None,
+    ) -> None:
+        """Build the static stage sprites and the world camera.
+
+        ``banks`` holds the packed sprites of characters that have them, by character id;
+        everyone else is drawn as the placeholder capsule.
+        """
         self.stage = stage
+        self.banks: Mapping[str, SpriteBank] = banks or {}
         self.sorter = DepthSorter(stage)
         self.sprites: arcade.SpriteList[_RankedSprite] = arcade.SpriteList()
         self.camera = arcade.Camera2D(
@@ -222,21 +233,40 @@ class WorldRenderer:
         return sprite
 
     def _sync_body(self, entity: WorldEntity, look: FighterLook, hidden: bool) -> DynamicItem:
-        lying = look.pose is Pose.DOWN
-        turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
-        texture = self._texture(
-            ("fighter", entity.color_index, entity.facing, lying, turns, look.flash, look.dim),
-            lambda: art.build_fighter(
-                entity.color_index, entity.facing, lying, turns, look.flash, look.dim
-            ),
-        )
-        sprite = self._part(entity, Part.BODY, texture)
         pos = entity.pos
         feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
-        sprite.position = (
-            feet_x + look.offset_x + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_X,
-            feet_y + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_FROM_BOTTOM,
-        )
+        bank = self.banks.get(look.character) if look.sprite is not None else None
+        if bank is not None and look.sprite is not None:
+            # A packed frame: placed by its feet pivot; its rect bounds exactly what it draws.
+            tint = Tint.FLASH if look.flash else Tint.DIM if look.dim else Tint.NORMAL
+            choice = look.sprite
+            texture = bank.texture(choice.anim, choice.pose, entity.facing, look.costume, tint)
+            frame = bank.frame(choice.anim, choice.pose, entity.facing)
+            left = feet_x + look.offset_x - frame.pivot_x
+            top = feet_y + frame.pivot_y
+            rect = ScreenRect(left, top - frame.height, left + frame.width, top)
+            position = (left + frame.width / 2, top - frame.height / 2)
+        else:
+            lying = look.pose is Pose.DOWN
+            turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
+            texture = self._texture(
+                ("fighter", entity.color_index, entity.facing, lying, turns, look.flash, look.dim),
+                lambda: art.build_fighter(
+                    entity.color_index, entity.facing, lying, turns, look.flash, look.dim
+                ),
+            )
+            position = (
+                feet_x + look.offset_x + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_X,
+                feet_y + art.FIGHTER_CANVAS / 2 - art.FIGHTER_PIVOT_FROM_BOTTOM,
+            )
+            rect = ScreenRect(
+                feet_x - BODY_RECT_HALF_WIDTH,
+                feet_y,
+                feet_x + BODY_RECT_HALF_WIDTH,
+                feet_y + art.BODY_HEIGHT,
+            )
+        sprite = self._part(entity, Part.BODY, texture)
+        sprite.position = position
         sprite.visible = not hidden
 
         item = DynamicItem(
@@ -246,12 +276,7 @@ class WorldRenderer:
             y=pos.y,
             z=pos.z,
             height=BODY_HEIGHT_UNITS,
-            rect=ScreenRect(
-                feet_x - BODY_RECT_HALF_WIDTH,
-                feet_y,
-                feet_x + BODY_RECT_HALF_WIDTH,
-                feet_y + art.BODY_HEIGHT,
-            ),
+            rect=rect,
         )
 
         ghost = self._ghost_of.get(entity.entity_id)
