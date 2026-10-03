@@ -22,6 +22,7 @@ REPEAT_DELAY: Final[int] = 24
 REPEAT_EVERY: Final[int] = 6
 CONFIRM_BUTTONS: Final[int] = Button.ATTACK | Button.JUMP
 BACK_BUTTONS: Final[int] = Button.SPECIAL | Button.SHIELD
+EXTRA_BUTTONS: Final[int] = Button.GRAB
 
 
 class MenuAction(Enum):
@@ -33,6 +34,8 @@ class MenuAction(Enum):
     RIGHT = "right"
     CONFIRM = "confirm"
     BACK = "back"
+    EXTRA = "extra"
+    """The grab button: a scene's extra action (character select adds a CPU with it)."""
 
 
 DIRECTIONS: Final[tuple[MenuAction, ...]] = (
@@ -59,6 +62,8 @@ def held_actions(frame: InputFrame) -> frozenset[MenuAction]:
         actions.add(MenuAction.CONFIRM)
     if frame.held & BACK_BUTTONS:
         actions.add(MenuAction.BACK)
+    if frame.held & EXTRA_BUTTONS:
+        actions.add(MenuAction.EXTRA)
     return frozenset(actions)
 
 

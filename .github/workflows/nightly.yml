@@ -1,0 +1,31 @@
+name: Nightly soak
+
+# Plan notes "15 - CPU AI" and "16 - Testing Debug and Tooling": the slow soak tests, with
+# many CPU-vs-CPU matches, once a night (and on demand from the Actions tab).
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  soak:
+    name: Slow soak tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # 300 four-CPU matches over every stage (about 12 minutes), plus the 30-minute
+      # random-input soak with replay check.
+      - name: Pytest (slow)
+        run: uv run pytest -m slow
+        env:
+          ISOFIGHTR_SOAK_MATCHES: "300"

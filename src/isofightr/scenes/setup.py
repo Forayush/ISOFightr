@@ -46,6 +46,8 @@ class MatchSetup:
     training: bool = False
     devices: tuple[str, ...] = ()
     """Device id per player ("" = none); empty means the default device assignment."""
+    cpus: tuple[int, ...] = ()
+    """CPU level per player (0 = a person); missing entries are people."""
     team_play: bool = False
     teams: tuple[int, ...] = ()
     """Team number per player, used when ``team_play`` is on."""
@@ -158,7 +160,7 @@ def can_start(setup: MatchSetup, joined: int) -> str:
     if setup.training:
         return "" if joined >= 1 else "press ATTACK to join"
     if joined < MIN_VERSUS_PLAYERS:
-        return "two players are needed: press ATTACK on another device to join"
+        return "two players are needed: join on another device, or add a CPU with GRAB"
     if setup.team_play and len(set(setup.teams[:joined])) < 2:
         return "everyone is on one team: change a team"
     return ""

@@ -35,7 +35,7 @@ from isofightr.ui.hud_layout import (
 from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
 
-NAME_CAPACITY = 10
+NAME_CAPACITY = 12
 STOCK_ROW_HEIGHT = STOCK_SLOT_SIZE + 2
 STOCK_TEXT_CAPACITY = len("x99")
 

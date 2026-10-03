@@ -2,9 +2,9 @@
 
 Implements the "CLI flags" table in the plan note "16 - Testing Debug and Tooling". Built so
 far: the window options (M0), ``--stage`` (M1), ``--p1`` to ``--p4``, ``--seed`` and
-``--headless`` (M2), ``--training`` (M3), ``--battle`` (M6: without it, ``--stage`` or
-``--training``, the game starts at the title screen), and ``--record`` and ``--replay`` (M7).
-``--cpu`` arrives with the AI.
+``--headless`` (M2), ``--training`` (M3), ``--battle`` (M6: without it, ``--stage``,
+``--training`` or ``--cpu``, the game starts at the title screen), ``--record`` and
+``--replay`` (M7), and ``--cpu`` (M10).
 """
 
 import argparse
@@ -14,6 +14,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from isofightr.config import (
+    CPU_MAX_LEVEL,
+    CPU_MIN_LEVEL,
     DEFAULT_CHARACTER_ID,
     DEFAULT_PLAYER_COUNT,
     DEFAULT_STAGE_ID,
@@ -48,6 +50,19 @@ def _window_scale(text: str) -> int:
     if value < MIN_WINDOW_SCALE:
         raise argparse.ArgumentTypeError(f"must be {MIN_WINDOW_SCALE} or greater, got {value}")
     return value
+
+
+def _cpu_slot(text: str) -> tuple[int, int]:
+    player, separator, level = text.partition(":")
+    if not separator or not player.isdigit() or not level.isdigit():
+        raise argparse.ArgumentTypeError(f"expected PLAYER:LEVEL such as 2:7, got {text!r}")
+    if not 1 <= int(player) <= MAX_PLAYERS:
+        raise argparse.ArgumentTypeError(f"player must be 1 to {MAX_PLAYERS}, got {player}")
+    if not CPU_MIN_LEVEL <= int(level) <= CPU_MAX_LEVEL:
+        raise argparse.ArgumentTypeError(
+            f"CPU level must be {CPU_MIN_LEVEL} to {CPU_MAX_LEVEL}, got {level}"
+        )
+    return int(player), int(level)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -96,6 +111,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--seed", type=int, default=0, metavar="N", help="match seed (default: %(default)s)"
     )
     parser.add_argument(
+        "--cpu",
+        type=_cpu_slot,
+        action="append",
+        default=[],
+        metavar="P:L",
+        help="player P is a CPU of level L (1 to 9), e.g. --cpu 2:7; repeat for more CPUs. "
+        "Skips the menus; with --headless the other players get random input",
+    )
+    parser.add_argument(
         "--test-pattern",
         action="store_true",
         help="show the pixel test pattern instead of a stage (checks display scaling)",
@@ -133,7 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def skips_menus(args: argparse.Namespace) -> bool:
     """Return whether the command line asks to go straight into a match."""
-    return bool(args.battle or args.training or args.stage is not None)
+    return bool(args.battle or args.training or args.stage is not None or args.cpu)
 
 
 def stage_id(args: argparse.Namespace) -> str:
@@ -150,6 +174,18 @@ def character_ids(args: argparse.Namespace, parser: argparse.ArgumentParser) -> 
     if slots[: len(chosen)] != chosen:
         parser.error("player slots must be filled in order: use --p3 before --p4")
     return chosen
+
+
+def cpu_levels(
+    args: argparse.Namespace, players: int, parser: argparse.ArgumentParser
+) -> list[int]:
+    """Return the CPU level of each player (0 = a person) from ``--cpu``."""
+    levels = [0] * players
+    for player, level in args.cpu:
+        if player > players:
+            parser.error(f"--cpu {player}:{level}: there are only {players} players")
+        levels[player - 1] = level
+    return levels
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -175,6 +211,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except DataError as error:
         print(f"isofightr: {error}", file=sys.stderr)
         return EXIT_DATA_ERROR
+    cpus = cpu_levels(args, len(characters), parser)
+    if args.training and any(cpus[1:]):
+        parser.error("--training makes the other players dummies: pick a CPU dummy in its menu")
 
     if args.headless:
         assert stage is not None
@@ -182,7 +221,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.record is not None:
             names = tuple(character.id for character in characters)
             recorder = Recorder(stage.id, names, args.seed, HEADLESS_RULES)
-        print(run_headless(stage, characters, args.seed, args.frames, recorder).summary())
+        report = run_headless(stage, characters, args.seed, args.frames, recorder, cpus)
+        print(report.summary())
         if recorder is not None and recorder.final is not None:
             save_replay(args.record, recorder.final)
             print(f"recorded {recorder.final.ticks} ticks to {args.record}")
@@ -201,6 +241,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         training=args.training,
         menus=not (skips_menus(args) or args.test_pattern),
         record=args.record,
+        cpus=cpus,
     )
     return 0
 

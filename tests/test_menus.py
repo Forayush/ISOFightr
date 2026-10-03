@@ -70,6 +70,7 @@ def test_buttons_confirm_and_go_back() -> None:
     assert held_actions(frame(buttons=Button.JUMP)) == {MenuAction.CONFIRM}
     assert held_actions(frame(buttons=Button.SPECIAL)) == {MenuAction.BACK}
     assert held_actions(frame(buttons=Button.SHIELD)) == {MenuAction.BACK}
+    assert held_actions(frame(buttons=Button.GRAB)) == {MenuAction.EXTRA}
     assert held_actions(NEUTRAL_INPUT) == set()
     assert held_actions(frame(Dir8.SE)) == {MenuAction.RIGHT, MenuAction.DOWN}
 

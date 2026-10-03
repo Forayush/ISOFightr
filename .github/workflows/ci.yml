@@ -31,8 +31,8 @@ jobs:
       - name: Ruff format
         run: uv run ruff format --check .
 
-      - name: Mypy (sim is strictly typed)
-        run: uv run mypy src/isofightr/sim
+      - name: Mypy (sim and CPU AI are strictly typed)
+        run: uv run mypy src/isofightr/sim src/isofightr/ai
 
       # The default marker filter skips `slow` soak tests and `gl` tests (no display in CI).
       - name: Pytest

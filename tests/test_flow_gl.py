@@ -175,6 +175,46 @@ def test_the_rules_screen_turns_the_short_hop_macro_off(window: Any) -> None:
     assert flow.setup.rules().short_hop_macro is False
 
 
+def test_one_player_and_a_cpu_can_play_versus(window: Any) -> None:
+    to_main_menu(window)
+    press(window, keys().ENTER)
+    css = window.current_view
+    assert name(window) == "CharacterSelectView"
+    press(window, keys().L)  # grab adds a CPU in the next free slot
+    assert css.slots[1].cpu == 5 and css.slots[1].owner == "keyboard:solo"
+    assert css.focus == {"keyboard:solo": 1}
+    press(window, keys().S)  # to the level row
+    press(window, keys().D)
+    press(window, keys().D)
+    assert css.slots[1].cpu == 7
+    press(window, keys().L)  # a second CPU, then remove it again
+    assert css.slots[2].cpu == 5
+    press(window, keys().K)
+    assert not css.slots[2].taken and "keyboard:solo" not in css.focus
+    press(window, keys().J)  # ready (the CPU always is)
+    assert name(window) == "StageSelectView"
+    assert window.current_view.setup.cpus == (0, 7)
+    assert window.current_view.setup.devices == ("keyboard:solo", "")
+    press(window, keys().ENTER)
+    battle = window.current_view
+    assert name(window) == "BattleView"
+    assert [battle.cpu_level_of(player) for player in (0, 1)] == [0, 7]
+    for _ in range(300):
+        step(window, 1)
+    assert battle.match.fighters[1].pos != battle.match.stage.spawn_point(1), "the CPU moved"
+
+
+def test_leaving_takes_your_cpus_with_you(window: Any) -> None:
+    to_main_menu(window)
+    press(window, keys().ENTER)
+    css = window.current_view
+    press(window, keys().L)
+    press(window, keys().J)  # back to P1's own slot
+    assert css.slots[1].cpu and not css.focus
+    press(window, keys().K)  # leave
+    assert not any(slot.taken for slot in css.slots)
+
+
 def two_players_to_stage_select(window: Any) -> None:
     """From the main menu: Versus, player 2 joins on the arrows keyboard, both ready."""
     press(window, keys().ENTER)
@@ -526,6 +566,7 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
         "hitboxes",
         "info",
         "reset",
+        "dummy_level",
         "moves",
         "help",
         "quit",

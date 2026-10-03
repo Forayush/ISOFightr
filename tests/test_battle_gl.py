@@ -373,6 +373,50 @@ def test_a_key_tapped_between_two_ticks_still_reaches_the_game(window: Any) -> N
     )
 
 
+# --- M10: CPU players ------------------------------------------------------------------------
+
+
+def test_a_cpu_player_fights_and_its_inputs_are_recorded(window: Any, tmp_path: Any) -> None:
+    from isofightr.data.replay_io import load_replay, match_for
+    from isofightr.scenes.battle import BattleView
+    from isofightr.sim.replay import play_back
+
+    window.switch_to()
+    path = tmp_path / "cpu.json"
+    view = BattleView(
+        window.pixel_buffer,
+        load_stage("training_grid"),
+        [load_character("rook")] * 2,
+        seed=4,
+        cpus=[0, 9],
+        record=path,
+    )
+    window.show_view(view)
+    assert [view.cpu_level_of(player) for player in (0, 1)] == [0, 9]
+    for _ in range(600):
+        ticks(view, 1)
+    assert view.match.fighters[0].damage > 0.0, "the CPU attacked the idle player"
+    view.save_recording()
+    replay = load_replay(path)
+    assert play_back(match_for(replay), replay), "a CPU's inputs replay exactly"
+
+
+def test_the_training_dummy_can_act_like_a_cpu(window: Any) -> None:
+    from isofightr.ai.dummy import DummyBehavior
+
+    view = make_view(window)
+    view.dummy = DummyBehavior.CPU
+    view.dummy_level = 3
+    start = view.match.fighters[1].pos
+    for _ in range(240):
+        ticks(view, 1)
+    assert view.cpu_level_of(1) == 3 and view.cpu_level_of(0) == 0
+    assert view.match.fighters[1].pos != start, "the dummy moves on its own"
+    view.restart()
+    ticks(view, 2)
+    assert view._cpu_match is view.match, "a restarted match gets fresh CPUs"
+
+
 # --- M4: shield bubble and overlay ------------------------------------------------------------
 
 

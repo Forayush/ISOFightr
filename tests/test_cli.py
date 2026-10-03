@@ -122,3 +122,23 @@ def test_sim_tick_stays_well_inside_its_budget() -> None:
     the generous limit here only catches an accidental order-of-magnitude slowdown."""
     report = run_headless(load_stage("sky_ruins"), [load_character("rook")] * 4, seed=1, ticks=3000)
     assert report.ms_per_tick < 1.0
+
+
+def test_cpu_flags_name_a_player_and_a_level(capsys: pytest.CaptureFixture[str]) -> None:
+    args = build_parser().parse_args(["--cpu", "2:7", "--cpu", "1:9"])
+    assert args.cpu == [(2, 7), (1, 9)]
+    for bad in ("2", "2:10", "5:3", "x:1"):
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["--cpu", bad])
+    with pytest.raises(SystemExit):
+        main(["--cpu", "3:5", "--headless", "--frames", "5"])
+    assert "only 2 players" in capsys.readouterr().err
+
+
+def test_headless_cpus_are_reproducible(capsys: pytest.CaptureFixture[str]) -> None:
+    argv = ["--headless", "--frames", "600", "--cpu", "1:9", "--cpu", "2:4", "--seed", "3"]
+    assert main(argv) == 0
+    first = HASH.search(capsys.readouterr().out)
+    assert main(argv) == 0
+    second = HASH.search(capsys.readouterr().out)
+    assert first and second and first.group(1) == second.group(1)

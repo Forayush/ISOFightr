@@ -14,7 +14,15 @@ from typing import TYPE_CHECKING
 
 import arcade
 
-from isofightr.config import MAX_PLAYERS, NATIVE_H, NATIVE_W, WINDOW_TITLE
+from isofightr.config import (
+    CPU_DEFAULT_LEVEL,
+    CPU_MAX_LEVEL,
+    CPU_MIN_LEVEL,
+    MAX_PLAYERS,
+    NATIVE_H,
+    NATIVE_W,
+    WINDOW_TITLE,
+)
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import list_stage_ids, load_stage
@@ -489,7 +497,21 @@ class Slot:
     team: int = 0
     ready: bool = False
     row: int = 0
-    """Which of the slot's rows its cursor is on: 0 character, 1 team."""
+    """Which of the slot's rows its cursor is on: 0 character, then team (a person) or level
+    and team (a CPU)."""
+    cpu: int = 0
+    """CPU level (0 = a person's slot)."""
+    owner: str = ""
+    """For a CPU slot: the device of the player who added it and sets it up."""
+
+    @property
+    def taken(self) -> bool:
+        """Whether someone, or a CPU, plays in this slot."""
+        return bool(self.device) or self.cpu > 0
+
+    def clear(self) -> None:
+        """Empty the slot."""
+        self.device, self.ready, self.row, self.cpu, self.owner = "", False, 0, 0, ""
 
 
 class CharacterSelectView(MenuView):
@@ -499,6 +521,11 @@ class CharacterSelectView(MenuView):
     A device that has not joined joins the first free slot with confirm. Back un-readies,
     then leaves the slot; with nobody joined it goes back to the main menu. Slots remember
     their device between visits and between sessions.
+
+    A joined player adds a CPU to the first free slot with grab (plan note 13: player type
+    Human/CPU/Off and CPU level per slot) and then sets it up: left and right change the row,
+    up and down move between character, level and team, confirm goes back to the player's
+    own slot and back removes the CPU. CPUs are always ready, and leave with their player.
     """
 
     PANEL_BOTTOM = 70
@@ -517,6 +544,8 @@ class CharacterSelectView(MenuView):
             load_character(name).display_name for name in self.character_ids
         )
         self.slots = [Slot(team=index % len(TEAM_NAMES)) for index in range(MAX_PLAYERS)]
+        self.focus: dict[str, int] = {}
+        """For a player editing one of their CPUs: which slot."""
         self.message = ""
         for index, device in enumerate(flow.settings.slot_devices):
             if device and self.hub.connected(device) and not self._slot_of(device):
@@ -524,6 +553,11 @@ class CharacterSelectView(MenuView):
         for index, name in enumerate(setup.characters[:MAX_PLAYERS]):
             if name in self.character_ids:
                 self.slots[index].character = self.character_ids.index(name)
+        if not setup.training:
+            for index, level in enumerate(setup.cpus[:MAX_PLAYERS]):
+                owner = next((slot.device for slot in self.slots if slot.device), "")
+                if level > 0 and owner and not self.slots[index].taken:
+                    self.slots[index].cpu, self.slots[index].owner = level, owner
         for index, team in enumerate(setup.teams[:MAX_PLAYERS]):
             self.slots[index].team = team
 
@@ -553,7 +587,8 @@ class CharacterSelectView(MenuView):
             self._busts.append(bust)
         self._banks: dict[str, SpriteBank | None] = {}
         self._status = self.ui.label(centred_left(70), self.PANEL_BOTTOM - 26, 70, MUTED)
-        self.footer("attack: join / ready   left/right: change   special: un-ready / leave")
+        hint = "" if setup.training else "   grab: add CPU"
+        self.footer(f"attack: join / ready   left/right: change{hint}   special: back")
         self.refresh()
 
     def _bank(self, character_id: str) -> SpriteBank | None:
@@ -568,7 +603,7 @@ class CharacterSelectView(MenuView):
     def _show_bust(self, index: int, slot: Slot) -> None:
         """Show the slot's character in the costume it will wear, if it has art."""
         bust = self._busts[index]
-        bank = self._bank(self.character_ids[slot.character]) if slot.device else None
+        bank = self._bank(self.character_ids[slot.character]) if slot.taken else None
         team_play = self._rows() == 2
         color = slot.team if team_play else index
         texture = None
@@ -584,28 +619,50 @@ class CharacterSelectView(MenuView):
 
     @property
     def joined(self) -> list[Slot]:
-        """The slots that have a player, packed in order: slot order is player order."""
+        """The slots that have a player or a CPU, packed in order: slot order is player
+        order."""
+        return [slot for slot in self.slots if slot.taken]
+
+    @property
+    def people(self) -> list[Slot]:
+        """The slots that people joined."""
         return [slot for slot in self.slots if slot.device]
 
     def _rows(self) -> int:
         return 2 if self.setup.team_play and not self.setup.training else 1
 
+    def _free_slot(self) -> Slot | None:
+        return next((free for free in self.slots if not free.taken), None)
+
     def act(self, device: str, action: MenuAction) -> None:
-        """Join, navigate the device's own slot, toggle ready, or leave."""
+        """Join, navigate the device's own slot (or a CPU it added), toggle ready, add or
+        remove a CPU, or leave."""
         slot = self._slot_of(device)
         if slot is None:
             if action is MenuAction.CONFIRM:
-                free = next((free for free in self.slots if not free.device), None)
+                free = self._free_slot()
                 if free is not None:
-                    free.device, free.ready, free.row = device, False, 0
-            elif action is MenuAction.BACK and not self.joined:
+                    free.clear()
+                    free.device = device
+            elif action is MenuAction.BACK and not self.people:
                 self.flow.show_main_menu()
             return
+        if action is MenuAction.EXTRA and not slot.ready and not self.setup.training:
+            self._add_cpu(device)
+            return
+        focused = self.focus.get(device)
+        if focused is not None and self.slots[focused].owner == device:
+            self._edit_cpu(device, self.slots[focused], action)
+            return
+        self.focus.pop(device, None)
         if action is MenuAction.BACK:
             if slot.ready:
                 slot.ready = False
             else:
-                slot.device = ""
+                slot.clear()
+                for cpu in self.slots:
+                    if cpu.owner == device:
+                        cpu.clear()
             return
         if action is MenuAction.CONFIRM:
             slot.ready = True
@@ -622,6 +679,37 @@ class CharacterSelectView(MenuView):
             else:
                 slot.team = (slot.team + step) % len(TEAM_NAMES)
 
+    def _add_cpu(self, owner: str) -> None:
+        """Put a CPU in the first free slot and let ``owner`` set it up."""
+        free = self._free_slot()
+        if free is None:
+            return
+        index = self.slots.index(free)
+        free.clear()
+        free.cpu, free.owner = CPU_DEFAULT_LEVEL, owner
+        free.character = index % len(self.character_ids)
+        self.focus[owner] = index
+
+    def _edit_cpu(self, owner: str, cpu: Slot, action: MenuAction) -> None:
+        """Set up a CPU: character, level and (in team play) team."""
+        rows = 3 if self._rows() == 2 else 2
+        if action is MenuAction.BACK:
+            cpu.clear()
+            self.focus.pop(owner, None)
+        elif action is MenuAction.CONFIRM:
+            self.focus.pop(owner, None)
+        elif action in (MenuAction.UP, MenuAction.DOWN):
+            cpu.row = (cpu.row + (1 if action is MenuAction.DOWN else -1)) % rows
+        elif action in (MenuAction.LEFT, MenuAction.RIGHT):
+            step = -1 if action is MenuAction.LEFT else 1
+            if cpu.row == 0:
+                cpu.character = (cpu.character + step) % len(self.character_ids)
+            elif cpu.row == 1:
+                span = CPU_MAX_LEVEL - CPU_MIN_LEVEL + 1
+                cpu.cpu = (cpu.cpu - CPU_MIN_LEVEL + step) % span + CPU_MIN_LEVEL
+            else:
+                cpu.team = (cpu.team + step) % len(TEAM_NAMES)
+
     def current_setup(self) -> MatchSetup:
         """Return the setup as the joined slots have it now. Training adds a dummy as
         player 2 when only one player has joined."""
@@ -629,25 +717,28 @@ class CharacterSelectView(MenuView):
         characters = [self.character_ids[slot.character] for slot in joined]
         devices = [slot.device for slot in joined]
         teams = [slot.team for slot in joined]
+        cpus = [slot.cpu for slot in joined]
         if self.setup.training and len(joined) == 1:
             characters.append(characters[0])
             devices.append("")
             teams.append(1)
+            cpus.append(0)
         return replace(
             self.setup,
             characters=tuple(characters),
             devices=tuple(devices),
             teams=tuple(teams),
+            cpus=tuple(cpus) if any(cpus) else (),
         )
 
     def _maybe_start(self) -> None:
-        joined = self.joined
-        if not joined or not all(slot.ready for slot in joined):
+        people = self.people
+        if not people or not all(slot.ready for slot in people):
             return
         setup = self.current_setup()
-        self.message = can_start(setup, len(joined))
+        self.message = can_start(setup, len(self.joined))
         if self.message:
-            for slot in joined:
+            for slot in people:
                 slot.ready = False
             return
         remembered = tuple(slot.device for slot in self.slots)
@@ -658,14 +749,31 @@ class CharacterSelectView(MenuView):
         """Redraw the four panels. A slot whose controller was unplugged is emptied."""
         for slot in self.slots:
             if slot.device and not self.hub.connected(slot.device):
-                slot.device, slot.ready = "", False
+                for cpu in self.slots:
+                    if cpu.owner == slot.device:
+                        cpu.clear()
+                slot.clear()
         teams = self._rows() == 2
+        editing = {index: owner for owner, index in self.focus.items()}
         for index, (slot, panel) in enumerate(zip(self.slots, self._panels, strict=True)):
             self._show_bust(index, slot)
-            if not slot.device:
-                panel.set_lines([f"P{index + 1}", "", "press ATTACK", "to join"])
+            if slot.cpu:
+                marks = [">" if index in editing and slot.row == row else " " for row in range(3)]
+                lines = [
+                    f"P{index + 1}  CPU",
+                    f"{marks[0]} < {self.character_names[slot.character]} >",
+                    f"{marks[1]} < level {slot.cpu} >",
+                    f"{marks[2]} < {TEAM_NAMES[slot.team]} team >" if teams else "",
+                    "special: remove" if index in editing else "",
+                ]
+                panel.set_lines(lines)
                 continue
-            marks = [">" if slot.row == row and not slot.ready else " " for row in range(2)]
+            if not slot.device:
+                hint = "" if self.setup.training else "or GRAB: add CPU"
+                panel.set_lines([f"P{index + 1}", "", "press ATTACK", "to join", hint])
+                continue
+            here = not slot.ready and slot.device not in self.focus
+            marks = [">" if slot.row == row and here else " " for row in range(2)]
             lines = [
                 f"P{index + 1}",
                 self.hub.name(slot.device),

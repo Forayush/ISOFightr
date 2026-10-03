@@ -28,8 +28,16 @@ from typing import TYPE_CHECKING
 
 import arcade
 
+from isofightr.ai.controller import CpuController
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
-from isofightr.config import NATIVE_H, NATIVE_W, Z_PX
+from isofightr.config import (
+    CPU_DEFAULT_LEVEL,
+    CPU_MAX_LEVEL,
+    CPU_MIN_LEVEL,
+    NATIVE_H,
+    NATIVE_W,
+    Z_PX,
+)
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import save_replay
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
@@ -152,6 +160,8 @@ MENU_DAMAGE = "damage"
 MENU_HITBOXES = "hitboxes"
 MENU_INFO = "info"
 MENU_RESET = "reset"
+MENU_DUMMY_LEVEL = "dummy_level"
+CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
 
@@ -173,6 +183,7 @@ class BattleView(TickedView):
         record: Path | None = None,
         replay: Replay | None = None,
         placeholder_art: bool = False,
+        cpus: Sequence[int] | None = None,
     ) -> None:
         """Create the view. See :class:`TickedView` for ``pixel_buffer`` and ``max_ticks``.
 
@@ -189,6 +200,7 @@ class BattleView(TickedView):
             record: file to save this match's replay to (never in training, whose tools
                 change the match from outside).
             replay: a replay to play back instead of reading the players' devices.
+            cpus: CPU level per player (0 = a person); by default the setup's.
         """
         super().__init__(pixel_buffer, max_ticks)
         self.stage = stage
@@ -199,6 +211,11 @@ class BattleView(TickedView):
         self.flow = flow
         self.setup = setup
         self.dummy = DummyBehavior.STAND if training else DummyBehavior.MANUAL
+        self.dummy_level = CPU_DEFAULT_LEVEL
+        chosen = cpus if cpus is not None else (setup.cpus if setup is not None else ())
+        self.cpu_levels = tuple(chosen) + (0,) * (len(self.characters) - len(chosen))
+        self._cpus: dict[int, CpuController] = {}
+        self._cpu_match: Match | None = None
         self.record_path = None if training else record
         self.replay = replay
         self.replay_matches: bool | None = None
@@ -237,7 +254,10 @@ class BattleView(TickedView):
 
         glyphs = GlyphAtlas()
         self.overlay = StageOverlay(stage, glyphs)
-        names = [character.display_name for character in self.characters]
+        names = [
+            character.display_name + (f" CPU{level}" if level else "")
+            for character, level in zip(self.characters, self.cpu_levels, strict=False)
+        ]
         colors = [fighter.color_index for fighter in self.match.fighters]
         self.hud = DamageHud(
             glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors, self._stock_icons()
@@ -313,6 +333,12 @@ class BattleView(TickedView):
                 MenuItem(MENU_HITBOXES, "Hitboxes", ON_OFF),
                 MenuItem(MENU_INFO, "Fighter info", ON_OFF),
                 MenuItem(MENU_RESET, "Reset positions"),
+                MenuItem(
+                    MENU_DUMMY_LEVEL,
+                    "Dummy CPU level",
+                    CPU_LEVEL_CHOICES,
+                    CPU_LEVEL_CHOICES.index(str(self.dummy_level)),
+                ),
             ]
         items.append(MenuItem(MENU_MOVES, "Move list"))
         items.append(MenuItem(MENU_HELP, "Controls help", ON_OFF, int(self.show_help)))
@@ -428,6 +454,7 @@ class BattleView(TickedView):
             menu.item(MENU_DUMMY).index = behaviors.index(self.dummy.value)
             menu.item(MENU_HITBOXES).index = int(self.show_hitboxes)
             menu.item(MENU_INFO).index = int(self.show_fighter_info)
+            menu.item(MENU_DUMMY_LEVEL).index = CPU_LEVEL_CHOICES.index(str(self.dummy_level))
             dummies = self.match.fighters[FIRST_DUMMY:]
             damage = dummies[0].damage if dummies else 0.0
             menu.item(MENU_DAMAGE).label = f"Dummy damage: < {damage:.0f}% >"
@@ -459,6 +486,7 @@ class BattleView(TickedView):
             self.dummy = DummyBehavior(menu.item(MENU_DUMMY).value)
             self.show_hitboxes = bool(menu.item(MENU_HITBOXES).index)
             self.show_fighter_info = bool(menu.item(MENU_INFO).index)
+            self.dummy_level = int(menu.item(MENU_DUMMY_LEVEL).value)
         self._sync_pause_menu()
 
     def quit_match(self) -> None:
@@ -584,6 +612,7 @@ class BattleView(TickedView):
             return
         self.characters = characters
         self.match.reload_characters(characters)
+        self._cpu_match = None  # the CPUs learn the reloaded moves again
         self.renderer.banks = self._load_banks()
         if self.recorder is not None:
             self.recorder = None  # a replay cannot reproduce a mid-match data change
@@ -671,15 +700,37 @@ class BattleView(TickedView):
                     self.open_menu()
         return frames, menu_frames
 
+    def cpu_level_of(self, player: int) -> int:
+        """The CPU level playing ``player`` (0 = a person or a scripted dummy)."""
+        if player < len(self.cpu_levels) and self.cpu_levels[player] > 0:
+            return self.cpu_levels[player]
+        if self.training and player >= FIRST_DUMMY and self.dummy is DummyBehavior.CPU:
+            return self.dummy_level
+        return 0
+
+    def _cpu(self, player: int, level: int) -> CpuController:
+        """The controller for a CPU player, made fresh for each match (and each level)."""
+        if self._cpu_match is not self.match:
+            self._cpus = {}
+            self._cpu_match = self.match
+        controller = self._cpus.get(player)
+        if controller is None or controller.level.level != level:
+            controller = CpuController(player, level, self.seed, self.stage)
+            self._cpus[player] = controller
+        return controller
+
     def _player_frames(self, frames: list[InputFrame]) -> list[InputFrame]:
-        """Replace the dummies' input with their behaviour."""
-        if self.dummy is DummyBehavior.MANUAL:
-            return frames
-        frame = self.match.frame
-        return [
-            dummy_frame(self.dummy, frame, manual) if index >= FIRST_DUMMY else manual
-            for index, manual in enumerate(frames)
-        ]
+        """Replace CPU players' and the dummies' input with what they decide."""
+        played = []
+        for index, manual in enumerate(frames):
+            level = self.cpu_level_of(index)
+            if level > 0:
+                played.append(self._cpu(index, level).think(self.match))
+            elif self.training and index >= FIRST_DUMMY and self.dummies:
+                played.append(dummy_frame(self.dummy, self.match.frame, manual))
+            else:
+                played.append(manual)
+        return played
 
     def _after_game(self) -> bool:
         """Run the "GAME!" slow-motion and move on to the results. Returns whether to skip

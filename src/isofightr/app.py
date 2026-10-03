@@ -93,6 +93,7 @@ def run(
     training: bool = False,
     menus: bool = False,
     record: Path | None = None,
+    cpus: Sequence[int] = (),
 ) -> None:
     """Open the game window and block until it closes.
 
@@ -109,6 +110,7 @@ def run(
         menus: start at the title screen and let the menus set up matches; ``stage`` and
             ``characters`` are then ignored.
         record: save every match as a replay file (the path, then ``-2``, ``-3``...).
+        cpus: CPU level per player (0 = a person), for a match started without the menus.
     """
     path = settings_path()
     settings = load_settings(path)
@@ -132,6 +134,7 @@ def run(
             max_ticks=max_ticks,
             training=training,
             record=record,
+            cpus=cpus,
         )
     window.show_view(view)
     arcade.run()

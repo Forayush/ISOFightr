@@ -1,7 +1,8 @@
 """Training dummy behaviours: simple scripted input for players 2 to 4 in training mode.
 
 Plan note "13 - Game Modes UI and Flow" ("Training mode": CPU behavior stand, walk, jump,
-shield, attack, or controlled manually). "Act like a CPU" arrives with the AI in M9.
+shield, attack, act like a CPU, or controlled manually). The CPU behaviour is run by the
+battle scene, which owns the controllers; :func:`dummy_frame` covers the scripted ones.
 An input source like any other: it only produces ``InputFrame``s.
 
 Pure Python (no ``arcade``), so it is unit tested without a window.
@@ -29,6 +30,8 @@ class DummyBehavior(Enum):
     JUMP = "jump"
     SHIELD = "shield"
     ATTACK = "attack"
+    CPU = "cpu"
+    """Played by a CPU opponent (:mod:`isofightr.ai.controller`) at the chosen level."""
     MANUAL = "manual"
     """Controlled by its own player's devices."""
 
