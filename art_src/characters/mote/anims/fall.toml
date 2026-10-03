@@ -1,0 +1,12 @@
+# Fall: airborne, cape fluttering.
+loop = true
+fps = 6
+
+[[poses]]
+use = "air"
+
+[[poses]]
+use = "air"
+cape = [-60.0, 0.0, 4.0]
+shoulder_r = [46.0, -34.0, 0.0]
+shoulder_l = [36.0, 44.0, 0.0]

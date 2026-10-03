@@ -1,0 +1,83 @@
+# Mote: getup attack, sweeps both ways (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "arc"
+centre = [0.2, 0.0, 0.6]
+r_in = 0.4
+r_out = 1.45
+a0 = -75.0
+a1 = 25.0
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[smears]]
+name = "smear1"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 0.6]
+r_in = 0.45
+r_out = 1.45
+a0 = 110.0
+a1 = 220.0
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+shoulder_r = [30.0, 0.0, -40.0]
+elbow_r = [40.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 14
+use = "crouch"
+shoulder_r = [34.5, 0.0, -46.0]
+elbow_r = [46.0, 0.0, 0.0]
+hand_r = [-80.5, 0.0, 0.0]
+
+[[poses]]
+start = 17
+use = "crouch"
+offset = [0.0, 0.05, -0.24]
+chest = [-30.0, 0.0, 20.0]
+shoulder_r = [62.0, 0.0, -5.0]
+elbow_r = [5.0, 0.0, 0.0]
+hand_r = [-75.0, 0.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 20
+use = "crouch"
+offset = [0.0, 0.05, -0.24]
+chest = [-30.0, 0.0, 25.0]
+shoulder_r = [60.0, 0.0, 25.0]
+elbow_r = [5.0, 0.0, 0.0]
+hand_r = [-75.0, 0.0, 0.0]
+
+[[poses]]
+start = 21
+use = "crouch"
+offset = [0.0, 0.05, -0.24]
+chest = [-30.0, 0.0, 20.0]
+shoulder_r = [62.0, 0.0, -5.0]
+elbow_r = [5.0, 0.0, 0.0]
+hand_r = [-75.0, 0.0, 0.0]
+hips = [0.0, 0.0, 170.0]
+show = ["smear1"]
+
+[[poses]]
+start = 24
+use = "crouch"
+offset = [0.0, 0.05, -0.24]
+chest = [-30.0, 0.0, 25.0]
+shoulder_r = [60.0, 0.0, 25.0]
+elbow_r = [5.0, 0.0, 0.0]
+hand_r = [-75.0, 0.0, 0.0]
+hips = [0.0, 0.0, 185.0]
+
+[[poses]]
+start = 37
+use = "crouch"

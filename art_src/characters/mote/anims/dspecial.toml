@@ -1,0 +1,37 @@
+# Mote: Snare Glyph, drawing a rune on the ground
+
+[[smears]]
+name = "rune"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 1.2, 0.08]
+r_in = 0.3
+r_out = 0.55
+a0 = 0.0
+a1 = 359.0
+thickness = 0.02
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+shoulder_l = [90.0, 30.0, 0.0]
+elbow_l = [40.0, 0.0, 0.0]
+
+[[poses]]
+start = 14
+use = "crouch"
+offset = [0.0, 0.05, -0.2]
+chest = [-35.0, 0.0, 0.0]
+shoulder_l = [50.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["rune"]
+
+[[poses]]
+start = 20
+use = "crouch"
+chest = [-25.0, 0.0, 0.0]
+
+[[poses]]
+start = 30
+use = "ready"

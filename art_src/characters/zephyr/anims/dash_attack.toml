@@ -1,0 +1,40 @@
+# Zephyr: dash attack, a sliding kick (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "arc"
+centre = [0.2, 0.0, 0.9]
+r_in = 0.4
+r_out = 1.2
+a0 = -75.0
+a1 = 25.0
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+hip_r = [30.0, 0.0, -20.0]
+knee_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 5
+use = "crouch"
+offset = [0.0, 0.0, -0.2]
+hip_r = [80.0, 0.0, -10.0]
+knee_r = [-5.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+chest = [-20.0, 0.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 15
+use = "crouch"
+offset = [0.0, 0.0, -0.2]
+hip_r = [60.0, 0.0, 10.0]
+knee_r = [-30.0, 0.0, 0.0]
+
+[[poses]]
+start = 27
+use = "crouch"

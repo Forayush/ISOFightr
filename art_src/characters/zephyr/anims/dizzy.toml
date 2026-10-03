@@ -1,0 +1,35 @@
+# Dizzy: wobbling with the shield broken.
+loop = true
+fps = 6
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, 0.0]
+chest = [10.0, 6.0, 0.0]
+head = [16.0, 14.0, 0.0]
+shoulder_r = [10.0, -20.0, 0.0]
+shoulder_l = [10.0, 20.0, 0.0]
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, -0.03]
+chest = [8.0, 0.0, 10.0]
+head = [10.0, 0.0, 20.0]
+shoulder_r = [14.0, -24.0, 0.0]
+shoulder_l = [6.0, 16.0, 0.0]
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, 0.0]
+chest = [10.0, -6.0, 0.0]
+head = [16.0, -14.0, 0.0]
+shoulder_r = [6.0, -16.0, 0.0]
+shoulder_l = [14.0, 24.0, 0.0]
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, -0.03]
+chest = [8.0, 0.0, -10.0]
+head = [10.0, 0.0, -20.0]
+shoulder_r = [14.0, -24.0, 0.0]
+shoulder_l = [6.0, 16.0, 0.0]

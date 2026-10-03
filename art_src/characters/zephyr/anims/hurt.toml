@@ -1,0 +1,13 @@
+# Hurt: flinching from a hit.
+
+[[poses]]
+start = 1
+use = "hurt"
+
+[[poses]]
+start = 8
+use = "hurt"
+offset = [0.0, -0.04, 0.0]
+hips = [4.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+head = [10.0, 0.0, 4.0]

@@ -1,0 +1,31 @@
+# Tumble: spinning head over heels after a strong hit.
+loop = true
+fps = 12
+
+[[poses]]
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+hips = [0.0, 0.0, 0.0]
+shoulder_r = [60.0, -60.0, 0.0]
+shoulder_l = [60.0, 60.0, 0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+hips = [-90.0, 0.0, 0.0]
+shoulder_r = [60.0, -60.0, 0.0]
+shoulder_l = [60.0, 60.0, 0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+hips = [-180.0, 0.0, 0.0]
+shoulder_r = [60.0, -60.0, 0.0]
+shoulder_l = [60.0, 60.0, 0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+hips = [-270.0, 0.0, 0.0]
+shoulder_r = [60.0, -60.0, 0.0]
+shoulder_l = [60.0, 60.0, 0.0]

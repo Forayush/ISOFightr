@@ -1,0 +1,48 @@
+# Bramble: down air, a spiking stomp (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "rod"
+a = [0.3, 0.2, 0.8]
+b = [0.25, 0.2, -0.6]
+r1 = 0.02
+r2 = 0.12
+
+[[poses]]
+start = 1
+use = "tuck"
+shoulder_r = [150.0, 0.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+shoulder_l = [150.0, 0.0, 0.0]
+
+[[poses]]
+start = 15
+use = "tuck"
+shoulder_r = [172.5, 0.0, 0.0]
+elbow_r = [23.0, 0.0, 0.0]
+hand_r = [-69.0, 0.0, 0.0]
+shoulder_l = [172.5, 0.0, 0.0]
+
+[[poses]]
+start = 18
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+shoulder_r = [0.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [0.0, 0.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 23
+use = "tuck"
+offset = [0.0, 0.0, 0.3]
+shoulder_r = [10.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 42
+use = "air"

@@ -1,0 +1,40 @@
+# Zephyr: jab 3, a spinning tail swipe (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "rod"
+a = [0.22, 0.3, 1.1]
+b = [0.15, 1.25, 1.1]
+r1 = 0.02
+r2 = 0.1
+
+[[poses]]
+start = 1
+use = "ready"
+hip_r = [60.0, 0.0, 0.0]
+knee_r = [-110.0, 0.0, 0.0]
+chest = [-6.0, 0.0, 0.0]
+shoulder_l = [40.0, 30.0, 0.0]
+
+[[poses]]
+start = 4
+use = "ready"
+hip_r = [95.0, 0.0, 0.0]
+knee_r = [-5.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+chest = [14.0, 0.0, 0.0]
+shoulder_l = [30.0, 50.0, 0.0]
+shoulder_r = [30.0, -40.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 7
+use = "ready"
+hip_r = [80.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 19
+use = "ready"

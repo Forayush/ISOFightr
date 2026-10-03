@@ -1,0 +1,16 @@
+# Grab hold: the buckler arm holds the victim at arm's length.
+loop = true
+fps = 4
+
+[[poses]]
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, -0.03]
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [84.0, 0.0, -12.0]
+elbow_l = [10.0, 0.0, 0.0]

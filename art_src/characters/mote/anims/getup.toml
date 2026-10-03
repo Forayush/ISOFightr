@@ -1,0 +1,21 @@
+# Get up: sitting up, then onto the feet.
+
+[[poses]]
+start = 1
+use = "lying"
+
+[[poses]]
+start = 8
+use = "lying"
+offset = [0.0, -0.35, -0.5]
+hips = [80.0, 0.0, 0.0]
+chest = [-50.0, 0.0, 0.0]
+head = [-10.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-90.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 14
+use = "crouch"

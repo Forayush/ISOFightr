@@ -1,0 +1,29 @@
+# Zephyr: a showy preen
+
+[[poses]]
+start = 1
+use = "ready"
+
+[[poses]]
+start = 8
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+head = [20.0, 0.0, 20.0]
+shoulder_r = [160.0, -20.0, 0.0]
+elbow_r = [90.0, 0.0, 0.0]
+cape = [-60.0, 0.0, 20.0]
+
+[[poses]]
+start = 25
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+head = [20.0, 0.0, -20.0]
+shoulder_l = [160.0, 20.0, 0.0]
+elbow_l = [90.0, 0.0, 0.0]
+cape = [-60.0, 0.0, -20.0]
+
+[[poses]]
+start = 40
+use = "ready"

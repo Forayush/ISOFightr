@@ -1,0 +1,23 @@
+# Helpless: arms flailing after a recovery (the game also darkens it).
+loop = true
+fps = 6
+
+[[poses]]
+use = "air"
+chest = [14.0, 0.0, 0.0]
+head = [20.0, 0.0, 0.0]
+shoulder_r = [150.0, -40.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+shoulder_l = [150.0, 40.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+cape = [-80.0, 0.0, 0.0]
+
+[[poses]]
+use = "air"
+chest = [14.0, 0.0, 0.0]
+head = [20.0, 0.0, 0.0]
+shoulder_r = [120.0, -60.0, 0.0]
+elbow_r = [40.0, 0.0, 0.0]
+shoulder_l = [170.0, 30.0, 0.0]
+elbow_l = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 6.0]

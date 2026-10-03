@@ -1,0 +1,24 @@
+# Grab: lunging with the free hand.
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [-6.0, 0.0, -20.0]
+shoulder_l = [40.0, 30.0, 10.0]
+
+[[poses]]
+start = 6
+use = "lunge"
+shoulder_l = [90.0, 0.0, -15.0]
+elbow_l = [0.0, 0.0, 0.0]
+shoulder_r = [30.0, -30.0, 0.0]
+elbow_r = [60.0, 0.0, 0.0]
+hand_r = [-40.0, 0.0, 0.0]
+chest = [-20.0, 0.0, 20.0]
+
+[[poses]]
+start = 12
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]

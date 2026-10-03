@@ -1,0 +1,26 @@
+# Down throw: lifting, then slamming the victim down.
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [-4.0, 0.0, 16.0]
+shoulder_l = [88.0, 0.0, -10.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "ready"
+chest = [10.0, 0.0, 10.0]
+shoulder_l = [160.0, 0.0, 0.0]
+elbow_l = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 18
+use = "crouch"
+chest = [-30.0, 0.0, 0.0]
+shoulder_l = [40.0, 0.0, -10.0]
+elbow_l = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 26
+use = "ready"

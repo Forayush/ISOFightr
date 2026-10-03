@@ -1,0 +1,8 @@
+# Turn: half way round.
+
+[[poses]]
+start = 1
+use = "ready"
+hips = [0.0, 0.0, 70.0]
+chest = [6.0, 0.0, 20.0]
+head = [-4.0, 0.0, 20.0]

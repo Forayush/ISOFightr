@@ -1,0 +1,26 @@
+# Mote: a lantern twirl
+
+[[poses]]
+start = 1
+use = "ready"
+
+[[poses]]
+start = 8
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+shoulder_r = [150.0, 0.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-120.0, 0.0, 0.0]
+head = [20.0, 0.0, 0.0]
+
+[[poses]]
+start = 25
+use = "ready"
+hips = [0.0, 0.0, 40.0]
+shoulder_r = [150.0, 0.0, 60.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-120.0, 0.0, 0.0]
+
+[[poses]]
+start = 45
+use = "ready"

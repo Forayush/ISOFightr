@@ -1,0 +1,24 @@
+# Double jump: a front flip.
+
+[[poses]]
+start = 1
+use = "tuck"
+
+[[poses]]
+start = 4
+use = "tuck"
+hips = [-90.0, 0.0, 8.0]
+
+[[poses]]
+start = 8
+use = "tuck"
+hips = [-180.0, 0.0, 8.0]
+
+[[poses]]
+start = 12
+use = "tuck"
+hips = [-270.0, 0.0, 8.0]
+
+[[poses]]
+start = 16
+use = "air"

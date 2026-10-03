@@ -1,0 +1,38 @@
+# Bramble: Shoulder Charge, an armored rush
+
+[[smears]]
+name = "rush"
+joint = "origin"
+shape = "rod"
+a = [0.0, -0.6, 1.6]
+b = [0.0, 1.0, 1.6]
+r1 = 0.01
+r2 = 0.16
+
+[[poses]]
+start = 1
+use = "crouch"
+chest = [-20.0, 0.0, -30.0]
+shoulder_r = [30.0, 0.0, 20.0]
+shoulder_l = [30.0, 0.0, -20.0]
+
+[[poses]]
+start = 10
+use = "lunge"
+offset = [0.0, 0.1, -0.2]
+chest = [-30.0, 0.0, -35.0]
+shoulder_r = [20.0, -10.0, 30.0]
+elbow_r = [90.0, 0.0, 0.0]
+shoulder_l = [60.0, 10.0, -20.0]
+elbow_l = [80.0, 0.0, 0.0]
+show = ["rush"]
+
+[[poses]]
+start = 27
+use = "lunge"
+offset = [0.0, 0.1, -0.2]
+chest = [-25.0, 0.0, -20.0]
+
+[[poses]]
+start = 36
+use = "ready"

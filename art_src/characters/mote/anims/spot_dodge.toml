@@ -1,0 +1,18 @@
+# Spot dodge: ducking aside in place.
+
+[[poses]]
+start = 1
+use = "crouch"
+
+[[poses]]
+start = 4
+use = "crouch"
+offset = [0.0, -0.1, -0.3]
+hips = [20.0, 0.0, 30.0]
+chest = [-30.0, 0.0, 0.0]
+head = [30.0, 0.0, 0.0]
+shoulder_l = [90.0, 0.0, -20.0]
+
+[[poses]]
+start = 20
+use = "crouch"

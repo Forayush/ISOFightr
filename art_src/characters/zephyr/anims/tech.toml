@@ -1,0 +1,16 @@
+# Tech: catching the fall and bouncing up.
+
+[[poses]]
+start = 1
+use = "crouch"
+offset = [0.0, 0.0, -0.25]
+chest = [-30.0, 0.0, 0.0]
+shoulder_l = [60.0, 30.0, 0.0]
+
+[[poses]]
+start = 8
+use = "crouch"
+
+[[poses]]
+start = 18
+use = "ready"

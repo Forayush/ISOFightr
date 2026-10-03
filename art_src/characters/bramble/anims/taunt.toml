@@ -1,0 +1,27 @@
+# Bramble: a ground-shaking flex
+
+[[poses]]
+start = 1
+use = "ready"
+
+[[poses]]
+start = 10
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [120.0, 0.0, 0.0]
+elbow_l = [120.0, 0.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+
+[[poses]]
+start = 40
+use = "crouch"
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [120.0, 0.0, 0.0]
+elbow_l = [120.0, 0.0, 0.0]
+
+[[poses]]
+start = 58
+use = "ready"

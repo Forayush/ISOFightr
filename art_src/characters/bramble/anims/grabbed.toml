@@ -1,0 +1,21 @@
+# Grabbed: held and struggling.
+loop = true
+fps = 6
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, 0.05]
+shoulder_r = [60.0, -40.0, 0.0]
+shoulder_l = [60.0, 40.0, 0.0]
+hip_r = [30.0, 0.0, 0.0]
+knee_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+use = "hurt"
+offset = [0.0, 0.0, 0.05]
+shoulder_r = [40.0, -60.0, 0.0]
+shoulder_l = [80.0, 30.0, 0.0]
+hip_l = [30.0, 0.0, 0.0]
+knee_l = [-60.0, 0.0, 0.0]
+hip_r = [0.0, 0.0, 0.0]
+knee_r = [-10.0, 0.0, 0.0]

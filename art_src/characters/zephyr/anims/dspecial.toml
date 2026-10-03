@@ -1,0 +1,99 @@
+# Zephyr: Whirl, a spinning reflector
+
+[[smears]]
+name = "whirl"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.0]
+r_in = 0.45
+r_out = 0.85
+a0 = 0.0
+a1 = 359.0
+thickness = 0.04
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "ready"
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+
+[[poses]]
+start = 4
+use = "ready"
+hips = [0.0, 0.0, 0.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 7
+use = "ready"
+hips = [0.0, 0.0, 110.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 10
+use = "ready"
+hips = [0.0, 0.0, 220.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 13
+use = "ready"
+hips = [0.0, 0.0, 330.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 16
+use = "ready"
+hips = [0.0, 0.0, 440.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 19
+use = "ready"
+hips = [0.0, 0.0, 550.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 22
+use = "ready"
+hips = [0.0, 0.0, 660.0]
+shoulder_r = [90.0, -80.0, 0.0]
+shoulder_l = [90.0, 80.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["whirl"]
+
+[[poses]]
+start = 23
+use = "ready"
+shoulder_r = [60.0, -60.0, 0.0]
+shoulder_l = [60.0, 60.0, 0.0]
+
+[[poses]]
+start = 30
+use = "ready"

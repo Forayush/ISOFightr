@@ -1,0 +1,37 @@
+# Zephyr: Gust Hop, a crouch, then a burst of wind
+
+[[smears]]
+name = "gust"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 0.4]
+r_in = 0.3
+r_out = 0.8
+a0 = 0.0
+a1 = 359.0
+thickness = 0.04
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+offset = [0.0, 0.0, -0.1]
+shoulder_r = [-20.0, -30.0, 0.0]
+shoulder_l = [-20.0, 30.0, 0.0]
+
+[[poses]]
+start = 7
+use = "tuck"
+shoulder_r = [170.0, -30.0, 0.0]
+shoulder_l = [170.0, 30.0, 0.0]
+show = ["gust"]
+
+[[poses]]
+start = 13
+use = "air"
+shoulder_r = [150.0, -50.0, 0.0]
+shoulder_l = [150.0, 50.0, 0.0]
+
+[[poses]]
+start = 24
+use = "air"

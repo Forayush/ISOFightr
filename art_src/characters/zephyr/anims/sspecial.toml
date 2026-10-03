@@ -1,0 +1,50 @@
+# Zephyr: Slipstream, a streak through opponents
+
+[[smears]]
+name = "streak"
+joint = "origin"
+shape = "rod"
+a = [0.0, -1.2, 1.0]
+b = [0.0, 0.6, 1.0]
+r1 = 0.0
+r2 = 0.2
+
+[[smears]]
+name = "burst"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.0]
+r_in = 0.4
+r_out = 0.9
+a0 = 0.0
+a1 = 359.0
+thickness = 0.04
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "crouch"
+chest = [-30.0, 0.0, 0.0]
+cape = [-20.0, 0.0, 0.0]
+
+[[poses]]
+start = 6
+use = "lunge"
+offset = [0.0, 0.1, -0.15]
+chest = [-40.0, 0.0, 0.0]
+shoulder_r = [-40.0, -20.0, 0.0]
+shoulder_l = [-40.0, 20.0, 0.0]
+cape = [-80.0, 0.0, 0.0]
+show = ["streak"]
+
+[[poses]]
+start = 14
+use = "ready"
+shoulder_r = [60.0, -50.0, 0.0]
+shoulder_l = [60.0, 50.0, 0.0]
+chest = [10.0, 0.0, 0.0]
+show = ["burst"]
+
+[[poses]]
+start = 19
+use = "ready"

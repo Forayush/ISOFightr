@@ -1,0 +1,40 @@
+# Bramble: jab 2, a hammering punch (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "rod"
+a = [0.22, 0.3, 1.4]
+b = [0.15, 1.7, 1.4]
+r1 = 0.02
+r2 = 0.1
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [6.0, 0.0, -20.0]
+shoulder_r = [40.0, 0.0, -20.0]
+elbow_r = [90.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 3
+use = "ready"
+chest = [6.9, 0.0, -23.0]
+shoulder_r = [46.0, 0.0, -23.0]
+elbow_r = [103.5, 0.0, 0.0]
+hand_r = [-80.5, 0.0, 0.0]
+
+[[poses]]
+start = 6
+use = "lunge"
+offset = [0.0, 0.05, -0.06]
+show = ["smear0"]
+
+[[poses]]
+start = 9
+use = "lunge"
+
+[[poses]]
+start = 24
+use = "ready"

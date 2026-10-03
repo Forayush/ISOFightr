@@ -1,0 +1,28 @@
+# Bramble: Quake Slam, hanging in the air, then plummeting fists first
+
+[[smears]]
+name = "plunge"
+joint = "origin"
+shape = "rod"
+a = [0.0, 0.0, 2.8]
+b = [0.0, 0.0, 0.2]
+r1 = 0.02
+r2 = 0.2
+
+[[poses]]
+start = 1
+use = "tuck"
+shoulder_r = [170.0, -20.0, 0.0]
+shoulder_l = [170.0, 20.0, 0.0]
+elbow_r = [30.0, 0.0, 0.0]
+elbow_l = [30.0, 0.0, 0.0]
+
+[[poses]]
+start = 11
+use = "tuck"
+offset = [0.0, 0.0, 0.35]
+shoulder_r = [10.0, -20.0, 0.0]
+shoulder_l = [10.0, 20.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+show = ["plunge"]

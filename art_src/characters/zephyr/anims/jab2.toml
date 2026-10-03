@@ -1,0 +1,32 @@
+# Zephyr: jab 2, the other claw (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "rod"
+a = [0.22, 0.3, 1.1]
+b = [0.15, 1.0, 1.1]
+r1 = 0.02
+r2 = 0.1
+
+[[poses]]
+start = 1
+use = "ready"
+chest = [6.0, 0.0, -20.0]
+shoulder_r = [40.0, 0.0, -20.0]
+elbow_r = [90.0, 0.0, 0.0]
+hand_r = [-70.0, 0.0, 0.0]
+
+[[poses]]
+start = 2
+use = "lunge"
+offset = [0.0, 0.05, -0.06]
+show = ["smear0"]
+
+[[poses]]
+start = 4
+use = "lunge"
+
+[[poses]]
+start = 11
+use = "ready"

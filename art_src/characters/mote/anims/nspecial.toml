@@ -1,0 +1,42 @@
+# Mote: Ember Orb, the lantern raised to gather fire, then thrust out
+
+[[smears]]
+name = "glow"
+joint = "origin"
+shape = "arc"
+centre = [0.3, 0.6, 1.6]
+r_in = 0.1
+r_out = 0.35
+a0 = 0.0
+a1 = 359.0
+thickness = 0.03
+turn = [0.0, 90.0, 0.0]
+
+[[poses]]
+start = 1
+use = "ready"
+shoulder_r = [120.0, 0.0, -10.0]
+elbow_r = [30.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "ready"
+shoulder_r = [120.0, 0.0, -10.0]
+elbow_r = [30.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+offset = [0.0, 0.0, 0.04]
+chest = [10.0, 0.0, 0.0]
+shoulder_l = [120.0, 30.0, 0.0]
+show = ["glow"]
+
+[[poses]]
+start = 16
+use = "lunge"
+shoulder_r = [90.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 30
+use = "ready"

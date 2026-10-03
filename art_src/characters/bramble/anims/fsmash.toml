@@ -1,0 +1,54 @@
+# Bramble: forward smash, a hammer blow (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "arc"
+centre = [0.3, 0.0, 1.595]
+r_in = 1.429
+r_out = 2.229
+a0 = -30.0
+a1 = 110.0
+thickness = 0.06
+turn = [0.0, 90.0, 0.0]
+
+[[poses]]
+start = 1
+use = "windup"
+offset = [0.0, -0.05, -0.05]
+shoulder_r = [175.0, -10.0, -10.0]
+elbow_r = [40.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]
+chest = [14.0, 0.0, -20.0]
+
+[[poses]]
+start = 17
+use = "windup"
+offset = [0.0, -0.05, -0.05]
+shoulder_r = [201.25, -10.0, -11.5]
+elbow_r = [46.0, 0.0, 0.0]
+hand_r = [-34.5, 0.0, 0.0]
+chest = [16.1, 0.0, -23.0]
+
+[[poses]]
+start = 20
+use = "lunge"
+offset = [0.0, 0.12, -0.18]
+shoulder_r = [80.0, 0.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-80.0, 0.0, 0.0]
+chest = [-30.0, 0.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 23
+use = "lunge"
+offset = [0.0, 0.12, -0.2]
+shoulder_r = [35.0, 0.0, 10.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+chest = [-34.0, 0.0, 0.0]
+
+[[poses]]
+start = 45
+use = "ready"

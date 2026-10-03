@@ -1,0 +1,27 @@
+# Roll: tucked into a ball.
+
+[[poses]]
+start = 1
+use = "crouch"
+
+[[poses]]
+start = 4
+use = "tuck"
+offset = [0.0, 0.0, -0.2]
+hips = [-90.0, 0.0, 0.0]
+
+[[poses]]
+start = 10
+use = "tuck"
+offset = [0.0, 0.0, -0.2]
+hips = [-180.0, 0.0, 0.0]
+
+[[poses]]
+start = 16
+use = "tuck"
+offset = [0.0, 0.0, -0.2]
+hips = [-270.0, 0.0, 0.0]
+
+[[poses]]
+start = 23
+use = "crouch"

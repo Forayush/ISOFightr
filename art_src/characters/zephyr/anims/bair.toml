@@ -1,0 +1,40 @@
+# Zephyr: back air, a backward kick (generated from move data)
+
+[[smears]]
+name = "smear0"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.1]
+r_in = 0.5
+r_out = 1.4
+a0 = 130.0
+a1 = 230.0
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[poses]]
+start = 1
+use = "air"
+chest = [0.0, 0.0, 40.0]
+head = [0.0, 0.0, 60.0]
+
+[[poses]]
+start = 5
+use = "air"
+hips = [0.0, 0.0, 165.0]
+hip_r = [95.0, 0.0, 0.0]
+knee_r = [0.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+chest = [14.0, 0.0, 0.0]
+show = ["smear0"]
+
+[[poses]]
+start = 9
+use = "air"
+hips = [0.0, 0.0, 170.0]
+hip_r = [70.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+
+[[poses]]
+start = 22
+use = "air"
