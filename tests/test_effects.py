@@ -387,6 +387,17 @@ def test_overlay_ellipses_sit_on_the_projected_shapes() -> None:
 # --- M4: shields, intangibility, helpless ----------------------------------------------------
 
 
+def test_reduce_flashing_swaps_flashes_and_blinks_for_a_steady_dim() -> None:
+    """The accessibility setting (plan note 13, "Settings": flash reduction)."""
+    _, attacker, _ = duel()
+    assert fighter_look(attacker, 0, flash_frames=3).flash
+    assert not fighter_look(attacker, 0, flash_frames=3, reduce_flashing=True).flash
+    attacker.intangible_frames = 10
+    looks = [fighter_look(attacker, frame, reduce_flashing=True) for frame in range(8)]
+    assert not any(look.hidden for look in looks), "no blinking"
+    assert all(look.dim for look in looks), "dimmed instead"
+
+
 def test_intangible_fighters_blink_and_helpless_ones_are_dim() -> None:
     match, attacker, _ = duel()
     attacker.intangible_frames = 10

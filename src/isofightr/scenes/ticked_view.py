@@ -7,7 +7,8 @@ Architecture". Subclasses put everything that advances the game in :meth:`Ticked
 import arcade
 
 from isofightr.audio.sound_director import SoundDirector
-from isofightr.config import TICK_RATE, WINDOW_TITLE
+from isofightr.config import NATIVE_H, NATIVE_W, TICK_RATE, WINDOW_TITLE
+from isofightr.render import placeholder_art as art
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import ScaledViewport, integer_scale_viewport
 from isofightr.timestep import FixedTimestep
@@ -29,6 +30,9 @@ class TickedView(arcade.View):
         self.tick_count = 0
         self.max_ticks = max_ticks
         self._silent = SoundDirector()
+        self.fade_ticks = 0
+        """The scene fades in from black over this many ticks (0 = it cuts in)."""
+        self._fade_layer: arcade.SpriteList[arcade.Sprite] | None = None
 
     def on_update(self, delta_time: float) -> None:
         """Convert the variable frame time into whole ticks and run them."""
@@ -52,6 +56,19 @@ class TickedView(arcade.View):
         if director is None:
             director = self._silent
         return director  # type: ignore[no-any-return]
+
+    def draw_fade(self) -> None:
+        """Draw the fade-in from black, if it is still going (call last, inside the buffer)."""
+        if self.tick_count >= self.fade_ticks:
+            return
+        if self._fade_layer is None:
+            black = arcade.Texture(art.build_panel(NATIVE_W, NATIVE_H, art.INK, art.INK))
+            self._fade_layer = arcade.SpriteList()
+            self._fade_layer.append(
+                arcade.Sprite(black, center_x=NATIVE_W / 2, center_y=NATIVE_H / 2)
+            )
+        self._fade_layer[0].alpha = round(255 * (1.0 - self.tick_count / self.fade_ticks))
+        self._fade_layer.draw(pixelated=True)
 
     def caption(self) -> str:
         """Return the window title, refreshed once per second of ticks."""

@@ -19,6 +19,7 @@ from isofightr.scenes.setup import (
     Mode,
     clock_text,
     countdown_text,
+    result_awards,
     results_table,
     training_setup,
 )
@@ -290,6 +291,20 @@ def test_results_table_lists_players_in_placement_order() -> None:
     assert "123%" in lines[1]
     assert lines[3].split()[3:6] == ["0", "1", "1"], "no KOs, one fall, a self-destruct"
     assert len({len(line.split()) for line in lines[1:]}) == 1
+
+
+def test_result_awards_name_the_standouts_and_skip_what_nobody_earned() -> None:
+    match = Match.create(load_stage("training_grid"), [ROOK] * 3, rules=MatchRules(stocks=1))
+    assert result_awards(match) == [], "nothing happened yet"
+    match.stats[1].damage_given = 123.4
+    match.stats[0].damage_given = 80.0
+    match.stats[2].longest_combo = 4
+    match.stats[0].peak_damage = 151.2
+    assert result_awards(match) == [
+        "Most damage: P2 Rook (123%)",
+        "Longest combo: P3 Rook (4 hits)",
+        "Toughest: P1 Rook (survived to 151%)",
+    ]
 
 
 def test_tied_players_share_a_place() -> None:

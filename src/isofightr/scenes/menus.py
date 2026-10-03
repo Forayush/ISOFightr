@@ -41,6 +41,7 @@ from isofightr.scenes.setup import (
     MatchSetup,
     Mode,
     can_start,
+    result_awards,
     results_table,
     training_setup,
 )
@@ -57,6 +58,7 @@ from isofightr.settings import (
     VOLUME_MAX,
     Settings,
 )
+from isofightr.sim.input_frame import Dir8
 from isofightr.sim.match import Match
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_font import GLYPH_HEIGHT
@@ -66,6 +68,13 @@ from isofightr.ui.widgets import HIGHLIGHT, MUTED, TextBlock, UiLayer, centred_l
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
+VICTORY_ANIM = "victory"
+VICTORY_FACING = Dir8.S
+"""The winner faces the camera."""
+VICTORY_SCALE = 2
+VICTORY_LEFT = 44
+VICTORY_SPACING = 56
+VICTORY_BOTTOM = 96
 KEY_CONFIRM = arcade.key.ENTER
 KEY_BACK = arcade.key.ESCAPE
 KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
@@ -94,10 +103,7 @@ class MenuView(TickedView):
         self.ui = UiLayer(GlyphAtlas())
         self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
-        black = arcade.Texture(art.build_panel(NATIVE_W, NATIVE_H, art.INK, art.INK))
-        self._fade = arcade.Sprite(black, center_x=NATIVE_W / 2, center_y=NATIVE_H / 2)
-        self._fade_layer: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
-        self._fade_layer.append(self._fade)
+        self.fade_ticks = FADE_TICKS
 
     def heading(self, text: str) -> None:
         """Add the scene's heading."""
@@ -160,12 +166,9 @@ class MenuView(TickedView):
     def on_draw(self) -> None:
         """Draw the scene at native resolution, then upscale it to the window."""
         self.clear()
-        fade = max(0.0, 1.0 - self.tick_count / FADE_TICKS)
-        self._fade.alpha = round(255 * fade)
         with self.pixel_buffer.drawing(BACKGROUND):
             self.ui.draw()
-            if fade > 0:
-                self._fade_layer.draw(pixelated=True)
+            self.draw_fade()
         self.blit_to_window()
 
 
@@ -393,6 +396,9 @@ class SettingsView(MenuListView):
                     CAMERA_ZOOMS,
                     settings.camera_zoom,
                 ),
+                MenuItem(
+                    "reduce_flashing", "Reduce flashing", ON_OFF, int(settings.reduce_flashing)
+                ),
                 MenuItem("defaults", "Reset everything to defaults"),
                 MenuItem("back", "Back"),
             ]
@@ -415,6 +421,7 @@ class SettingsView(MenuListView):
                 gamepad_preset=GAMEPAD_PRESETS[menu.item("gamepad_preset").index],
                 deadzone=DEADZONES[menu.item("deadzone").index],
                 camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
+                reduce_flashing=bool(menu.item("reduce_flashing").index),
             )
         )
 
@@ -890,19 +897,70 @@ class ResultsView(MenuListView):
     STATS_TOP = HEADING_BOTTOM - 20
     music = AUDIO_VICTORY_SONG
     music_loops = False
+    _victory_feet: list[tuple[int, int]]
 
     def __init__(
         self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup, match: Match
     ) -> None:
         """Build the table from the finished match."""
         self.setup = setup
+        self._victory_feet = []
         menu = Menu([MenuItem("rematch", "Rematch"), MenuItem("back", "Back to character select")])
         lines = results_table(match)
-        rows_top = self.STATS_TOP - (len(lines) + 2) * (GLYPH_HEIGHT + 2)
+        awards = result_awards(match)
+        line_height = GLYPH_HEIGHT + 2
+        awards_top = self.STATS_TOP - (len(lines) + 1) * line_height
+        rows_top = awards_top - (len(awards) + 1) * line_height
         super().__init__(pixel_buffer, flow, winner_text(match), menu, rows_top)
         self.table_lines = lines
+        self.award_lines = awards
         table = TextBlock(self.ui, centred_left(len(lines[0])), self.STATS_TOP, len(lines), 80)
         table.set_lines(lines)
+        if awards:
+            block = TextBlock(self.ui, centred_left(len(lines[0])), awards_top, len(awards), 80)
+            block.set_lines(awards)
+            for label in block.labels:
+                label.color = MUTED
+        self._winners = self._victory_sprites(match)
+
+    def _victory_sprites(self, match: Match) -> list[tuple[SpriteBank, int, arcade.Sprite]]:
+        """A sprite for each winner that has a ``victory`` animation, down the left side."""
+        result = match.result
+        if result is None:
+            return []
+        team_play = match.rules.teams is not None
+        sprites = []
+        for place, player in enumerate(result.winners):
+            fighter = match.fighters[player]
+            try:
+                sprite_set = load_sprite_set(fighter.character.id)
+            except SpriteSheetError:
+                sprite_set = None
+            if sprite_set is None or VICTORY_ANIM not in sprite_set.anims:
+                continue
+            bank = SpriteBank(sprite_set)
+            costume = costume_index(fighter.color_index, team_play, len(sprite_set.costumes))
+            sprite = self.ui.image(bank.texture(VICTORY_ANIM, 0, VICTORY_FACING, costume), 0, 0)
+            sprite.scale = VICTORY_SCALE
+            sprites.append((bank, costume, sprite))
+            self._victory_feet.append((VICTORY_LEFT + place * VICTORY_SPACING, VICTORY_BOTTOM))
+        return sprites
+
+    def refresh(self) -> None:
+        """Show the menu rows and step the winners' victory animations."""
+        super().refresh()
+        for (bank, costume, sprite), (feet_x, feet_y) in zip(
+            getattr(self, "_winners", []), self._victory_feet, strict=False
+        ):
+            info = bank.sprite_set.anims[VICTORY_ANIM]
+            pose = info.pose_at(self.tick_count + 1)
+            rect = bank.frame(VICTORY_ANIM, pose, VICTORY_FACING)
+            sprite.texture = bank.texture(VICTORY_ANIM, pose, VICTORY_FACING, costume)
+            sprite.scale = VICTORY_SCALE
+            sprite.position = (
+                feet_x + (rect.width / 2 - rect.pivot_x) * VICTORY_SCALE,
+                feet_y + (rect.pivot_y - rect.height / 2) * VICTORY_SCALE,
+            )
 
     def choose(self, key: str) -> None:
         """Play again with the same settings, or change them."""

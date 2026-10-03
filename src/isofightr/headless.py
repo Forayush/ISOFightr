@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from isofightr.ai.controller import CpuController
 from isofightr.ai.random_inputs import random_inputs
+from isofightr.ai.view import observe
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.events import KoEvent
 from isofightr.sim.match import Match, MatchRules
@@ -72,8 +73,9 @@ def run_headless(
     knockouts = 0
     started = time.perf_counter()
     for random_frames in inputs:
+        world = observe(match) if controllers else None
         frames = [
-            controllers[player].think(match) if player in controllers else frame
+            controllers[player].think(match, world) if player in controllers else frame
             for player, frame in enumerate(random_frames)
         ]
         if recorder is not None:
@@ -148,7 +150,8 @@ def run_cpu_match(
     ticks = 0
     while ticks < max_ticks and match.result is None:
         ticks += 1
-        match.tick([controller.think(match) for controller in controllers])
+        world = observe(match)
+        match.tick([controller.think(match, world) for controller in controllers])
         for event in match.events:
             if isinstance(event, KoEvent):
                 knockouts += 1

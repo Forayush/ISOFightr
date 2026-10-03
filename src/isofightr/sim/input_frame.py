@@ -182,6 +182,9 @@ _BUTTON_PRESSES: Final[tuple[tuple[int, Press], ...]] = (
     (Button.GRAB, Press.GRAB),
     (Button.TAUNT, Press.TAUNT),
 )
+_BUTTON_PRESS_BITS: Final[tuple[tuple[int, Press], ...]] = tuple(
+    (int(button), press) for button, press in _BUTTON_PRESSES
+)
 _EXPIRED: Final[int] = BUFFER_FRAMES
 
 
@@ -218,14 +221,19 @@ class InputBuffer:
     def push(self, frame: InputFrame) -> None:
         """Take this tick's frame and update edges, buffered presses and flick detection."""
         previous = self.frame
-        self.pressed = frame.held & ~previous.held
-        self.released = previous.held & ~frame.held
+        # Plain ints: IntFlag operators are many times slower, and this runs for every
+        # fighter on every tick.
+        held, held_before = int(frame.held), int(previous.held)
+        self.pressed = held & ~held_before
+        self.released = held_before & ~held
         for index in range(len(self.ages)):
             if self.ages[index] < _EXPIRED:
                 self.ages[index] += 1
-        for button, press in _BUTTON_PRESSES:
-            if self.pressed & button:
-                self.ages[press] = 0
+        pressed = self.pressed
+        if pressed:
+            for bit, press in _BUTTON_PRESS_BITS:
+                if pressed & bit:
+                    self.ages[press] = 0
         if frame.vertical == VERTICAL_UP and previous.vertical != VERTICAL_UP:
             self.ages[Press.UP] = 0
         if frame.vertical == VERTICAL_DOWN and previous.vertical != VERTICAL_DOWN:
@@ -255,7 +263,7 @@ class InputBuffer:
 
     def holds(self, button: Button) -> bool:
         """Return whether ``button`` is held this tick."""
-        return bool(self.frame.held & button)
+        return bool(int(self.frame.held) & int(button))
 
     def has(self, press: Press) -> bool:
         """Return whether ``press`` happened within the buffer window and is unconsumed."""

@@ -116,6 +116,9 @@ class Settings:
     """Screen shake intensity in percent."""
     camera_zoom: str = ZOOM_STATIC
     """``"static"`` or ``"stepped"`` (2x when the fighters are close; decision D-048)."""
+    reduce_flashing: bool = False
+    """Accessibility: no white hit flash or charge blink, and intangible fighters are dimmed
+    instead of blinking."""
     master_volume: int = VOLUME_MAX
     music_volume: int = 8
     sfx_volume: int = VOLUME_MAX
@@ -195,6 +198,7 @@ def from_data(data: Mapping[str, Any]) -> Settings:
             if isinstance(name, str):
                 bound[action] = name
     fullscreen = video.get("fullscreen")
+    reduce_flashing = video.get("reduce_flashing")
     devices = players.get("devices")
     slots = list(defaults.slot_devices)
     if isinstance(devices, list):
@@ -206,6 +210,9 @@ def from_data(data: Mapping[str, Any]) -> Settings:
         fullscreen=fullscreen if isinstance(fullscreen, bool) else defaults.fullscreen,
         screen_shake=_pick(video.get("screen_shake"), SHAKE_STEPS, defaults.screen_shake),
         camera_zoom=_pick(video.get("camera_zoom"), CAMERA_ZOOMS, defaults.camera_zoom),
+        reduce_flashing=(
+            reduce_flashing if isinstance(reduce_flashing, bool) else defaults.reduce_flashing
+        ),
         master_volume=_volume(audio.get("master"), defaults.master_volume),
         music_volume=_volume(audio.get("music"), defaults.music_volume),
         sfx_volume=_volume(audio.get("sfx"), defaults.sfx_volume),
@@ -234,6 +241,7 @@ def to_toml(settings: Settings) -> str:
         f"fullscreen = {'true' if settings.fullscreen else 'false'}",
         f"screen_shake = {settings.screen_shake}",
         f"camera_zoom = {text(settings.camera_zoom)}",
+        f"reduce_flashing = {'true' if settings.reduce_flashing else 'false'}",
         "",
         "[audio]",
         f"master = {settings.master_volume}",

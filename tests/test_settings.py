@@ -57,6 +57,7 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
         sfx_volume=7,
         gamepad_preset=PRESET_BUMPERS,
         deadzone=0.30,
+        reduce_flashing=True,
         slot_devices=("pad:1", "keyboard:solo", "", "pad:0"),
     )
     path = tmp_path / "nested" / "settings.toml"
@@ -69,6 +70,7 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
         "fullscreen": True,
         "screen_shake": 25,
         "camera_zoom": "static",
+        "reduce_flashing": True,
     }
     assert parsed["keyboard"]["solo"]["attack"] == "F"
     assert to_toml(settings) == path.read_text(encoding="utf-8")

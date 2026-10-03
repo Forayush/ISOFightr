@@ -167,8 +167,12 @@ class CpuController:
 
     # --- the tick ------------------------------------------------------------------------
 
-    def think(self, match: Match) -> InputFrame:
-        """Look at the match and return this tick's input. Never changes the match."""
+    def think(self, match: Match, world: WorldView | None = None) -> InputFrame:
+        """Look at the match and return this tick's input. Never changes the match.
+
+        ``world`` is this tick's :func:`~isofightr.ai.view.observe` of the match, if the
+        caller already took one (several CPUs in a match share it).
+        """
         if not self.knowledge:
             for fighter in match.fighters:
                 index = fighter.player_index
@@ -176,7 +180,8 @@ class CpuController:
                 box = fighter.character.body.hurtbox
                 self.hurtboxes[index] = (box.z0, box.z1, box.radius)
                 self.gravity[index] = fighter.character.movement.gravity
-        world = observe(match)
+        if world is None:
+            world = observe(match)
         self.history.append(world)
         frame = self._decide(world)
         self.last = frame

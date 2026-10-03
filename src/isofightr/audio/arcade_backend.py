@@ -21,6 +21,11 @@ class ArcadeBackend:
         self._sounds: dict[tuple[Path, bool], arcade.Sound] = {}
         self._broken = False
 
+    @property
+    def broken(self) -> bool:
+        """Whether playback failed and sound was given up on."""
+        return self._broken
+
     def play(
         self, path: Path, volume: float, pan: float, speed: float, loop: bool, streaming: bool
     ) -> object | None:

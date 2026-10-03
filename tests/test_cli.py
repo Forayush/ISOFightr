@@ -27,6 +27,7 @@ def test_defaults() -> None:
     assert args.seed == 0
     assert args.headless is False
     assert args.mute is False and build_parser().parse_args(["--mute"]).mute
+    assert build_parser().parse_args(["--check-audio"]).check_audio
 
 
 def test_window_and_smoke_run_flags() -> None:

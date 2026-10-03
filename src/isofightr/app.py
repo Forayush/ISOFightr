@@ -22,6 +22,7 @@ from isofightr.config import (
     WINDOW_TITLE,
 )
 from isofightr.data.character_loader import load_character
+from isofightr.data.paths import MUSIC_DIR, SFX_DIR
 from isofightr.data.stage_loader import load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
@@ -86,6 +87,19 @@ class GameWindow(arcade.Window):
         """Window-level hotkeys that work in every view."""
         if symbol == FULLSCREEN_TOGGLE_KEY:
             self.set_fullscreen(not self.fullscreen)
+
+
+def check_audio() -> bool:
+    """Load and start one sound effect and one song at zero volume, through the real audio
+    backend. Returns whether both played (the packaging smoke test: codecs and drivers are
+    what a bundle most easily loses)."""
+    backend = ArcadeBackend()
+    effect = backend.play(SFX_DIR / "jump.wav", 0.0, 0.0, 1.0, False, False)
+    song = backend.play(MUSIC_DIR / "menu.wav", 0.0, 0.0, 1.0, True, True)
+    for handle in (effect, song):
+        if handle is not None:
+            backend.stop(handle)
+    return effect is not None and song is not None and not backend.broken
 
 
 def run(

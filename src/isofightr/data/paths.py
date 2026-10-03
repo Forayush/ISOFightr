@@ -1,13 +1,24 @@
 """Where data files live on disk.
 
 Plan note "02 - Technical Architecture" (package layout): game data sits in ``assets/`` at the
-repo root, next to ``src/``. Packaging (M11) will need to revisit this lookup.
+repo root, next to ``src/``. In the packaged game (PyInstaller, decision D-056) the same
+``assets/`` folder is bundled next to the program, and the root is the bundle folder.
 """
 
+import sys
 from pathlib import Path
 from typing import Final
 
-REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
+
+def _root() -> Path:
+    """The folder that holds ``assets/``: the bundle when frozen, else the repo root."""
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle is not None:
+        return Path(bundle)
+    return Path(__file__).resolve().parents[3]
+
+
+REPO_ROOT: Final[Path] = _root()
 ASSETS_DIR: Final[Path] = REPO_ROOT / "assets"
 STAGES_DIR: Final[Path] = ASSETS_DIR / "stages"
 STAGE_FILE_NAME: Final[str] = "stage.toml"

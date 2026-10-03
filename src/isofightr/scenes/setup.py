@@ -149,6 +149,30 @@ def results_table(match: Match) -> list[str]:
     ]
 
 
+def result_awards(match: Match) -> list[str]:
+    """Return the award lines under the results table: who dealt the most damage, who had
+    the longest combo and who took the hardest beating before falling (plan note 13,
+    "Results screen"). An award nobody earned is left out."""
+
+    def name(player: int) -> str:
+        return f"P{player + 1} {match.fighters[player].character.display_name}"
+
+    players = range(len(match.stats))
+    awards = []
+    dealer = max(players, key=lambda player: match.stats[player].damage_given)
+    if match.stats[dealer].damage_given > 0.0:
+        awards.append(f"Most damage: {name(dealer)} ({match.stats[dealer].damage_given:.0f}%)")
+    combo = max(players, key=lambda player: match.stats[player].longest_combo)
+    if match.stats[combo].longest_combo > 1:
+        awards.append(f"Longest combo: {name(combo)} ({match.stats[combo].longest_combo} hits)")
+    tough = max(players, key=lambda player: match.stats[player].peak_damage)
+    if match.stats[tough].peak_damage > 0.0:
+        awards.append(
+            f"Toughest: {name(tough)} (survived to {match.stats[tough].peak_damage:.0f}%)"
+        )
+    return awards
+
+
 TEAM_NAMES: Final[tuple[str, ...]] = ("Red", "Blue", "Yellow", "Green")
 """Team names, in the order of the player colors."""
 LAUNCH_RATES: Final[tuple[float, ...]] = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)

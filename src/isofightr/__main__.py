@@ -33,6 +33,7 @@ from isofightr.sim.replay import Recorder, ReplayError
 
 EXIT_DATA_ERROR = 2
 EXIT_REPLAY_MISMATCH = 3
+EXIT_NO_AUDIO = 4
 REPLAY_MISMATCH_TEXT = (
     "replay does NOT match the recorded state: the game's data or rules have changed since"
 )
@@ -152,6 +153,12 @@ def build_parser() -> argparse.ArgumentParser:
         "the recorded state",
     )
     parser.add_argument("--mute", action="store_true", help="no sound effects or music")
+    parser.add_argument(
+        "--check-audio",
+        action="store_true",
+        help="play one sound and one song silently and exit (0 = audio works); used to "
+        "test the packaged game",
+    )
     parser.add_argument("--debug", action="store_true", help="enable debug logging")
     return parser
 
@@ -198,6 +205,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--headless needs --frames N")
     if args.replay is not None and (args.record is not None or args.training):
         parser.error("--replay cannot be combined with --record or --training")
+    if args.check_audio:
+        from isofightr.app import check_audio
+
+        return 0 if check_audio() else EXIT_NO_AUDIO
     if args.replay is not None:
         return _replay(args)
     if args.headless and args.test_pattern:

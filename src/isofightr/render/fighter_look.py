@@ -93,6 +93,7 @@ def fighter_look(
     flash_frames: int = 0,
     anims: Mapping[str, AnimInfo] | None = None,
     costume: int = 0,
+    reduce_flashing: bool = False,
 ) -> FighterLook:
     """Return a fighter's look.
 
@@ -102,6 +103,8 @@ def fighter_look(
         flash_frames: ticks of hit flash left for this fighter (from ``BattleEffects``).
         anims: the character's animations, if it has packed sprites.
         costume: the costume to draw them in.
+        reduce_flashing: the accessibility setting: no white flash or charge blink, and an
+            intangible fighter is dimmed steadily instead of blinking.
     """
     pose, turns = Pose.STAND, 0
     if fighter.state is StateId.TUMBLE:
@@ -129,10 +132,10 @@ def fighter_look(
     return FighterLook(
         pose,
         turns,
-        flash_frames > 0 or charge_blink,
+        (flash_frames > 0 or charge_blink) and not reduce_flashing,
         offset,
-        hidden=fighter.intangible and blink_off,
-        dim=fighter.state is StateId.HELPLESS,
+        hidden=fighter.intangible and blink_off and not reduce_flashing,
+        dim=fighter.state is StateId.HELPLESS or (reduce_flashing and fighter.intangible),
         sprite=None if anims is None else select_anim(fighter, anims),
         costume=costume,
         character="" if anims is None else fighter.character.id,

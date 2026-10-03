@@ -30,6 +30,7 @@ import arcade
 
 from isofightr.ai.controller import CpuController
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
+from isofightr.ai.view import observe
 from isofightr.audio.cues import MatchSounds, event_cues
 from isofightr.config import (
     CPU_DEFAULT_LEVEL,
@@ -161,6 +162,7 @@ MENU_DAMAGE = "damage"
 MENU_HITBOXES = "hitboxes"
 MENU_INFO = "info"
 MENU_RESET = "reset"
+BATTLE_FADE_TICKS = 20
 MENU_DUMMY_LEVEL = "dummy_level"
 CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
@@ -213,6 +215,8 @@ class BattleView(TickedView):
         self.setup = setup
         self.dummy = DummyBehavior.STAND if training else DummyBehavior.MANUAL
         self.dummy_level = CPU_DEFAULT_LEVEL
+        # A match started from the menus fades in; a sandbox (and the tests) cuts in.
+        self.fade_ticks = BATTLE_FADE_TICKS if flow is not None else 0
         self._sounds = MatchSounds()
         chosen = cpus if cpus is not None else (setup.cpus if setup is not None else ())
         self.cpu_levels = tuple(chosen) + (0,) * (len(self.characters) - len(chosen))
@@ -738,10 +742,12 @@ class BattleView(TickedView):
     def _player_frames(self, frames: list[InputFrame]) -> list[InputFrame]:
         """Replace CPU players' and the dummies' input with what they decide."""
         played = []
+        world = None
         for index, manual in enumerate(frames):
             level = self.cpu_level_of(index)
             if level > 0:
-                played.append(self._cpu(index, level).think(self.match))
+                world = world or observe(self.match)  # one snapshot for all the CPUs
+                played.append(self._cpu(index, level).think(self.match, world))
             elif self.training and index >= FIRST_DUMMY and self.dummies:
                 played.append(dummy_frame(self.dummy, self.match.frame, manual))
             else:
@@ -794,6 +800,7 @@ class BattleView(TickedView):
                 self.effects.flash.get(fighter.player_index, 0),
                 None if bank is None else bank.sprite_set.anims,
                 0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes)),
+                self.settings.reduce_flashing,
             )
         self.renderer.sync(fighters, frame, looks)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
@@ -836,6 +843,7 @@ class BattleView(TickedView):
                     self.pause_ui.draw()
                 else:
                     self.moves_ui.draw()
+            self.draw_fade()
         self.blit_to_window()
 
     # --- text ------------------------------------------------------------------------------

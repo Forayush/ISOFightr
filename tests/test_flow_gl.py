@@ -308,6 +308,14 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert name(window) == "ResultsView"
     assert results.table_lines[1].split()[:2] == ["1st", "P1"]
     assert results.table_lines[2].split()[:2] == ["2nd", "P2"]
+    assert len(results._winners) == 1, "the winner's victory animation"
+    sprite = results._winners[0][2]
+    seen = set()
+    for _ in range(40):
+        step(window, 1)
+        seen.add(sprite.texture)
+    assert len(seen) >= 3, "it animates"
+    assert sprite.center_x < 120 and sprite.scale_x == 2
 
     # Rematch plays the same setup again; then back to character select.
     press(window, keys().ENTER)
