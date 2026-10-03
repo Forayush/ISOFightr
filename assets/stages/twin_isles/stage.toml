@@ -1,0 +1,63 @@
+# Twin Isles: a recovery-focused stage. Two islands side by side on screen, split by a gap
+# three cells wide, with one soft platform bridging above the gap (plan note "11 - Stages").
+# Islands side by side on SCREEN differ in x - y and share x + y (decision D-023), so in this
+# top-down grid the gap runs diagonally.
+id = "twin_isles"
+display_name = "Twin Isles"
+tileset = "grass_stone"
+
+# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+grid = """
+......000....
+.....00000...
+....0000000..
+.....0000000.
+..0...0000000
+.000...000000
+00000...00000
+000000...000.
+0000000...0..
+.0000000.....
+..0000000....
+...00000.....
+....000......
+"""
+
+[legend]
+"0" = { height = 0, tile = "grass" }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [5, 5, 8, 8]          # over the gap, between the islands
+z = 2.5
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [5.0, 10.0]
+p2 = [10.0, 5.0]
+p3 = [2.0, 6.0]
+p4 = [6.0, 2.0]
+respawn = [5.5, 7.5]          # the inner edge of the left island (a respawn needs solid ground)
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py twin_isles --mood day).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.08
+
+[[background]]
+image = "bg_2_islands.png"
+parallax = 0.18
+
+[[background]]
+image = "bg_3_near_clouds.png"
+parallax = 0.35

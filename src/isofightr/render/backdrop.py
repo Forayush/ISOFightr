@@ -49,7 +49,14 @@ DAY: Final[Mood] = Mood(
     island_side=("c7dcd0", "9babb2"),
     ruin="ffffff",
 )
-MOODS: Final[dict[str, Mood]] = {"day": DAY}
+SUNSET: Final[Mood] = Mood(
+    sky=("6b3e75", "cf657f", "f68181", "fbb954"),
+    cloud=("fca790", "f68181", "cf657f"),
+    island_top="a24b6f",
+    island_side=("cf657f", "753c54"),
+    ruin="fdcbb0",
+)
+MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET}
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
     (12, 4, 14, 6),

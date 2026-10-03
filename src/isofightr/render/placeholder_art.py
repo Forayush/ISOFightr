@@ -156,6 +156,9 @@ BUBBLE_SIZE: Final[int] = 15
 THUMBNAIL_SCALE: Final[int] = 4
 """A stage thumbnail is drawn at one over this, so a cell is 8x4 pixels."""
 THUMBNAIL_PADDING: Final[int] = 4
+THUMBNAIL_MAX_SIZE: Final[tuple[int, int]] = (150, 110)
+THUMBNAIL_MAX_SCALE: Final[int] = 8
+"""Smallest diamonds a thumbnail shrinks to (1/8 of a tile)."""
 
 # --- Shadows -------------------------------------------------------------------------------
 SHADOW_WIDTH: Final[int] = 20
@@ -492,21 +495,38 @@ def build_bubble(player_index: int) -> Image.Image:
     return image
 
 
-def build_stage_thumbnail(stage: Stage) -> Image.Image:
+def _thumbnail_size(stage: Stage, scale: int, tallest: float) -> tuple[int, int]:
+    half_w, half_h = TILE_W // scale // 2, TILE_H // scale // 2
+    span = stage.size_x + stage.size_y
+    lift = Z_PX // scale
+    return (
+        span * half_w + 2 * THUMBNAIL_PADDING,
+        span * half_h + round(tallest * lift) + 2 * THUMBNAIL_PADDING,
+    )
+
+
+def build_stage_thumbnail(
+    stage: Stage, max_width: int = THUMBNAIL_MAX_SIZE[0], max_height: int = THUMBNAIL_MAX_SIZE[1]
+) -> Image.Image:
     """Return a small isometric picture of a stage, made from its grid: no art to draw.
 
     Every solid cell is a small diamond (darker where it is lower); soft platforms are drawn
-    on top in the deck color.
+    on top in the deck color. Big stages are drawn with smaller diamonds so the picture fits
+    ``max_width`` by ``max_height``.
     """
-    cell_w, cell_h = TILE_W // THUMBNAIL_SCALE, TILE_H // THUMBNAIL_SCALE
-    lift = Z_PX // THUMBNAIL_SCALE
-    half_w, half_h = cell_w // 2, cell_h // 2
     heights = [cell.top for row in stage.cells for cell in row if cell is not None]
     heights += [platform.z for platform in stage.soft_platforms]
     tallest = max(heights)
-    span = stage.size_x + stage.size_y
-    width = span * half_w + 2 * THUMBNAIL_PADDING
-    height = span * half_h + round(tallest * lift) + 2 * THUMBNAIL_PADDING
+    scale = THUMBNAIL_SCALE
+    while scale < THUMBNAIL_MAX_SCALE:
+        width, height = _thumbnail_size(stage, scale, tallest)
+        if width <= max_width and height <= max_height:
+            break
+        scale += 1
+    cell_w, cell_h = TILE_W // scale, TILE_H // scale
+    lift = Z_PX // scale
+    half_w, half_h = cell_w // 2, cell_h // 2
+    width, height = _thumbnail_size(stage, scale, tallest)
     image = Image.new("RGBA", (width, height), TRANSPARENT)
     draw = ImageDraw.Draw(image)
     origin_x = THUMBNAIL_PADDING + stage.size_y * half_w

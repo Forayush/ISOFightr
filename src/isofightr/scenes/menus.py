@@ -670,9 +670,13 @@ class CharacterSelectView(MenuView):
 
 
 class StageSelectView(MenuView):
-    """Pick a stage from a row of thumbnails, or a random one."""
+    """Pick a stage from rows of thumbnails, or a random one."""
 
-    THUMBNAIL_BOTTOM = 110
+    COLUMNS = 3
+    ROW_HEIGHT = 128
+    FIRST_LABEL_BOTTOM = 172
+    THUMBNAIL_GAP = 14
+    THUMBNAIL_MAX = (186, 96)
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup) -> None:
         """Build a thumbnail and a name for every stage."""
@@ -681,17 +685,21 @@ class StageSelectView(MenuView):
         self.stage_ids = [*list_stage_ids(), RANDOM_STAGE]
         self.cursor = self.stage_ids.index(setup.stage) if setup.stage in self.stage_ids else 0
         self.heading("CHOOSE A STAGE")
-        self.footer("left/right: stage   attack: fight   special: back")
-        slot = NATIVE_W // len(self.stage_ids)
+        self.footer("left/right/up/down: stage   attack: fight   special: back")
+        columns = min(self.COLUMNS, len(self.stage_ids))
+        slot = NATIVE_W // columns
         self._names = []
         self._frames = []
         for index, stage_id in enumerate(self.stage_ids):
-            left = index * slot
+            row, column = divmod(index, columns)
+            left = column * slot
+            label_bottom = self.FIRST_LABEL_BOTTOM - row * self.ROW_HEIGHT
+            thumb_bottom = label_bottom + self.THUMBNAIL_GAP
             if stage_id == RANDOM_STAGE:
                 name = "Random"
                 mark = self.ui.label(
                     left + centred_left(1, TITLE_SCALE, slot),
-                    self.THUMBNAIL_BOTTOM + 40,
+                    thumb_bottom + 30,
                     1,
                     MUTED,
                     TITLE_SCALE,
@@ -700,17 +708,21 @@ class StageSelectView(MenuView):
             else:
                 stage = load_stage(stage_id)
                 name = stage.display_name
-                texture = arcade.Texture(art.build_stage_thumbnail(stage))
-                self.ui.image(
-                    texture, left + (slot - texture.width) // 2, self.THUMBNAIL_BOTTOM + 20
-                )
+                picture = art.build_stage_thumbnail(stage, *self.THUMBNAIL_MAX)
+                texture = arcade.Texture(picture)
+                self.ui.image(texture, left + (slot - texture.width) // 2, thumb_bottom)
             label = self.ui.label(
-                left + centred_left(len(name), width=slot), self.THUMBNAIL_BOTTOM, len(name) + 2
+                left + centred_left(len(name), width=slot), label_bottom, len(name) + 2
             )
             label.text = name
             self._names.append(label)
             frame = self.ui.panel(
-                left + 4, self.THUMBNAIL_BOTTOM - 8, slot - 8, 150, (0, 0, 0, 0), art.PANEL_BORDER
+                left + 4,
+                label_bottom - 6,
+                slot - 8,
+                self.ROW_HEIGHT - 6,
+                (0, 0, 0, 0),
+                art.PANEL_BORDER,
             )
             self._frames.append(frame)
         self.refresh()
@@ -726,6 +738,10 @@ class StageSelectView(MenuView):
             self.cursor = (self.cursor - 1) % len(self.stage_ids)
         elif action is MenuAction.RIGHT:
             self.cursor = (self.cursor + 1) % len(self.stage_ids)
+        elif action in (MenuAction.UP, MenuAction.DOWN):
+            step = -self.COLUMNS if action is MenuAction.UP else self.COLUMNS
+            if 0 <= self.cursor + step < len(self.stage_ids):
+                self.cursor += step
         elif action is MenuAction.CONFIRM:
             self.flow.start_battle(replace(self.setup, stage=self.selected))
         elif action is MenuAction.BACK:

@@ -1,0 +1,71 @@
+# Lily Pads: a chaotic party stage. Five small round islands at three heights, with soft
+# platforms between them (plan note "11 - Stages").
+id = "lily_pads"
+display_name = "Lily Pads"
+tileset = "grass_stone"
+
+# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+grid = """
+..................
+..................
+...22........11...
+..2222......1111..
+..2222......1111..
+...22........11...
+........00........
+.......0000.......
+......000000......
+......000000......
+.......0000.......
+........00........
+...11........00...
+..1111......0000..
+..1111......0000..
+...11........00...
+..................
+..................
+"""
+
+[legend]
+"0" = { height = 0, tile = "grass" }
+"1" = { height = 1, tile = "grass" }
+"2" = { height = 2, tile = "stone" }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [6, 10, 8, 12]        # between the centre and the left pad
+z = 3.0
+[[soft_platforms]]
+rect = [10, 6, 12, 8]        # between the centre and the right pad
+z = 3.0
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [4.5, 13.5]
+p2 = [13.5, 4.5]
+p3 = [9.0, 9.0]
+p4 = [13.5, 13.5]
+respawn = [9.0, 9.0]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py lily_pads --mood sunset).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.08
+
+[[background]]
+image = "bg_2_islands.png"
+parallax = 0.18
+
+[[background]]
+image = "bg_3_near_clouds.png"
+parallax = 0.35
