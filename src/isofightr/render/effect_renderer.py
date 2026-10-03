@@ -7,13 +7,14 @@ drawn as one batched ``SpriteList``.
 Reads state only: it never changes what it draws.
 """
 
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from functools import partial
 
 import arcade
 from PIL import Image
 
 from isofightr.render import placeholder_art as art
+from isofightr.render import vfx_art
 from isofightr.render.camera import snap
 from isofightr.render.effects import BattleEffects
 from isofightr.render.iso import project
@@ -43,11 +44,15 @@ class EffectRenderer:
         fighters: Sequence[Fighter],
         projectiles: Sequence[Projectile] = (),
         animated: Collection[int] = (),
+        colors: Mapping[int, int] | None = None,
+        camera_centre: tuple[int, int] | None = None,
     ) -> None:
         """Place a sprite for every live spark, raised shield, grab box and hitbox.
 
         Fighters whose ``entity_id`` is in ``animated`` show their attack in their own sprite,
-        so their hitboxes get no swing blob.
+        so their hitboxes get no swing blob. ``colors`` gives every player's color index (for
+        KO blasts of fighters no longer in play); ``camera_centre`` is where the camera looks,
+        in world pixels, so a KO blast can start at the edge of the view.
         """
         wanted: list[tuple[arcade.Texture, Vec3]] = []
         for fighter in fighters:
@@ -80,20 +85,49 @@ class EffectRenderer:
             wanted.append((texture, projectile.pos))
         for spark in effects.sparks:
             key = (spark.tier, spark.effect.value, spark.frame)
-            texture = self._texture(("spark", *key), partial(art.build_spark, *key))
+            texture = self._texture(("spark", *key), partial(vfx_art.build_spark, *key))
             wanted.append((texture, spark.position))
+        for ring in effects.rings:
+            texture = self._texture(("ring", ring.frame), partial(vfx_art.build_ring, ring.frame))
+            wanted.append((texture, ring.position))
+        for puff in effects.puffs:
+            key = (puff.size, puff.frame)
+            texture = self._texture(("puff", *key), partial(vfx_art.build_puff, *key))
+            wanted.append((texture, puff.position))
+        for trail in effects.trails:
+            key = (trail.fiery, trail.frame)
+            texture = self._texture(("trail", *key), partial(vfx_art.build_trail, *key))
+            wanted.append((texture, trail.position))
+        placed: list[tuple[arcade.Texture, tuple[float, float]]] = []
+        if camera_centre is not None:
+            for blast in effects.blasts:
+                color = (colors or {}).get(blast.player, blast.player)
+                angle_index, base = vfx_art.ko_beam_placement(
+                    blast.position, blast.normal, camera_centre
+                )
+                key = (color, angle_index, blast.frame)
+                texture = self._texture(
+                    ("ko", *key),
+                    partial(
+                        vfx_art.build_ko_beam, art.player_color(color), angle_index, blast.frame
+                    ),
+                )
+                placed.append((texture, base))
 
-        while len(self._pool) < len(wanted):
-            sprite = arcade.Sprite(wanted[0][0])
+        screen: list[tuple[arcade.Texture, tuple[float, float]]] = [
+            (texture, project(position.x, position.y, position.z)) for texture, position in wanted
+        ]
+        screen += placed
+        while len(self._pool) < len(screen):
+            sprite = arcade.Sprite(screen[0][0])
             self._pool.append(sprite)
             self.sprites.append(sprite)
         for index, sprite in enumerate(self._pool):
-            sprite.visible = index < len(wanted)
-            if index < len(wanted):
-                texture, position = wanted[index]
+            sprite.visible = index < len(screen)
+            if index < len(screen):
+                texture, (sx, sy) = screen[index]
                 if sprite.texture is not texture:
                     sprite.texture = texture
-                sx, sy = project(position.x, position.y, position.z)
                 # Odd-sized art is centred on a pixel, even-sized art on a pixel corner.
                 sprite.position = (
                     snap(sx) + (texture.width % 2) / 2,

@@ -94,6 +94,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.placeholder_art",
     "isofightr.render.shadows",
     "isofightr.render.stage_art",
+    "isofightr.render.vfx_art",
     "isofightr.scenes.setup",
     "isofightr.settings",
     "isofightr.ui.hud_layout",

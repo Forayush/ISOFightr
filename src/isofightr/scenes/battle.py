@@ -527,6 +527,7 @@ class BattleView(TickedView):
             self._go_ticks -= 1
         self.effects.tick()
         self.effects.consume(self.match.events)
+        self.effects.observe(self.match.fighters)
         targets = self._camera_targets()
         if targets:
             self.camera.update(targets)
@@ -612,7 +613,15 @@ class BattleView(TickedView):
             for entity_id, look in looks.items()
             if look.sprite is not None and look.sprite.exact
         }
-        self.effect_renderer.sync(self.effects, fighters, self.match.projectiles, animated)
+        colors = {fighter.player_index: fighter.color_index for fighter in self.match.fighters}
+        self.effect_renderer.sync(
+            self.effects,
+            fighters,
+            self.match.projectiles,
+            animated,
+            colors,
+            self.camera.pixel_centre,
+        )
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
         self.hud.update(self.match.fighters, self.effects)
