@@ -475,6 +475,54 @@ def test_a_strong_hit_draws_its_streak_and_the_combo_counter_shows(window: Any) 
     assert view.hud._combo[1].text == "3 HITS 21%" and view.hud._combo[0].text == ""
 
 
+# --- D-060: projectile art, shadows and ground decals ------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("character", "move", "ground_key"),
+    [
+        ("rook", "nspecial", "projectile_shadow"),
+        ("bramble", "nspecial", "projectile_shadow"),
+        ("zephyr", "nspecial", "projectile_shadow"),
+        ("mote", "sspecial", "projectile_shadow"),
+        ("mote", "dspecial", "decal"),
+    ],
+)
+def test_projectiles_draw_their_own_art_with_a_shadow_or_decal_in_the_world(
+    window: Any, character: str, move: str, ground_key: str
+) -> None:
+    from isofightr.scenes.battle import BattleView
+    from isofightr.sim.states.interrupts import start_move
+
+    window.switch_to()
+    view = BattleView(
+        window.pixel_buffer,
+        load_stage("training_grid"),
+        [load_character(character), load_character("rook")],
+    )
+    window.show_view(view)
+    start_move(view.match, view.match.fighters[0], move)
+    for _ in range(60):
+        ticks(view, 1)
+        if view.match.projectiles:
+            break
+    assert view.match.projectiles
+    ticks(view, 2)
+    view.on_draw()
+    assert view.renderer._ground, "a ground item is in the sorted world"
+    keys_drawn = [key for key in view.renderer._textures if key[0] == "ground"]
+    assert any(key[1][0] == ground_key for key in keys_drawn)
+    styled = [key for key in view.effect_renderer._textures if key[0] == "styled"]
+    assert bool(styled) == (ground_key != "decal"), "a decal has no sprite in the overlay layer"
+    assert not [key for key in view.effect_renderer._textures if key[0] == "projectile"]
+    for _ in range(700):
+        ticks(view, 1)
+        if not view.match.projectiles:
+            break
+    view.on_draw()
+    assert view.match.projectiles or not view.renderer._ground, "gone with its projectile"
+
+
 # --- M4: shield bubble and overlay ------------------------------------------------------------
 
 

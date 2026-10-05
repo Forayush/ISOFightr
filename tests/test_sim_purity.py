@@ -91,6 +91,8 @@ WINDOWLESS_MODULES = (
     "isofightr.input.keyboard",
     "isofightr.data.sprite_sheet",
     "isofightr.data.tileset_art",
+    "isofightr.render.ground_items",
+    "isofightr.render.projectile_art",
     "isofightr.render.anim_select",
     "isofightr.render.backdrop",
     "isofightr.render.camera",

@@ -14,9 +14,10 @@ import arcade
 from PIL import Image
 
 from isofightr.render import placeholder_art as art
-from isofightr.render import vfx_art
+from isofightr.render import projectile_art, vfx_art
 from isofightr.render.camera import snap
 from isofightr.render.effects import BattleEffects
+from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.iso import project
 from isofightr.sim.combat.grab import grab_box
 from isofightr.sim.combat.hitbox import active_hitboxes
@@ -37,6 +38,9 @@ class EffectRenderer:
         self.sprites: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._pool: list[arcade.Sprite] = []
         self._textures: dict[object, arcade.Texture] = {}
+        self.projectile_looks = ProjectileLooks()
+        self.plain_projectiles = False
+        """Draw every projectile as the placeholder ball (``placeholder_art=True``)."""
 
     def sync(
         self,
@@ -78,12 +82,28 @@ class EffectRenderer:
                 )
                 wanted.append((texture, box.centre))
         colors = {fighter.player_index: fighter.color_index for fighter in fighters}
+        self.projectile_looks.learn([fighter.character for fighter in fighters])
         for projectile in projectiles:
             if projectile.bursting:
                 continue  # the shockwave ring shows it
             color = colors.get(projectile.owner, projectile.owner)
-            ball = (color, projectile.hitbox.radius)
-            texture = self._texture(("projectile", *ball), partial(art.build_projectile, *ball))
+            style = None if self.plain_projectiles else self.projectile_looks.style(projectile)
+            if style is None:
+                ball = (color, projectile.hitbox.radius)
+                texture = self._texture(("projectile", *ball), partial(art.build_projectile, *ball))
+                wanted.append((texture, projectile.pos))
+                continue
+            if style.decal:
+                continue  # a ground decal: the world renderer draws it in depth order
+            heading = projectile_art.heading_of(projectile.vel) if style.headed else 0
+            frame = projectile_art.frame_of(style, projectile.age)
+            base = projectile.definition.hitbox.damage
+            step = projectile_art.charge_step(projectile.damage, base) if style.charged else 0
+            key = (style.name, heading, frame, step, color)
+            texture = self._texture(
+                ("styled", *key),
+                partial(projectile_art.build, style, heading, frame, step, color),
+            )
             wanted.append((texture, projectile.pos))
         for spark in effects.sparks:
             key = (spark.tier, spark.effect.value, spark.frame)

@@ -38,6 +38,7 @@ from isofightr.render.depth import (
     StaticKind,
 )
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
+from isofightr.render.ground_items import GroundItem
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
@@ -49,6 +50,8 @@ from isofightr.sim.stage import Stage
 
 LOG = logging.getLogger(__name__)
 HIDDEN_DRAW_RANK = -1
+GROUND_ITEM_BASE = 1 << 20
+"""Depth sorter ids of ground items start here, far above any fighter part's id."""
 BACKDROP_COPIES = 3
 BODY_RECT_HALF_WIDTH = art.BODY_HALF_WIDTH + 3
 """Half-width of everything the fighter sprite draws: the body plus the arrow tips."""
@@ -142,6 +145,9 @@ class WorldRenderer:
         self._textures: dict[object, arcade.Texture] = {}
         self._static_sprites = [self._make_static_sprite(item) for item in self.sorter.statics]
         self._parts: dict[tuple[int, Part], _RankedSprite] = {}
+        self._ground: dict[int, _RankedSprite] = {}
+        """Sprites of ground items (projectile shadows, decals), by item id."""
+        self._ground_images: dict[object, Image.Image] = {}
         self._order: list[DrawEntry] | None = None
 
         # "X-ray" copies of fighters that the stage partly hides, drawn faintly over the
@@ -172,11 +178,14 @@ class WorldRenderer:
         entities: Sequence[WorldEntity],
         frame: int = 0,
         looks: Mapping[int, FighterLook] | None = None,
+        ground: Sequence[GroundItem] = (),
     ) -> None:
         """Update sprite positions, textures and draw order from the current world state.
 
         ``frame`` is the match frame; it only drives the invincibility blink. ``looks`` gives
         the pose, flash and shake of entities by ``entity_id``; the rest stand normally.
+        ``ground`` are the flat items lying on the stage this frame (projectile shadows,
+        decals): they are clipped to their surface and sorted with everything else.
         """
         self._drop_missing({entity.entity_id for entity in entities})
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
@@ -188,6 +197,9 @@ class WorldRenderer:
             for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
                 if item is not None:
                     items.append(item)
+
+        self._drop_ground({item.item_id for item in ground})
+        items.extend(self._sync_ground(item) for item in ground)
 
         order = self.sorter.draw_order(items)
         if order != self._order:
@@ -405,6 +417,47 @@ class WorldRenderer:
             ),
         )
 
+    def _sync_ground(self, item: GroundItem) -> DynamicItem:
+        """Place a ground item's sprite, clipped to its surface, and describe it to the sorter
+        with the exact rect of what it draws."""
+        image = self._ground_images.get(item.key)
+        if image is None:
+            image = self._ground_images[item.key] = item.build()
+        width, height = image.size
+        screen_x, screen_y = project(item.x, item.y, item.surface)
+        centre_x = snap(screen_x) + (width % 2) / 2
+        centre_y = snap(screen_y) + (height % 2) / 2
+        mask = shadow_mask(self.stage, centre_x, centre_y, item.surface, width, height)
+        texture = self._texture(("ground", item.key, mask), lambda: apply_mask(image, mask))
+        sprite = self._ground.get(item.item_id)
+        if sprite is None:
+            sprite = _RankedSprite(texture)
+            self._ground[item.item_id] = sprite
+            self.sprites.append(sprite)
+            self._order = None
+        elif sprite.texture is not texture:
+            sprite.texture = texture
+        sprite.position = (centre_x, centre_y)
+        return DynamicItem(
+            item_id=GROUND_ITEM_BASE + item.item_id,
+            rank=item.rank,
+            x=item.x,
+            y=item.y,
+            z=item.surface,
+            height=0.0,
+            rect=ScreenRect(
+                centre_x - width / 2,
+                centre_y - height / 2,
+                centre_x + width / 2,
+                centre_y + height / 2,
+            ),
+        )
+
+    def _drop_ground(self, alive: set[int]) -> None:
+        for item_id in [item_id for item_id in self._ground if item_id not in alive]:
+            self._ground.pop(item_id).remove_from_sprite_lists()
+            self._order = None
+
     def _drop_missing(self, alive: set[int]) -> None:
         for key in [key for key in self._parts if key[0] not in alive]:
             self._parts.pop(key).remove_from_sprite_lists()
@@ -413,11 +466,13 @@ class WorldRenderer:
             self._ghost_of.pop(entity_id).remove_from_sprite_lists()
 
     def _apply_order(self, order: Sequence[DrawEntry]) -> None:
-        for sprite in self._parts.values():
+        for sprite in (*self._parts.values(), *self._ground.values()):
             sprite.draw_rank = HIDDEN_DRAW_RANK
         for rank, entry in enumerate(order):
             if entry.is_static:
                 self._static_sprites[entry.index].draw_rank = rank
+            elif entry.index >= GROUND_ITEM_BASE:
+                self._ground[entry.index - GROUND_ITEM_BASE].draw_rank = rank
             else:
                 entity_id, part = divmod(entry.index, len(Part))
                 self._parts[(entity_id, Part(part))].draw_rank = rank
