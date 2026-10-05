@@ -13,7 +13,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Final
 
+from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.iso import project
+from isofightr.render.vfx_art import FX_KINDS, fx_lifetime
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
     ClankEvent,
@@ -26,7 +28,6 @@ from isofightr.sim.events import (
     KoEvent,
     LandEvent,
     LedgeGrabEvent,
-    ProjectileEvent,
     ShieldBreakEvent,
     ShieldHitEvent,
     ShockwaveEvent,
@@ -34,8 +35,9 @@ from isofightr.sim.events import (
     WallBounceEvent,
 )
 from isofightr.sim.fighter import Fighter, Launch, StateId
-from isofightr.sim.math3d import Vec3
-from isofightr.sim.move_def import Effect
+from isofightr.sim.math3d import ZERO3, Vec3
+from isofightr.sim.move_def import Effect, MoveKind
+from isofightr.sim.projectile import Projectile
 
 # --- Dust, trails, rings and KO blasts (M8) --------------------------------------------------
 EFFECT_FRAME_TICKS: Final[int] = 3
@@ -113,6 +115,17 @@ HUD_POP_FRAMES: Final[int] = 10
 HUD_POP_DAMAGE_PER_PIXEL: Final[float] = 4.0
 HUD_POP_MAX_PIXELS: Final[int] = 4
 COMBO_LINGER_TICKS: Final[int] = 60
+
+# --- Move effects (decision D-060) ---------------------------------------------------------
+PROJECTILE_HIT_RADIUS: Final[float] = 1.5
+"""A projectile that ends this close to a hit or a block this tick ended on that hit."""
+EMBER_RISE: Final[float] = 0.01
+"""Embers shed by a fire projectile drift up this fast, in units per tick."""
+CHARGE_GLOW_FORWARD: Final[float] = 0.55
+CHARGE_GLOW_HEIGHT: Final[float] = 1.35
+"""Where a charge glows: in front of the fighter, about hand height."""
+CHARGE_GLOW_LEVELS: Final[int] = 4
+CHARGE_PULSE_TICKS: Final[int] = 3
 """A finished string's count stays on the HUD this long."""
 
 
@@ -135,6 +148,43 @@ class Spark:
     def frame(self) -> int:
         """Which animation frame to show (a long-lived spark holds its last one)."""
         return min(self.age // SPARK_FRAME_TICKS, SPARK_FRAMES - 1)
+
+
+@dataclass(slots=True)
+class Fx:
+    """A small move effect (decision D-060): a burst, a glow, a particle. ``kind`` is its
+    shape and ``family`` its colours (see ``vfx_art.build_fx``); it may drift."""
+
+    kind: str
+    position: Vec3
+    family: str = "pale"
+    variant: int = 0
+    velocity: Vec3 = ZERO3
+    """World units per tick."""
+    age: int = 0
+
+    @property
+    def frame(self) -> int:
+        """Which animation frame to show."""
+        frames, ticks = FX_KINDS[self.kind]
+        return min(self.age // ticks, frames - 1)
+
+    @property
+    def at(self) -> Vec3:
+        """Where it is now."""
+        return self.position + self.velocity * float(self.age)
+
+
+@dataclass(slots=True)
+class _Seen:
+    """What a projectile looked like when last observed."""
+
+    position: Vec3
+    age: int
+    lifetime: int
+    family: str
+    styled: bool
+    decal: bool
 
 
 @dataclass(slots=True)
@@ -287,8 +337,6 @@ def _small_spark_at(event: Event) -> Vec3 | None:
     wall bounce, ledge grab, grab clash, or a projectile ending."""
     if isinstance(event, GrabEvent):
         return event.position if event.clash else None
-    if isinstance(event, ProjectileEvent):
-        return None if event.spawned else event.position
     if isinstance(event, TechEvent | WallBounceEvent | LedgeGrabEvent):
         return event.position
     return None
@@ -309,6 +357,13 @@ class BattleEffects:
     rings: list[Ring] = field(default_factory=list)
     blasts: list[KoBlast] = field(default_factory=list)
     streaks: list[Streak] = field(default_factory=list)
+    fx: list[Fx] = field(default_factory=list)
+    """Move effects: bursts, glows and particles (decision D-060)."""
+    _projectiles: dict[int, _Seen] = field(default_factory=dict)
+    _hit_points: list[Vec3] = field(default_factory=list)
+    """Where hits and blocks landed this tick: a projectile that ends there ended on a hit."""
+    _charged: dict[int, bool] = field(default_factory=dict)
+    """Whether each player's charge was already full, to pop once when it fills."""
     combos: dict[int, ComboReadout] = field(default_factory=dict)
     """The string each player is taking, by the victim's player index (plan note 13)."""
     _hit_damage: dict[int, float] = field(default_factory=dict)
@@ -322,6 +377,8 @@ class BattleEffects:
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
         for event in events:
+            if isinstance(event, HitEvent | ShieldHitEvent):
+                self._hit_points.append(event.position)
             if isinstance(event, HitEvent):
                 self.sparks.append(
                     Spark(
@@ -381,6 +438,7 @@ class BattleEffects:
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_combo(fighter)
+            self._observe_charge(fighter)
             if fighter.state in DUST_STATES and fighter.state_frame == 1:
                 facing = fighter.facing.world
                 behind = -DUST_BEHIND if fighter.state is StateId.DASH else DUST_BEHIND
@@ -393,6 +451,85 @@ class BattleEffects:
                 fiery = fighter.last_knockback >= TRAIL_FIERY_KNOCKBACK
                 at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
                 self.trails.append(TrailPuff(at, fiery))
+
+    def observe_projectiles(
+        self, projectiles: Iterable[Projectile], looks: ProjectileLooks
+    ) -> None:
+        """Follow the projectiles in flight: a burst where one appears, whatever it sheds as
+        it flies, and a burst where it ends, by cause. The cause is read from what was seen
+        (its lifetime ran out, a hit landed next to it, or else it struck the ground), so the
+        sim's events need no extra fields. Call once per tick, after ``consume``."""
+        alive: dict[int, _Seen] = {}
+        for projectile in projectiles:
+            if not projectile.alive or projectile.bursting:
+                continue
+            style = looks.style(projectile)
+            family = "pale" if style is None else style.family
+            seen = _Seen(
+                projectile.pos,
+                projectile.age,
+                projectile.lifetime,
+                family,
+                style is not None,
+                style is not None and style.decal,
+            )
+            alive[projectile.id] = seen
+            if projectile.id not in self._projectiles:
+                if style is not None and not style.decal:
+                    self.fx.append(Fx("muzzle", projectile.pos, family))
+            elif style is not None and style.sheds and projectile.age % style.shed_every == 0:
+                drift = ZERO3
+                if style.sheds == "ember":
+                    drift = Vec3(0.0, 0.0, EMBER_RISE)
+                self.fx.append(Fx(style.sheds, projectile.previous, family, velocity=drift))
+        for projectile_id, seen in self._projectiles.items():
+            if projectile_id in alive:
+                continue
+            if not seen.styled:
+                self.sparks.append(Spark(seen.position, SMALL_SPARK_TIER, Effect.NORMAL))
+                continue
+            self.fx.append(Fx(self._end_kind(seen), seen.position, seen.family))
+        self._projectiles = alive
+
+    def _end_kind(self, seen: _Seen) -> str:
+        """Return the burst for a projectile that just ended, by what ended it."""
+        near = PROJECTILE_HIT_RADIUS
+        if any((point - seen.position).length() <= near for point in self._hit_points):
+            return "burst_hit"
+        if seen.age + 1 >= seen.lifetime:
+            return "burst_fade"
+        return "burst_hit" if seen.decal else "burst_ground"
+
+    def _observe_charge(self, fighter: Fighter) -> None:
+        """A glow at the hands while a move charges (growing with it), a ring pop when the
+        charge fills, and a steady glow while a charge is stored for later."""
+        player = fighter.player_index
+        move = fighter.move
+        charging = move is not None and move.charge is not None and fighter.charge_frames > 0
+        if not charging and fighter.stored_charge <= 0:
+            self._charged.pop(player, None)
+            return
+        facing = fighter.facing.world
+        pos = fighter.pos
+        hand = Vec3(
+            pos.x + facing.x * CHARGE_GLOW_FORWARD,
+            pos.y + facing.y * CHARGE_GLOW_FORWARD,
+            pos.z + CHARGE_GLOW_HEIGHT,
+        )
+        pulse = (self.ticks // CHARGE_PULSE_TICKS) % 2
+        if not charging or move is None or move.charge is None:
+            self.fx.append(Fx("glow", hand, "fire", variant=pulse))
+            return
+        family = "fire" if move.projectiles and move.kind is MoveKind.SPECIAL else "gold"
+        if fighter.character.id == "rook" and move.kind is MoveKind.SPECIAL:
+            family = "pale"
+        share = min(fighter.charge_frames / move.charge.max_frames, 1.0)
+        level = min(CHARGE_GLOW_LEVELS - 1, int(share * CHARGE_GLOW_LEVELS))
+        self.fx.append(Fx("glow", hand, family, variant=level * 2 + pulse))
+        full = share >= 1.0
+        if full and not self._charged.get(player, False):
+            self.fx.append(Fx("pop", hand, family))
+        self._charged[player] = full
 
     def _observe_combo(self, fighter: Fighter) -> None:
         """Follow the sim's own combo count (``Fighter.combo_hits``, D-040) and total the
@@ -434,6 +571,10 @@ class BattleEffects:
         self.ticks += 1
         for effect in (*self.puffs, *self.trails, *self.rings, *self.blasts, *self.streaks):
             effect.age += 1
+        for effect in self.fx:
+            effect.age += 1
+        self.fx = [effect for effect in self.fx if effect.age < fx_lifetime(effect.kind)]
+        self._hit_points = []
         self.streaks = [s for s in self.streaks if s.age < STREAK_FRAMES * STREAK_FRAME_TICKS]
         for readout in self.combos.values():
             readout.linger -= 1
@@ -462,6 +603,10 @@ class BattleEffects:
         self._launches = {}
         self.combos = {}
         self._hit_damage = {}
+        self.fx = []
+        self._projectiles = {}
+        self._hit_points = []
+        self._charged = {}
 
     def hud_offset(self, player_index: int) -> int:
         """Return how many pixels a player's damage number is lifted right now."""

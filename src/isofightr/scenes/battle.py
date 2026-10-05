@@ -691,6 +691,9 @@ class BattleView(TickedView):
         self.effects.tick()
         self.effects.consume(self.match.events)
         self.effects.observe(self.match.fighters)
+        looks = self.effect_renderer.projectile_looks
+        looks.learn(self.characters)
+        self.effects.observe_projectiles(self.match.projectiles, looks)
         cues = event_cues(self.match.events) + self._sounds.observe(self.match)
         self.audio.play_cues(cues, self._pan_of)
         targets = self._camera_targets()

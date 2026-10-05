@@ -582,9 +582,12 @@ def test_a_projectile_is_drawn_and_outlined_in_the_overlay(window: Any) -> None:
     for _ in range(18):
         ticks(view, 1)
     assert len(view.match.projectiles) == 1
+    assert [effect.kind for effect in view.effects.fx] == ["muzzle"], "its launch burst"
+    for _ in range(7):
+        ticks(view, 1)
     view.on_draw()
     shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
-    assert len(shown) == 1
+    assert len(shown) == 1, "the wave alone, once its launch burst has gone"
     projectile = view.match.projectiles[0]
     position = projectile.pos
     sx, sy = (snap(value) for value in project(position.x, position.y, position.z))

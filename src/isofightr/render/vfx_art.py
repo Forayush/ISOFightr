@@ -252,3 +252,186 @@ def build_streak(angle: int, frame: int) -> Image.Image:
         y1 = y0 + along[1] * shorter
         draw.line((round(x0), round(y0), round(x1), round(y1)), fill=color, width=1)
     return image
+
+
+# --- move effects (decision D-060) ----------------------------------------------------------
+FAMILIES: Final[dict[str, tuple[Rgba, Rgba, Rgba]]] = {
+    "pale": (WHITE, _rgba("8fd3ff"), _rgba("4d9be6")),
+    "stone": (CLOUD, CLOUD_SHADOW, CLOUD_EDGE),
+    "wind": (WHITE, _rgba("8ff8e2"), _rgba("30e1b9")),
+    "fire": (_rgba("fbff86"), _rgba("f9c22b"), _rgba("ea4f36")),
+    "rune": (_rgba("eaaded"), _rgba("a884f3"), _rgba("905ea9")),
+    "gold": (WHITE, _rgba("fbff86"), _rgba("f9c22b")),
+    "vine": (_rgba("91db69"), _rgba("1ebc73"), _rgba("239063")),
+}
+"""``(core, mid, edge)`` colours of an effect by family: what kind of move made it."""
+Family = tuple[Rgba, Rgba, Rgba]
+
+
+def _with_alpha(color: Rgba, alpha: int) -> Rgba:
+    return (color[0], color[1], color[2], alpha)
+
+
+def _ring_dots(
+    draw: ImageDraw.ImageDraw, centre: float, radius: float, count: int, color: Rgba, turn: float
+) -> None:
+    for index in range(count):
+        angle = turn + 2.0 * math.pi * index / count
+        x = centre + math.cos(angle) * radius
+        y = centre + math.sin(angle) * radius
+        draw.point((round(x), round(y)), fill=color)
+
+
+def _circle(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    radius: float,
+    fill: Rgba | None = None,
+    outline: Rgba | None = None,
+) -> None:
+    box = (centre - radius, centre - radius, centre + radius, centre + radius)
+    draw.ellipse(box, fill=fill, outline=outline)
+
+
+def _canvas(size: int) -> tuple[Image.Image, ImageDraw.ImageDraw, float]:
+    image = Image.new("RGBA", (size, size), TRANSPARENT)
+    return image, ImageDraw.Draw(image), (size - 1) / 2
+
+
+def _muzzle(colors: Family, variant: int, frame: int) -> Image.Image:
+    image, draw, centre = _canvas(17)
+    core, mid, edge = colors
+    if frame == 0:
+        draw.polygon(_star(centre, 5.0, 1.8), fill=core)
+    elif frame == 1:
+        _circle(draw, centre, 5.0, outline=mid)
+        draw.polygon(_star(centre, 3.0, 1.2), fill=core)
+    else:
+        _ring_dots(draw, centre, 7.0, 8, edge, 0.3)
+    return image
+
+
+def _burst_hit(colors: Family, variant: int, frame: int) -> Image.Image:
+    image, draw, centre = _canvas(29)
+    core, mid, edge = colors
+    if frame == 0:
+        draw.polygon(_star(centre, 8.0, 3.0), fill=mid)
+        draw.polygon(_star(centre, 5.0, 2.0), fill=core)
+    elif frame == 1:
+        _circle(draw, centre, 8.0, outline=mid)
+        for index in range(8):
+            angle = math.pi / 4 * index + 0.4
+            x0, y0 = centre + math.cos(angle) * 9, centre + math.sin(angle) * 9
+            x1, y1 = centre + math.cos(angle) * 12, centre + math.sin(angle) * 12
+            draw.line((round(x0), round(y0), round(x1), round(y1)), fill=core)
+    elif frame == 2:
+        _ring_dots(draw, centre, 11.0, 16, edge, 0.0)
+    else:
+        _ring_dots(draw, centre, 13.0, 8, edge, 0.4)
+    return image
+
+
+def _burst_fade(colors: Family, variant: int, frame: int) -> Image.Image:
+    image, draw, centre = _canvas(21)
+    core, mid, edge = colors
+    if frame == 0:
+        _circle(draw, centre, 4.0, fill=_with_alpha(mid, 160))
+        _circle(draw, centre, 2.0, fill=core)
+    elif frame == 1:
+        _circle(draw, centre, 6.0, outline=mid)
+    else:
+        _ring_dots(draw, centre, 8.0, 6, edge, 0.5)
+    return image
+
+
+def _burst_ground(colors: Family, variant: int, frame: int) -> Image.Image:
+    width, height = 33, 21
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    core, mid, edge = colors
+    cx, base = (width - 1) / 2, height - 6
+    reach = 6 + frame * 4
+    draw.ellipse((cx - reach, base - reach / 2, cx + reach, base + reach / 2), outline=mid)
+    chips = ((-7, 3), (-2, 6), (4, 5), (8, 2), (0, 9))
+    for index, (dx, up) in enumerate(chips):
+        rise = up + frame * 2 - frame * frame
+        color = core if index % 2 == 0 else edge
+        x, y = round(cx + dx * (1 + frame * 0.3)), round(base - rise)
+        draw.rectangle((x, y, x + 1, y + 1), fill=color)
+    return image
+
+
+def _glow(colors: Family, variant: int, frame: int) -> Image.Image:
+    level, pulse = divmod(variant, 2)
+    radius = 3 + level * 2 + pulse
+    image, draw, centre = _canvas(2 * (radius + 2) + 1)
+    core, mid, edge = colors
+    _circle(draw, centre, radius, fill=_with_alpha(edge, 70))
+    _circle(draw, centre, radius * 0.6, fill=_with_alpha(mid, 150))
+    _circle(draw, centre, max(1.0, radius * 0.25), fill=core)
+    _ring_dots(draw, centre, radius + 1, 3 + level, core, pulse * 0.9 + level)
+    return image
+
+
+def _pop(colors: Family, variant: int, frame: int) -> Image.Image:
+    image, draw, centre = _canvas(35)
+    core, mid, _ = colors
+    _circle(draw, centre, 8.0 + frame * 4, outline=core if frame == 0 else mid)
+    if frame < 2:
+        _ring_dots(draw, centre, 5.0 + frame * 5, 8, core, 0.2)
+    return image
+
+
+def _ember(colors: Family, variant: int, frame: int) -> Image.Image:
+    image = Image.new("RGBA", (3, 3), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    if frame == 0:
+        draw.rectangle((0, 0, 1, 1), fill=colors[0])
+    else:
+        draw.point((1, 1), fill=colors[min(frame, 2)])
+    return image
+
+
+def _ribbon(colors: Family, variant: int, frame: int) -> Image.Image:
+    image = Image.new("RGBA", (5, 5), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    radius = (2.0, 1.5, 1.0)[min(frame, 2)]
+    alpha = (210, 150, 90)[min(frame, 2)]
+    _circle(draw, 2.0, radius, fill=_with_alpha(colors[1], alpha))
+    return image
+
+
+FX_KINDS: Final[dict[str, tuple[int, int]]] = {
+    "muzzle": (3, 2),
+    "burst_hit": (4, 3),
+    "burst_fade": (3, 3),
+    "burst_ground": (3, 4),
+    "glow": (1, 1),
+    "pop": (3, 3),
+    "ember": (3, 5),
+    "ribbon": (3, 6),
+}
+"""``(frames, ticks per frame)`` of each effect kind."""
+_FX_BUILDERS = {
+    "muzzle": _muzzle,
+    "burst_hit": _burst_hit,
+    "burst_fade": _burst_fade,
+    "burst_ground": _burst_ground,
+    "glow": _glow,
+    "pop": _pop,
+    "ember": _ember,
+    "ribbon": _ribbon,
+}
+
+
+def fx_lifetime(kind: str) -> int:
+    """Return how many ticks an effect of ``kind`` lasts."""
+    frames, ticks = FX_KINDS[kind]
+    return frames * ticks
+
+
+def build_fx(kind: str, family: str, variant: int, frame: int) -> Image.Image:
+    """Return one frame of a move effect: ``kind`` is its shape, ``family`` its colours,
+    ``variant`` a size or direction that depends on the kind."""
+    frames, _ = FX_KINDS[kind]
+    return _FX_BUILDERS[kind](FAMILIES[family], variant, min(frame, frames - 1))

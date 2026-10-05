@@ -79,14 +79,23 @@ class Style:
     """A flat mark on the ground (drawn in the world's depth order, with no shadow)."""
     height: int = 0
     """Height of a decal's art (its ``size`` is the width)."""
+    family: str = "pale"
+    """Colour family of its launch and end bursts (``vfx_art.FAMILIES``)."""
+    sheds: str = ""
+    """An effect kind it leaves behind as it flies ("ember", "ribbon"), if any."""
+    shed_every: int = 0
 
 
-CRESCENT: Final[Style] = Style("crescent", 21, 2, 3, charged=True)
-BOULDER: Final[Style] = Style("boulder", 25, 4, 4, headed=False)
-DART: Final[Style] = Style("dart", 15, 2, 3)
-EMBER: Final[Style] = Style("ember", 19, 3, 3, charged=True)
-LAMP: Final[Style] = Style("lamp", 23, 4, 3, headed=False)
-GLYPH: Final[Style] = Style("glyph", 39, 4, 8, headed=False, decal=True, height=19)
+CRESCENT: Final[Style] = Style("crescent", 21, 2, 3, charged=True, family="pale")
+BOULDER: Final[Style] = Style("boulder", 25, 4, 4, headed=False, family="stone")
+DART: Final[Style] = Style("dart", 15, 2, 3, family="wind")
+EMBER: Final[Style] = Style(
+    "ember", 19, 3, 3, charged=True, family="fire", sheds="ember", shed_every=4
+)
+LAMP: Final[Style] = Style(
+    "lamp", 23, 4, 3, headed=False, family="gold", sheds="ribbon", shed_every=2
+)
+GLYPH: Final[Style] = Style("glyph", 39, 4, 8, headed=False, decal=True, height=19, family="rune")
 
 STYLES: Final[dict[tuple[str, str], Style]] = {
     ("rook", "nspecial"): CRESCENT,

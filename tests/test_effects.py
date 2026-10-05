@@ -531,14 +531,13 @@ def test_projectile_ball_is_hitbox_sized_and_player_colored() -> None:
     assert ball.getpixel((0, 0))[3] == 0
 
 
-def test_counters_flash_and_projectiles_puff_when_they_end() -> None:
+def test_counters_flash() -> None:
     from isofightr.sim.events import CounterEvent, ProjectileEvent
 
     effects = BattleEffects()
     effects.consume([ProjectileEvent(0, ORIGIN, spawned=True)])
-    assert effects.sparks == []
     effects.consume([ProjectileEvent(0, ORIGIN, spawned=False)])
-    assert [spark.tier for spark in effects.sparks] == [fx.SMALL_SPARK_TIER]
+    assert effects.sparks == [], "projectile bursts come from watching the projectiles"
     effects.consume([CounterEvent(1, ORIGIN)])
     assert effects.flash == {1: fx.COUNTER_FLASH_FRAMES}
     assert effects.shake.current() == fx.PARRY_SHAKE_PIXELS
@@ -586,3 +585,105 @@ def test_combo_text_hides_single_hits() -> None:
     assert combo_text(2, 7.9) == "2 HITS 7%"
     assert combo_text(14, 86.4) == "14 HITS 86%"
     assert len(combo_text(250, 999.9)) <= COMBO_CAPACITY
+
+
+# --- move effects (decision D-060) --------------------------------------------------------
+
+
+def _fire(character_id: str, move_id: str) -> tuple[Match, BattleEffects, object]:
+    from isofightr.data.character_loader import load_character
+    from isofightr.data.stage_loader import load_stage
+    from isofightr.render.ground_items import ProjectileLooks
+    from isofightr.sim.match import MatchRules
+    from isofightr.sim.states.interrupts import start_move
+
+    characters = [load_character(character_id), load_character("rook")]
+    match = Match.create(load_stage("training_grid"), characters, rules=MatchRules(stocks=None))
+    match.fighters[0].pos = Vec3(3.0, 6.0, 0.0)
+    match.fighters[1].pos = Vec3(10.5, 10.5, 0.0)
+    looks = ProjectileLooks()
+    looks.learn(characters)
+    start_move(match, match.fighters[0], move_id)
+    return match, BattleEffects(), looks
+
+
+def _step(match: Match, effects: BattleEffects, looks: object) -> None:
+    from isofightr.sim.input_frame import NEUTRAL_INPUT
+
+    match.tick([NEUTRAL_INPUT] * len(match.fighters))
+    effects.tick()
+    effects.consume(match.events)
+    effects.observe(match.fighters)
+    effects.observe_projectiles(match.projectiles, looks)  # type: ignore[arg-type]
+
+
+def test_a_projectile_bursts_where_it_appears_and_where_it_ends() -> None:
+    match, effects, looks = _fire("rook", "nspecial")
+    kinds: list[str] = []
+    for _ in range(80):
+        _step(match, effects, looks)
+        kinds += [effect.kind for effect in effects.fx if effect.age == 0]
+    assert kinds == ["muzzle", "burst_fade"], "it flew its whole lifetime and faded"
+    assert effects.sparks == []
+    assert all(effect.family == "pale" for effect in effects.fx)
+
+
+def test_a_projectile_that_ends_on_a_hit_or_the_ground_bursts_differently() -> None:
+    match, effects, looks = _fire("rook", "nspecial")
+    match.fighters[1].pos = Vec3(6.0, 6.0, 0.0)
+    kinds: list[str] = []
+    for _ in range(60):
+        _step(match, effects, looks)
+        kinds += [effect.kind for effect in effects.fx if effect.age == 0]
+    assert kinds == ["muzzle", "burst_hit"]
+
+    match, effects, looks = _fire("mote", "nspecial")
+    kinds = []
+    for _ in range(80):
+        _step(match, effects, looks)
+        kinds += [effect.kind for effect in effects.fx if effect.age == 0]
+        for orb in match.projectiles:
+            orb.pos = Vec3(orb.pos.x, orb.pos.y, 0.3)  # test only: aim it into the floor
+    assert kinds[0] == "muzzle" and kinds[-1] == "burst_ground", kinds
+
+
+def test_fire_and_lantern_projectiles_shed_as_they_fly() -> None:
+    for move_id, shed in (("nspecial", "ember"), ("sspecial", "ribbon")):
+        match, effects, looks = _fire("mote", move_id)
+        seen = set()
+        for _ in range(50):
+            _step(match, effects, looks)
+            seen |= {effect.kind for effect in effects.fx}
+        assert shed in seen, move_id
+    rising = fx.Fx("ember", ORIGIN, "fire", velocity=Vec3(0.0, 0.0, fx.EMBER_RISE))
+    rising.age = 10
+    assert rising.at.z == pytest.approx(ORIGIN.z + 10 * fx.EMBER_RISE)
+
+
+def test_charging_glows_grows_and_pops_when_full() -> None:
+    match, attacker, target = duel()
+    target.pos = Vec3(10.5, 10.5, 0.0)
+    effects = BattleEffects()
+    levels = []
+    pops = 0
+    for _ in range(90):
+        run(match, hold(buttons=Button.STRONG, frames=1))
+        effects.tick()
+        effects.observe(match.fighters)
+        glows = [effect for effect in effects.fx if effect.kind == "glow" and effect.age == 0]
+        if glows:
+            levels.append(glows[0].variant // 2)
+            assert glows[0].family == "gold" and glows[0].position.z > attacker.pos.z + 1.0
+        pops += sum(1 for effect in effects.fx if effect.kind == "pop" and effect.age == 0)
+    assert levels and levels == sorted(levels) and levels[-1] == fx.CHARGE_GLOW_LEVELS - 1
+    assert pops == 1, "one ring pop when the charge fills"
+
+
+def test_effects_without_projectiles_or_charge_make_no_move_effects() -> None:
+    from isofightr.render.ground_items import ProjectileLooks
+
+    match, _, _ = duel()
+    effects = BattleEffects()
+    effects.observe(match.fighters)
+    effects.observe_projectiles(match.projectiles, ProjectileLooks())
+    assert effects.fx == []

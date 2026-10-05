@@ -177,3 +177,19 @@ def test_a_shockwave_rings_and_raises_dust() -> None:
     effects.consume([ShockwaveEvent(0, FEET, 1.2)])
     assert len(effects.rings) == 1 and [puff.size for puff in effects.puffs] == ["big"]
     assert effects.shake.current() == fx.SHOCKWAVE_SHAKE_PIXELS
+
+
+def test_move_effect_art_is_palette_locked_and_never_solid() -> None:
+    for kind, (frames, ticks) in vfx_art.FX_KINDS.items():
+        assert vfx_art.fx_lifetime(kind) == frames * ticks
+        for family in vfx_art.FAMILIES:
+            for variant in range(8 if kind == "glow" else 1):
+                for frame in range(frames):
+                    image = vfx_art.build_fx(kind, family, variant, frame)
+                    assert _palette_only(image), (kind, family)
+                    assert image.width % 2 == 1 and image.height % 2 == 1
+                    solid = sum(1 for pixel in image.getdata() if pixel[3] == 255)
+                    assert solid < image.width * image.height * 0.5, "it never hides what is behind"
+    small = vfx_art.build_fx("glow", "fire", 0, 0)
+    big = vfx_art.build_fx("glow", "fire", 6, 0)
+    assert big.width > small.width, "a fuller charge glows bigger"
