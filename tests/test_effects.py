@@ -635,7 +635,7 @@ def test_a_projectile_that_ends_on_a_hit_or_the_ground_bursts_differently() -> N
     for _ in range(60):
         _step(match, effects, looks)
         kinds += [effect.kind for effect in effects.fx if effect.age == 0]
-    assert kinds == ["muzzle", "burst_hit"]
+    assert kinds == ["muzzle", "slash", "burst_hit"], "the wave slashes: a cut line too"
 
     match, effects, looks = _fire("mote", "nspecial")
     kinds = []
@@ -810,3 +810,39 @@ def test_quake_slam_streaks_on_the_way_down_and_cracks_the_ground() -> None:
     assert effects.decals[0].fade == 3, "nearly faded"
     effects.tick()
     assert effects.decals == []
+
+
+# --- shield ripple, air jump, element extras (decision D-060, groups 4 and 5) -------------
+
+
+def test_a_blocked_hit_ripples_and_an_air_jump_rings() -> None:
+    from isofightr.sim.events import ShieldHitEvent
+
+    effects = BattleEffects()
+    effects.consume([ShieldHitEvent(0, 1, 8.0, ORIGIN, 6, False)])
+    assert [effect.kind for effect in effects.fx] == ["ripple"]
+    effects.clear()
+    ground = next(kind for kind in JumpKind if kind is not JumpKind.AIR)
+    effects.consume([JumpEvent(0, ground, ORIGIN)])
+    assert effects.fx == [] and len(effects.puffs) == 1, "a ground jump still puffs"
+    effects.consume([JumpEvent(0, JumpKind.AIR, ORIGIN)])
+    assert [(effect.kind, effect.family) for effect in effects.fx] == [("air_ring", "wind")]
+
+
+@pytest.mark.parametrize(
+    ("element", "kinds"),
+    [
+        (Effect.SLASH, ["slash"]),
+        (Effect.FIRE, ["ember"] * 4),
+        (Effect.DARKNESS, ["implode"]),
+        (Effect.NORMAL, []),
+        (Effect.ELECTRIC, []),
+    ],
+)
+def test_hits_of_an_element_get_an_extra_effect(element: Effect, kinds: list[str]) -> None:
+    import dataclasses
+
+    effects = BattleEffects()
+    effects.consume([dataclasses.replace(hit(50.0), effect=element)])
+    assert [effect.kind for effect in effects.fx] == kinds
+    assert len(effects.sparks) == 1, "on top of the spark, not instead of it"

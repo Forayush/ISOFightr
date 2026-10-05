@@ -204,3 +204,16 @@ def test_the_ground_crack_is_palette_locked_and_fades() -> None:
         assert image.size == vfx_art.CRACK_SIZE and _palette_only(image)
         solid.append(max(pixel[3] for pixel in image.getdata()))
     assert solid == list(vfx_art.CRACK_ALPHAS)
+
+
+def test_the_shield_bubble_is_translucent_player_coloured_and_shimmers() -> None:
+    red = player_color(0)
+    frames = [vfx_art.build_shield(red, 41, 49, frame) for frame in (0, 1)]
+    assert frames[0].size == (41, 49) and frames[0].tobytes() != frames[1].tobytes()
+    for image in frames:
+        assert _palette_only(image)
+        assert image.getpixel((0, 0))[3] == 0, "outside the bubble"
+        centre = image.getpixel((20, 24))
+        assert centre[:3] == red[:3] and 0 < centre[3] < 128, "the fighter shows through"
+    small = vfx_art.build_shield(red, 15, 19, 0)
+    assert small.size == (15, 19), "a worn shield is a smaller bubble"

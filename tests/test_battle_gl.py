@@ -193,7 +193,7 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     assert view.hud._damage[1].color[:3] != (255, 255, 255)
     shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
     swing = len(active_hitboxes(view.match.fighters[0]))
-    assert len(shown) == 2 + swing, "a spark, the launch streak and the swing"
+    assert len(shown) == 3 + swing, "a spark, its slash line, the launch streak and the swing"
 
     for _ in range(60):
         ticks(view, 1)

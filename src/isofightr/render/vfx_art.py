@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from typing import Final
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.render.iso import project
@@ -524,3 +524,102 @@ def build_crack(stage_of_fade: int) -> Image.Image:
         draw.line(points, fill=_with_alpha(color, alpha), width=1)
     draw.ellipse((cx - 2, cy - 1, cx + 2, cy + 1), fill=_with_alpha(CRACK_COLOR, alpha))
     return image
+
+
+# --- shield bubble and small extras (decision D-060, groups 4 and 5) ------------------------
+SHIELD_FILL_ALPHA: Final[int] = 78
+SHIELD_FACET_ALPHA: Final[int] = 120
+SHIELD_RIM_ALPHA: Final[int] = 230
+SHIELD_SHIMMER_FRAMES: Final[int] = 2
+
+
+def build_shield(color: Rgba, width: int, height: int, frame: int) -> Image.Image:
+    """Return the shield bubble: a faceted, translucent dome in the player's colour with a
+    bright rim and a highlight that shimmers between two frames. Its size is the shield's,
+    so it visibly shrinks as the shield wears down."""
+    width, height = max(width, 5), max(height, 5)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    box = (0, 0, width - 1, height - 1)
+    draw.ellipse(box, fill=_with_alpha(color, SHIELD_FILL_ALPHA))
+    facets = Image.new("RGBA", (width, height), TRANSPARENT)
+    lines = ImageDraw.Draw(facets)
+    cx, cy = (width - 1) / 2, (height - 1) / 2
+    ring = [
+        (cx + math.cos(math.pi / 3 * i + frame * 0.5) * cx * 0.55,
+         cy + math.sin(math.pi / 3 * i + frame * 0.5) * cy * 0.55)
+        for i in range(6)
+    ]  # fmt: skip
+    facet = _with_alpha(WHITE, SHIELD_FACET_ALPHA)
+    lines.polygon(ring, outline=facet)
+    for index, (x, y) in enumerate(ring):
+        angle = math.pi / 3 * index + frame * 0.5
+        lines.line((x, y, cx + math.cos(angle) * cx, cy + math.sin(angle) * cy), fill=facet)
+    mask = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(mask).ellipse(box, fill=255)
+    # Replace, never blend: every pixel keeps a palette colour.
+    drawn = facets.getchannel("A").point(lambda value: 255 if value else 0)
+    image.paste(facets, (0, 0), ImageChops.multiply(mask, drawn))
+    draw.ellipse(box, outline=_with_alpha(color, 255))
+    start = 200 + frame * 25
+    draw.arc(
+        (1, 1, width - 2, height - 2), start, start + 60, fill=_with_alpha(WHITE, SHIELD_RIM_ALPHA)
+    )
+    return image
+
+
+def _ripple(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A ring spreading over a shield where a hit landed."""
+    image, draw, centre = _canvas(23)
+    _circle(draw, centre, 3.0 + frame * 3.5, outline=colors[0] if frame == 0 else colors[1])
+    if frame == 0:
+        _circle(draw, centre, 1.5, fill=colors[0])
+    return image
+
+
+def _air_ring(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A flat ring under the feet of an air jump, with a few feathers of wind."""
+    width, height = 27, 15
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    cx, cy = (width - 1) / 2, (height - 1) / 2
+    reach = 5 + frame * 3
+    color = colors[0] if frame == 0 else colors[1]
+    draw.ellipse((cx - reach, cy - reach / 2, cx + reach, cy + reach / 2), outline=color)
+    for dx in (-reach - 1, reach + 1):
+        draw.line((cx + dx, cy, cx + dx, cy + 2 + frame), fill=colors[2])
+    return image
+
+
+def _slash(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A cut line across a slashing hit."""
+    image, draw, centre = _canvas(27)
+    reach = 8 + frame * 3
+    draw.line(
+        (centre - reach, centre + reach * 0.6, centre + reach, centre - reach * 0.6), fill=colors[0]
+    )
+    if frame == 0:
+        draw.line(
+            (
+                centre - reach + 1,
+                centre + reach * 0.6 + 1,
+                centre + reach - 1,
+                centre - reach * 0.6 + 1,
+            ),
+            fill=colors[1],
+        )
+    return image
+
+
+def _implode(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A ring pulling inward (a darkness hit): it shrinks from frame to frame."""
+    image, draw, centre = _canvas(27)
+    _circle(draw, centre, 11.0 - frame * 4, outline=colors[1 if frame < 2 else 0])
+    _ring_dots(draw, centre, 12.0 - frame * 4, 6, colors[2], frame * 0.5)
+    return image
+
+
+FX_KINDS.update({"ripple": (3, 3), "air_ring": (3, 3), "slash": (2, 3), "implode": (3, 3)})
+_FX_BUILDERS.update(
+    {"ripple": _ripple, "air_ring": _air_ring, "slash": _slash, "implode": _implode}
+)

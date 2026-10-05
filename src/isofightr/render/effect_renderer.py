@@ -27,6 +27,8 @@ from isofightr.sim.math3d import Vec3
 from isofightr.sim.projectile import Projectile
 
 SHIELD_SIZE_STEP = 0.05
+SHIELD_SHIMMER_TICKS = 8
+"""Ticks each shimmer frame of the shield bubble is shown."""
 """Shield bubble textures are built in steps of this radius, so a draining shield reuses them."""
 
 
@@ -63,9 +65,21 @@ class EffectRenderer:
             player = fighter.color_index
             if is_shielding(fighter):
                 size = round(shield_radius(fighter) / SHIELD_SIZE_STEP) * SHIELD_SIZE_STEP
-                texture = self._texture(
-                    ("shield", player, size), partial(art.build_shield, player, size)
-                )
+                if self.plain_projectiles:
+                    texture = self._texture(
+                        ("shield", player, size), partial(art.build_shield, player, size)
+                    )
+                else:
+                    shimmer = (
+                        effects.ticks // SHIELD_SHIMMER_TICKS
+                    ) % vfx_art.SHIELD_SHIMMER_FRAMES
+                    width, height = art.sphere_screen_size(size)
+                    texture = self._texture(
+                        ("bubble", player, size, shimmer),
+                        partial(
+                            vfx_art.build_shield, art.player_color(player), width, height, shimmer
+                        ),
+                    )
                 wanted.append((texture, shield_centre(fighter)))
             grab = grab_box(fighter)
             if grab is not None:

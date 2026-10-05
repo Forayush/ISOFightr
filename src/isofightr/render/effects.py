@@ -150,6 +150,14 @@ VINE_MAX_LINKS: Final[int] = 40
 DIVE_STREAK_SPEED: Final[float] = 0.12
 """A fighter diving at least this fast in a down special trails streaks above it."""
 DIVE_STREAK_EVERY: Final[int] = 3
+ELEMENT_EXTRAS: Final[dict[Effect, tuple[str, str]]] = {
+    Effect.SLASH: ("slash", "pale"),
+    Effect.FIRE: ("ember", "fire"),
+    Effect.DARKNESS: ("implode", "rune"),
+}
+"""An extra effect on top of the spark for hits of an element: ``(kind, family)``."""
+EMBER_SPRAY: Final[tuple[tuple[float, float], ...]] = ((0.02, 0.03), (-0.02, 0.035), (0.0, 0.045))
+"""Sideways and upward drift of the embers a fire hit throws, in units per tick."""
 CRACK_TICKS: Final[int] = 96
 """How long a ground crack stays, fading out."""
 CRACK_MOVES: Final[frozenset[str]] = frozenset({"quake_land"})
@@ -441,6 +449,14 @@ class BattleEffects:
                         lifetime=spark_lifetime(event.hitlag),
                     )
                 )
+                extra = ELEMENT_EXTRAS.get(event.effect)
+                if extra is not None:
+                    kind, family = extra
+                    self.fx.append(Fx(kind, event.position, family))
+                    if kind == "ember":
+                        for index, (dx, dz) in enumerate(EMBER_SPRAY):
+                            drift = Vec3(dx, -dx, dz)
+                            self.fx.append(Fx(kind, event.position, family, index, drift))
                 if event.damage > 0:
                     taken = self._hit_damage.get(event.target, 0.0)
                     self._hit_damage[event.target] = taken + event.damage
@@ -454,6 +470,7 @@ class BattleEffects:
             elif isinstance(event, ShieldHitEvent):
                 tier = PARRY_SPARK_TIER if event.parried else SHIELD_SPARK_TIER
                 self.sparks.append(Spark(event.position, tier, Effect.ICE))
+                self.fx.append(Fx("ripple", event.position, "pale"))
                 if event.parried:
                     self.shake.start(PARRY_SHAKE_PIXELS)
             elif isinstance(event, ShieldBreakEvent):
@@ -476,6 +493,8 @@ class BattleEffects:
                         self.rings.append(Ring(event.position))
             elif isinstance(event, JumpEvent) and event.kind is not JumpKind.AIR:
                 self.puffs.append(Puff(event.position, "small"))
+            elif isinstance(event, JumpEvent):
+                self.fx.append(Fx("air_ring", event.position, "wind"))
             elif isinstance(event, ShockwaveEvent):
                 self.rings.append(Ring(event.position))
                 self.puffs.append(Puff(event.position, "big"))
