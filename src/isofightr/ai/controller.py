@@ -321,7 +321,7 @@ class CpuController:
         if self._roll("tech") >= self.level.tech_chance or me.tech_lockout > 0:
             return InputFrame(move=drift)
         landing = self._frames_to_land(me)
-        if landing is None or landing > combat.TECH_WINDOW // 2 or me.tech_window > 0:
+        if landing is None or landing > config.CPU_TECH_PRESS_FRAMES or me.tech_window > 0:
             return InputFrame(move=drift)
         roll = self._roll("tech_roll") < TECH_ROLL_SHARE
         return InputFrame(move=drift if roll else ZERO2, held=int(Button.SHIELD))
@@ -599,7 +599,7 @@ class CpuController:
             self.plan = Plan("defend", "shield")
             self.queue.clear()
             return InputFrame(held=int(Button.SHIELD))
-        if not me.air_dodge_used and frames <= combat.TECH_WINDOW // 2:
+        if not me.air_dodge_used and frames <= config.CPU_AIR_DODGE_FRAMES:
             self.plan = Plan("defend", "air dodge")
             return self._press(InputFrame(held=int(Button.SHIELD)))
         return None
@@ -638,7 +638,7 @@ class CpuController:
         """Frames the target is stuck for (end lag, landing lag, a broken shield), or
         ``None`` when it can act."""
         if target.state in DOWNED:
-            return max(target.stun_frames, combat.TECH_WINDOW)
+            return max(target.stun_frames, config.CPU_DOWNED_OPENING_FRAMES)
         if target.state is StateId.LAND and target.land_lag > 0:
             return max(target.land_lag - target.state_frame, 0)
         if target.state is StateId.ATTACK:

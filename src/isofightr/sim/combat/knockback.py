@@ -49,12 +49,13 @@ def hitlag_frames(
     effect: Effect = Effect.NORMAL,
     full_charge: bool = False,
 ) -> int:
-    """Return the freeze frames a hit gives both fighters."""
+    """Return the freeze frames a hit gives both fighters: ``floor(d / 3 + 3)`` times the
+    multipliers, capped (plan note 05, decision D-058)."""
     if effect is Effect.ELECTRIC:
         multiplier *= c.ELECTRIC_HITLAG_MULT
     if full_charge:
         multiplier *= c.FULL_CHARGE_HITLAG_MULT
-    frames = math.floor((damage * c.HITLAG_PER_DAMAGE + c.HITLAG_BASE) * multiplier)
+    frames = math.floor((damage / c.HITLAG_DAMAGE_DIVISOR + c.HITLAG_BASE) * multiplier)
     return min(frames, c.HITLAG_MAX)
 
 

@@ -55,14 +55,19 @@ METEOR_BOUNCE_KB: Final[float] = 60.0
 """A downward hit on a grounded target pops it up; at this knockback or more it tumbles."""
 
 # --- Hitlag, SDI, DI -----------------------------------------------------------------------
-HITLAG_PER_DAMAGE: Final[float] = 0.65
-HITLAG_BASE: Final[float] = 6.0
+HITLAG_DAMAGE_DIVISOR: Final[float] = 3.0
+HITLAG_BASE: Final[float] = 3.0
+"""Hitlag is ``floor(damage / HITLAG_DAMAGE_DIVISOR + HITLAG_BASE)`` frames, Melee's formula
+(decision D-058). It is a division, so an exact multiple of 3 never floors a frame short."""
 HITLAG_MAX: Final[int] = 30
 ELECTRIC_HITLAG_MULT: Final[float] = 1.5
 FULL_CHARGE_HITLAG_MULT: Final[float] = 1.2
 SDI_DISTANCE: Final[float] = 0.06
 """How far one new stick input during hitlag nudges the target, in units."""
-DI_MAX_DEGREES: Final[float] = 15.0
+ASDI_DISTANCE: Final[float] = SDI_DISTANCE / 2.0
+"""How far the stick held on the last hitlag frame nudges the target (automatic SDI): no
+fresh input needed (decision D-058)."""
+DI_MAX_DEGREES: Final[float] = 18.0
 
 # --- Staling -------------------------------------------------------------------------------
 STALE_QUEUE_LENGTH: Final[int] = 9
@@ -192,7 +197,7 @@ LEDGE_JUMP_VZ_MULT: Final[float] = 1.15
 """A ledge jump rises at the full hop speed times this."""
 
 # --- Tech, knockdown, wall bounce, helpless ------------------------------------------------
-TECH_WINDOW: Final[int] = 11
+TECH_WINDOW: Final[int] = 20
 """A shield press this many frames or fewer before touching ground or wall techs."""
 TECH_LOCKOUT: Final[int] = 40
 """After a shield press in tumble, another one cannot count for this long."""

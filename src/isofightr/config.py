@@ -204,6 +204,12 @@ CPU_DESTINATION_BIAS: Final[float] = 0.6
 """Weight of "toward where I am going" against "nearest" when picking a ledge to recover to."""
 CPU_UPSPECIAL_SAFETY: Final[float] = 0.7
 """Share of its up special's measured rise the CPU counts on when deciding to use it."""
+CPU_TECH_PRESS_FRAMES: Final[int] = 5
+"""A tumbling CPU presses shield this many frames (or fewer) before it lands."""
+CPU_AIR_DODGE_FRAMES: Final[int] = 5
+"""An airborne CPU air dodges a hit it sees landing within this many frames."""
+CPU_DOWNED_OPENING_FRAMES: Final[int] = 11
+"""The least a CPU counts on a downed opponent (knocked down, dizzy, helpless) staying open."""
 CPU_SHIELD_HOLD_EXTRA: Final[int] = 4
 """Frames the CPU keeps its shield up after the threat it saw has passed."""
 CPU_GETUP_MIN_LOCK: Final[int] = 2

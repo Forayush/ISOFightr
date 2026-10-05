@@ -381,12 +381,14 @@ def step_hitlag(match: Match, fighter: Fighter) -> None:
     """Run one frozen frame for a fighter in hitlag (tick step 2).
 
     A target can nudge itself with SDI on each new stick or modifier input. On the last
-    frame of hitlag the launch is applied, bent by whatever the target is holding (DI).
+    frame of hitlag whatever it is holding nudges it once more (ASDI), and then the launch is
+    applied, bent by that same held input (DI).
     """
     if fighter.launch is not None:
         _smash_di(match, fighter)
     fighter.hitlag -= 1
     if fighter.hitlag == 0 and fighter.launch is not None:
+        _automatic_sdi(match, fighter)
         _launch(match, fighter, fighter.launch)
         fighter.launch = None
 
@@ -398,9 +400,32 @@ def _smash_di(match: Match, fighter: Fighter) -> None:
         physics.shift(match.stage, fighter, buffer.move.normalized() * distance)
     if not fighter.grounded:
         if buffer.consume(Press.UP):
-            fighter.pos = fighter.pos + Vec3(0.0, 0.0, distance)
+            _nudge_vertical(match, fighter, distance)
         elif buffer.consume(Press.DOWN):
-            fighter.pos = fighter.pos - Vec3(0.0, 0.0, distance)
+            _nudge_vertical(match, fighter, -distance)
+
+
+def _automatic_sdi(match: Match, fighter: Fighter) -> None:
+    """ASDI: on the last hitlag frame the held stick (and, in the air, the held up or down
+    modifier) nudges the target by ``ASDI_DISTANCE``. Holding is enough, and it does not use
+    up SDI's flick (plan note 05, decision D-058)."""
+    buffer = fighter.buffer
+    distance = c.ASDI_DISTANCE * fighter.sdi_mult
+    if buffer.stick_active:
+        physics.shift(match.stage, fighter, buffer.move.normalized() * distance)
+    if not fighter.grounded and buffer.vertical != VERTICAL_NONE:
+        _nudge_vertical(match, fighter, distance * buffer.vertical)
+
+
+def _nudge_vertical(match: Match, fighter: Fighter, offset: float) -> None:
+    """Move an airborne fighter up or down, but never down through the surface below it."""
+    pos = fighter.pos
+    height = pos.z + offset
+    if offset < 0.0:
+        floor = match.stage.support_below(pos.x, pos.y, pos.z)
+        if floor is not None:
+            height = max(height, floor)
+    fighter.pos = Vec3(pos.x, pos.y, height)
 
 
 def _launch(match: Match, fighter: Fighter, launch: Launch) -> None:

@@ -344,6 +344,7 @@ SHIELD = hold(buttons=Button.SHIELD, frames=1)
     ("early", "teched"), [(1, True), (c.TECH_WINDOW, True), (c.TECH_WINDOW + 1, False)]
 )
 def test_tech_window(early: int, teched: bool) -> None:
+    assert (c.TECH_WINDOW, c.TECH_LOCKOUT) == (20, 40), "decision D-058"
     landing = ticks_to_land()
     match, fighter = tumbling()
     events = []

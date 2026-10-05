@@ -203,8 +203,8 @@ def test_the_victim_shakes_during_hitlag_and_the_attacker_does_not() -> None:
     match, attacker, target = duel()
     run(match, hold(buttons=Button.ATTACK, frames=1) + neutral(2))
     assert attacker.hitlag > 0 and target.hitlag > 0
-    offsets = [fighter_look(target, frame).offset_x for frame in range(8)]
-    assert offsets == [-1, -1, 1, 1, -1, -1, 1, 1]
+    offsets = [fighter_look(target, frame).offset_x for frame in range(6)]
+    assert offsets == [-1, 1, -1, 1, -1, 1], "every frame, so a 3-frame hitlag visibly shakes"
     assert fighter_look(attacker, match.frame).offset_x == 0
 
 

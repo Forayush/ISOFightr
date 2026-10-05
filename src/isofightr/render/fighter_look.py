@@ -19,7 +19,7 @@ from isofightr.sim.combat.constants import GETUP_FRAMES
 from isofightr.sim.fighter import NO_TEAM, Fighter, StateId
 
 HITLAG_SHAKE_PIXELS: Final[int] = 1
-HITLAG_SHAKE_FLIP_FRAMES: Final[int] = 2
+HITLAG_SHAKE_FLIP_FRAMES: Final[int] = 1
 """The victim's sprite hops between +1 and -1 px every this many frames of hitlag."""
 CHARGE_BLINK_FRAMES: Final[int] = 3
 TUMBLE_SPIN_FRAMES: Final[int] = 5

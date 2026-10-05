@@ -9,19 +9,20 @@ from types import MappingProxyType
 
 import pytest
 
-from helpers import hold, make_match, neutral, place, run, run_until
+from helpers import hold, make_match, make_stage, neutral, place, run, run_until
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat import constants as c
 from isofightr.sim.combat import knockback as kb
 from isofightr.sim.events import ClankEvent, HitEvent, KoEvent
-from isofightr.sim.fighter import Fighter, StateId
+from isofightr.sim.fighter import Fighter, Launch, StateId
 from isofightr.sim.input_frame import VERTICAL_DOWN, VERTICAL_UP, Button, Dir8, InputFrame
 from isofightr.sim.kill_calc import kill_percent, move_kills
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec2
 from isofightr.sim.move_def import MoveDef
+from isofightr.sim.states.base import change_state
 from isofightr.sim.states.interrupts import start_move
 
 ROOK = load_character("rook")
@@ -85,7 +86,7 @@ def test_jab_hits_on_its_first_active_frame_and_stuns() -> None:
     expected_kb = kb.knockback(target.damage, hit.damage, ROOK.weight, 8, 30)
     assert hit.knockback == pytest.approx(expected_kb)
     hitlag = kb.hitlag_frames(hit.damage)
-    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 7
+    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 3
 
     # Both are frozen for the hitlag; then the target is launched into hitstun.
     run(match, neutral(hitlag - 1))
@@ -622,7 +623,8 @@ def test_sdi_nudges_the_target_once_per_new_stick_input() -> None:
     assert offset.length() == pytest.approx(c.SDI_DISTANCE), "holding counts once"
 
 
-def test_di_bends_the_launch_by_up_to_fifteen_degrees() -> None:
+def test_di_bends_the_launch_by_up_to_eighteen_degrees() -> None:
+    assert c.DI_MAX_DEGREES == 18.0
     _, plain, hit = launch_with(neutral(1))
     assert (plain.kb_vel.x > 0, plain.kb_vel.y) == (True, pytest.approx(0))
     # Launched along +x: holding +y (perpendicular) on the last hitlag frame bends it.
@@ -650,6 +652,131 @@ def test_vertical_di_changes_the_elevation() -> None:
     assert elevation(raised) == pytest.approx(38 + c.DI_MAX_DEGREES)
     assert elevation(lowered) == pytest.approx(38 - c.DI_MAX_DEGREES)
     assert not lowered.fast_falling, "down held for DI is not a fast fall"
+
+
+# --- Melee-style hitlag, hitstun and ASDI (decision D-058) --------------------------------
+
+
+def custom_jab(**hitbox: float) -> tuple[Match, Fighter, Fighter]:
+    """A duel in which Rook's jab has its first hitbox changed."""
+    jab = ROOK.moves["jab1"]
+    box = dataclasses.replace(jab.windows[0].hitboxes[0], **hitbox)
+    window = dataclasses.replace(jab.windows[0], hitboxes=(box,))
+    character = with_move(dataclasses.replace(jab, windows=(window,)))
+    match = Match.create(
+        load_stage("training_grid"), [character, ROOK], rules=MatchRules(stocks=None)
+    )
+    attacker, target = match.fighters
+    place(match, attacker, ORIGIN_X, ORIGIN_Y, facing=Dir8.SE)
+    place(match, target, ORIGIN_X + 1.0, ORIGIN_Y, facing=Dir8.NW)
+    return match, attacker, target
+
+
+def test_a_ten_percent_hit_freezes_both_fighters_for_six_frames() -> None:
+    match, attacker, target = custom_jab(damage=10.0 / FRESH)
+    [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
+    assert hit.damage == pytest.approx(10.0)
+    assert attacker.hitlag == target.hitlag == hit.hitlag == 6, "it was 12 before D-058"
+
+
+def test_hitstun_only_starts_when_hitlag_ends() -> None:
+    match, _, target = custom_jab(damage=10.0 / FRESH)
+    [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
+    for _ in range(hit.hitlag - 1):
+        assert (target.hitstun, target.state) == (0, StateId.IDLE), "frozen, not yet stunned"
+        assert target.launch is not None and target.kb_vel.length() == 0.0
+        run(match, neutral(1))
+    assert target.hitlag == 1 and target.hitstun == 0
+    run(match, neutral(1))  # the last hitlag frame: the launch
+    assert target.hitlag == 0 and target.launch is None
+    assert target.hitstun == kb.hitstun_frames(hit.knockback) == math.floor(hit.knockback * 0.4)
+    assert target.state is StateId.FLINCH
+    run(match, neutral(1))
+    assert target.hitstun == kb.hitstun_frames(hit.knockback) - 1, "now it counts down"
+
+
+@pytest.mark.parametrize(("knockback", "state"), [(79.9, StateId.FLINCH), (80.0, StateId.TUMBLE)])
+def test_a_launch_tumbles_from_exactly_eighty_knockback(knockback: float, state: StateId) -> None:
+    # No growth, so the knockback is the base knockback; 45 degrees lifts the target.
+    match, _, target = custom_jab(bkb=knockback, kbg=0.0, angle=45.0)
+    [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
+    assert hit.knockback == pytest.approx(knockback)
+    run(match, neutral(hit.hitlag))
+    assert target.state is state and not target.grounded
+    assert target.hitstun == math.floor(knockback * 0.4)
+
+
+def frozen_target(z: float | None = None) -> tuple[Match, Fighter]:
+    """A target with three frames of hitlag and a launch waiting."""
+    match, _, target = duel(gap=4.0)
+    if z is not None:
+        place(match, target, target.pos.x, target.pos.y, z=z)
+        change_state(match, target, StateId.FALL)
+    target.hitlag = 3
+    target.launch = Launch(40.0, Vec2(1.0, 0.0), 30.0, False)
+    return match, target
+
+
+def test_asdi_nudges_the_target_toward_the_held_stick_on_the_last_hitlag_frame() -> None:
+    assert c.ASDI_DISTANCE == c.SDI_DISTANCE / 2
+    direction = Dir8.SW  # world +y: across the launch
+    match, still = frozen_target()
+    run(match, neutral(3), neutral(3))
+    start = still.pos
+
+    # Held for the first two frozen frames only: one SDI nudge (the fresh press), no ASDI.
+    match, flicked = frozen_target()
+    run(match, neutral(3), hold(direction, frames=2) + neutral(1))
+    assert (flicked.pos - start).length() == pytest.approx(c.SDI_DISTANCE)
+
+    # Still held on the last frame: ASDI on top, with no new press.
+    match, held = frozen_target()
+    run(match, neutral(3), hold(direction, frames=3))
+    offset = held.pos - flicked.pos
+    assert (offset.x, offset.y, offset.z) == pytest.approx((0.0, c.ASDI_DISTANCE, 0.0))
+
+    # A multi-hit's SDI multiplier scales ASDI too.
+    match, sticky = frozen_target()
+    sticky.sdi_mult = 0.5
+    run(match, neutral(3), hold(direction, frames=3))
+    assert (sticky.pos - start).length() == pytest.approx((c.SDI_DISTANCE + c.ASDI_DISTANCE) / 2)
+
+
+def test_asdi_does_nothing_without_a_pending_launch() -> None:
+    match, _, target = duel(gap=4.0)
+    target.hitlag = 3  # an attacker's own hitlag: no launch waiting
+    start = target.pos
+    run(match, neutral(3), hold(Dir8.SW, frames=3))
+    assert target.pos == start
+
+
+def test_asdi_cannot_push_a_fighter_through_a_wall() -> None:
+    stage = make_stage(["0001", "0001"])
+    match = Match.create(stage, [ROOK, ROOK], rules=MatchRules(stocks=None))
+    target = match.fighters[1]
+    place(match, target, 2.0, 0.5, facing=Dir8.NW)
+    run(match, neutral(60), hold(Dir8.SE, frames=59) + neutral(1))  # walk into the wall
+    wall = target.pos.x
+    assert 2.5 < wall < 3.0 and target.grounded
+    target.hitlag = 3
+    target.launch = Launch(40.0, Vec2(-1.0, 0.0), 30.0, False)
+    run(match, neutral(3), hold(Dir8.SE, frames=3))  # SE is world +x: into the wall
+    assert target.pos.x == pytest.approx(wall)
+
+
+def test_vertical_asdi_in_the_air_stops_at_the_floor() -> None:
+    match, risen = frozen_target(z=2.0)
+    run(match, neutral(3), neutral(2) + hold(frames=1, vertical=VERTICAL_UP))
+    # The fresh up press is one SDI nudge, and holding it on the last frame adds ASDI.
+    assert risen.pos.z == pytest.approx(2.0 + c.SDI_DISTANCE + c.ASDI_DISTANCE)
+
+    match, low = frozen_target(z=0.01)
+    run(match, neutral(3), neutral(2) + hold(frames=1, vertical=VERTICAL_DOWN))
+    assert low.pos.z == 0.0, "nudged down onto the floor, never below it"
+
+    match, grounded = frozen_target()
+    run(match, neutral(3), neutral(2) + hold(frames=1, vertical=VERTICAL_UP))
+    assert grounded.pos.z == 0.0, "no vertical nudge on the ground"
 
 
 # --- knockback motion ---------------------------------------------------------------------

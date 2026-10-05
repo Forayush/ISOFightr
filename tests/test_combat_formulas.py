@@ -67,13 +67,17 @@ def test_tumble_threshold_is_exactly_eighty() -> None:
 
 
 def test_hitlag_formula_and_cap() -> None:
-    assert kb.hitlag_frames(10) == math.floor(10 * 0.65 + 6) == 12
-    assert kb.hitlag_frames(16.8) == 16
-    assert kb.hitlag_frames(0) == 6
-    assert kb.hitlag_frames(10, multiplier=0.5) == 6
-    assert kb.hitlag_frames(60) == c.HITLAG_MAX == 30
-    assert kb.hitlag_frames(10, effect=Effect.ELECTRIC) == math.floor(12.5 * 1.5)
-    assert kb.hitlag_frames(10, full_charge=True) == math.floor(12.5 * 1.2)
+    """Melee's ``floor(d / 3 + 3)`` (decision D-058), times the multipliers, capped at 30."""
+    assert (c.HITLAG_DAMAGE_DIVISOR, c.HITLAG_BASE) == (3.0, 3.0)
+    cases = {0: 3, 2.5: 3, 9: 6, 10: 6, 12: 7, 16.8: 8, 20: 9, 60: 23, 80: 29}
+    for damage, frames in cases.items():
+        assert kb.hitlag_frames(damage) == frames, damage
+    for damage in range(0, 81, 3):
+        assert kb.hitlag_frames(damage) == damage // 3 + 3, "a multiple of 3 never floors low"
+    assert kb.hitlag_frames(81) == kb.hitlag_frames(200) == c.HITLAG_MAX == 30
+    assert kb.hitlag_frames(10, multiplier=0.5) == math.floor((10 / 3 + 3) * 0.5) == 3
+    assert kb.hitlag_frames(10, effect=Effect.ELECTRIC) == math.floor((10 / 3 + 3) * 1.5) == 9
+    assert kb.hitlag_frames(10, full_charge=True) == math.floor((10 / 3 + 3) * 1.2) == 7
 
 
 def test_launch_speed_scales_with_phys_scale() -> None:
