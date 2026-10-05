@@ -54,10 +54,12 @@ def test_fixed_knockback_ignores_percent_and_damage() -> None:
 
 
 def test_hitstun_is_forty_percent_of_knockback_floored() -> None:
-    assert kb.hitstun_frames(100.0) == 40
-    assert kb.hitstun_frames(122.4) == 48
-    assert kb.hitstun_frames(122.6) == 49
-    assert kb.hitstun_frames(2.4) == 0
+    bonus = c.HITSTUN_BONUS_FRAMES
+    assert bonus == 4, "decision D-059: every hit stuns 4 frames longer"
+    assert kb.hitstun_frames(100.0) == 40 + bonus
+    assert kb.hitstun_frames(122.4) == 48 + bonus
+    assert kb.hitstun_frames(122.6) == 49 + bonus
+    assert kb.hitstun_frames(2.4) == 0 + bonus
 
 
 def test_tumble_threshold_is_exactly_eighty() -> None:
@@ -67,17 +69,36 @@ def test_tumble_threshold_is_exactly_eighty() -> None:
 
 
 def test_hitlag_formula_and_cap() -> None:
-    """Melee's ``floor(d / 3 + 3)`` (decision D-058), times the multipliers, capped at 30."""
-    assert (c.HITLAG_DAMAGE_DIVISOR, c.HITLAG_BASE) == (3.0, 3.0)
+    """``floor((d / 3 + 3) * HITLAG_SCALE)`` (decisions D-058 and D-059), times the
+    multipliers, capped at 30."""
+    assert (c.HITLAG_DAMAGE_DIVISOR, c.HITLAG_BASE, c.HITLAG_SCALE) == (3.0, 3.0, 1.75)
+    cases = {0: 5, 3: 7, 5: 8, 10: 11, 12: 12, 20: 16, 30: 22, 42: 29, 43: 30}
+    for damage, frames in cases.items():
+        assert kb.hitlag_frames(damage) == frames, damage
+    assert kb.hitlag_frames(81) == kb.hitlag_frames(200) == c.HITLAG_MAX == 30
+    assert kb.hitlag_frames(10, multiplier=0.5) == math.floor((10 / 3 + 3) * 1.75 * 0.5) == 5
+    electric = kb.hitlag_frames(10, effect=Effect.ELECTRIC)
+    assert electric == math.floor((10 / 3 + 3) * 1.75 * 1.5) == 16
+    assert kb.hitlag_frames(10, full_charge=True) == math.floor((10 / 3 + 3) * 1.75 * 1.2) == 13
+
+
+def test_scale_one_and_no_bonus_give_back_the_melee_numbers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """D-059's two knobs are the only change to D-058: neutral values restore it exactly."""
+    monkeypatch.setattr(c, "HITLAG_SCALE", 1.0)
+    monkeypatch.setattr(c, "HITSTUN_BONUS_FRAMES", 0)
     cases = {0: 3, 2.5: 3, 9: 6, 10: 6, 12: 7, 16.8: 8, 20: 9, 60: 23, 80: 29}
     for damage, frames in cases.items():
         assert kb.hitlag_frames(damage) == frames, damage
     for damage in range(0, 81, 3):
         assert kb.hitlag_frames(damage) == damage // 3 + 3, "a multiple of 3 never floors low"
-    assert kb.hitlag_frames(81) == kb.hitlag_frames(200) == c.HITLAG_MAX == 30
-    assert kb.hitlag_frames(10, multiplier=0.5) == math.floor((10 / 3 + 3) * 0.5) == 3
-    assert kb.hitlag_frames(10, effect=Effect.ELECTRIC) == math.floor((10 / 3 + 3) * 1.5) == 9
-    assert kb.hitlag_frames(10, full_charge=True) == math.floor((10 / 3 + 3) * 1.2) == 7
+    assert kb.hitlag_frames(81) == c.HITLAG_MAX
+    assert kb.hitlag_frames(10, multiplier=0.5) == 3
+    assert kb.hitlag_frames(10, effect=Effect.ELECTRIC) == 9
+    assert kb.hitlag_frames(10, full_charge=True) == 7
+    for knockback in (2.4, 79.9, 80.0, 100.0, 122.6):
+        assert kb.hitstun_frames(knockback) == math.floor(knockback * 0.4)
 
 
 def test_launch_speed_scales_with_phys_scale() -> None:

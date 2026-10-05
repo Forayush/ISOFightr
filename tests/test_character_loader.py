@@ -21,18 +21,18 @@ id = "rook"
 display_name = "Rook"
 weight = 98
 [movement]
-walk_speed = 0.060
-dash_speed = 0.105
+walk_speed = 0.075
+dash_speed = 0.131
 dash_frames = 12
-run_speed = 0.100
-traction = 0.006
+run_speed = 0.125
+traction = 0.0075
 jumpsquat = 3
 full_hop_vz = 0.300
 short_hop_vz = 0.180
 double_jump_vz = 0.280
 air_jumps = 1
-air_accel = 0.006
-air_speed = 0.070
+air_accel = 0.0072
+air_speed = 0.084
 air_friction = 0.002
 gravity = 0.012
 max_fall = 0.180
@@ -88,12 +88,12 @@ def test_rook_ships_with_the_stats_from_the_plan() -> None:
     rook = load_character("rook")
     assert (rook.id, rook.display_name, rook.weight) == ("rook", "Rook", 98.0)
     stats = rook.movement
-    assert (stats.walk_speed, stats.dash_speed, stats.run_speed) == (0.060, 0.105, 0.100)
+    assert (stats.walk_speed, stats.dash_speed, stats.run_speed) == (0.075, 0.131, 0.125)
     assert (stats.dash_frames, stats.jumpsquat, stats.land_lag, stats.air_jumps) == (12, 3, 3, 1)
     assert (stats.full_hop_vz, stats.short_hop_vz, stats.double_jump_vz) == (0.300, 0.180, 0.280)
-    assert (stats.air_accel, stats.air_speed, stats.air_friction) == (0.006, 0.070, 0.002)
+    assert (stats.air_accel, stats.air_speed, stats.air_friction) == (0.0072, 0.084, 0.002)
     assert (stats.gravity, stats.max_fall, stats.fast_fall) == (0.012, 0.180, 0.260)
-    assert stats.traction == 0.006
+    assert stats.traction == 0.0075
     assert (rook.body.radius, rook.body.height) == (0.30, 2.5)
 
 
@@ -143,9 +143,9 @@ def test_invalid_toml_names_the_file(tmp_path: Path) -> None:
         ("weight = 98", "", "weight: missing required key"),
         ("weight = 98", "weight = 0", "weight: must be greater than 0"),
         ("weight = 98", 'weight = "heavy"', "weight: must be a number"),
-        ("run_speed = 0.100", "", r"movement\.run_speed: missing required key"),
-        ("run_speed = 0.100", "run_speed = 0", r"movement\.run_speed: must be greater than 0"),
-        ("run_speed = 0.100", "run_spede = 0.1", r"movement: unknown key\(s\) 'run_spede'"),
+        ("run_speed = 0.125", "", r"movement\.run_speed: missing required key"),
+        ("run_speed = 0.125", "run_speed = 0", r"movement\.run_speed: must be greater than 0"),
+        ("run_speed = 0.125", "run_spede = 0.1", r"movement: unknown key\(s\) 'run_spede'"),
         ("jumpsquat = 3", "jumpsquat = 2.5", r"movement\.jumpsquat: must be a whole number"),
         ("jumpsquat = 3", "jumpsquat = 0", r"movement\.jumpsquat: must be 1 or greater"),
         ("air_jumps = 1", "air_jumps = -1", r"movement\.air_jumps: must be 0 or greater"),

@@ -20,6 +20,10 @@ FIXED_KB_PERCENT: Final[float] = 10.0
 """Fixed-knockback hits use this as the target's percent, whatever it really is."""
 
 HITSTUN_PER_KB: Final[float] = 0.4
+HITSTUN_BONUS_FRAMES: Final[int] = 4
+"""Frames added to every hit's hitstun, so that light hits leave the attacker ahead and can
+start combos (decision D-059). Tumbling is still decided by knockback alone. 0 restores the
+plain Melee formula of D-058."""
 TUMBLE_KB: Final[float] = 80.0
 """Knockback at or above this sends the target into tumble."""
 
@@ -59,6 +63,9 @@ HITLAG_DAMAGE_DIVISOR: Final[float] = 3.0
 HITLAG_BASE: Final[float] = 3.0
 """Hitlag is ``floor(damage / HITLAG_DAMAGE_DIVISOR + HITLAG_BASE)`` frames, Melee's formula
 (decision D-058). It is a division, so an exact multiple of 3 never floors a frame short."""
+HITLAG_SCALE: Final[float] = 1.75
+"""Multiplies every hit's hitlag, so the freeze is long enough to feel (decision D-059):
+a 10% hit freezes for 11 frames. 1.0 restores D-058's numbers."""
 HITLAG_MAX: Final[int] = 30
 ELECTRIC_HITLAG_MULT: Final[float] = 1.5
 FULL_CHARGE_HITLAG_MULT: Final[float] = 1.2

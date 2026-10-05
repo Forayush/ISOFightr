@@ -35,7 +35,7 @@ def knockback(
 
 def hitstun_frames(kb: float) -> int:
     """Return how many frames a target is stunned by a hit of this knockback."""
-    return math.floor(kb * c.HITSTUN_PER_KB)
+    return math.floor(kb * c.HITSTUN_PER_KB) + c.HITSTUN_BONUS_FRAMES
 
 
 def is_tumble(kb: float) -> bool:
@@ -49,13 +49,14 @@ def hitlag_frames(
     effect: Effect = Effect.NORMAL,
     full_charge: bool = False,
 ) -> int:
-    """Return the freeze frames a hit gives both fighters: ``floor(d / 3 + 3)`` times the
-    multipliers, capped (plan note 05, decision D-058)."""
+    """Return the freeze frames a hit gives both fighters: ``floor(d / 3 + 3)`` (D-058) times
+    ``HITLAG_SCALE`` (D-059) and the multipliers, capped (plan note 05)."""
     if effect is Effect.ELECTRIC:
         multiplier *= c.ELECTRIC_HITLAG_MULT
     if full_charge:
         multiplier *= c.FULL_CHARGE_HITLAG_MULT
-    frames = math.floor((damage / c.HITLAG_DAMAGE_DIVISOR + c.HITLAG_BASE) * multiplier)
+    base = damage / c.HITLAG_DAMAGE_DIVISOR + c.HITLAG_BASE
+    frames = math.floor(base * c.HITLAG_SCALE * multiplier)
     return min(frames, c.HITLAG_MAX)
 
 

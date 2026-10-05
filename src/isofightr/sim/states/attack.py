@@ -23,6 +23,8 @@ from isofightr.sim.states import interrupts
 from isofightr.sim.states.base import State, change_state, register
 from isofightr.sim.states.dodge import open_intangible_window
 
+EDGE_HELD_KINDS = (MoveKind.JAB, MoveKind.TILT)
+
 if TYPE_CHECKING:
     from isofightr.sim.match import Match
 
@@ -121,6 +123,11 @@ class Attack(State):
         """Some recovery moves catch ledges from a certain frame on."""
         first = fighter.character.moves[fighter.move_id].ledge_grab_from
         return first > 0 and fighter.state_frame >= first
+
+    def holds_edge(self, fighter: Fighter) -> bool:
+        """Jabs and tilts stay on the ground at an edge, so their forward step (D-059) never
+        carries the fighter off it. Dash attacks, smashes and specials slide off as before."""
+        return fighter.character.moves[fighter.move_id].kind in EDGE_HELD_KINDS
 
     def on_leave_ground(self, match: Match, fighter: Fighter) -> None:
         """A special carries on off an edge or into the air; any other move is cut short."""

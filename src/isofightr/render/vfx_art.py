@@ -33,7 +33,7 @@ CLOUD_SHADOW: Final[Rgba] = _rgba("9babb2")
 CLOUD_EDGE: Final[Rgba] = _rgba("7f708a")
 
 # --- sparks ---------------------------------------------------------------------------------
-SPARK_SIZES: Final[tuple[int, ...]] = (15, 23, 31, 43)
+SPARK_SIZES: Final[tuple[int, ...]] = (19, 23, 31, 43)
 SPARK_FRAME_SCALE: Final[tuple[float, ...]] = (0.6, 1.0, 1.0)
 SPARK_INNER_RATIO: Final[float] = 0.3
 SPARK_CORE_RATIO: Final[float] = 0.6
@@ -220,3 +220,35 @@ def ko_beam_placement(
     angle = math.atan2(tip_y - origin_y, tip_x - origin_x)
     step = 2 * math.pi / KO_BEAM_ANGLES
     return round(angle / step) % KO_BEAM_ANGLES, base
+
+
+# --- launch streaks -------------------------------------------------------------------------
+STREAK_SIZE: Final[int] = 33
+STREAK_ANGLES: Final[int] = 16
+STREAK_LINES: Final[tuple[tuple[float, int], ...]] = ((-5.0, 6), (0.0, 8), (5.0, 5))
+"""``(sideways offset, length)`` of each speed line, in pixels."""
+STREAK_START: Final[tuple[float, ...]] = (5.0, 9.0)
+"""How far from the centre the lines start, by animation frame: they fly outward."""
+STREAK_COLORS: Final[tuple[Rgba, ...]] = (WHITE, CLOUD)
+
+
+def build_streak(angle: int, frame: int) -> Image.Image:
+    """Return speed lines for a launch: three short strokes pointing along screen direction
+    ``angle`` (of ``STREAK_ANGLES``, counter-clockwise from right), 1 px wide so they never
+    hide the fighter behind them. The second frame is further out and fainter."""
+    image = Image.new("RGBA", (STREAK_SIZE, STREAK_SIZE), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    turn = 2.0 * math.pi * (angle % STREAK_ANGLES) / STREAK_ANGLES
+    along = (math.cos(turn), -math.sin(turn))  # image y runs down
+    across = (-along[1], along[0])
+    centre = (STREAK_SIZE - 1) / 2
+    start = STREAK_START[min(frame, len(STREAK_START) - 1)]
+    color = STREAK_COLORS[min(frame, len(STREAK_COLORS) - 1)]
+    for sideways, length in STREAK_LINES:
+        shorter = length - 2 * min(frame, 1)
+        x0 = centre + across[0] * sideways + along[0] * start
+        y0 = centre + across[1] * sideways + along[1] * start
+        x1 = x0 + along[0] * shorter
+        y1 = y0 + along[1] * shorter
+        draw.line((round(x0), round(y0), round(x1), round(y1)), fill=color, width=1)
+    return image

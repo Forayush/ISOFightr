@@ -5,18 +5,18 @@ display_name = "Bramble"
 weight = 120
 
 [movement]
-walk_speed = 0.045
-dash_speed = 0.085
+walk_speed = 0.056
+dash_speed = 0.106
 dash_frames = 14
-run_speed = 0.075
-traction = 0.008
+run_speed = 0.094
+traction = 0.01
 jumpsquat = 5
 full_hop_vz = 0.29
 short_hop_vz = 0.17
 double_jump_vz = 0.27
 air_jumps = 1
-air_accel = 0.005
-air_speed = 0.06
+air_accel = 0.006
+air_speed = 0.072
 air_friction = 0.002
 gravity = 0.014
 max_fall = 0.2

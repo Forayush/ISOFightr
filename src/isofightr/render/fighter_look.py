@@ -19,6 +19,8 @@ from isofightr.sim.combat.constants import GETUP_FRAMES
 from isofightr.sim.fighter import NO_TEAM, Fighter, StateId
 
 HITLAG_SHAKE_PIXELS: Final[int] = 1
+HITLAG_SHAKE_STEPS: Final[tuple[tuple[int, int], ...]] = ((16, 3), (8, 2))
+"""``(hitlag at least, pixels)``: a longer freeze shakes its victim harder (D-059)."""
 HITLAG_SHAKE_FLIP_FRAMES: Final[int] = 1
 """The victim's sprite hops between +1 and -1 px every this many frames of hitlag."""
 CHARGE_BLINK_FRAMES: Final[int] = 3
@@ -87,6 +89,14 @@ def costume_for(fighter: Fighter, costumes: int) -> int:
     return costume_index(fighter.color_index, fighter.team != NO_TEAM, costumes)
 
 
+def hitlag_shake_pixels(hitlag: int) -> int:
+    """Return how far a victim's sprite shakes for a hit with this much hitlag."""
+    for at_least, pixels in HITLAG_SHAKE_STEPS:
+        if hitlag >= at_least:
+            return pixels
+    return HITLAG_SHAKE_PIXELS
+
+
 def fighter_look(
     fighter: Fighter,
     frame: int,
@@ -94,6 +104,7 @@ def fighter_look(
     anims: Mapping[str, AnimInfo] | None = None,
     costume: int = 0,
     reduce_flashing: bool = False,
+    hit_hitlag: int = 0,
 ) -> FighterLook:
     """Return a fighter's look.
 
@@ -105,6 +116,8 @@ def fighter_look(
         costume: the costume to draw them in.
         reduce_flashing: the accessibility setting: no white flash or charge blink, and an
             intangible fighter is dimmed steadily instead of blinking.
+        hit_hitlag: the hitlag of the hit the fighter is frozen by (from ``BattleEffects``):
+            the longer the freeze, the bigger the shake.
     """
     pose, turns = Pose.STAND, 0
     if fighter.state is StateId.TUMBLE:
@@ -125,7 +138,8 @@ def fighter_look(
     offset = 0
     if shaking:
         left = (frame // HITLAG_SHAKE_FLIP_FRAMES) % 2 == 0
-        offset = -HITLAG_SHAKE_PIXELS if left else HITLAG_SHAKE_PIXELS
+        pixels = hitlag_shake_pixels(hit_hitlag)
+        offset = -pixels if left else pixels
     elif fighter.state is StateId.DIZZY:
         offset = DIZZY_WOBBLE[(frame // DIZZY_WOBBLE_FRAMES) % len(DIZZY_WOBBLE)]
     blink_off = (frame // INTANGIBLE_BLINK_FRAMES) % 2 == 1

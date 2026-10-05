@@ -234,7 +234,7 @@ def test_an_attack_swats_a_projectile() -> None:
     # P2 swings a forward tilt (active 7-9) as the wave arrives.
     for tick in range(60):
         frame = SPECIAL if tick == 0 else neutral(1)
-        swing = hold(Dir8.NW, Button.ATTACK, frames=1) if tick == WAVE.frame + 1 else neutral(1)
+        swing = hold(Dir8.NW, Button.ATTACK, frames=1) if tick == WAVE.frame - 2 else neutral(1)
         run(match, frame, swing)
         if any(isinstance(event, ClankEvent) for event in match.events):
             break

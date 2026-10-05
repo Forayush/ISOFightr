@@ -204,9 +204,9 @@ def test_small_steps_are_walked_up_and_down() -> None:
     match = make_match(legend_stage)
     rook = match.fighters[0]
     place(match, rook, 0.5, 0.5)
-    run(match, hold(Dir8.SE, Button.WALK, frames=20))
+    run(match, hold(Dir8.SE, Button.WALK, frames=12))
     assert rook.pos.x > 1.0 and rook.pos.z == 0.25 and rook.grounded
-    run(match, hold(Dir8.NW, Button.WALK, frames=30))
+    run(match, hold(Dir8.NW, Button.WALK, frames=14))
     assert rook.pos.x < 1.0 and rook.pos.z == 0.0 and rook.grounded
     assert rook.state is StateId.WALK
 

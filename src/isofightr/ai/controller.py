@@ -147,6 +147,7 @@ class CpuController:
         self.hurtboxes: dict[int, tuple[float, float, float]] = {}
         self.gravity: dict[int, float] = {}
         self._next_decision = 0
+        self._edge_lookahead = config.CPU_EDGE_LOOKAHEAD
         self._destination: Vec2 | None = None
         self._facing_target: Vec3 | None = None
         self._waypoint: Vec3 | None = None
@@ -180,6 +181,12 @@ class CpuController:
                 box = fighter.character.body.hurtbox
                 self.hurtboxes[index] = (box.z0, box.z1, box.radius)
                 self.gravity[index] = fighter.character.movement.gravity
+                if index == self.player:
+                    stats = fighter.character.movement
+                    skid = stats.run_speed * stats.run_speed / (2.0 * stats.traction)
+                    self._edge_lookahead = max(
+                        config.CPU_EDGE_LOOKAHEAD, skid + config.CPU_EDGE_MARGIN
+                    )
         if world is None:
             world = observe(match)
         self.history.append(world)
@@ -781,8 +788,8 @@ class CpuController:
         knowledge = self.knowledge[self.player]
         if rise > config.CPU_STEP_HEIGHT and distance < config.CPU_WALK_RANGE * 2:
             return self._jump_toward(me, goal, direction)
-        if not level_ground_ahead(self.stage, me.pos, direction, config.CPU_EDGE_LOOKAHEAD):
-            ahead = me.pos.xy + direction * config.CPU_EDGE_LOOKAHEAD
+        if not level_ground_ahead(self.stage, me.pos, direction, self._edge_lookahead):
+            ahead = me.pos.xy + direction * self._edge_lookahead
             below = ground_below(self.stage, ahead.x, ahead.y, me.pos.z)
             if (
                 below is not None

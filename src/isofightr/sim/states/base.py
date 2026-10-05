@@ -34,6 +34,11 @@ class State:
     """True for airborne states in which a falling fighter catches a nearby ledge."""
     regens_shield: ClassVar[bool] = True
 
+    def holds_edge(self, fighter: Fighter) -> bool:
+        """Whether this fighter is kept on the ground at an edge right now. The class flag by
+        default; a state may decide by what the fighter is doing."""
+        return self.stops_at_edges
+
     def enter(self, match: Match, fighter: Fighter) -> None:
         """Run once when the fighter enters this state (its frame 1)."""
 

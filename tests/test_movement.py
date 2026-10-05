@@ -13,11 +13,11 @@ from isofightr.sim.input_frame import Button, Dir8, InputFrame
 from isofightr.sim.match import Match
 from isofightr.sim.math3d import Vec3
 
-WALK_SPEED, DASH_SPEED, RUN_SPEED = 0.060, 0.105, 0.100
+WALK_SPEED, DASH_SPEED, RUN_SPEED = 0.075, 0.131, 0.125
 DASH_FRAMES, JUMPSQUAT, LAND_LAG = 12, 3, 3
 FULL_HOP_VZ, SHORT_HOP_VZ, DOUBLE_JUMP_VZ = 0.300, 0.180, 0.280
 GRAVITY, MAX_FALL, FAST_FALL = 0.012, 0.180, 0.260
-AIR_SPEED, TRACTION = 0.070, 0.006
+AIR_SPEED, AIR_ACCEL, TRACTION = 0.084, 0.0072, 0.0075
 
 JUMP = InputFrame(held=Button.JUMP)
 
@@ -137,9 +137,9 @@ def test_dash_moves_on_the_very_first_frame(match: Match, rook: Fighter) -> None
 
 
 def test_run_speed(match: Match, rook: Fighter) -> None:
-    run(match, hold(Dir8.SE, frames=40))
+    run(match, hold(Dir8.NW, frames=25))  # away from player 2, who would be pushed
     before = rook.pos
-    run(match, hold(Dir8.SE, frames=10))
+    run(match, hold(Dir8.NW, frames=10))
     assert rook.state is StateId.RUN
     assert speed(rook) == pytest.approx(RUN_SPEED)
     assert (rook.pos - before).length() == pytest.approx(10 * RUN_SPEED)
@@ -300,7 +300,7 @@ def test_standing_jump_goes_straight_up(match: Match, rook: Fighter) -> None:
 def test_air_drift_accelerates_to_a_circular_cap(match: Match, rook: Fighter) -> None:
     run(match, [JUMP] * (JUMPSQUAT + 1))
     run(match, hold(Dir8.S, frames=1))  # a world diagonal: both x and y change
-    assert speed(rook) == pytest.approx(0.006)
+    assert speed(rook) == pytest.approx(AIR_ACCEL)
     run(match, hold(Dir8.S, frames=20))
     assert speed(rook) == pytest.approx(AIR_SPEED)
     assert rook.vel.x == pytest.approx(AIR_SPEED / 2**0.5), "capped as a circle, not per axis"

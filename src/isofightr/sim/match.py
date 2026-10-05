@@ -184,7 +184,7 @@ class Match:
             state = STATES[fighter.state]
             state.motion(self, fighter)
             if state.uses_physics:
-                result = physics.step(self.stage, fighter, state.stops_at_edges)
+                result = physics.step(self.stage, fighter, state.holds_edge(fighter))
                 self._apply(fighter, result)
                 if not result.landed:
                     try_grab_ledge(self, fighter)
@@ -331,7 +331,7 @@ class Match:
                 pushes[second.player_index] = pushes[second.player_index] + away * PUSH_SPEED
         for fighter, push in zip(self.fighters, pushes, strict=True):
             if push != Vec2():
-                stop = STATES[fighter.state].stops_at_edges
+                stop = STATES[fighter.state].holds_edge(fighter)
                 self._apply(fighter, physics.nudge_grounded(self.stage, fighter, push, stop))
 
     def _knock_out(self, fighter: Fighter) -> None:

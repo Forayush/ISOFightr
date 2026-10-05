@@ -89,8 +89,8 @@ def test_identical_ticks_are_run_length_encoded() -> None:
 def test_playback_notices_when_the_game_has_changed() -> None:
     replay = recorded(ticks=600)
     assert not play_back(match_for(Replay(**{**_fields(replay), "seed": 8})), replay)
-    slower = MatchRules(stocks=2, countdown_frames=20, teams=(0, 1, 0), friendly_fire=False)
-    assert not play_back(match_for(Replay(**{**_fields(replay), "rules": slower})), replay)
+    longer = MatchRules(stocks=3, countdown_frames=20, teams=(0, 1, 0), friendly_fire=True)
+    assert not play_back(match_for(Replay(**{**_fields(replay), "rules": longer})), replay)
 
 
 def _fields(replay: Replay) -> dict[str, object]:

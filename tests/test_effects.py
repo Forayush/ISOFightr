@@ -70,13 +70,24 @@ def test_a_hit_spawns_a_spark_at_the_hit_point_that_plays_and_goes_away() -> Non
     effects.consume([hit(100.0)])
     [spark] = effects.sparks
     assert (spark.position, spark.tier, spark.effect, spark.frame) == (ORIGIN, 2, Effect.SLASH, 0)
+    assert spark.lifetime == fx.spark_lifetime(10) == 13, "the hitlag (10) plus 3"
     frames = []
-    for _ in range(fx.SPARK_LIFETIME - 1):
+    for _ in range(spark.lifetime - 1):
         effects.tick()
         frames.append(effects.sparks[0].frame)
-    assert frames == [0, 0, 1, 1, 1, 2, 2, 2]
+    assert frames == [0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2], "the extra time holds the last frame"
     effects.tick()
     assert effects.sparks == []
+
+
+def test_spark_and_flash_lengths_follow_the_hitlag() -> None:
+    assert [fx.spark_lifetime(hitlag) for hitlag in (0, 5, 6, 7, 30)] == [9, 9, 9, 10, 33]
+    assert [fx.hit_flash_ticks(hitlag) for hitlag in (5, 9, 12, 24, 30)] == [3, 3, 4, 8, 8]
+    effects = BattleEffects()
+    effects.consume([hit(100.0)])
+    assert effects.flash == {1: 3} and effects.hit_hitlag == {1: 10}
+    effects.consume([hit(100.0, damage=0.0)])
+    assert effects.hit_hitlag == {1: 10}, "a hit that deals nothing does not shake its target"
 
 
 def test_clanks_spark_too_and_other_events_do_not() -> None:
@@ -89,8 +100,8 @@ def test_clanks_spark_too_and_other_events_do_not() -> None:
 # --- screen shake -------------------------------------------------------------------------
 
 
-def test_weak_hits_do_not_shake_and_strong_hits_shake_more() -> None:
-    assert fx.shake_pixels(39.0) == 0
+def test_every_hit_shakes_a_little_and_strong_hits_shake_more() -> None:
+    assert fx.shake_pixels(0.0) == fx.shake_pixels(39.0) == fx.SHAKE_LIGHT_PIXELS == 1
     assert fx.shake_pixels(40.0) == 1
     assert fx.shake_pixels(100.0) == 2
     assert fx.shake_pixels(1000.0) == fx.SHAKE_MAX_PIXELS == 4
@@ -123,8 +134,10 @@ def test_a_weaker_hit_does_not_cut_a_strong_shake_short() -> None:
 
 def test_hits_and_kos_shake_the_screen() -> None:
     effects = BattleEffects()
+    effects.consume([hit(30.0, damage=0.0)])
+    assert effects.shake.current() == 0, "a hit that deals nothing (invincible target)"
     effects.consume([hit(30.0)])
-    assert effects.shake.current() == 0
+    assert effects.shake.current() == 1
     effects.consume([hit(120.0)])
     assert effects.shake.current() == 2
     effects.consume([KoEvent(1, ORIGIN, Vec3(1.0, 0.0, 0.0), None)])
@@ -206,6 +219,50 @@ def test_the_victim_shakes_during_hitlag_and_the_attacker_does_not() -> None:
     offsets = [fighter_look(target, frame).offset_x for frame in range(6)]
     assert offsets == [-1, 1, -1, 1, -1, 1], "every frame, so a 3-frame hitlag visibly shakes"
     assert fighter_look(attacker, match.frame).offset_x == 0
+
+
+def test_a_longer_freeze_shakes_its_victim_harder() -> None:
+    from isofightr.render.fighter_look import hitlag_shake_pixels
+
+    assert [hitlag_shake_pixels(hitlag) for hitlag in (0, 5, 7, 8, 15, 16, 30)] == [
+        1, 1, 1, 2, 2, 3, 3
+    ]  # fmt: skip
+    match, attacker, target = duel()
+    run(match, hold(buttons=Button.ATTACK, frames=1) + neutral(2))
+    assert target.hitlag > 0
+    offsets = [fighter_look(target, frame, hit_hitlag=16).offset_x for frame in range(4)]
+    assert offsets == [-3, 3, -3, 3]
+    assert fighter_look(attacker, 0, hit_hitlag=16).offset_x == 0, "only the victim shakes"
+
+
+def test_a_strong_launch_throws_streaks_along_its_screen_direction() -> None:
+    from isofightr.render.effects import Streak
+    from isofightr.sim.fighter import Launch
+    from isofightr.sim.math3d import Vec2
+
+    match, _, target = duel()
+    effects = BattleEffects()
+    target.hitlag = 5
+    target.launch = Launch(39.0, Vec2(1.0, 0.0), 0.0, False)
+    effects.observe(match.fighters)
+    assert effects.streaks == [], "below 40 knockback: no streak"
+    target.launch = Launch(90.0, Vec2(1.0, 0.0), 0.0, True)
+    effects.observe(match.fighters)
+    effects.observe(match.fighters)
+    [streak] = effects.streaks
+    assert isinstance(streak, Streak), "one streak per launch, however long the hitlag"
+    # World +x runs down and to the right on screen: between right (0) and down (12 of 16).
+    assert streak.angle == fx.streak_angle(target.launch) == 15
+    straight_up = Launch(90.0, Vec2(1.0, 0.0), 90.0, True)
+    assert fx.streak_angle(straight_up) == 4
+    assert streak.position.z == pytest.approx(target.pos.z + fx.TRAIL_BODY_HEIGHT)
+    for _ in range(fx.STREAK_FRAMES * fx.STREAK_FRAME_TICKS):
+        effects.tick()
+    assert effects.streaks == []
+    target.launch = None
+    effects.observe(match.fighters)
+    effects.clear()
+    assert effects.streaks == [] and effects.hit_hitlag == {}
 
 
 def test_flash_frames_and_charging_make_the_sprite_white() -> None:
@@ -485,3 +542,47 @@ def test_counters_flash_and_projectiles_puff_when_they_end() -> None:
     effects.consume([CounterEvent(1, ORIGIN)])
     assert effects.flash == {1: fx.COUNTER_FLASH_FRAMES}
     assert effects.shake.current() == fx.PARRY_SHAKE_PIXELS
+
+
+# --- combo counter (decision D-059) -------------------------------------------------------
+
+
+def test_the_combo_readout_follows_the_sims_count_and_totals_the_damage() -> None:
+    match, _, target = duel()
+    effects = BattleEffects()
+    effects.consume([hit(20.0, damage=3.0)])
+    target.combo_hits = 1
+    effects.observe(match.fighters)
+    assert (effects.combos[1].hits, effects.combos[1].damage) == (1, 3.0)
+    effects.consume([hit(20.0, damage=4.5)])
+    target.combo_hits = 2
+    effects.observe(match.fighters)
+    effects.tick()
+    effects.observe(match.fighters)  # still live, no new hit
+    assert (effects.combos[1].hits, effects.combos[1].damage) == (2, 7.5)
+    assert effects.combos[1].linger == fx.COMBO_LINGER_TICKS
+
+    target.combo_hits = 0  # the target could act again: the string is over
+    for _ in range(fx.COMBO_LINGER_TICKS - 1):
+        effects.observe(match.fighters)
+        effects.tick()
+    assert effects.combos[1].hits == 2, "it stays up for about a second"
+    effects.tick()
+    assert effects.combos == {}
+
+    effects.consume([hit(20.0, damage=2.0)])
+    target.combo_hits = 2
+    effects.observe(match.fighters)
+    effects.consume([hit(20.0, damage=6.0)])
+    target.combo_hits = 1
+    effects.observe(match.fighters)
+    assert (effects.combos[1].hits, effects.combos[1].damage) == (1, 6.0), "a new string restarts"
+
+
+def test_combo_text_hides_single_hits() -> None:
+    from isofightr.ui.hud_layout import COMBO_CAPACITY, combo_text
+
+    assert combo_text(0, 0.0) == combo_text(1, 12.0) == ""
+    assert combo_text(2, 7.9) == "2 HITS 7%"
+    assert combo_text(14, 86.4) == "14 HITS 86%"
+    assert len(combo_text(250, 999.9)) <= COMBO_CAPACITY

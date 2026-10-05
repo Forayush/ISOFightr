@@ -16,3 +16,8 @@ frames = "8-11"
   bkb = 20
   kbg = 90
   effect = "fire"
+
+# A short step forward before the hit (decision D-059).
+[[motion]]
+frames = "5-7"
+velocity = [0.045, 0.0, 0.0]

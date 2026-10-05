@@ -17,6 +17,8 @@ from isofightr.render import placeholder_art as art
 from isofightr.render.effects import BattleEffects
 from isofightr.sim.fighter import Fighter
 from isofightr.ui.hud_layout import (
+    COMBO_CAPACITY,
+    COMBO_COLOR,
     DAMAGE_CAPACITY,
     DAMAGE_SCALE,
     KO_TEXT,
@@ -26,6 +28,7 @@ from isofightr.ui.hud_layout import (
     TAG_CAPACITY,
     Rgb,
     bubble_position,
+    combo_text,
     damage_color,
     damage_text,
     panel_lefts,
@@ -43,7 +46,8 @@ STOCK_TEXT_CAPACITY = len("x99")
 class DamageHud:
     """One readout per player, drawn in native screen space.
 
-    From the bottom up: the stock icons, the damage percent, then the player tag and name.
+    From the bottom up: the stock icons, the damage percent, the player tag and name, and
+    (while the player is being comboed) the combo counter.
     """
 
     def __init__(
@@ -66,6 +70,7 @@ class DamageHud:
         self._lefts = panel_lefts(player_count)
         self._damage: list[PixelLabel] = []
         self._stock_text: list[PixelLabel] = []
+        self._combo: list[PixelLabel] = []
         self._stock_icons: list[list[arcade.Sprite]] = []
         self._bubbles: list[arcade.Sprite] = []
         self._colors: list[Rgb | None] = [None] * player_count
@@ -82,6 +87,16 @@ class DamageHud:
                 tag_bottom,
                 TAG_CAPACITY + NAME_CAPACITY,
                 (red, green, blue),
+            )
+            self._combo.append(
+                PixelLabel(
+                    glyphs,
+                    self.sprites,
+                    left,
+                    tag_bottom + GLYPH_HEIGHT,
+                    COMBO_CAPACITY,
+                    COMBO_COLOR,
+                )
             )
             name = names[index][:NAME_CAPACITY] if index < len(names) else ""
             tag.text = f"P{index + 1} {name}".rstrip()
@@ -132,6 +147,10 @@ class DamageHud:
             if color != self._colors[index]:
                 self._colors[index] = color
                 label.color = color
+            readout = effects.combos.get(index)
+            self._combo[index].text = (
+                "" if readout is None else combo_text(readout.hits, readout.damage)
+            )
             offset = effects.hud_offset(index)
             if offset != self._offsets[index]:
                 self._offsets[index] = offset

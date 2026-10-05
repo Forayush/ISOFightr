@@ -114,6 +114,34 @@ def test_effect_art_uses_only_palette_colours() -> None:
     assert all(_palette_only(image) for image in images)
 
 
+def test_the_lightest_spark_is_nineteen_pixels() -> None:
+    assert vfx_art.SPARK_SIZES == (19, 23, 31, 43)
+    assert vfx_art.build_spark(0, "normal", 1).size == (19, 19)
+
+
+def test_streaks_are_thin_palette_lines_pointing_along_their_angle() -> None:
+    for angle in range(vfx_art.STREAK_ANGLES):
+        for frame in (0, 1):
+            image = vfx_art.build_streak(angle, frame)
+            assert image.size == (vfx_art.STREAK_SIZE, vfx_art.STREAK_SIZE)
+            pixels = [
+                (x, y)
+                for x in range(image.width)
+                for y in range(image.height)
+                if image.getpixel((x, y))[3]
+            ]
+            assert 0 < len(pixels) <= 30, "three short 1 px strokes: nothing is hidden"
+            assert _palette_only(image)
+    right = vfx_art.build_streak(0, 0)
+    drawn = [
+        x for x in range(right.width) for y in range(right.height) if right.getpixel((x, y))[3]
+    ]
+    assert min(drawn) > right.width // 2, "angle 0 points right of the centre"
+    up = vfx_art.build_streak(4, 0)
+    rows = [y for x in range(up.width) for y in range(up.height) if up.getpixel((x, y))[3]]
+    assert max(rows) < up.height // 2, "angle 4 points up"
+
+
 def test_sparks_climb_the_colour_tiers() -> None:
     edges = [vfx_art.spark_colors("normal", tier)[1] for tier in range(4)]
     assert len(set(edges)) == 4

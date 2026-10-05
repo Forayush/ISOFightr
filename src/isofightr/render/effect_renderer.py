@@ -96,6 +96,10 @@ class EffectRenderer:
             key = (puff.size, puff.frame)
             texture = self._texture(("puff", *key), partial(vfx_art.build_puff, *key))
             wanted.append((texture, puff.position))
+        for streak in effects.streaks:
+            key = (streak.angle, streak.frame)
+            texture = self._texture(("streak", *key), partial(vfx_art.build_streak, *key))
+            wanted.append((texture, streak.position))
         for trail in effects.trails:
             key = (trail.fiery, trail.frame)
             texture = self._texture(("trail", *key), partial(vfx_art.build_trail, *key))

@@ -170,7 +170,7 @@ def test_damage_and_combo_stats() -> None:
     place(match, attacker, 4.0, 6.0, facing=Dir8.SE)
     place(match, target, 5.0, 6.0)
     jab = hold(buttons=Button.ATTACK, frames=1)
-    run(match, jab + neutral(4) + jab + neutral(8) + jab + neutral(60))
+    run(match, jab + neutral(6) + jab + neutral(11) + jab + neutral(60))
     given = match.stats[0].damage_given
     assert given == pytest.approx(target.damage) and given > 10
     assert match.stats[1].damage_taken == pytest.approx(given)

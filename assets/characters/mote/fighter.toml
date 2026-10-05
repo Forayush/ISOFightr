@@ -5,18 +5,18 @@ display_name = "Mote"
 weight = 85
 
 [movement]
-walk_speed = 0.05
-dash_speed = 0.09
+walk_speed = 0.062
+dash_speed = 0.112
 dash_frames = 12
-run_speed = 0.08
-traction = 0.005
+run_speed = 0.100
+traction = 0.0063
 jumpsquat = 4
 full_hop_vz = 0.26
 short_hop_vz = 0.15
 double_jump_vz = 0.24
 air_jumps = 1
-air_accel = 0.007
-air_speed = 0.09
+air_accel = 0.0084
+air_speed = 0.108
 air_friction = 0.002
 gravity = 0.008
 max_fall = 0.13

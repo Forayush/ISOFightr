@@ -8,10 +8,13 @@ Pure Python (no ``arcade``), so it is unit tested without a window. Drawing is i
 :mod:`isofightr.render.effect_renderer`.
 """
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Final
 
+from isofightr.render.iso import project
+from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
     ClankEvent,
     CounterEvent,
@@ -30,7 +33,7 @@ from isofightr.sim.events import (
     TechEvent,
     WallBounceEvent,
 )
-from isofightr.sim.fighter import Fighter, StateId
+from isofightr.sim.fighter import Fighter, Launch, StateId
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import Effect
 
@@ -64,6 +67,17 @@ SPARK_FRAME_TICKS: Final[int] = 3
 """Ticks each spark animation frame is shown."""
 SPARK_FRAMES: Final[int] = 3
 SPARK_LIFETIME: Final[int] = SPARK_FRAME_TICKS * SPARK_FRAMES
+SPARK_HITLAG_EXTRA: Final[int] = 3
+"""A hit's spark outlives its hitlag by this many ticks (it holds its last, hollow frame, so
+the solid frames never cover the victim for longer than before)."""
+
+# --- Launch streaks ------------------------------------------------------------------------
+STREAK_MIN_KNOCKBACK: Final[float] = 40.0
+"""Launches at least this strong throw speed lines along the launch direction."""
+STREAK_FRAME_TICKS: Final[int] = 4
+STREAK_FRAMES: Final[int] = 2
+STREAK_ANGLES: Final[int] = 16
+"""Speed lines are drawn for this many screen directions."""
 CLANK_SPARK_TIER: Final[int] = 1
 SHIELD_SPARK_TIER: Final[int] = 0
 PARRY_SPARK_TIER: Final[int] = 2
@@ -73,7 +87,8 @@ SMALL_SPARK_TIER: Final[int] = 0
 
 # --- Screen shake --------------------------------------------------------------------------
 SHAKE_MIN_KNOCKBACK: Final[float] = 40.0
-"""Hits weaker than this do not shake the screen."""
+"""Hits weaker than this shake the screen by ``SHAKE_LIGHT_PIXELS`` only."""
+SHAKE_LIGHT_PIXELS: Final[int] = 1
 SHAKE_KNOCKBACK_PER_PIXEL: Final[float] = 50.0
 SHAKE_MAX_PIXELS: Final[int] = 4
 SHAKE_BASE_FRAMES: Final[int] = 6
@@ -87,12 +102,18 @@ PARRY_SHAKE_PIXELS: Final[int] = 2
 
 # --- Flash and HUD pop ---------------------------------------------------------------------
 HIT_FLASH_FRAMES: Final[int] = 3
+HIT_FLASH_HITLAG_SHARE: Final[int] = 3
+"""The hit flash lasts the first 1/N of the hitlag (at least ``HIT_FLASH_FRAMES``)..."""
+HIT_FLASH_MAX_FRAMES: Final[int] = 8
+"""...and never longer than this, however long the freeze."""
 COUNTER_FLASH_FRAMES: Final[int] = 6
 """A fighter that was just hit is drawn white for this many ticks."""
 HUD_POP_FRAMES: Final[int] = 10
 """The damage number jumps for this many ticks after a hit."""
 HUD_POP_DAMAGE_PER_PIXEL: Final[float] = 4.0
 HUD_POP_MAX_PIXELS: Final[int] = 4
+COMBO_LINGER_TICKS: Final[int] = 60
+"""A finished string's count stays on the HUD this long."""
 
 
 def spark_tier(knockback: float) -> int:
@@ -108,11 +129,37 @@ class Spark:
     tier: int
     effect: Effect
     age: int = 0
+    lifetime: int = SPARK_LIFETIME
+
+    @property
+    def frame(self) -> int:
+        """Which animation frame to show (a long-lived spark holds its last one)."""
+        return min(self.age // SPARK_FRAME_TICKS, SPARK_FRAMES - 1)
+
+
+@dataclass(slots=True)
+class ComboReadout:
+    """The string of hits a player is taking (or just took), for the HUD's combo counter."""
+
+    hits: int
+    damage: float
+    linger: int = COMBO_LINGER_TICKS
+    """Ticks left to show it; refreshed every tick while the string is live."""
+
+
+@dataclass(slots=True)
+class Streak:
+    """Speed lines thrown along a launch, as seen on screen."""
+
+    position: Vec3
+    angle: int
+    """Screen direction index, 0 to ``STREAK_ANGLES`` - 1, counter-clockwise from right."""
+    age: int = 0
 
     @property
     def frame(self) -> int:
         """Which animation frame to show."""
-        return min(self.age // SPARK_FRAME_TICKS, SPARK_FRAMES - 1)
+        return min(self.age // STREAK_FRAME_TICKS, STREAK_FRAMES - 1)
 
 
 @dataclass(slots=True)
@@ -213,8 +260,26 @@ class ScreenShake:
 def shake_pixels(knockback: float) -> int:
     """Return how hard a hit of ``knockback`` shakes the screen, in pixels."""
     if knockback < SHAKE_MIN_KNOCKBACK:
-        return 0
+        return SHAKE_LIGHT_PIXELS
     return min(SHAKE_MAX_PIXELS, max(1, round(knockback / SHAKE_KNOCKBACK_PER_PIXEL)))
+
+
+def hit_flash_ticks(hitlag: int) -> int:
+    """Return how long a hit with this hitlag flashes its target white."""
+    return min(max(HIT_FLASH_FRAMES, hitlag // HIT_FLASH_HITLAG_SHARE), HIT_FLASH_MAX_FRAMES)
+
+
+def spark_lifetime(hitlag: int) -> int:
+    """Return how many ticks a hit's spark lives: at least as long as the freeze."""
+    return max(SPARK_LIFETIME, hitlag + SPARK_HITLAG_EXTRA)
+
+
+def streak_angle(launch: Launch) -> int:
+    """Return the screen direction index of a launch (before DI)."""
+    direction = launch_vector(launch.heading, launch.elevation)
+    screen_x, screen_y = project(direction.x, direction.y, direction.z)
+    turn = math.atan2(screen_y, screen_x) / (2.0 * math.pi)
+    return round(turn * STREAK_ANGLES) % STREAK_ANGLES
 
 
 def _small_spark_at(event: Event) -> Vec3 | None:
@@ -243,16 +308,35 @@ class BattleEffects:
     trails: list[TrailPuff] = field(default_factory=list)
     rings: list[Ring] = field(default_factory=list)
     blasts: list[KoBlast] = field(default_factory=list)
+    streaks: list[Streak] = field(default_factory=list)
+    combos: dict[int, ComboReadout] = field(default_factory=dict)
+    """The string each player is taking, by the victim's player index (plan note 13)."""
+    _hit_damage: dict[int, float] = field(default_factory=dict)
+    """Damage of this tick's hits by target, until ``observe`` adds it to a string."""
+    hit_hitlag: dict[int, int] = field(default_factory=dict)
+    """The hitlag of the last hit each player took: sizes the victim's shake."""
     ticks: int = 0
+    _launches: dict[int, Launch] = field(default_factory=dict)
+    """The pending launch last seen on each player, to notice a new one."""
 
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
         for event in events:
             if isinstance(event, HitEvent):
-                self.sparks.append(Spark(event.position, spark_tier(event.knockback), event.effect))
-                self.shake.start(shake_pixels(event.knockback))
+                self.sparks.append(
+                    Spark(
+                        event.position,
+                        spark_tier(event.knockback),
+                        event.effect,
+                        lifetime=spark_lifetime(event.hitlag),
+                    )
+                )
                 if event.damage > 0:
-                    self.flash[event.target] = HIT_FLASH_FRAMES
+                    taken = self._hit_damage.get(event.target, 0.0)
+                    self._hit_damage[event.target] = taken + event.damage
+                    self.shake.start(shake_pixels(event.knockback))
+                    self.hit_hitlag[event.target] = event.hitlag
+                    self.flash[event.target] = hit_flash_ticks(event.hitlag)
                     pixels = 1 + round(event.damage / HUD_POP_DAMAGE_PER_PIXEL)
                     self.hud_pop[event.target] = (HUD_POP_FRAMES, min(pixels, HUD_POP_MAX_PIXELS))
             elif isinstance(event, ClankEvent):
@@ -295,6 +379,8 @@ class BattleEffects:
         """Add the effects that come from what fighters are doing rather than from events:
         dust when a dash, skid or run turn starts, and the smoke trail of a launch."""
         for fighter in fighters:
+            self._observe_launch(fighter)
+            self._observe_combo(fighter)
             if fighter.state in DUST_STATES and fighter.state_frame == 1:
                 facing = fighter.facing.world
                 behind = -DUST_BEHIND if fighter.state is StateId.DASH else DUST_BEHIND
@@ -308,14 +394,50 @@ class BattleEffects:
                 at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
                 self.trails.append(TrailPuff(at, fiery))
 
+    def _observe_combo(self, fighter: Fighter) -> None:
+        """Follow the sim's own combo count (``Fighter.combo_hits``, D-040) and total the
+        string's damage from this tick's hits. Read-only: the sim decides what a string is."""
+        player = fighter.player_index
+        dealt = self._hit_damage.pop(player, 0.0)
+        hits = fighter.combo_hits
+        if hits <= 0:
+            return
+        readout = self.combos.get(player)
+        fresh = readout is None or hits < readout.hits or (hits == 1 and dealt > 0.0)
+        if fresh or readout is None:
+            self.combos[player] = ComboReadout(hits, dealt)
+        else:
+            readout.hits = hits
+            readout.damage += dealt
+            readout.linger = COMBO_LINGER_TICKS
+
+    def _observe_launch(self, fighter: Fighter) -> None:
+        """Throw speed lines when a fighter is first seen with a new, strong launch waiting."""
+        player = fighter.player_index
+        launch = fighter.launch
+        if launch is None:
+            self._launches.pop(player, None)
+            return
+        if self._launches.get(player) is launch:
+            return
+        self._launches[player] = launch
+        if launch.knockback >= STREAK_MIN_KNOCKBACK:
+            pos = fighter.pos
+            at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
+            self.streaks.append(Streak(at, streak_angle(launch)))
+
     def tick(self) -> None:
         """Advance every effect by one sim tick."""
         for spark in self.sparks:
             spark.age += 1
-        self.sparks = [spark for spark in self.sparks if spark.age < SPARK_LIFETIME]
+        self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
         self.ticks += 1
-        for effect in (*self.puffs, *self.trails, *self.rings, *self.blasts):
+        for effect in (*self.puffs, *self.trails, *self.rings, *self.blasts, *self.streaks):
             effect.age += 1
+        self.streaks = [s for s in self.streaks if s.age < STREAK_FRAMES * STREAK_FRAME_TICKS]
+        for readout in self.combos.values():
+            readout.linger -= 1
+        self.combos = {player: r for player, r in self.combos.items() if r.linger > 0}
         self.puffs = [p for p in self.puffs if p.age < PUFF_FRAMES * EFFECT_FRAME_TICKS]
         self.trails = [p for p in self.trails if p.age < TRAIL_FRAMES * EFFECT_FRAME_TICKS]
         self.rings = [r for r in self.rings if r.age < RING_FRAMES * EFFECT_FRAME_TICKS]
@@ -335,6 +457,11 @@ class BattleEffects:
         self.flash = {}
         self.hud_pop = {}
         self.puffs, self.trails, self.rings, self.blasts = [], [], [], []
+        self.streaks = []
+        self.hit_hitlag = {}
+        self._launches = {}
+        self.combos = {}
+        self._hit_damage = {}
 
     def hud_offset(self, player_index: int) -> int:
         """Return how many pixels a player's damage number is lifted right now."""

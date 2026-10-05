@@ -41,6 +41,20 @@ def damage_color(percent: float) -> Rgb:
     return DAMAGE_RAMP[-1][1]
 
 
+COMBO_MIN_HITS: Final[int] = 2
+"""A single hit is not a combo: the counter shows from the second hit of a string."""
+COMBO_CAPACITY: Final[int] = len("99 HITS 999%")
+COMBO_COLOR: Final[Rgb] = (255, 232, 96)
+
+
+def combo_text(hits: int, damage: float) -> str:
+    """Return the combo counter's text: the hits in the string and its damage, or "" for
+    a single hit."""
+    if hits < COMBO_MIN_HITS:
+        return ""
+    return f"{min(hits, 99)} HITS {int(damage)}%"
+
+
 def damage_text(percent: float) -> str:
     """Return the HUD text for a damage value: whole percent, rounded down."""
     return f"{int(percent)}%"

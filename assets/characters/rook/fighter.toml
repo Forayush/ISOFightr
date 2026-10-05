@@ -5,18 +5,18 @@ display_name = "Rook"
 weight = 98
 
 [movement]
-walk_speed = 0.060           # units/frame at full tilt without dashing
-dash_speed = 0.105           # initial dash burst
+walk_speed = 0.075           # units/frame at full tilt without dashing
+dash_speed = 0.131           # initial dash burst
 dash_frames = 12
-run_speed = 0.100
-traction = 0.006             # ground deceleration per frame
+run_speed = 0.125
+traction = 0.0075             # ground deceleration per frame
 jumpsquat = 3                # grounded frames before leaving the ground
 full_hop_vz = 0.300
 short_hop_vz = 0.180
 double_jump_vz = 0.280
 air_jumps = 1
-air_accel = 0.006
-air_speed = 0.070            # cap on self-controlled horizontal air speed
+air_accel = 0.0072
+air_speed = 0.084            # cap on self-controlled horizontal air speed
 air_friction = 0.002
 gravity = 0.012
 max_fall = 0.180

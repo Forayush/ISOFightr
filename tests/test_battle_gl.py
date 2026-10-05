@@ -184,19 +184,22 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     ticks(view, 13)
     target = view.match.fighters[1]
     assert target.damage == pytest.approx(76.8) and target.hitlag > 0
-    assert view.effects.flash == {1: 3}
+    assert view.effects.flash == {1: 5}, "a third of the 15-frame hitlag"
+    assert len(view.effects.streaks) == 1
     assert view.effects.shake.offset != (0, 0)
     assert len(view.effects.sparks) == 1
     view.on_draw()
     assert view.hud._damage[1].text == "76%"
     assert view.hud._damage[1].color[:3] != (255, 255, 255)
     shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
-    assert len(shown) == 1 + len(active_hitboxes(view.match.fighters[0])), "a spark and the swing"
+    swing = len(active_hitboxes(view.match.fighters[0]))
+    assert len(shown) == 2 + swing, "a spark, the launch streak and the swing"
 
     for _ in range(60):
         ticks(view, 1)
     view.on_draw()
     assert view.effects.sparks == [] and view.effects.shake.offset == (0, 0)
+    assert view.effects.streaks == []
     assert not [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
 
 
@@ -447,6 +450,29 @@ def test_the_training_dummy_can_act_like_a_cpu(window: Any) -> None:
     view.restart()
     ticks(view, 2)
     assert view._cpu_match is view.match, "a restarted match gets fresh CPUs"
+
+
+# --- D-059: hit visuals and the combo counter ------------------------------------------------
+
+
+def test_a_strong_hit_draws_its_streak_and_the_combo_counter_shows(window: Any) -> None:
+    from isofightr.render.effects import ComboReadout
+
+    view = make_view(window)
+    view.match.set_damage(1, 80.0)
+    view.on_key_press(keys().U, 0)  # forward smash at point-blank range
+    ticks(view, 1)
+    view.on_key_release(keys().U, 0)
+    for _ in range(30):
+        ticks(view, 1)
+        view.on_draw()
+        if view.effects.streaks:
+            break
+    assert view.effects.streaks, "a KO-strength launch throws speed lines"
+    assert view.effects.hit_hitlag[1] >= 8, "and a long freeze"
+    view.effects.combos[1] = ComboReadout(3, 21.5)
+    view.on_draw()
+    assert view.hud._combo[1].text == "3 HITS 21%" and view.hud._combo[0].text == ""
 
 
 # --- M4: shield bubble and overlay ------------------------------------------------------------

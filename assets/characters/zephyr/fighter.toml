@@ -5,18 +5,18 @@ display_name = "Zephyr"
 weight = 78
 
 [movement]
-walk_speed = 0.07
-dash_speed = 0.14
+walk_speed = 0.077
+dash_speed = 0.154
 dash_frames = 10
-run_speed = 0.135
-traction = 0.007
+run_speed = 0.149
+traction = 0.0077
 jumpsquat = 3
 full_hop_vz = 0.31
 short_hop_vz = 0.19
 double_jump_vz = 0.28
 air_jumps = 2
-air_accel = 0.008
-air_speed = 0.085
+air_accel = 0.0088
+air_speed = 0.094
 air_friction = 0.003
 gravity = 0.015
 max_fall = 0.22

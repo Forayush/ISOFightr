@@ -24,3 +24,8 @@ frames = "7-9"
   angle = 361
   bkb = 18
   kbg = 90
+
+# A short step forward before the hit (decision D-059).
+[[motion]]
+frames = "4-6"
+velocity = [0.045, 0.0, 0.0]

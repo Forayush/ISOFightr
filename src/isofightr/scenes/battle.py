@@ -801,6 +801,7 @@ class BattleView(TickedView):
                 None if bank is None else bank.sprite_set.anims,
                 0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes)),
                 self.settings.reduce_flashing,
+                self.effects.hit_hitlag.get(fighter.player_index, 0),
             )
         self.renderer.sync(fighters, frame, looks)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
@@ -832,6 +833,8 @@ class BattleView(TickedView):
             overlays.append(self.overlay)
         centre_x, centre_y = self.camera.pixel_centre
         strength = self.settings.screen_shake / FULL_PERCENT
+        if self.settings.reduce_flashing:
+            strength = 0.0  # the calm setting: no screen shake either (D-059)
         shake_x, shake_y = (round(part * strength) for part in self.effects.shake.offset)
         with self.pixel_buffer.drawing():
             self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays, self.camera.zoom)

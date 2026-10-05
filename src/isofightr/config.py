@@ -181,7 +181,10 @@ CPU_WALK_TILT: Final[float] = 0.55
 CPU_TURN_TILT: Final[float] = 0.3
 """A light push behind the CPU: enough to turn around without walking off."""
 CPU_EDGE_LOOKAHEAD: Final[float] = 0.9
-"""How far ahead of its feet a grounded CPU checks for ground before moving on."""
+"""How far ahead of its feet a grounded CPU checks for ground before moving on, at least."""
+CPU_EDGE_MARGIN: Final[float] = 0.15
+"""Added to a character's skid distance (run speed squared over twice its traction): a CPU
+looks at least that far ahead, so a fast runner can still stop before an edge."""
 CPU_STEP_HEIGHT: Final[float] = 0.4
 """A height difference the CPU treats as level ground (anything more needs a jump)."""
 CPU_REGION_SNAP: Final[float] = 0.75

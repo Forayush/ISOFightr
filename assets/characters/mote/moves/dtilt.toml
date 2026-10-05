@@ -2,8 +2,8 @@
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "dtilt"
 kind = "tilt"
-total = 28
-faf = 29
+total = 24
+faf = 25
 
 [[windows]]
 frames = "7-9"

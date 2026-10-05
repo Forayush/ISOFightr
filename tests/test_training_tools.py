@@ -84,12 +84,12 @@ def test_reloaded_move_data_takes_effect_in_the_running_match(characters_dir: Pa
 
 
 def test_reloading_stats_changes_movement(characters_dir: Path) -> None:
-    edit(characters_dir / "rook" / "fighter.toml", "walk_speed = 0.060", "walk_speed = 0.030")
+    edit(characters_dir / "rook" / "fighter.toml", "walk_speed = 0.075", "walk_speed = 0.030")
     match = make_match()
     slow = load_character("rook", characters_dir)
     match.reload_characters([slow, load_character("rook")])
     assert match.fighters[0].character.movement.walk_speed == 0.030
-    assert match.fighters[1].character.movement.walk_speed == 0.060
+    assert match.fighters[1].character.movement.walk_speed == 0.075
 
 
 def test_a_fighter_using_a_move_that_disappeared_drops_out_of_it(characters_dir: Path) -> None:

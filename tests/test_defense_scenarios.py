@@ -124,6 +124,8 @@ def test_a_shield_blocks_a_hit() -> None:
 def test_shieldstun_and_pushback() -> None:
     match, attacker, defender = duel()
     run(match, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(6), shielding(7))
+    whiff, lone, _ = duel(gap=5.0)
+    run(whiff, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(40))
     damage = 9 * FRESH
     stun = shieldstun_frames(damage)
     assert stun == math.floor(damage * 0.8 * 0.725 + 2) == 7
@@ -133,7 +135,7 @@ def test_shieldstun_and_pushback() -> None:
     run(match, neutral(hitlag + stun - 1), [*jump, *shielding(1)] * 20)
     assert defender.state is StateId.SHIELD_STUN
     assert defender.pos.x > X + 1.0, "pushed away from the attacker"
-    assert attacker.pos.x < X, "the attacker slides back a little too"
+    assert attacker.pos.x < lone.pos.x, "pushed back: short of where a whiffed tilt's step ends"
     run(match, neutral(1), shielding(1))
     assert defender.state is StateId.SHIELD
     run(match, neutral(1), jump)

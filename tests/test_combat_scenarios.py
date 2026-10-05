@@ -86,7 +86,7 @@ def test_jab_hits_on_its_first_active_frame_and_stuns() -> None:
     expected_kb = kb.knockback(target.damage, hit.damage, ROOK.weight, 8, 30)
     assert hit.knockback == pytest.approx(expected_kb)
     hitlag = kb.hitlag_frames(hit.damage)
-    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 3
+    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 6
 
     # Both are frozen for the hitlag; then the target is launched into hitstun.
     run(match, neutral(hitlag - 1))
@@ -94,11 +94,11 @@ def test_jab_hits_on_its_first_active_frame_and_stuns() -> None:
     run(match, neutral(1))
     assert attacker.hitlag == target.hitlag == 0
     assert target.state is StateId.FLINCH
-    assert target.hitstun == kb.hitstun_frames(expected_kb) == 5
+    assert target.hitstun == kb.hitstun_frames(expected_kb) == 5 + c.HITSTUN_BONUS_FRAMES
     assert attacker.state_frame == 3, "the attacker resumes on the next tick"
     run(match, neutral(1))
     assert attacker.state_frame == 4
-    assert run_until(match, target, StateId.IDLE) == 4
+    assert run_until(match, target, StateId.IDLE) == 4 + c.HITSTUN_BONUS_FRAMES
 
 
 def test_a_move_out_of_range_whiffs_and_does_not_stale() -> None:
@@ -115,7 +115,10 @@ def test_a_move_ends_after_its_last_frame_and_cannot_be_interrupted_before() -> 
     assert (attacker.state, attacker.move_id, attacker.state_frame) == (StateId.ATTACK, "ftilt", 1)
     run(match, hold(Dir8.SE, frames=total - 1))
     assert attacker.state is StateId.ATTACK and attacker.state_frame == total
-    assert attacker.pos.x == ORIGIN_X, "holding a direction does not move an attacking fighter"
+    other, plain, _ = duel(gap=3.0)
+    run(other, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(total - 1))
+    assert attacker.pos == plain.pos, "holding a direction does not move an attacking fighter"
+    assert 0.2 < plain.pos.x - ORIGIN_X < 0.3, "only the tilt's own step forward (D-059)"
     run(match, hold(Dir8.SE, frames=1))
     assert attacker.state is StateId.DASH, "held input acts on the first actionable frame"
 
@@ -317,14 +320,17 @@ def test_two_attacks_that_hit_on_the_same_frame_trade() -> None:
     match, first, second = duel(gap=1.6)
     seen = run_collect(
         match,
-        hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(20),
-        hold(Dir8.NW, Button.ATTACK, frames=1) + neutral(20),
+        hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(6),
+        hold(Dir8.NW, Button.ATTACK, frames=1) + neutral(6),
     )
     hits = hit_events(seen)
     assert [(tick, hit.attacker) for tick, hit in hits] == [(7, 0), (7, 1)]
+    at_hit = (first.pos.x, second.pos.x)
+    assert at_hit[0] > ORIGIN_X and at_hit[1] < ORIGIN_X + 1.6, "both stepped in (D-059)"
+    run(match, neutral(24), neutral(24))
     assert first.damage == second.damage == pytest.approx(9 * FRESH)
     assert first.state is second.state is StateId.FLINCH
-    assert first.pos.x < ORIGIN_X and second.pos.x > ORIGIN_X + 1.6, "both were knocked back"
+    assert first.pos.x < at_hit[0] and second.pos.x > at_hit[1], "both were knocked back"
     assert (first.pos.x - ORIGIN_X) == pytest.approx(-(second.pos.x - ORIGIN_X - 1.6))
 
 
@@ -672,11 +678,11 @@ def custom_jab(**hitbox: float) -> tuple[Match, Fighter, Fighter]:
     return match, attacker, target
 
 
-def test_a_ten_percent_hit_freezes_both_fighters_for_six_frames() -> None:
+def test_a_ten_percent_hit_freezes_both_fighters_for_eleven_frames() -> None:
     match, attacker, target = custom_jab(damage=10.0 / FRESH)
     [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
     assert hit.damage == pytest.approx(10.0)
-    assert attacker.hitlag == target.hitlag == hit.hitlag == 6, "it was 12 before D-058"
+    assert attacker.hitlag == target.hitlag == hit.hitlag == 11, "6 in D-058, x1.75 in D-059"
 
 
 def test_hitstun_only_starts_when_hitlag_ends() -> None:
@@ -689,7 +695,8 @@ def test_hitstun_only_starts_when_hitlag_ends() -> None:
     assert target.hitlag == 1 and target.hitstun == 0
     run(match, neutral(1))  # the last hitlag frame: the launch
     assert target.hitlag == 0 and target.launch is None
-    assert target.hitstun == kb.hitstun_frames(hit.knockback) == math.floor(hit.knockback * 0.4)
+    stun = math.floor(hit.knockback * 0.4) + c.HITSTUN_BONUS_FRAMES
+    assert target.hitstun == kb.hitstun_frames(hit.knockback) == stun
     assert target.state is StateId.FLINCH
     run(match, neutral(1))
     assert target.hitstun == kb.hitstun_frames(hit.knockback) - 1, "now it counts down"
@@ -702,8 +709,8 @@ def test_a_launch_tumbles_from_exactly_eighty_knockback(knockback: float, state:
     [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
     assert hit.knockback == pytest.approx(knockback)
     run(match, neutral(hit.hitlag))
-    assert target.state is state and not target.grounded
-    assert target.hitstun == math.floor(knockback * 0.4)
+    assert target.state is state and not target.grounded, "the bonus does not decide tumbling"
+    assert target.hitstun == math.floor(knockback * 0.4) + c.HITSTUN_BONUS_FRAMES
 
 
 def frozen_target(z: float | None = None) -> tuple[Match, Fighter]:
@@ -809,3 +816,42 @@ def test_up_smash_can_kill_off_the_top_and_weak_moves_never_kill() -> None:
     up = kill_percent(stage, ROOK, ROOK, "usmash")
     assert up is not None and 140 <= up <= 200, up
     assert kill_percent(stage, ROOK, ROOK, "jab1") is None
+
+
+# --- forward steps on ground attacks (decision D-059) -------------------------------------
+
+
+@pytest.mark.parametrize("character_id", ["rook", "bramble", "zephyr", "mote"])
+def test_forward_tilts_and_last_jabs_step_forward_before_they_hit(character_id: str) -> None:
+    character = load_character(character_id)
+    for move_id in ("ftilt", character.moveset.jab[-1]):
+        move = character.moves[move_id]
+        first_active = move.windows[0].frames.first
+        assert move.motion, f"{move_id} has a step"
+        assert all(window.frames.last < first_active for window in move.motion)
+        match = Match.create(
+            load_stage("training_grid"), [character, ROOK], rules=MatchRules(stocks=None)
+        )
+        attacker, target = match.fighters
+        place(match, attacker, ORIGIN_X, ORIGIN_Y, facing=Dir8.SE)
+        place(match, target, ORIGIN_X + 5.0, ORIGIN_Y)
+        start_move(match, attacker, move_id)
+        run(match, neutral(move.total))
+        lunge = attacker.pos.x - ORIGIN_X
+        assert 0.2 <= lunge <= 0.3, f"{character_id} {move_id} lunges {lunge:.3f}"
+        assert attacker.pos.y == ORIGIN_Y
+
+
+def test_a_tilt_at_an_edge_stays_on_the_stage_but_a_dash_attack_slides_off() -> None:
+    edge = 12.0  # Training Grid ends at x = 12
+    match, attacker, _ = duel()
+    place(match, attacker, edge - 0.05, ORIGIN_Y, facing=Dir8.SE)
+    run(match, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(12))
+    assert attacker.move_id == "ftilt" and attacker.state is StateId.ATTACK
+    assert attacker.grounded, "held at the edge through its step"
+
+    match, attacker, _ = duel()
+    place(match, attacker, edge - 0.05, ORIGIN_Y, facing=Dir8.SE)
+    start_move(match, attacker, "dash_attack")
+    run(match, neutral(12))
+    assert not attacker.grounded, "a dash attack still carries off the edge"
