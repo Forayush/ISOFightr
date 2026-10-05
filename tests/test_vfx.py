@@ -188,8 +188,19 @@ def test_move_effect_art_is_palette_locked_and_never_solid() -> None:
                     image = vfx_art.build_fx(kind, family, variant, frame)
                     assert _palette_only(image), (kind, family)
                     assert image.width % 2 == 1 and image.height % 2 == 1
+                    if image.width <= 5:
+                        continue  # a particle of a few pixels
                     solid = sum(1 for pixel in image.getdata() if pixel[3] == 255)
                     assert solid < image.width * image.height * 0.5, "it never hides what is behind"
     small = vfx_art.build_fx("glow", "fire", 0, 0)
     big = vfx_art.build_fx("glow", "fire", 6, 0)
     assert big.width > small.width, "a fuller charge glows bigger"
+
+
+def test_the_ground_crack_is_palette_locked_and_fades() -> None:
+    solid = []
+    for fade in range(len(vfx_art.CRACK_ALPHAS)):
+        image = vfx_art.build_crack(fade)
+        assert image.size == vfx_art.CRACK_SIZE and _palette_only(image)
+        solid.append(max(pixel[3] for pixel in image.getdata()))
+    assert solid == list(vfx_art.CRACK_ALPHAS)

@@ -18,7 +18,7 @@ from typing import Final
 
 from PIL import Image
 
-from isofightr.render import projectile_art
+from isofightr.render import projectile_art, vfx_art
 from isofightr.render.projectile_art import Style
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.move_def import ProjectileDef
@@ -30,6 +30,8 @@ DECAL_RANK: Final[int] = -1
 SHADOW_RANK: Final[int] = 0
 """The same rank as a fighter's shadow."""
 ITEMS_PER_PROJECTILE: Final[int] = 2
+EFFECT_DECAL_BASE: Final[int] = 1 << 16
+"""Ids of effect decals start here, above any projectile's items in a match."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +119,30 @@ def projectile_items(
                 ("projectile_shadow", step),
                 partial(projectile_art.build_shadow, step),
                 SHADOW_RANK,
+            )
+        )
+    return items
+
+
+def decal_items(
+    stage: Stage, decals: Sequence[tuple[int, float, float, float, int]]
+) -> list[GroundItem]:
+    """Return the ground items of effect decals (ground cracks), given as
+    ``(id, x, y, z, fade)``. Each lies on the surface under its position."""
+    items = []
+    for decal_id, x, y, z, fade in decals:
+        surface = stage.support_below(x, y, z)
+        if surface is None:
+            continue
+        items.append(
+            GroundItem(
+                EFFECT_DECAL_BASE + decal_id,
+                x,
+                y,
+                surface,
+                ("crack", fade),
+                partial(vfx_art.build_crack, fade),
+                DECAL_RANK,
             )
         )
     return items

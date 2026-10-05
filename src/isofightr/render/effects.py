@@ -15,7 +15,7 @@ from typing import Final
 
 from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.iso import project
-from isofightr.render.vfx_art import FX_KINDS, fx_lifetime
+from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
     ClankEvent,
@@ -34,10 +34,11 @@ from isofightr.sim.events import (
     TechEvent,
     WallBounceEvent,
 )
-from isofightr.sim.fighter import Fighter, Launch, StateId
+from isofightr.sim.fighter import NO_LEDGE, Fighter, Launch, StateId
 from isofightr.sim.math3d import ZERO3, Vec3
 from isofightr.sim.move_def import Effect, MoveKind
 from isofightr.sim.projectile import Projectile
+from isofightr.sim.stage import Stage
 
 # --- Dust, trails, rings and KO blasts (M8) --------------------------------------------------
 EFFECT_FRAME_TICKS: Final[int] = 3
@@ -126,6 +127,33 @@ CHARGE_GLOW_HEIGHT: Final[float] = 1.35
 """Where a charge glows: in front of the fighter, about hand height."""
 CHARGE_GLOW_LEVELS: Final[int] = 4
 CHARGE_PULSE_TICKS: Final[int] = 3
+CHARACTER_FAMILIES: Final[dict[str, str]] = {
+    "rook": "pale",
+    "bramble": "stone",
+    "zephyr": "wind",
+    "mote": "rune",
+}
+"""Colour family of each character's own move effects (others get the default)."""
+DEFAULT_FAMILY: Final[str] = "pale"
+SPECIAL_TRAIL_SPEED: Final[float] = 0.16
+"""A special that moves its fighter at least this far per tick leaves a trail."""
+SPECIAL_TRAIL_EVERY: Final[int] = 2
+SPECIAL_DUST_EVERY: Final[int] = 6
+"""A grounded dash kicks up dust this often."""
+BODY_CENTRE_HEIGHT: Final[float] = 1.2
+"""Where effects around a fighter's body are centred, in units above its feet."""
+WHIRL_SPIN_TICKS: Final[int] = 2
+GLINT_PULSE_TICKS: Final[int] = 4
+VINE_LINK_SPACING: Final[float] = 0.22
+"""Distance between the links of a tether vine, in units."""
+VINE_MAX_LINKS: Final[int] = 40
+DIVE_STREAK_SPEED: Final[float] = 0.12
+"""A fighter diving at least this fast in a down special trails streaks above it."""
+DIVE_STREAK_EVERY: Final[int] = 3
+CRACK_TICKS: Final[int] = 96
+"""How long a ground crack stays, fading out."""
+CRACK_MOVES: Final[frozenset[str]] = frozenset({"quake_land"})
+"""Moves whose first frame cracks the ground under the fighter."""
 """A finished string's count stays on the HUD this long."""
 
 
@@ -176,6 +204,21 @@ class Fx:
 
 
 @dataclass(slots=True)
+class Decal:
+    """A mark left on the ground (a crack). Drawn in the world's depth order."""
+
+    decal_id: int
+    position: Vec3
+    """On the surface it lies on."""
+    age: int = 0
+
+    @property
+    def fade(self) -> int:
+        """How far it has faded: 0 fresh, up to ``len(CRACK_ALPHAS) - 1``."""
+        return min(self.age * len(CRACK_ALPHAS) // CRACK_TICKS, len(CRACK_ALPHAS) - 1)
+
+
+@dataclass(slots=True)
 class _Seen:
     """What a projectile looked like when last observed."""
 
@@ -185,6 +228,7 @@ class _Seen:
     family: str
     styled: bool
     decal: bool
+    owner: int = 0
 
 
 @dataclass(slots=True)
@@ -364,6 +408,14 @@ class BattleEffects:
     """Where hits and blocks landed this tick: a projectile that ends there ended on a hit."""
     _charged: dict[int, bool] = field(default_factory=dict)
     """Whether each player's charge was already full, to pop once when it fills."""
+    decals: list[Decal] = field(default_factory=list)
+    """Ground marks (cracks), given to the world renderer as ground items."""
+    _next_decal: int = 0
+    _last_pos: dict[int, Vec3] = field(default_factory=dict)
+    _dashing: dict[int, bool] = field(default_factory=dict)
+    """Whether each player's special was already moving it fast last tick."""
+    _struck: set[int] = field(default_factory=set)
+    """Players that took a hit this tick (to glint armour that absorbed it)."""
     combos: dict[int, ComboReadout] = field(default_factory=dict)
     """The string each player is taking, by the victim's player index (plan note 13)."""
     _hit_damage: dict[int, float] = field(default_factory=dict)
@@ -379,6 +431,7 @@ class BattleEffects:
         for event in events:
             if isinstance(event, HitEvent | ShieldHitEvent):
                 self._hit_points.append(event.position)
+                self._struck.add(event.target)
             if isinstance(event, HitEvent):
                 self.sparks.append(
                     Spark(
@@ -409,6 +462,8 @@ class BattleEffects:
             elif isinstance(event, CounterEvent):
                 self.flash[event.player] = COUNTER_FLASH_FRAMES
                 self.shake.start(PARRY_SHAKE_PIXELS)
+                self.sparks.append(Spark(event.position, PARRY_SPARK_TIER, Effect.NORMAL))
+                self.fx.append(Fx("pop", event.position, "gold"))
             elif isinstance(event, KoEvent):
                 self.shake.start(KO_SHAKE_PIXELS)
                 self.flash.pop(event.player, None)
@@ -432,13 +487,14 @@ class BattleEffects:
                 if isinstance(event, TechEvent) and not event.wall:
                     self.rings.append(Ring(event.position))
 
-    def observe(self, fighters: Iterable[Fighter]) -> None:
+    def observe(self, fighters: Iterable[Fighter], stage: Stage | None = None) -> None:
         """Add the effects that come from what fighters are doing rather than from events:
         dust when a dash, skid or run turn starts, and the smoke trail of a launch."""
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_combo(fighter)
             self._observe_charge(fighter)
+            self._observe_special(fighter, stage)
             if fighter.state in DUST_STATES and fighter.state_frame == 1:
                 facing = fighter.facing.world
                 behind = -DUST_BEHIND if fighter.state is StateId.DASH else DUST_BEHIND
@@ -474,7 +530,11 @@ class BattleEffects:
                 style is not None and style.decal,
             )
             alive[projectile.id] = seen
-            if projectile.id not in self._projectiles:
+            seen.owner = projectile.owner
+            before = self._projectiles.get(projectile.id)
+            if before is not None and before.owner != projectile.owner:
+                self.fx.append(Fx("burst_hit", projectile.pos, "wind"))  # it was reflected
+            if before is None:
                 if style is not None and not style.decal:
                     self.fx.append(Fx("muzzle", projectile.pos, family))
             elif style is not None and style.sheds and projectile.age % style.shed_every == 0:
@@ -531,6 +591,73 @@ class BattleEffects:
             self.fx.append(Fx("pop", hand, family))
         self._charged[player] = full
 
+    def _observe_special(self, fighter: Fighter, stage: Stage | None) -> None:
+        """The effects of a special move itself (decision D-060): a trail and bursts for any
+        special that moves its fighter fast, a wind ring while a move reflects, a glint
+        while it counters or its armour absorbs a hit, the vine of a tether, streaks above a
+        dive, and a crack where a slam lands."""
+        player = fighter.player_index
+        pos = fighter.pos
+        last = self._last_pos.get(player, pos)
+        self._last_pos[player] = pos
+        struck = player in self._struck
+        move = fighter.move
+        family = CHARACTER_FAMILIES.get(fighter.character.id, DEFAULT_FAMILY)
+        centre = Vec3(pos.x, pos.y, pos.z + BODY_CENTRE_HEIGHT)
+        special = move is not None and move.kind is MoveKind.SPECIAL and fighter.hitlag == 0
+        fast = special and (pos - last).length() >= SPECIAL_TRAIL_SPEED
+        was_fast = self._dashing.get(player, False)
+        if fast:
+            start = Vec3(last.x, last.y, last.z + BODY_CENTRE_HEIGHT)
+            if not was_fast:
+                self.fx.append(Fx("burst_fade", start, family))
+                if fighter.grounded or pos.z > last.z:
+                    self.puffs.append(Puff(last, "small"))
+            if self.ticks % SPECIAL_TRAIL_EVERY == 0:
+                self.fx.append(Fx("ribbon", start, family))
+            if fighter.grounded and self.ticks % SPECIAL_DUST_EVERY == 0:
+                self.puffs.append(Puff(last, "small"))
+        elif was_fast:
+            self.fx.append(Fx("burst_fade", centre, family))
+        self._dashing[player] = fast
+        if fighter.tether_ledge != NO_LEDGE and stage is not None:
+            self._vine(fighter, stage)
+        if move is None or (fighter.hitlag > 0 and not struck):
+            return
+        frame = fighter.state_frame
+        if move.reflect is not None and frame in move.reflect:
+            spin = (self.ticks // WHIRL_SPIN_TICKS) % WHIRL_FRAMES
+            self.fx.append(Fx("whirl", centre, family, variant=spin))
+        pulse = (self.ticks // GLINT_PULSE_TICKS) % 2
+        if move.counter is not None and frame in move.counter.frames:
+            facing = fighter.facing.world
+            chest = Vec3(pos.x + facing.x * 0.4, pos.y + facing.y * 0.4, centre.z + 0.3)
+            self.fx.append(Fx("glint", chest, "gold", variant=pulse))
+        if struck and move.armor_threshold(frame) is not None and fighter.launch is None:
+            self.fx.append(Fx("glint", centre, "gold", variant=1))
+        diving = special and not fighter.grounded and last.z - pos.z >= DIVE_STREAK_SPEED
+        down_special = fighter.move_id.startswith("dspecial")
+        if diving and down_special and self.ticks % DIVE_STREAK_EVERY == 0:
+            above = Vec3(pos.x, pos.y, pos.z + 2 * BODY_CENTRE_HEIGHT)
+            self.fx.append(Fx("streak_down", above, family))
+        if fighter.move_id in CRACK_MOVES and frame == 1 and fighter.hitlag == 0:
+            self.decals.append(Decal(self._next_decal, pos))
+            self._next_decal += 1
+            self.fx.append(Fx("burst_ground", pos, "stone"))
+
+    def _vine(self, fighter: Fighter, stage: Stage) -> None:
+        """Draw the tether from the fighter's hands to the ledge point it caught."""
+        if fighter.tether_ledge >= len(stage.ledges):
+            return
+        ledge = stage.ledges[fighter.tether_ledge]
+        end = Vec3(fighter.tether_point.x, fighter.tether_point.y, ledge.z)
+        start = Vec3(fighter.pos.x, fighter.pos.y, fighter.pos.z + BODY_CENTRE_HEIGHT)
+        span = end - start
+        links = min(VINE_MAX_LINKS, max(1, int(span.length() / VINE_LINK_SPACING)))
+        for index in range(links + 1):
+            at = start + span * (index / links)
+            self.fx.append(Fx("vine", at, "vine", variant=index % 2))
+
     def _observe_combo(self, fighter: Fighter) -> None:
         """Follow the sim's own combo count (``Fighter.combo_hits``, D-040) and total the
         string's damage from this tick's hits. Read-only: the sim decides what a string is."""
@@ -575,6 +702,10 @@ class BattleEffects:
             effect.age += 1
         self.fx = [effect for effect in self.fx if effect.age < fx_lifetime(effect.kind)]
         self._hit_points = []
+        self._struck = set()
+        for decal in self.decals:
+            decal.age += 1
+        self.decals = [decal for decal in self.decals if decal.age < CRACK_TICKS]
         self.streaks = [s for s in self.streaks if s.age < STREAK_FRAMES * STREAK_FRAME_TICKS]
         for readout in self.combos.values():
             readout.linger -= 1
@@ -607,6 +738,10 @@ class BattleEffects:
         self._projectiles = {}
         self._hit_points = []
         self._charged = {}
+        self.decals = []
+        self._last_pos = {}
+        self._dashing = {}
+        self._struck = set()
 
     def hud_offset(self, player_index: int) -> int:
         """Return how many pixels a player's damage number is lifted right now."""

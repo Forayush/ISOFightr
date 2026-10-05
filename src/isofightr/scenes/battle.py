@@ -58,7 +58,7 @@ from isofightr.render.debug_overlay import StageOverlay
 from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
 from isofightr.render.fighter_look import costume_for, fighter_look
-from isofightr.render.ground_items import GroundItem, projectile_items
+from isofightr.render.ground_items import GroundItem, decal_items, projectile_items
 from isofightr.render.hitbox_overlay import HitboxOverlay
 from isofightr.render.iso import project, project_point
 from isofightr.render.pixel_buffer import PixelBuffer
@@ -690,7 +690,7 @@ class BattleView(TickedView):
             self._go_ticks -= 1
         self.effects.tick()
         self.effects.consume(self.match.events)
-        self.effects.observe(self.match.fighters)
+        self.effects.observe(self.match.fighters, self.stage)
         looks = self.effect_renderer.projectile_looks
         looks.learn(self.characters)
         self.effects.observe_projectiles(self.match.projectiles, looks)
@@ -814,6 +814,13 @@ class BattleView(TickedView):
             projectile_looks = self.effect_renderer.projectile_looks
             projectile_looks.learn(self.characters)
             ground = projectile_items(self.stage, self.match.projectiles, projectile_looks, colors)
+            ground += decal_items(
+                self.stage,
+                [
+                    (d.decal_id, d.position.x, d.position.y, d.position.z, d.fade)
+                    for d in self.effects.decals
+                ],
+            )
         self.renderer.sync(fighters, frame, looks, ground)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
         # hitboxes are only drawn by the F1 overlay.

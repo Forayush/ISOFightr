@@ -396,8 +396,10 @@ def _ribbon(colors: Family, variant: int, frame: int) -> Image.Image:
     image = Image.new("RGBA", (5, 5), TRANSPARENT)
     draw = ImageDraw.Draw(image)
     radius = (2.0, 1.5, 1.0)[min(frame, 2)]
-    alpha = (210, 150, 90)[min(frame, 2)]
-    _circle(draw, 2.0, radius, fill=_with_alpha(colors[1], alpha))
+    alpha = (255, 190, 120)[min(frame, 2)]
+    _circle(draw, 2.0, radius, fill=_with_alpha(colors[2], alpha))
+    if frame < 2:
+        draw.point((2, 2), fill=_with_alpha(colors[0], alpha))
     return image
 
 
@@ -435,3 +437,90 @@ def build_fx(kind: str, family: str, variant: int, frame: int) -> Image.Image:
     ``variant`` a size or direction that depends on the kind."""
     frames, _ = FX_KINDS[kind]
     return _FX_BUILDERS[kind](FAMILIES[family], variant, min(frame, frames - 1))
+
+
+# --- special-move effects (decision D-060, group 3) -----------------------------------------
+WHIRL_FRAMES: Final[int] = 4
+CRACK_SIZE: Final[tuple[int, int]] = (45, 23)
+CRACK_ALPHAS: Final[tuple[int, ...]] = (255, 200, 130, 70)
+"""Opacity of the ground crack as it fades out."""
+CRACK_COLOR: Final[Rgba] = _rgba("3e3546")
+CRACK_EDGE: Final[Rgba] = _rgba("625565")
+CRACK_LINES: Final[tuple[tuple[tuple[float, float], ...], ...]] = (
+    ((0.0, 0.0), (0.22, -0.1), (0.45, 0.02), (0.8, -0.12), (0.98, -0.02)),
+    ((0.0, 0.0), (-0.25, 0.08), (-0.5, -0.05), (-0.78, 0.1), (-0.97, 0.0)),
+    ((0.0, 0.0), (0.12, 0.35), (0.3, 0.55), (0.42, 0.9)),
+    ((0.0, 0.0), (-0.1, -0.4), (-0.32, -0.6), (-0.4, -0.92)),
+    ((0.0, 0.0), (0.3, -0.45), (0.55, -0.7)),
+    ((0.0, 0.0), (-0.3, 0.5), (-0.6, 0.72)),
+)
+"""Crack branches from the centre, in units of the ellipse's half width and half height."""
+
+
+def _whirl(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A wind ring around the body: two arcs of an ellipse that turn with ``variant``."""
+    width, height = 43, 31
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    core, mid, edge = colors
+    turn = (variant % WHIRL_FRAMES) * 45
+    for box, color, offset in (
+        ((1, 6, width - 2, height - 7), mid, 0),
+        ((6, 10, width - 7, height - 11), core, 90),
+    ):
+        for start in (turn + offset, turn + offset + 180):
+            draw.arc(box, start, start + 110, fill=color)
+    _ring_dots(draw, (width - 1) / 2, 14.0, 3, _with_alpha(edge, 200), turn / 30.0)
+    return image
+
+
+def _glint(colors: Family, variant: int, frame: int) -> Image.Image:
+    """A four-point sparkle; ``variant`` 1 is its bigger pulse."""
+    image, draw, centre = _canvas(11)
+    reach = 3 + (variant % 2) * 2
+    draw.line((centre - reach, centre, centre + reach, centre), fill=colors[0])
+    draw.line((centre, centre - reach, centre, centre + reach), fill=colors[0])
+    draw.point((centre, centre), fill=colors[1])
+    return image
+
+
+def _vine(colors: Family, variant: int, frame: int) -> Image.Image:
+    """One link of a vine: a knot, with a leaf on every other link."""
+    image, draw, centre = _canvas(5)
+    core, mid, edge = colors
+    draw.rectangle((centre - 1, centre - 1, centre, centre), fill=mid)
+    draw.point((centre, centre), fill=edge)
+    if variant % 2:
+        draw.point((centre + 1, centre - 2), fill=core)
+        draw.point((centre - 2, centre + 1), fill=core)
+    return image
+
+
+def _streak_down(colors: Family, variant: int, frame: int) -> Image.Image:
+    """Three short vertical strokes above a diving fighter."""
+    image = Image.new("RGBA", (15, 11), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    color = colors[0] if frame == 0 else colors[1]
+    for x, top, length in ((2, 2, 6), (7, 0, 8), (12, 3, 5)):
+        draw.line((x, top + frame * 2, x, top + length), fill=color)
+    return image
+
+
+FX_KINDS.update({"whirl": (1, 1), "glint": (1, 1), "vine": (1, 1), "streak_down": (2, 3)})
+_FX_BUILDERS.update({"whirl": _whirl, "glint": _glint, "vine": _vine, "streak_down": _streak_down})
+
+
+def build_crack(stage_of_fade: int) -> Image.Image:
+    """Return the ground crack left by a heavy landing: jagged branches inside an iso
+    ellipse, drawn flat on the ground and fading out over ``CRACK_ALPHAS``."""
+    width, height = CRACK_SIZE
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    alpha = CRACK_ALPHAS[min(stage_of_fade, len(CRACK_ALPHAS) - 1)]
+    cx, cy = (width - 1) / 2, (height - 1) / 2
+    for index, branch in enumerate(CRACK_LINES):
+        points = [(cx + x * (cx - 1), cy + y * (cy - 1)) for x, y in branch]
+        color = CRACK_COLOR if index < 4 else CRACK_EDGE
+        draw.line(points, fill=_with_alpha(color, alpha), width=1)
+    draw.ellipse((cx - 2, cy - 1, cx + 2, cy + 1), fill=_with_alpha(CRACK_COLOR, alpha))
+    return image

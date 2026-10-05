@@ -687,3 +687,126 @@ def test_effects_without_projectiles_or_charge_make_no_move_effects() -> None:
     effects.observe(match.fighters)
     effects.observe_projectiles(match.projectiles, ProjectileLooks())
     assert effects.fx == []
+
+
+# --- special-move effects (decision D-060, group 3) ---------------------------------------
+
+
+def _special(character_id: str, move_id: str, ticks: int, airborne: bool = False) -> set[str]:
+    """Perform a special and return every effect kind seen while it ran."""
+    from isofightr.sim.states.base import change_state
+
+    match, effects, _ = _fire(character_id, "jab1")
+    fighter = match.fighters[0]
+    change_state(match, fighter, StateId.IDLE)
+    if airborne:
+        place(match, fighter, 5.0, 6.0, z=4.0)
+        change_state(match, fighter, StateId.FALL)
+    from isofightr.sim.states.interrupts import start_move
+
+    start_move(match, fighter, move_id)
+    kinds: set[str] = set()
+    for _ in range(ticks):
+        run(match, neutral(1))
+        effects.tick()
+        effects.consume(match.events)
+        effects.observe(match.fighters, match.stage)
+        kinds |= {effect.kind for effect in effects.fx}
+        kinds |= {"crack"} if effects.decals else set()
+    return kinds
+
+
+def test_whirl_shows_a_wind_ring_only_during_its_reflect_window() -> None:
+    from isofightr.data.character_loader import load_character
+
+    assert "whirl" in _special("zephyr", "dspecial", 20)
+    window = load_character("zephyr").moves["dspecial"].reflect
+    assert window is not None
+    assert "whirl" not in _special("zephyr", "dspecial", window.first - 2)
+
+
+def test_riposte_glints_while_it_can_counter_and_bursts_when_it_does() -> None:
+    from isofightr.sim.events import CounterEvent
+
+    assert "glint" in _special("rook", "dspecial", 12)
+    effects = BattleEffects()
+    effects.consume([CounterEvent(1, ORIGIN)])
+    assert [effect.kind for effect in effects.fx] == ["pop"]
+    assert [spark.tier for spark in effects.sparks] == [fx.PARRY_SPARK_TIER]
+
+
+def test_fast_specials_leave_a_trail_and_bursts_in_their_characters_colours() -> None:
+    for character_id, move_id in (
+        ("zephyr", "sspecial"),
+        ("rook", "sspecial"),
+        ("mote", "uspecial"),
+    ):
+        match, effects, _ = _fire(character_id, move_id)
+        families = set()
+        kinds = set()
+        for _ in range(50):
+            run(match, neutral(1))
+            effects.tick()
+            effects.observe(match.fighters, match.stage)
+            families |= {effect.family for effect in effects.fx}
+            kinds |= {effect.kind for effect in effects.fx}
+        assert {"ribbon", "burst_fade"} <= kinds, character_id
+        assert families == {fx.CHARACTER_FAMILIES[character_id]}
+    match, _, _ = duel()
+    effects = BattleEffects()
+    for _ in range(30):
+        run(match, hold(Dir8.SE, frames=1))
+        effects.tick()
+        effects.observe(match.fighters, match.stage)
+    assert not effects.fx, "running is not a special: no trail"
+
+
+def test_a_tether_draws_a_vine_from_the_fighter_to_its_ledge_point() -> None:
+    from isofightr.sim.math3d import Vec2
+
+    match, _, target = duel()
+    effects = BattleEffects()
+    target.tether_ledge = 0
+    ledge = match.stage.ledges[0]
+    target.tether_point = Vec2(ledge.start.x, ledge.start.y)
+    effects.observe(match.fighters, match.stage)
+    links = [effect for effect in effects.fx if effect.kind == "vine"]
+    assert len(links) > 3 and {link.family for link in links} == {"vine"}
+    assert links[0].position.z == pytest.approx(target.pos.z + fx.BODY_CENTRE_HEIGHT)
+    end = links[-1].position
+    assert (end.x, end.y, end.z) == pytest.approx((ledge.start.x, ledge.start.y, ledge.z))
+    effects.tick()
+    assert not [effect for effect in effects.fx if effect.kind == "vine"], "redrawn every tick"
+
+
+def test_quake_slam_streaks_on_the_way_down_and_cracks_the_ground() -> None:
+    from isofightr.render.ground_items import DECAL_RANK, decal_items
+    from isofightr.sim.states.base import change_state
+    from isofightr.sim.states.interrupts import start_move
+
+    match, effects, _ = _fire("bramble", "jab1")
+    fighter = match.fighters[0]
+    place(match, fighter, 5.0, 6.0, z=5.0)
+    change_state(match, fighter, StateId.FALL)
+    start_move(match, fighter, "dspecial")
+    kinds: set[str] = set()
+    for _ in range(90):
+        run(match, neutral(1))
+        effects.tick()
+        effects.consume(match.events)
+        effects.observe(match.fighters, match.stage)
+        kinds |= {effect.kind for effect in effects.fx}
+        if effects.decals:
+            break
+    assert "streak_down" in kinds and "burst_ground" in kinds
+    [decal] = effects.decals
+    assert decal.position.z == 0.0 and decal.fade == 0
+    [item] = decal_items(
+        match.stage, [(decal.decal_id, decal.position.x, decal.position.y, 0.0, decal.fade)]
+    )
+    assert item.rank == DECAL_RANK and item.key == ("crack", 0)
+    for _ in range(fx.CRACK_TICKS - 1):
+        effects.tick()
+    assert effects.decals[0].fade == 3, "nearly faded"
+    effects.tick()
+    assert effects.decals == []
