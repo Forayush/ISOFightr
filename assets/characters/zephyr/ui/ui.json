@@ -1,6 +1,6 @@
 {
   "character": "zephyr",
-  "source": "ffcb46ccbdc3cd0f783b3d75a8c2fd64b7be69eb4ec5151134954873921553ca",
+  "source": "1dfa70724b1019dc6c0d646b53953679673d49542491ae1398e8d8820a0114db",
   "blender": "4.5.5",
   "scale": 2,
   "camera": {
@@ -9,7 +9,7 @@
   },
   "sizes": {
     "hero": [
-      66,
+      73,
       86
     ],
     "hero_win": [

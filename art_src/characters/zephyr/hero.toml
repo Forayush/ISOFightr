@@ -14,7 +14,7 @@ offset = [0.0, 0.0, 0.3]
 hips = [16.0, 0.0, 0.0]
 chest = [8.0, 0.0, 12.0]
 head = [-2.0, 0.0, 34.0]
-cape = [-84.0, 0.0, -46.0]
+cape = [-46.0, 0.0, -80.0]
 shoulder_r = [-10.0, -96.0, 0.0]
 elbow_r = [16.0, 0.0, 0.0]
 hand_r = [0.0, 0.0, 0.0]
@@ -27,3 +27,41 @@ ankle_r = [-24.0, 0.0, 0.0]
 hip_l = [52.0, 0.0, 10.0]
 knee_l = [-116.0, 0.0, 0.0]
 ankle_l = [30.0, 0.0, 0.0]
+
+# Her face for this picture (the rig's own has only eyes and a nose): one brow cocked and a
+# smirk on the muzzle.
+[[parts]]
+name = "brow_r"
+joint = "head"
+shape = "rod"
+a = [0.06, 0.29, 0.43]
+b = [0.17, 0.25, 0.47]
+r1 = 0.018
+r2 = 0.018
+material = "ink"
+
+[[parts]]
+name = "brow_l"
+joint = "head"
+shape = "rod"
+a = [-0.06, 0.29, 0.47]
+b = [-0.17, 0.25, 0.46]
+r1 = 0.018
+r2 = 0.018
+material = "ink"
+
+[[parts]]
+name = "smirk"
+joint = "head"
+shape = "box"
+low = [-0.07, 0.3, 0.115]
+high = [0.03, 0.4, 0.15]
+material = "ink"
+
+[[parts]]
+name = "smirk_corner"
+joint = "head"
+shape = "box"
+low = [-0.11, 0.28, 0.14]
+high = [-0.07, 0.38, 0.18]
+material = "ink"

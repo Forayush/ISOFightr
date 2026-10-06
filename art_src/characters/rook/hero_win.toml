@@ -18,3 +18,48 @@ ankle_r = [4.0, 0.0, 0.0]
 hip_l = [-6.0, 0.0, 18.0]
 knee_l = [-8.0, 0.0, 0.0]
 ankle_l = [10.0, 0.0, -10.0]
+
+# His face for this picture (the rig's own has only eyes): keen brows and a wide grin.
+[[parts]]
+name = "brow_r"
+joint = "head"
+shape = "rod"
+a = [0.06, 0.41, 0.50]
+b = [0.17, 0.38, 0.525]
+r1 = 0.02
+r2 = 0.02
+material = "ink"
+
+[[parts]]
+name = "brow_l"
+joint = "head"
+shape = "rod"
+a = [-0.06, 0.41, 0.50]
+b = [-0.17, 0.38, 0.525]
+r1 = 0.02
+r2 = 0.02
+material = "ink"
+
+[[parts]]
+name = "grin"
+joint = "head"
+shape = "box"
+low = [-0.06, 0.36, 0.14]
+high = [0.06, 0.45, 0.19]
+material = "ink"
+
+[[parts]]
+name = "grin_corner_r"
+joint = "head"
+shape = "box"
+low = [0.06, 0.35, 0.17]
+high = [0.11, 0.44, 0.215]
+material = "ink"
+
+[[parts]]
+name = "grin_corner_l"
+joint = "head"
+shape = "box"
+low = [-0.11, 0.35, 0.17]
+high = [-0.06, 0.44, 0.215]
+material = "ink"
