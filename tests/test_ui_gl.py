@@ -233,25 +233,22 @@ def test_the_mouse_works_on_the_list_menus(window: Any) -> None:
     import arcade
 
     flow = flow_for(window)
-    flow.show_main_menu()
+    flow.show_settings()
     step(window, 2)
     view = window.current_view
     rows = view.rows
-    rules = [item.key for item in view.menu.items].index("rules")
-    native = (rows.left + 30, rows.top - rules * rows.row_height - rows.row_height // 2)
-    assert rows.row_at(*native) == rules
-    assert (
-        rows.row_at(rows.left - 5, native[1]) is None
-        and rows.row_at(native[0], rows.top + 3) is None
-    )
+    back = [item.key for item in view.menu.items].index("back")
+    native = (rows.left + 30, rows.top - back * rows.row_height - rows.row_height // 2)
+    assert rows.row_at(*native) == back
+    assert rows.row_at(rows.left - 5, native[1]) is None
+    assert rows.row_at(native[0], rows.top + 3) is None
+    assert rows.row_at(native[0], rows.top - 40 * rows.row_height) is None
     view.on_mouse_motion(*to_window(window, *native), 0, 1)
     step(window)
-    assert view.menu.cursor == rules
+    assert view.menu.cursor == back
     view.on_mouse_press(*to_window(window, *native), arcade.MOUSE_BUTTON_LEFT, 0)
     step(window)
-    assert type(window.current_view).__name__ == "RulesView"
-    below = (native[0], rows.top - 40 * rows.row_height)
-    assert rows.row_at(*below) is None
+    assert type(window.current_view).__name__ == "MainMenuView"
 
 
 def test_the_mouse_is_mapped_through_the_letterbox(
@@ -282,21 +279,23 @@ def test_the_footer_names_the_controls_of_the_device_that_acted(window: Any) -> 
     flow.show_main_menu()
     step(window, 2)
     view = window.current_view
-    assert view._footer.text == "WASD: move   F: pick   K: back"
+    assert view._footer.text == "WASD: move   F: pick   K: back   mouse: click"
     view.on_key_press(arcade.key.DOWN, 0)
     step(window)
     view.on_key_release(arcade.key.DOWN, 0)
     step(window)
     assert view.active_device == "keyboard:arrows"
-    assert view._footer.text == "arrows: move   NUM_4: pick   NUM_5: back"
+    assert view._footer.text == "arrows: move   NUM_4: pick   NUM_5: back   mouse: click"
     view.on_key_press(arcade.key.S, 0)
     step(window)
     assert view._footer.text.startswith("WASD")
 
 
 CAPTURED = (
+    "boot",
     "title",
     "main",
+    "loading",
     "rules",
     "pool",
     "controls",
@@ -322,6 +321,8 @@ def test_every_screen_can_be_captured(window: Any, screen: str) -> None:
     colours = sheet.getcolors(maxcolors=200000)
     assert colours is not None and len(colours) > 6, "something was drawn"
     expected = {
+        "boot": "TitleView",
+        "loading": "LoadingView",
         "title": "TitleView",
         "main": "MainMenuView",
         "rules": "RulesView",
@@ -357,10 +358,8 @@ def test_a_screen_capture_follows_a_key_script_and_crops_and_scales(window: Any)
     assert first.tobytes() != second.tobytes()
 
 
-def test_unknown_or_unbuilt_screens_are_refused(window: Any) -> None:
+def test_unknown_screens_are_refused(window: Any) -> None:
     from isofightr.capture import capture_screen
 
     with pytest.raises(ValueError, match="unknown screen"):
         capture_screen(window, "nope")
-    with pytest.raises(ValueError, match="not built yet"):
-        capture_screen(window, "loading")

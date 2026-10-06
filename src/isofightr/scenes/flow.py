@@ -18,16 +18,17 @@ from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import numbered
 from isofightr.data.stage_loader import list_stage_ids, load_stage
+from isofightr.input.devices import DeviceHub
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
+from isofightr.scenes.front import BootView, MainMenuView, TitleView
+from isofightr.scenes.loading_view import LoadingView, MatchPlan
 from isofightr.scenes.menus import (
     CharacterSelectView,
-    MainMenuView,
     ResultsView,
     SettingsView,
     StageSelectView,
-    TitleView,
 )
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
@@ -50,6 +51,7 @@ class GameFlow:
         record: Path | None = None,
         settings: Settings | None = None,
         settings_path: Path | None = None,
+        loading: bool = False,
     ) -> None:
         """Create the router.
 
@@ -62,7 +64,10 @@ class GameFlow:
             settings: the user settings to start with.
             settings_path: where to save settings when they change; ``None`` keeps them in
                 memory only (tests).
+            loading: show the loading screen before a match the menus start (the game
+                does; tests and tools mostly go straight to the battle).
         """
+        self.loading = loading
         self.window = window
         self.pixel_buffer = pixel_buffer
         self.max_ticks = max_ticks
@@ -76,6 +81,17 @@ class GameFlow:
         self.menu_ticks = 0
         """Ticks spent in menus this session: the backdrop drifts on from scene to scene."""
         self._backdrop: MenuBackdrop | None = None
+        self._hub: DeviceHub | None = None
+
+    def hub(self) -> DeviceHub:
+        """Return the input devices, shared by every scene. Opening them asks the system
+        for its controllers, which takes most of a second on Windows: once per session,
+        not once per screen. It always carries the current settings."""
+        if self._hub is None:
+            self._hub = DeviceHub(self.settings)
+        elif self._hub.settings is not self.settings:
+            self._hub.apply_settings(self.settings)
+        return self._hub
 
     def backdrop(self) -> MenuBackdrop:
         """Return the menu backdrop, shared by every menu scene."""
@@ -106,6 +122,10 @@ class GameFlow:
             self.update_settings(replace(self.settings, rules=saved))
 
     # --- scenes ----------------------------------------------------------------------------
+
+    def show_boot(self) -> None:
+        """Show the logo at once, then the title: what the game starts with."""
+        self.window.show_view(BootView(self.pixel_buffer, self))
 
     def show_title(self) -> None:
         """Go to the title screen."""
@@ -146,8 +166,9 @@ class GameFlow:
             self.setup = setup
         self.window.show_view(StageSelectView(self.pixel_buffer, self, setup))
 
-    def start_battle(self, setup: MatchSetup) -> None:
-        """Start a match with the given setup (also used by "Rematch")."""
+    def plan_match(self, setup: MatchSetup) -> MatchPlan:
+        """Decide the next match: remember the setup, pick the stage if it is "random",
+        draw the seed and number the recording."""
         if not setup.training:
             self.setup = setup
         stage_id = setup.stage
@@ -155,18 +176,36 @@ class GameFlow:
             stages = setup.pool(list_stage_ids())
             stage_id = stages[self.rng.below(len(stages))]
         self.matches_started += 1
+        record = None if self.record is None else numbered(self.record, self.matches_started)
+        return MatchPlan(setup, stage_id, self.rng.next_u32(), record)
+
+    def begin_match(self, setup: MatchSetup) -> None:
+        """Start a match the way the menus do (stage select, "Rematch"): through the loading
+        screen when it is on, straight into the battle otherwise."""
+        if not self.loading:
+            self.start_battle(setup)
+            return
+        self.window.show_view(LoadingView(self.pixel_buffer, self, self.plan_match(setup)))
+
+    def start_battle(self, setup: MatchSetup) -> None:
+        """Start a match with the given setup at once, with no loading screen."""
+        plan = self.plan_match(setup)
         view = BattleView(
             self.pixel_buffer,
-            load_stage(stage_id),
+            load_stage(plan.stage_id),
             [load_character(name) for name in setup.characters],
-            seed=self.rng.next_u32(),
+            seed=plan.seed,
             max_ticks=self.max_ticks,
             training=setup.training,
             rules=setup.rules(),
             flow=self,
             setup=setup,
-            record=None if self.record is None else numbered(self.record, self.matches_started),
+            record=plan.record,
         )
+        self.window.show_view(view)
+
+    def show_battle(self, view: BattleView) -> None:
+        """Show a battle that is already built (the loading screen's)."""
         self.window.show_view(view)
 
     def show_results(self, setup: MatchSetup, match: Match) -> None:

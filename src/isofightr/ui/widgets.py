@@ -731,3 +731,44 @@ class FocusFrame:
     def hide(self) -> None:
         """Hide the frame."""
         self._sprite.visible = False
+
+
+class SlideGroup:
+    """Everything added to a layer inside a ``with`` block, movable as one (a card that
+    slides in from the side)::
+
+        with SlideGroup(layer) as card:
+            add_panel(layer, rect)
+            layer.write("ROOK", ...)
+        card.offset(-200, 0)   # off to the left; offset(0, 0) puts it back
+
+    Text whose content changes after the block lays itself out again where it was made, so
+    keep changing labels out of a group, or change them only while it rests.
+    """
+
+    def __init__(self, layer: UiLayer) -> None:
+        """Remember what the layer holds so far."""
+        self._lists = (layer.panels, layer.shadows, layer.text)
+        self._before = [len(sprites) for sprites in self._lists]
+        self._sprites: list[arcade.Sprite] = []
+        self._home: list[tuple[float, float]] = []
+        self._offset = (0, 0)
+
+    def __enter__(self) -> "SlideGroup":
+        """Start collecting."""
+        self._before = [len(sprites) for sprites in self._lists]
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Take every sprite added since, at its resting place."""
+        for sprites, before in zip(self._lists, self._before, strict=True):
+            self._sprites.extend(sprites[index] for index in range(before, len(sprites)))
+        self._home = [(sprite.center_x, sprite.center_y) for sprite in self._sprites]
+
+    def offset(self, dx: int, dy: int) -> None:
+        """Move the whole group ``(dx, dy)`` pixels from where it was made."""
+        if (dx, dy) == self._offset:
+            return
+        self._offset = (dx, dy)
+        for sprite, (x, y) in zip(self._sprites, self._home, strict=True):
+            sprite.position = (x + dx, y + dy)

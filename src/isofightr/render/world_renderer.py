@@ -236,16 +236,22 @@ class WorldRenderer:
                 sprite.position = (centre_x + (index - 1) * width, NATIVE_H / 2 + shift_y)
 
     def draw(
-        self, camera_centre: tuple[int, int], overlays: Sequence[Overlay] = (), zoom: int = 1
+        self,
+        camera_centre: tuple[int, int],
+        overlays: Sequence[Overlay] = (),
+        zoom: int = 1,
+        background: bool = True,
     ) -> None:
         """Draw the background, then the sorted world as seen from ``camera_centre``.
 
         Call inside ``pixel_buffer.drawing()``. ``camera_centre`` is in whole world pixels.
         ``overlays`` are drawn last and in order, in the same world pixel space (the VFX
-        layer, debug overlays).
+        layer, debug overlays). ``background=False`` leaves out the stage's backdrop, for a
+        world drawn over something else (a menu's island).
         """
-        self._place_backdrop(camera_centre)
-        self._background.draw(pixelated=True)
+        if background:
+            self._place_backdrop(camera_centre)
+            self._background.draw(pixelated=True)
         self.camera.position = camera_centre
         self.camera.zoom = zoom
         with self.camera.activate():

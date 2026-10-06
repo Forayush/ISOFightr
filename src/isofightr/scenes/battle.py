@@ -22,7 +22,7 @@ between standing still and their own controls. Player controls are in
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -192,6 +192,7 @@ class BattleView(TickedView):
         replay: Replay | None = None,
         placeholder_art: bool = False,
         cpus: Sequence[int] | None = None,
+        banks: Mapping[str, SpriteBank] | None = None,
     ) -> None:
         """Create the view. See :class:`TickedView` for ``pixel_buffer`` and ``max_ticks``.
 
@@ -238,13 +239,21 @@ class BattleView(TickedView):
         # From the menus every player has the device it joined with; a sandbox match uses
         # the fixed default assignment (keyboards plus controllers in order).
         self.devices = tuple(setup.devices) if setup is not None and setup.devices else ()
-        self.hub = DeviceHub(self.settings) if self.devices else None
+        # A match from the menus reads the session's devices; a sandbox opens its own.
+        self._owns_hub = flow is None
+        self.hub = None
+        if self.devices:
+            self.hub = flow.hub() if flow is not None else DeviceHub(self.settings)
         self._menu_extras: list[frozenset[MenuAction] | None] | None = None
         self._start_tapped = False
         self.inputs = None if self.devices else InputSource(len(self.characters))
         self._unplugged: set[str] = set()
         self.menu_input = MenuInput()
-        self.renderer = WorldRenderer(pixel_buffer, stage, self._load_banks())
+        # The loading screen hands over the sprites it has already opened and coloured.
+        loaded = dict(banks) if banks is not None and not placeholder_art else None
+        self.renderer = WorldRenderer(
+            pixel_buffer, stage, self._load_banks() if loaded is None else loaded
+        )
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
         self.zoom = StepZoom(enabled=self.settings.camera_zoom == ZOOM_STEPPED)
         self.camera.snap_to(self._camera_targets())
@@ -628,7 +637,7 @@ class BattleView(TickedView):
         self.save_recording()
         if self.inputs is not None:
             self.inputs.close()
-        if self.hub is not None:
+        if self.hub is not None and self._owns_hub:
             self.hub.close()
 
     # --- training and debug tools ------------------------------------------------------------

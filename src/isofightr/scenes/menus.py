@@ -23,12 +23,11 @@ from isofightr.config import (
     MAX_PLAYERS,
     NATIVE_H,
     NATIVE_W,
-    WINDOW_TITLE,
 )
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import list_stage_ids, load_stage
-from isofightr.input.devices import KEYBOARD_PREFIX, DeviceHub
+from isofightr.input.devices import KEYBOARD_PREFIX
 from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.fighter_look import costume_index
@@ -42,7 +41,6 @@ from isofightr.scenes.setup import (
     can_start,
     result_awards,
     results_table,
-    training_setup,
 )
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
@@ -106,7 +104,7 @@ class MenuView(TickedView):
         """Create an empty scene with its own input devices."""
         super().__init__(pixel_buffer, flow.max_ticks)
         self.flow = flow
-        self.hub = DeviceHub(flow.settings)
+        self.hub = flow.hub()
         self.menu_input = MenuInput()
         self.ui = UiLayer(GlyphAtlas())
         self._keys = KeyLatch()
@@ -227,10 +225,6 @@ class MenuView(TickedView):
         """Stop tracking a released key."""
         self._keys.release(symbol)
 
-    def on_hide_view(self) -> None:
-        """Release the controllers when the scene goes away."""
-        self.hub.close()
-
     music = AUDIO_MENU_SONG
     """The song a menu scene plays (it carries on from scene to scene)."""
     music_loops = True
@@ -287,27 +281,6 @@ class MenuView(TickedView):
         self.blit_to_window()
 
 
-class TitleView(MenuView):
-    """The title screen: any confirm goes to the main menu."""
-
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the title."""
-        super().__init__(pixel_buffer, flow)
-        self.ui.centred(WINDOW_TITLE.upper(), NATIVE_H // 2 + 20, HIGHLIGHT, TITLE_SCALE)
-        self.ui.centred("an isometric platform fighter", NATIVE_H // 2 - 4, MUTED)
-        self.prompt = self.ui.centred("press ATTACK or ENTER", NATIVE_H // 2 - 60)
-
-    def act(self, device: str, action: MenuAction) -> None:
-        """Start on confirm."""
-        if action is MenuAction.CONFIRM:
-            self.flow.show_main_menu()
-
-    def refresh(self) -> None:
-        """Blink the prompt."""
-        on = (self.tick_count // BLINK_TICKS) % 2 == 0
-        self.prompt.text = "press ATTACK or ENTER" if on else ""
-
-
 class MenuListView(MenuView):
     """A scene that is one vertical menu in the middle of the screen, shared by every device."""
 
@@ -359,44 +332,6 @@ class MenuListView(MenuView):
     def refresh(self) -> None:
         """Show the menu rows."""
         self.rows.set_lines(self.menu.lines(), self.menu.cursor)
-
-
-class MainMenuView(MenuListView):
-    """Versus, Training, Rules, Settings, Quit."""
-
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the main menu."""
-        menu = Menu(
-            [
-                MenuItem("versus", "Versus"),
-                MenuItem("training", "Training"),
-                MenuItem("rules", "Rules"),
-                MenuItem("controls", "Controls"),
-                MenuItem("settings", "Settings"),
-                MenuItem("quit", "Quit"),
-            ]
-        )
-        super().__init__(pixel_buffer, flow, "MAIN MENU", menu)
-        self.footer("{stick}: move   {attack}: pick   {special}: back")
-
-    def choose(self, key: str) -> None:
-        """Go where the item says."""
-        if key == "versus":
-            self.flow.show_character_select(self.flow.setup)
-        elif key == "training":
-            self.flow.show_character_select(training_setup())
-        elif key == "rules":
-            self.flow.show_rules()
-        elif key == "controls":
-            self.flow.show_controls()
-        elif key == "settings":
-            self.flow.show_settings()
-        else:
-            self.window.close()
-
-    def back(self) -> None:
-        """Back to the title."""
-        self.flow.show_title()
 
 
 class SettingsView(MenuListView):
@@ -870,7 +805,7 @@ class StageSelectView(MenuView):
             if 0 <= self.cursor + step < len(self.stage_ids):
                 self.cursor += step
         elif action is MenuAction.CONFIRM:
-            self.flow.start_battle(replace(self.setup, stage=self.selected))
+            self.flow.begin_match(replace(self.setup, stage=self.selected))
         elif action is MenuAction.BACK:
             self.flow.show_character_select(self.setup)
 
@@ -955,7 +890,7 @@ class ResultsView(MenuListView):
     def choose(self, key: str) -> None:
         """Play again with the same settings, or change them."""
         if key == "rematch":
-            self.flow.start_battle(self.setup)
+            self.flow.begin_match(self.setup)
         else:
             self.flow.show_character_select(self.setup)
 

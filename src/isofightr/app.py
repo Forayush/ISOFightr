@@ -144,9 +144,16 @@ def run(
     view: arcade.View
     if menus:
         flow = GameFlow(
-            window, window.pixel_buffer, seed, max_ticks, record, settings, settings_path=path
+            window,
+            window.pixel_buffer,
+            seed,
+            max_ticks,
+            record,
+            settings,
+            settings_path=path,
+            loading=True,
         )
-        flow.show_title()
+        flow.show_boot()
         arcade.run()
         return
     if stage is None:

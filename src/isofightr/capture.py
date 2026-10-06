@@ -34,6 +34,7 @@ from isofightr.sim.math3d import Vec3
 
 PRESS, RELEASE = "@", "!"
 SCREENS: tuple[str, ...] = (
+    "boot",
     "title",
     "main",
     "rules",
@@ -251,7 +252,10 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
         else:
             raise ValueError("the match never reached the results screen")
     elif screen == "loading":
-        raise ValueError("the loading screen is not built yet (M13 group 3)")
+        flow.loading = True
+        flow.begin_match(versus_setup(players, cpus=players > 2, rules=rules))
+    elif screen == "boot":
+        flow.show_boot()
     else:
         raise ValueError(f"unknown screen {screen!r}: expected one of {', '.join(SCREENS)}")
 
