@@ -1,20 +1,20 @@
 {
   "character": "mote",
-  "source": "7b9d618cadfbbe3e59a6b0b3889d7304c84aba6e40601d82ed3393b0ee80bdb2",
+  "source": "f860e067974f2f7540364a2549d329ff730781edafcccf7e8d57fdfaee245752",
   "blender": "4.5.5",
   "scale": 2,
   "camera": {
-    "turn": -16.0,
-    "elevation": 10.0
+    "turn": -14.0,
+    "elevation": 8.0
   },
   "sizes": {
     "hero": [
-      62,
-      111
+      99,
+      109
     ],
     "hero_win": [
-      55,
-      113
+      94,
+      107
     ],
     "tile": [
       40,

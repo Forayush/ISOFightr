@@ -1,28 +1,29 @@
-# Zephyr's hero art (decision D-061). Zephyr is the rushdown: a small bird-fox courier who
-# is never still. Caught mid-dash from the side: body thrown forward and low, one leg driving,
-# wing-arms swept back, ears flat, scarf and tail streaming behind. All forward motion.
+# Zephyr's hero art (decision D-061). Zephyr is the rushdown: a small bird-fox courier,
+# restless and showy, who fights with quick kicks and flips. Caught in the air mid flying
+# kick: one leg driven straight out at you, the other tucked, wing-arms flung wide for
+# balance, scarf and tail streaming. She is showing off, and she is already on top of you.
 # Built by `tools/build_art.py zephyr --hero`, at twice the game's pixels per unit.
 
 [camera]
-turn = 58        # degrees turned from facing the viewer (+ = toward the screen's right)
-elevation = 14    # degrees the camera looks down (30 is the game's view from above)
+turn = 20         # degrees turned from facing the viewer (+ = toward the screen's right)
+elevation = 10    # degrees the camera looks down (30 is the game's view from above)
 
 [[poses]]
 use = "ready"
-offset = [0.0, 0.1, -0.05]
-hips = [-20.0, 0.0, 0.0]
-chest = [-16.0, 0.0, 0.0]
-head = [30.0, 0.0, 0.0]
-cape = [-70.0, 0.0, 0.0]
-shoulder_r = [-70.0, -24.0, 0.0]
-elbow_r = [12.0, 0.0, 0.0]
+offset = [0.0, 0.0, 0.3]
+hips = [16.0, 0.0, 0.0]
+chest = [8.0, 0.0, 12.0]
+head = [-2.0, 0.0, 34.0]
+cape = [-84.0, 0.0, -46.0]
+shoulder_r = [-10.0, -96.0, 0.0]
+elbow_r = [16.0, 0.0, 0.0]
 hand_r = [0.0, 0.0, 0.0]
-shoulder_l = [-56.0, 30.0, 0.0]
-elbow_l = [20.0, 0.0, 0.0]
+shoulder_l = [-24.0, 74.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
 hand_l = [0.0, 0.0, 0.0]
-hip_r = [78.0, 0.0, 0.0]
-knee_r = [-58.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-hip_l = [-34.0, 0.0, 0.0]
-knee_l = [-36.0, 0.0, 0.0]
-ankle_l = [44.0, 0.0, 0.0]
+hip_r = [96.0, 0.0, 0.0]
+knee_r = [-6.0, 0.0, 0.0]
+ankle_r = [-24.0, 0.0, 0.0]
+hip_l = [52.0, 0.0, 10.0]
+knee_l = [-116.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]

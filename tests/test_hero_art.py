@@ -114,7 +114,7 @@ def test_the_sprite_set_finds_menu_art_next_to_the_sheets() -> None:
 def test_each_character_has_a_view_that_suits_its_pose() -> None:
     cameras = {character_id: hero.load_camera(character_id) for character_id in ANIMATED}
     assert cameras["bramble"].elevation < cameras["rook"].elevation, "the golem is seen from low"
-    assert abs(cameras["zephyr"].turn) > 40, "the dash is seen from the side"
+    assert 10 <= abs(cameras["zephyr"].turn) <= 40, "the kick is seen three-quarters on"
     assert abs(cameras["rook"].turn) < 30 and abs(cameras["bramble"].turn) < 30, "squared up"
     for camera in cameras.values():
         assert camera.elevation < GAME_ELEVATION, "a portrait, not the game's view from above"
@@ -173,7 +173,8 @@ def test_the_source_hash_follows_every_source_but_not_line_endings(tmp_path: Pat
     assert hero.win_pose_file("nobody", tmp_path).name == "victory.toml"
     (folder / hero.WIN_FILE).write_text("[[poses]]\n", encoding="utf-8")
     assert hero.win_pose_file("nobody", tmp_path).name == hero.WIN_FILE
-    assert hero.win_pose_file("rook").name == hero.WIN_FILE, "Rook has a win pose of his own"
+    for character_id in ANIMATED:
+        assert hero.win_pose_file(character_id).name == hero.WIN_FILE, "each has its own"
 
 
 def test_hero_files_only_pose_joints_the_rig_has() -> None:

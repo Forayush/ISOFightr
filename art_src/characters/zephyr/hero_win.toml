@@ -1,0 +1,23 @@
+# Zephyr's win picture (decision D-061): her preening taunt as a "ta-da". Up on her toes,
+# chest out and chin high, one wing flung up, the other swept out low, tail curled up behind.
+# Rendered from hero.toml's camera. (The victory animation's first pose hides both arms
+# behind her head from this view.)
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, 0.04]
+hips = [0.0, 0.0, -6.0]
+chest = [12.0, 0.0, 8.0]
+head = [16.0, 0.0, 20.0]
+cape = [-96.0, 0.0, 30.0]
+shoulder_r = [10.0, -156.0, 0.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-6.0, 62.0, 0.0]
+elbow_l = [14.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [12.0, -8.0, -8.0]
+knee_r = [-16.0, 0.0, 0.0]
+ankle_r = [24.0, 0.0, 0.0]
+hip_l = [-10.0, 12.0, 14.0]
+knee_l = [-6.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]

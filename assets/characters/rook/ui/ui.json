@@ -1,20 +1,20 @@
 {
   "character": "rook",
-  "source": "4245c3046e6a992912be4f9e5471c3c9e3ba06a7c6d488be33739f6dd36870cf",
+  "source": "bc46f63edff3d55bd256d2089e107729faa82ef101617dddb0edc741dbc26347",
   "blender": "4.5.5",
   "scale": 2,
   "camera": {
-    "turn": 10.0,
+    "turn": -20.0,
     "elevation": 12.0
   },
   "sizes": {
     "hero": [
-      79,
-      127
+      59,
+      121
     ],
     "hero_win": [
-      65,
-      139
+      69,
+      137
     ],
     "tile": [
       40,
