@@ -110,7 +110,18 @@ def parse_character(
         data,
         source=source,
         where="",
-        allowed=("id", "display_name", "weight", "movement", "body", "moveset", "grab", "throws"),
+        allowed=(
+            "id",
+            "display_name",
+            "archetype",
+            "blurb",
+            "weight",
+            "movement",
+            "body",
+            "moveset",
+            "grab",
+            "throws",
+        ),
     )
     character_id = root.string("id")
     if expected_id is not None and character_id != expected_id:
@@ -122,6 +133,8 @@ def parse_character(
     return CharacterDef(
         id=character_id,
         display_name=root.string("display_name"),
+        archetype=root.optional_string("archetype") or "",
+        blurb=root.optional_string("blurb") or "",
         weight=weight,
         movement=_movement(root.subtable("movement", (*_SPEED_KEYS, *_FRAME_KEYS))),
         body=_body(root.subtable("body", ("radius", "height", "hurtbox", "shield_radius_max"))),

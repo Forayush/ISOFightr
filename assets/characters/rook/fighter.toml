@@ -2,6 +2,8 @@
 # Units: world units (1 = one tile edge) and frames (60 per second).
 id = "rook"
 display_name = "Rook"
+archetype = "the all-rounder"
+blurb = "A young knight. Solid at everything, with big committed swings."
 weight = 98
 
 [movement]

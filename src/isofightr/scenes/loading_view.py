@@ -24,7 +24,6 @@ from isofightr.data.character_loader import load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import load_stage
 from isofightr.render import placeholder_art as art
-from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.battle import BattleView
@@ -80,9 +79,7 @@ class MatchPlan:
 
 def player_costume(setup: MatchSetup, player: int, costumes: int) -> int:
     """Return the costume a player will wear in the match a setup starts."""
-    team_play = setup.team_play and bool(setup.teams) and not setup.training
-    color = setup.teams[player] if team_play and player < len(setup.teams) else player
-    return costume_index(color, team_play, costumes)
+    return setup.costume_of(player, costumes)
 
 
 def player_tag(setup: MatchSetup, player: int) -> str:

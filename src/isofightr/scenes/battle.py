@@ -533,7 +533,8 @@ class BattleView(TickedView):
 
     def menu_action(self, action: MenuAction) -> None:
         """Handle one navigation action in the pause menu."""
-        self.audio.play(MENU_SOUNDS[action])
+        if MENU_SOUNDS[action]:
+            self.audio.play(MENU_SOUNDS[action])
         if self.move_list_player is not None:
             self._move_list_action(action)
             return
@@ -661,15 +662,22 @@ class BattleView(TickedView):
         for fighter in self.match.fighters:
             bank = banks.get(fighter.character.id)
             if bank is not None:
-                bank.warm(costume_for(fighter, len(bank.sprite_set.costumes)))
+                bank.warm(self.costume(fighter, len(bank.sprite_set.costumes)))
         return banks
+
+    def costume(self, fighter: Fighter, count: int) -> int:
+        """Return the costume a fighter wears: the one its player picked on character select
+        (a match from the menus), else the one of its colour."""
+        if self.setup is not None and not self.training:
+            return self.setup.costume_of(fighter.player_index, count)
+        return costume_for(fighter, count)
 
     def _stock_icons(self) -> list[arcade.Texture | None]:
         """Each player's stock icon: the character's head in its costume, if it has art."""
         icons: list[arcade.Texture | None] = []
         for fighter in self.match.fighters:
             bank = self.renderer.banks.get(fighter.character.id)
-            costume = 0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes))
+            costume = 0 if bank is None else self.costume(fighter, len(bank.sprite_set.costumes))
             icons.append(None if bank is None else bank.portrait("icon", costume))
         return icons
 
@@ -906,7 +914,7 @@ class BattleView(TickedView):
                 frame,
                 self.effects.flash.get(fighter.player_index, 0),
                 None if bank is None else bank.sprite_set.anims,
-                0 if bank is None else costume_for(fighter, len(bank.sprite_set.costumes)),
+                0 if bank is None else self.costume(fighter, len(bank.sprite_set.costumes)),
                 self.settings.reduce_flashing,
                 self.effects.hit_hitlag.get(fighter.player_index, 0),
             )

@@ -2,6 +2,8 @@
 # Units: world units (1 = one tile edge) and frames (60 per second).
 id = "mote"
 display_name = "Mote"
+archetype = "the zoner"
+blurb = "A floaty lantern mage. Keeps you out with orbs, lamps and glyphs."
 weight = 85
 
 [movement]

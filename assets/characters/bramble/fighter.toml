@@ -2,6 +2,8 @@
 # Units: world units (1 = one tile edge) and frames (60 per second).
 id = "bramble"
 display_name = "Bramble"
+archetype = "the heavyweight"
+blurb = "A mossy stone golem. Slow, huge reach, armour on his smashes."
 weight = 120
 
 [movement]

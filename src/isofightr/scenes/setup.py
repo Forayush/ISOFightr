@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 from typing import Final
 
 from isofightr.config import DEFAULT_CHARACTER_ID, DEFAULT_STAGE_ID, TRAINING_STAGE_ID
+from isofightr.render.fighter_look import costume_index
 from isofightr.settings import (
     LAUNCH_RATES,
     MAX_COUNT,
@@ -71,6 +72,21 @@ class MatchSetup:
     """Whether a versus match can be paused. Training always can."""
     random_pool: tuple[str, ...] = ()
     """Stage ids "Random" may pick; empty means every stage."""
+    costumes: tuple[int, ...] = ()
+    """The costume each player picked on character select, in player order; a player past
+    the end wears the costume of their player colour. Presentation only, and ignored in a
+    team match, where everyone wears their team's colour."""
+
+    def costume_of(self, player: int, count: int) -> int:
+        """Return the costume a player wears in the match this setup starts, for a character
+        with ``count`` costumes."""
+        team_play = self.team_play and bool(self.teams) and not self.training
+        if team_play:
+            team = self.teams[player] if player < len(self.teams) else player
+            return costume_index(team, True, count)
+        if player < len(self.costumes):
+            return self.costumes[player] % max(count, 1)
+        return costume_index(player, False, count)
 
     def rules(self) -> MatchRules:
         """Return the sim rules for this setup. Training has no stocks, clock or countdown."""

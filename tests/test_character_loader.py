@@ -19,6 +19,8 @@ from isofightr.sim.character_def import CharacterDef
 ROOK = """
 id = "rook"
 display_name = "Rook"
+archetype = "the all-rounder"
+blurb = "A young knight. Solid at everything, with big committed swings."
 weight = 98
 [movement]
 walk_speed = 0.075

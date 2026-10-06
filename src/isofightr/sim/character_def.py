@@ -185,6 +185,10 @@ class CharacterDef:
     grabs: GrabSet
     moves: Mapping[str, MoveDef]
     """Every move of the character, by id."""
+    archetype: str = ""
+    """A few words for menus ("the heavyweight"). Text only, like ``display_name``."""
+    blurb: str = ""
+    """One line about the character for menus. Text only."""
 
     def __deepcopy__(self, memo: dict[int, object]) -> Self:
         """Character data is immutable, so a copied match (snapshots, rollback) shares it."""

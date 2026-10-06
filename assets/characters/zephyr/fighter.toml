@@ -2,6 +2,8 @@
 # Units: world units (1 = one tile edge) and frames (60 per second).
 id = "zephyr"
 display_name = "Zephyr"
+archetype = "the rushdown"
+blurb = "A bird-fox courier. Fastest on foot, two air jumps, all combos."
 weight = 78
 
 [movement]

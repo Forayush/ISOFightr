@@ -14,7 +14,13 @@ from enum import Enum
 from typing import Final
 
 from isofightr.input.gamepad import PadState
-from isofightr.sim.input_frame import Button, InputFrame, world_to_stick
+from isofightr.sim.input_frame import (
+    VERTICAL_DOWN,
+    VERTICAL_UP,
+    Button,
+    InputFrame,
+    world_to_stick,
+)
 
 STICK_THRESHOLD: Final[float] = 0.5
 """How far the stick must be pushed to count as a menu direction."""
@@ -24,6 +30,7 @@ REPEAT_EVERY: Final[int] = 6
 CONFIRM_BUTTONS: Final[int] = Button.ATTACK | Button.JUMP
 BACK_BUTTONS: Final[int] = Button.SPECIAL | Button.SHIELD
 EXTRA_BUTTONS: Final[int] = Button.GRAB
+ALT_BUTTONS: Final[int] = Button.STRONG
 
 
 class MenuAction(Enum):
@@ -37,6 +44,11 @@ class MenuAction(Enum):
     BACK = "back"
     EXTRA = "extra"
     """The grab button: a scene's extra action (character select adds a CPU with it)."""
+    ALT = "alt"
+    """The strong button or the up modifier: a scene's second extra action (character
+    select changes costume with it)."""
+    ALT_BACK = "alt_back"
+    """The down modifier: the same, the other way."""
 
 
 MENU_SOUNDS: Final[dict[MenuAction, str]] = {
@@ -47,8 +59,11 @@ MENU_SOUNDS: Final[dict[MenuAction, str]] = {
     MenuAction.CONFIRM: "ui_select",
     MenuAction.BACK: "ui_back",
     MenuAction.EXTRA: "ui_pick",
+    MenuAction.ALT: "",
+    MenuAction.ALT_BACK: "",
 }
-"""The sound each menu action makes (plan note 14, "UI")."""
+"""The sound each menu action makes (plan note 14, "UI"); "" for the actions only some
+scenes use, which make their own sound when they do something."""
 
 DIRECTIONS: Final[tuple[MenuAction, ...]] = (
     MenuAction.UP,
@@ -76,6 +91,10 @@ def held_actions(frame: InputFrame) -> frozenset[MenuAction]:
         actions.add(MenuAction.BACK)
     if frame.held & EXTRA_BUTTONS:
         actions.add(MenuAction.EXTRA)
+    if frame.held & ALT_BUTTONS or frame.vertical == VERTICAL_UP:
+        actions.add(MenuAction.ALT)
+    elif frame.vertical == VERTICAL_DOWN:
+        actions.add(MenuAction.ALT_BACK)
     return frozenset(actions)
 
 

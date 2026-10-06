@@ -266,7 +266,8 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     css = window.current_view
     assert name(window) == "CharacterSelectView"
     assert [slot.device for slot in css.slots] == ["keyboard:solo", "", "", ""]
-    assert css._busts[0].visible and not css._busts[1].visible, "a bust for each joined player"
+    assert css.panels[0].art.visible and not css.panels[1].art.visible, "art for the joined"
+    assert css.panels[0].name.text == "ROOK" and css.panels[1].prompt[1].text == "TO JOIN"
     press(window, keys().J)
     assert name(window) == "CharacterSelectView"
     assert "two players" in css.message, "one player cannot start a versus match"
@@ -398,7 +399,7 @@ def test_four_players_join_with_mixed_devices(window: Any, pads: list[FakeContro
         "keyboard:arrows",
         "pad:0",
     ]
-    assert css._panels[1].labels[1].text == "Pad 2"
+    assert css.panels[1].tag.text == "P2  PAD 2"
     tap_pad(window, pads[0], "b")  # special: leave again
     assert css.slots[3].device == ""
     tap_pad(window, pads[0])
@@ -495,7 +496,7 @@ def test_team_match_from_the_menus(window: Any, pads: list[FakeController]) -> N
         pads[0].move_stick(0.0, 0.0)
         step(window, 2)
     assert css.slots[2].team == 0
-    assert "< Red team >" in css._panels[2].labels[3].text
+    assert css.panels[2].line1.text == "\u2190 RED TEAM \u2192", "the team row, under the cursor"
     press(window, keys().J)
     press(window, keys().NUM_4)
     tap_pad(window, pads[0])
@@ -1452,3 +1453,224 @@ def test_pausing_off_disables_the_pause_menu_in_versus_only(window: Any) -> None
     step(window, 3)
     press(window, keys().ESCAPE)
     assert window.current_view.menu_open, "training can always pause"
+
+
+# --- character select: the roster grid, costumes, the rules chip (M13 group 5) --------------
+
+
+def open_select(window: Any, **flow_options: Any) -> tuple[Any, Any]:
+    flow = to_main_menu(window, **flow_options)
+    press(window, keys().ENTER)
+    assert name(window) == "CharacterSelectView"
+    return flow, window.current_view
+
+
+def test_the_roster_grid_lists_every_character_and_random(window: Any) -> None:
+    from isofightr.data.character_loader import list_character_ids
+
+    _, css = open_select(window)
+    assert css.tiles == (*list_character_ids(), "random")
+    assert len(css.tile_rects) == len(css.tiles)
+    for first, second in zip(css.tile_rects, css.tile_rects[1:], strict=False):
+        assert not first.overlaps(second)
+    assert all(not rect.overlaps(panel.rect) for rect in css.tile_rects for panel in css.panels)
+    assert css.character_of(css.slots[0]) == "rook", "the setup's character, as before"
+    assert css.detail_name.text == "ROOK" and css.detail_kind.text == "the all-rounder"
+    assert all(0.0 < css.gauges[stat].value <= 1.0 for stat in css.gauges)
+
+
+def test_a_cursor_walks_the_roster_and_the_panel_and_detail_follow(window: Any) -> None:
+    _, css = open_select(window)
+    slot, panel = css.slots[0], css.panels[0]
+    start = slot.character
+    press(window, keys().D)
+    assert slot.character == (start + 1) % len(css.tiles)
+    hovered = css.character_of(slot)
+    assert panel.name.text == hovered.upper() and css.detail_name.text == hovered.upper()
+    assert css.cursors[0].sprite.visible and css.cursor_tags[0].text == "P1"
+    tile = css.tile_rects[slot.character]
+    assert abs(css.cursors[0].sprite.center_x - (tile.left + tile.width / 2)) < 1
+    while css.character_of(slot) != "random":
+        press(window, keys().D)
+    assert panel.name.text == "RANDOM" and panel.unknown.visible and not panel.art.visible
+    assert css.detail_kind.text == "the wildcard"
+    assert not any(swatch.sprite.visible for swatch in panel.swatches), "no costume for Random"
+    press(window, keys().D)
+    assert slot.character == 0, "the cursor wraps along the row"
+    press(window, keys().A)
+    assert css.character_of(slot) == "random"
+
+
+def test_bramble_and_zephyr_show_opposite_stat_bars(window: Any) -> None:
+    _, css = open_select(window)
+    slot = css.slots[0]
+    bars = {}
+    for _ in range(len(css.tiles)):
+        bars[css.character_of(slot)] = {stat: css.gauges[stat].value for stat in css.gauges}
+        press(window, keys().D)
+    assert bars["bramble"]["weight"] == 1.0 and bars["zephyr"]["weight"] == pytest.approx(0.2)
+    assert bars["zephyr"]["speed"] == 1.0 and bars["bramble"]["speed"] == pytest.approx(0.2)
+    assert bars["bramble"]["power"] > bars["zephyr"]["power"]
+    assert bars["random"] == dict.fromkeys(bars["random"], 0.0)
+
+
+def test_strong_changes_costume_and_two_players_never_share_one(window: Any) -> None:
+    flow, css = open_select(window)
+    first, second = css.slots[0], css.slots[1]
+    assert first.costume == 0, "player 1 starts in the character's own colours"
+    press(window, keys().U)
+    assert first.costume == 1 and css.shown_costume(0) == 1
+    shown = [swatch.sprite.visible for swatch in css.panels[0].swatches]
+    assert shown == [True] * 6, "six costumes, six swatches"
+    press(window, keys().I)  # the up modifier is the same as strong
+    assert first.costume == 2
+    press(window, keys().COMMA)  # the down modifier goes back
+    press(window, keys().COMMA)
+    press(window, keys().COMMA)
+    assert first.costume == 5, "it wraps"
+    press(window, keys().U)
+    assert first.costume == 0
+
+    press(window, keys().NUM_4)  # player 2 joins, on the same character
+    while css.character_of(second) != css.character_of(first):
+        press(window, keys().RIGHT)
+    assert second.costume != first.costume, "never the same costume on the same character"
+    taken = second.costume
+    for _ in range(6):
+        press(window, keys().U)
+        assert first.costume != taken, "player 1 skips the one player 2 wears"
+    art_one, art_two = css.panels[0].art.texture, css.panels[1].art.texture
+    assert art_one is not art_two
+
+    press(window, keys().J)
+    press(window, keys().NUM_4)
+    assert name(window) == "StageSelectView"
+    setup = window.current_view.setup
+    assert setup.costumes == (first.costume, second.costume)
+    press(window, keys().ENTER)
+    battle = window.current_view
+    fighters = battle.match.fighters
+    assert [battle.costume(fighter, 6) for fighter in fighters] == list(setup.costumes)
+    assert flow.setup.costumes == setup.costumes, "a rematch keeps them"
+
+
+def test_a_ready_player_cannot_change_character_or_costume(window: Any) -> None:
+    _, css = open_select(window)
+    slot = css.slots[0]
+    press(window, keys().NUM_4)
+    press(window, keys().J)
+    assert slot.ready and css.panels[0].line2.text == "READY!"
+    before = (slot.character, slot.costume)
+    press(window, keys().D)
+    press(window, keys().U)
+    assert (slot.character, slot.costume) == before
+    press(window, keys().K)
+    assert not slot.ready and css.slots[0].device, "back un-readies first"
+
+
+def test_random_is_resolved_when_the_match_starts(window: Any) -> None:
+    from isofightr.data.character_loader import list_character_ids
+
+    _, css = open_select(window)
+    while css.character_of(css.slots[0]) != "random":
+        press(window, keys().D)
+    press(window, keys().NUM_4)
+    assert css.current_setup().characters[0] == "random", "not yet"
+    press(window, keys().J)
+    press(window, keys().NUM_4)
+    assert name(window) == "StageSelectView"
+    picked = window.current_view.setup.characters
+    assert picked[0] in list_character_ids() and "random" not in picked
+
+
+def test_the_rules_chip_opens_the_rules_and_everyone_is_still_there_after(window: Any) -> None:
+    flow, css = open_select(window)
+    press(window, keys().NUM_4)
+    press(window, keys().D)
+    character = css.slots[0].character
+    assert css.chip.label.text == "STOCK 3  1.0x  TEAMS OFF"
+    press(window, keys().W)
+    assert css.slots[0].row == -1 and css.chip.look.value == "focus"
+    press(window, keys().K)
+    assert css.slots[0].row == 0 and css.slots[0].device, "back leaves the chip, not the slot"
+    press(window, keys().W)
+    press(window, keys().J)
+    assert name(window) == "RulesView"
+    go_to(window, "stock")
+    press(window, keys().D)
+    go_to(window, "team_play")
+    press(window, keys().J)
+    press(window, keys().K)
+    assert window.current_view is css, "the same screen, not a new one"
+    assert [slot.device for slot in css.slots[:2]] == ["keyboard:solo", "keyboard:arrows"]
+    assert css.slots[0].character == character and css.slots[0].row == 0
+    step(window, 2)
+    assert css.setup.stocks == 4 and css.setup.team_play
+    assert css.chip.label.text == "STOCK 4  1.0x  TEAMS ON"
+    assert css.panels[1].line1.text == "BLUE TEAM", "team rows appeared"
+    assert not any(swatch.sprite.visible for swatch in css.panels[0].swatches), (
+        "team colours, not costumes, in a team match"
+    )
+    assert flow.setup.stocks == 4
+
+
+def test_training_has_no_rules_chip_and_no_cpus(window: Any) -> None:
+    to_main_menu(window)
+    press(window, keys().S)
+    press(window, keys().ENTER)
+    css = window.current_view
+    assert css.setup.training and css.chip is None
+    press(window, keys().W)
+    assert css.slots[0].row == 0, "nothing above the roster"
+    press(window, keys().L)
+    assert not css.slots[1].taken, "grab adds no CPU in training"
+    assert css.panels[1].prompt[2].text == ""
+
+
+def test_a_cpu_gets_a_cursor_while_it_is_set_up(window: Any) -> None:
+    _, css = open_select(window)
+    press(window, keys().L)
+    cpu = css.slots[1]
+    assert cpu.cpu == 5 and css.cursor_tags[1].text == "CPU" and css.cursors[1].sprite.visible
+    assert css.panels[1].tag.text == "P2  CPU 5" and css.detail_slot == 1
+    before, own = cpu.character, css.slots[0].character
+    press(window, keys().D)
+    assert cpu.character != before and css.slots[0].character == own, "the CPU's cursor moved"
+    assert css.panels[1].name.text == css.character_of(cpu).upper()
+    costume = cpu.costume
+    press(window, keys().U)
+    assert cpu.costume != costume, "strong changes the CPU's costume while it is set up"
+    press(window, keys().S)
+    assert cpu.row == 1 and css.panels[1].line1.text == "\u2190 LEVEL 5 \u2192"
+    press(window, keys().J)
+    assert not css.focus and not css.cursors[1].sprite.visible, "done: its cursor goes"
+    assert css.panels[1].line1.text == "LEVEL 5"
+
+
+def test_the_mouse_picks_fighters_costumes_and_the_rules(window: Any) -> None:
+    _, css = open_select(window)
+    slot = css.slots[0]
+    target = css.tiles.index("mote")
+    rect = css.tile_rects[target]
+    click(window, rect.left + 10, rect.bottom + 20)
+    assert slot.character == target and css.panels[0].name.text == "MOTE"
+    swatch = css.panels[0].swatch_rects[3]
+    click(window, swatch.left + 3, swatch.bottom + 3)
+    assert slot.costume == 3
+    click(window, 300, 250)
+    assert slot.character == target and name(window) == "CharacterSelectView"
+    banner = css.panels[0].banner_rect
+    click(window, banner.left + 20, banner.bottom + 10)
+    assert slot.ready or "two players" in css.message
+    chip = css.chip.rect
+    click(window, chip.left + 30, chip.bottom + 8)
+    assert name(window) == "RulesView"
+
+
+def test_the_toast_says_why_a_match_cannot_start(window: Any) -> None:
+    _, css = open_select(window)
+    press(window, keys().J)
+    assert "two players" in css.message and css._status.text == css.message
+    assert css.toast.sprite.visible
+    press(window, keys().D)
+    assert css.message == "" and not css.toast.sprite.visible, "it clears on the next input"
