@@ -108,11 +108,19 @@ WINDOWLESS_MODULES = (
     "isofightr.render.vfx_art",
     "isofightr.scenes.setup",
     "isofightr.settings",
+    "isofightr.ui.anim",
+    "isofightr.ui.backdrop",
+    "isofightr.ui.focus",
+    "isofightr.ui.font",
+    "isofightr.ui.hints",
     "isofightr.ui.hud_layout",
+    "isofightr.ui.icons",
     "isofightr.ui.input_display",
+    "isofightr.ui.kit_art",
     "isofightr.ui.menu",
     "isofightr.ui.move_list",
     "isofightr.ui.pixel_font",
+    "isofightr.ui.theme",
 )
 """Presentation helpers the default test run imports. CI has no display, so none of them may
 pull in ``arcade`` or ``pyglet``; the parts that draw live in separate modules."""

@@ -50,3 +50,25 @@ def integer_scale_viewport(
         width=width,
         height=height,
     )
+
+
+def window_to_native(
+    x: float,
+    y: float,
+    viewport: ScaledViewport,
+    pixel_ratio: float = 1.0,
+    native_width: int = NATIVE_W,
+    native_height: int = NATIVE_H,
+) -> tuple[int, int] | None:
+    """Return the native pixel under a window position (a mouse), or ``None`` if the position
+    is on the letterbox.
+
+    ``x`` and ``y`` are measured from the window's bottom-left corner, as the window reports
+    the mouse; ``pixel_ratio`` turns them into the framebuffer pixels the viewport is in. The
+    result is y-up from the picture's bottom-left, like everything drawn into the buffer.
+    """
+    column = int((x * pixel_ratio - viewport.left) // viewport.scale)
+    row = int((y * pixel_ratio - viewport.bottom) // viewport.scale)
+    if 0 <= column < native_width and 0 <= row < native_height:
+        return (column, row)
+    return None

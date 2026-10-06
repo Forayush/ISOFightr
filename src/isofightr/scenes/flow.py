@@ -32,6 +32,7 @@ from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
 from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
 from isofightr.sim.rng import Rng
+from isofightr.ui.backdrop_layer import MenuBackdrop
 
 
 class GameFlow:
@@ -68,6 +69,15 @@ class GameFlow:
         self.setup = MatchSetup()
         self.rng = Rng.seeded(seed)
         self.matches_started = 0
+        self.menu_ticks = 0
+        """Ticks spent in menus this session: the backdrop drifts on from scene to scene."""
+        self._backdrop: MenuBackdrop | None = None
+
+    def backdrop(self) -> MenuBackdrop:
+        """Return the menu backdrop, shared by every menu scene."""
+        if self._backdrop is None:
+            self._backdrop = MenuBackdrop()
+        return self._backdrop
 
     # --- settings --------------------------------------------------------------------------
 

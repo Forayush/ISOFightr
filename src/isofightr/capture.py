@@ -1,9 +1,11 @@
-"""Capture a scripted battle offscreen as a contact sheet, to review how effects look.
+"""Capture a scripted battle or a menu screen offscreen as a contact sheet, to review looks.
 
-Plan note "16 - Testing Debug and Tooling" (``capture_scene.py``, decision D-060). A hidden
-:class:`~isofightr.app.GameWindow` runs a :class:`~isofightr.scenes.battle.BattleView` with
-scripted key presses for player 1 and saves chosen ticks side by side. The match is a
+Plan note "16 - Testing Debug and Tooling" (``capture_scene.py``, decisions D-060 and D-061).
+A hidden :class:`~isofightr.app.GameWindow` runs a :class:`~isofightr.scenes.battle.BattleView`
+with scripted key presses for player 1 and saves chosen ticks side by side. The match is a
 sandbox: fighters may be placed anywhere and given damage, as in the tests.
+:func:`capture_screen` does the same for a named screen of the game's flow (title, menus,
+character select, the HUD, results...).
 
 Imports ``arcade`` (through the app), so it needs a display.
 """
@@ -21,10 +23,39 @@ from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.scenes.battle import BattleView
+from isofightr.scenes.flow import GameFlow
+from isofightr.scenes.menus import ResultsView
+from isofightr.scenes.setup import MatchSetup, training_setup
+from isofightr.scenes.ui_kit import UiKitView
+from isofightr.settings import KEYBOARD_SOLO, Settings
 from isofightr.sim.input_frame import facing_from_move
 from isofightr.sim.math3d import Vec3
 
 PRESS, RELEASE = "@", "!"
+SCREENS: tuple[str, ...] = (
+    "title",
+    "main",
+    "rules",
+    "controls",
+    "charselect",
+    "stageselect",
+    "results",
+    "hud",
+    "loading",
+    "settings",
+    "pause",
+    "training",
+    "kit",
+)
+"""The screens :func:`capture_screen` can show."""
+ROSTER: tuple[str, ...] = ("rook", "bramble", "zephyr", "mote")
+HUD_DAMAGE: tuple[float, ...] = (37.0, 86.0, 142.0, 12.0)
+"""Damage the fighters are given for the HUD capture, so the colour ramp shows."""
+HUD_CPU_LEVEL = 5
+KEYBOARDS: tuple[str, ...] = ("keyboard:solo", "keyboard:arrows", "", "")
+OUT_OF_BOUNDS = Vec3(5.0, 5.0, -90.0)
+"""Far below any stage: a fighter put here is knocked out on the next tick."""
+RESULTS_TICK_LIMIT = 1200
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,15 +138,28 @@ def capture(
         second.facing = facing_from_move((first.pos - second.pos).xy) or second.facing
     view.camera.snap_to([fighter.pos for fighter in fighters])
 
+    return _run(window, script, ticks, crop, scale)
+
+
+def _run(
+    window: GameWindow,
+    script: Sequence[KeyStep],
+    ticks: Sequence[int],
+    crop: tuple[int, int, int, int] | None,
+    scale: int,
+) -> Image.Image:
+    """Tick whatever view the window shows (it may change on the way), feeding it the key
+    script, and return the frames at ``ticks`` side by side."""
     frames: list[Image.Image] = []
     wanted = sorted(set(ticks))
     for tick in range(1, (wanted[-1] if wanted else 0) + 1):
         for step in script:
             if step.tick == tick:
+                view = window.current_view
                 (view.on_key_press if step.down else view.on_key_release)(step.key, 0)
-        view.on_update(TICK_SECONDS)
+        window.current_view.on_update(TICK_SECONDS)
         if tick in wanted:
-            view.on_draw()
+            window.current_view.on_draw()
             frame = read_frame(window)
             if crop is not None:
                 left, top, width, height = crop
@@ -131,3 +175,101 @@ def capture(
     if scale > 1:
         sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
     return sheet
+
+
+def versus_setup(players: int, cpus: bool = False) -> MatchSetup:
+    """Return a versus setup with the roster's first ``players`` characters: the first two
+    on the keyboards, or (with ``cpus``) everyone but player 1 a CPU."""
+    count = min(max(players, 2), len(ROSTER))
+    return MatchSetup(
+        characters=ROSTER[:count],
+        devices=("keyboard:solo", *[""] * (count - 1)) if cpus else KEYBOARDS[:count],
+        cpus=(0, *[HUD_CPU_LEVEL] * (count - 1)) if cpus else (),
+    )
+
+
+def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 2) -> None:
+    """Show one of :data:`SCREENS`, set up so there is something to look at.
+
+    Raises:
+        ValueError: the name is unknown, or the screen is not built yet.
+    """
+    if screen == "title":
+        flow.show_title()
+    elif screen == "main":
+        flow.show_main_menu()
+    elif screen == "rules":
+        flow.show_rules()
+    elif screen == "settings":
+        flow.show_settings()
+    elif screen == "controls":
+        flow.show_rebind(KEYBOARD_SOLO)
+    elif screen == "kit":
+        window.show_view(UiKitView(window.pixel_buffer, flow))
+    elif screen == "charselect":
+        flow.show_character_select(flow.setup)
+    elif screen == "stageselect":
+        flow.show_stage_select(versus_setup(players))
+    elif screen in ("hud", "pause"):
+        flow.start_battle(versus_setup(max(players, 4) if screen == "hud" else players, cpus=True))
+        view = window.current_view
+        assert isinstance(view, BattleView)
+        view.show_help = False
+        for fighter, percent in zip(view.match.fighters, HUD_DAMAGE, strict=False):
+            view.match.set_damage(fighter.player_index, percent)
+        if screen == "pause":
+            view.open_menu()
+    elif screen == "training":
+        flow.start_battle(training_setup())
+        view = window.current_view
+        assert isinstance(view, BattleView)
+        view.show_help = False
+        view.open_menu()
+    elif screen == "results":
+        flow.start_battle(versus_setup(players))
+        view = window.current_view
+        assert isinstance(view, BattleView)
+        for _ in range(RESULTS_TICK_LIMIT):
+            if isinstance(window.current_view, ResultsView):
+                break
+            # A sandbox, as in the tests: the last player keeps falling until it is out.
+            loser = view.match.fighters[-1]
+            if view.match.result is None and loser.in_play:
+                loser.pos = OUT_OF_BOUNDS
+            window.current_view.on_update(TICK_SECONDS)
+        else:
+            raise ValueError("the match never reached the results screen")
+    elif screen == "loading":
+        raise ValueError("the loading screen is not built yet (M13 group 3)")
+    else:
+        raise ValueError(f"unknown screen {screen!r}: expected one of {', '.join(SCREENS)}")
+
+
+def capture_screen(
+    window: GameWindow,
+    screen: str,
+    script: Sequence[KeyStep] = (),
+    ticks: Sequence[int] = (30,),
+    crop: tuple[int, int, int, int] | None = None,
+    scale: int = 1,
+    players: int = 2,
+    seed: int = 0,
+    settings: Settings | None = None,
+) -> Image.Image:
+    """Show a screen of the game's flow and return the frames at ``ticks`` side by side.
+
+    Args:
+        window: a (hidden) game window.
+        screen: one of :data:`SCREENS`.
+        script: key events, sent to whatever scene is showing (so a script can walk on).
+        ticks: which ticks to capture, counted from when the screen opens.
+        crop: ``left, top, width, height`` in native pixels, applied to every frame.
+        scale: integer upscale of the sheet.
+        players: how many fighters, where the screen has fighters.
+        seed: the session seed.
+        settings: the user settings to show (the defaults if not given; never saved).
+    """
+    window.switch_to()
+    flow = GameFlow(window, window.pixel_buffer, seed=seed, settings=settings)
+    open_screen(window, flow, screen, players)
+    return _run(window, script, ticks, crop, scale)

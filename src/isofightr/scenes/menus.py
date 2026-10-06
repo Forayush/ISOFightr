@@ -33,6 +33,7 @@ from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
+from isofightr.render.pixel_scale import window_to_native
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.setup import (
     LAUNCH_RATES,
@@ -60,10 +61,22 @@ from isofightr.settings import (
 )
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.match import Match
+from isofightr.ui import theme
+from isofightr.ui.focus import Rect
+from isofightr.ui.font import TextSize
+from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas
-from isofightr.ui.widgets import HIGHLIGHT, MUTED, TextBlock, UiLayer, centred_left
+from isofightr.ui.widgets import (
+    HIGHLIGHT,
+    MUTED,
+    TextBlock,
+    TextLabel,
+    UiLayer,
+    centred_left,
+    picture_texture,
+)
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
@@ -79,12 +92,12 @@ KEY_CONFIRM = arcade.key.ENTER
 KEY_BACK = arcade.key.ESCAPE
 KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
 """The device Enter and Escape act as."""
-BACKGROUND = (30, 40, 86, 255)
+MOUSE_LEFT = arcade.MOUSE_BUTTON_LEFT
+MOUSE_RIGHT = arcade.MOUSE_BUTTON_RIGHT
 TITLE_SCALE = 4
 HEADING_SCALE = 2
 HEADING_BOTTOM = NATIVE_H - 60
 ROW_CAPACITY = 52
-FOOTER_BOTTOM = 10
 FADE_TICKS = 10
 """A scene fades in from black over this many ticks."""
 BLINK_TICKS = 30
@@ -104,14 +117,57 @@ class MenuView(TickedView):
         self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
         self.fade_ticks = FADE_TICKS
+        self.backdrop = flow.backdrop()
+        self.dim: arcade.SpriteList[arcade.Sprite] | None = arcade.SpriteList()
+        """A veil over the backdrop so plain text reads on it; ``None`` for scenes that
+        put their text on panels."""
+        self.dim.append(
+            arcade.Sprite(
+                picture_texture(
+                    ("dim", NATIVE_W, NATIVE_H),
+                    lambda: art.build_panel(
+                        NATIVE_W, NATIVE_H, theme.DIM_OVERLAY, theme.DIM_OVERLAY
+                    ),
+                ),
+                center_x=NATIVE_W / 2,
+                center_y=NATIVE_H / 2,
+            )
+        )
+        self.active_device = KEYBOARD_DEVICE
+        """The device that acted last: the footer shows its controls."""
+        self._footer_template = ""
+        self._footer_device = ""
+        self._footer: TextLabel | None = None
 
     def heading(self, text: str) -> None:
         """Add the scene's heading."""
         self.ui.centred(text, HEADING_BOTTOM, HIGHLIGHT, HEADING_SCALE)
 
-    def footer(self, text: str) -> None:
-        """Add the hint line at the bottom."""
-        self.ui.centred(text, FOOTER_BOTTOM, MUTED)
+    def footer(self, template: str) -> None:
+        """Set the hint line at the bottom. ``{attack}``, ``{special}``, ``{grab}``,
+        ``{stick}`` and the other action names are replaced by the real controls of the
+        device that acted last."""
+        self._footer_template = template
+        if self._footer is None:
+            strip = Rect(0, 0, NATIVE_W, theme.FOOTER_HEIGHT)
+            self.ui.picture(
+                ("footer", NATIVE_W),
+                lambda: art.build_panel(
+                    NATIVE_W, theme.FOOTER_HEIGHT, theme.PANEL_DEEP, theme.PANEL_DEEP
+                ),
+                0,
+                0,
+            )
+            self._footer = self.ui.write_in(strip, "", TextSize.BODY, theme.TEXT_MUTED)
+        self._footer_device = ""
+        self._sync_footer()
+
+    def _sync_footer(self) -> None:
+        if self._footer is None or self._footer_device == self.active_device:
+            return
+        self._footer_device = self.active_device
+        labels = device_labels(self.flow.settings, self.active_device)
+        self._footer.text = hint_text(self._footer_template, labels)
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Track held keys; Enter and Escape confirm and go back."""
@@ -120,6 +176,32 @@ class MenuView(TickedView):
             self._key_actions.append(MenuAction.CONFIRM)
         elif symbol == KEY_BACK:
             self._key_actions.append(MenuAction.BACK)
+
+    # --- mouse (an extra: everything also works without it) --------------------------------
+
+    def native_point(self, x: float, y: float) -> tuple[int, int] | None:
+        """Return the native pixel under a window position, or ``None`` on the letterbox."""
+        return window_to_native(x, y, self.window_viewport(), self.window.get_pixel_ratio())
+
+    def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
+        """Moving the mouse moves the cursor to whatever it is over."""
+        spot = self.native_point(x, y)
+        if spot is not None:
+            self.hover(*spot)
+
+    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+        """A left click confirms what is under the mouse; a right click goes back. Both act
+        on the next tick, as the keyboard, so they are handled in one place."""
+        spot = self.native_point(x, y)
+        if button == MOUSE_RIGHT:
+            self._key_actions.append(MenuAction.BACK)
+        elif button == MOUSE_LEFT and spot is not None and self.hover(*spot):
+            self._key_actions.append(MenuAction.CONFIRM)
+
+    def hover(self, x: int, y: int) -> bool:
+        """Move the cursor to the thing at a native pixel. Returns whether there is one (a
+        click only confirms then). Override in scenes."""
+        return False
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Stop tracking a released key."""
@@ -144,17 +226,21 @@ class MenuView(TickedView):
         self.hub.end_tick()
         devices = list(frames)
         fired = self.menu_input.update([frames[device] for device in devices])
+        self.flow.menu_ticks += 1
         for action in self._key_actions:
             if self.window.current_view is self:
                 self.audio.play(MENU_SOUNDS[action])
+                self.active_device = KEYBOARD_DEVICE
                 self.act(KEYBOARD_DEVICE, action)
         self._key_actions = []
         for device, actions in zip(devices, fired, strict=True):
             for action in MenuAction:
                 if action in actions and self.window.current_view is self:
                     self.audio.play(MENU_SOUNDS[action])
+                    self.active_device = device
                     self.act(device, action)
         if self.window.current_view is self:
+            self._sync_footer()
             self.refresh()
 
     def act(self, device: str, action: MenuAction) -> None:
@@ -166,7 +252,10 @@ class MenuView(TickedView):
     def on_draw(self) -> None:
         """Draw the scene at native resolution, then upscale it to the window."""
         self.clear()
-        with self.pixel_buffer.drawing(BACKGROUND):
+        with self.pixel_buffer.drawing(theme.BACKGROUND):
+            self.backdrop.draw(self.flow.menu_ticks)
+            if self.dim is not None:
+                self.dim.draw(pixelated=True)
             self.ui.draw()
             self.draw_fade()
         self.blit_to_window()
@@ -233,6 +322,14 @@ class MenuListView(MenuView):
     def back(self) -> None:
         """Back was pressed. Override in scenes."""
 
+    def hover(self, x: int, y: int) -> bool:
+        """Put the cursor on the row under the mouse."""
+        row = self.rows.row_at(x, y)
+        if row is None or row >= len(self.menu.items):
+            return False
+        self.menu.cursor = row
+        return True
+
     def refresh(self) -> None:
         """Show the menu rows."""
         self.rows.set_lines(self.menu.lines(), self.menu.cursor)
@@ -253,7 +350,7 @@ class MainMenuView(MenuListView):
             ]
         )
         super().__init__(pixel_buffer, flow, "MAIN MENU", menu)
-        self.footer("stick: move   attack: pick   special: back")
+        self.footer("{stick}: move   {attack}: pick   {special}: back")
 
     def choose(self, key: str) -> None:
         """Go where the item says."""
@@ -307,7 +404,7 @@ class RulesView(MenuListView):
             ]
         )
         super().__init__(pixel_buffer, flow, "RULES", menu)
-        self.footer("up/down: row   left/right: change   special: back")
+        self.footer("{stick}: row and value   {special}: back")
 
     def act(self, device: str, action: MenuAction) -> None:
         """The stocks/minutes row counts up and down instead of cycling choices."""
@@ -404,7 +501,7 @@ class SettingsView(MenuListView):
             ]
         )
         super().__init__(pixel_buffer, flow, "SETTINGS", menu)
-        self.footer("left/right: change   attack: pick   special: back")
+        self.footer("{stick}: row and value   {attack}: pick   {special}: back")
 
     def changed(self) -> None:
         """Apply and save the row that changed."""
@@ -461,7 +558,7 @@ class RebindView(MenuListView):
         items += [MenuItem("defaults", "Reset these keys"), MenuItem("back", "Back")]
         title = "KEYS: WASD KEYBOARD" if layout == KEYBOARD_SOLO else "KEYS: ARROWS KEYBOARD"
         super().__init__(pixel_buffer, flow, title, Menu(items), HEADING_BOTTOM - 14)
-        self.footer("attack: rebind, then press the new key   special: back")
+        self.footer("{attack}: rebind, then press the new key   {special}: back")
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """While waiting for a key, the next key press is the new binding (Escape cancels)."""
@@ -606,8 +703,8 @@ class CharacterSelectView(MenuView):
             self._busts.append(bust)
         self._banks: dict[str, SpriteBank | None] = {}
         self._status = self.ui.label(centred_left(70), self.PANEL_BOTTOM - 26, 70, MUTED)
-        hint = "" if setup.training else "   grab: add CPU"
-        self.footer(f"attack: join / ready   left/right: change{hint}   special: back")
+        hint = "" if setup.training else "   {grab}: add CPU"
+        self.footer(f"{{attack}}: join / ready   {{stick}}: change{hint}   {{special}}: back")
         self.refresh()
 
     def _bank(self, character_id: str) -> SpriteBank | None:
@@ -822,7 +919,7 @@ class StageSelectView(MenuView):
         self.stage_ids = [*list_stage_ids(), RANDOM_STAGE]
         self.cursor = self.stage_ids.index(setup.stage) if setup.stage in self.stage_ids else 0
         self.heading("CHOOSE A STAGE")
-        self.footer("left/right/up/down: stage   attack: fight   special: back")
+        self.footer("{stick}: stage   {attack}: fight   {special}: back")
         columns = min(self.COLUMNS, len(self.stage_ids))
         slot = NATIVE_W // columns
         self._names = []
