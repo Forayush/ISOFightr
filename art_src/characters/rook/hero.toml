@@ -27,13 +27,15 @@ hip_l = [-6.0, 18.0, 20.0]
 knee_l = [-34.0, 0.0, 0.0]
 ankle_l = [36.0, 0.0, -10.0]
 
-# His face for this picture (the rig's own has only eyes): keen brows and a wide grin.
+# His face for this picture (the rig's own has only eyes): brows lifted high and level, and
+# a broad open smile whose corners turn up. Eager, not fierce. The parts hug the face's
+# surface (a ball of radius 0.38 centred on 0, 0.03, 0.38), or they slide when the head tilts.
 [[parts]]
 name = "brow_r"
 joint = "head"
 shape = "rod"
-a = [0.06, 0.41, 0.50]
-b = [0.17, 0.38, 0.525]
+a = [0.06, 0.375, 0.535]
+b = [0.17, 0.345, 0.53]
 r1 = 0.02
 r2 = 0.02
 material = "ink"
@@ -42,32 +44,48 @@ material = "ink"
 name = "brow_l"
 joint = "head"
 shape = "rod"
-a = [-0.06, 0.41, 0.50]
-b = [-0.17, 0.38, 0.525]
+a = [-0.06, 0.375, 0.535]
+b = [-0.17, 0.345, 0.53]
 r1 = 0.02
 r2 = 0.02
 material = "ink"
 
 [[parts]]
-name = "grin"
+name = "smile"
 joint = "head"
 shape = "box"
-low = [-0.06, 0.36, 0.14]
-high = [0.06, 0.45, 0.19]
+low = [-0.055, 0.3, 0.125]
+high = [0.055, 0.365, 0.175]
 material = "ink"
 
 [[parts]]
-name = "grin_corner_r"
+name = "smile_r"
 joint = "head"
 shape = "box"
-low = [0.06, 0.35, 0.17]
-high = [0.11, 0.44, 0.215]
+low = [0.055, 0.3, 0.155]
+high = [0.105, 0.365, 0.2]
 material = "ink"
 
 [[parts]]
-name = "grin_corner_l"
+name = "smile_l"
 joint = "head"
 shape = "box"
-low = [-0.11, 0.35, 0.17]
-high = [-0.06, 0.44, 0.215]
+low = [-0.105, 0.3, 0.155]
+high = [-0.055, 0.365, 0.2]
+material = "ink"
+
+[[parts]]
+name = "smile_tip_r"
+joint = "head"
+shape = "box"
+low = [0.105, 0.295, 0.19]
+high = [0.14, 0.355, 0.23]
+material = "ink"
+
+[[parts]]
+name = "smile_tip_l"
+joint = "head"
+shape = "box"
+low = [-0.14, 0.295, 0.19]
+high = [-0.105, 0.355, 0.23]
 material = "ink"
