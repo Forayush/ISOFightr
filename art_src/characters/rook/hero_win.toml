@@ -19,65 +19,119 @@ hip_l = [-6.0, 0.0, 18.0]
 knee_l = [-8.0, 0.0, 0.0]
 ankle_l = [10.0, 0.0, -10.0]
 
-# His face for this picture (the rig's own has only eyes): brows lifted high and level, and
-# a broad open smile whose corners turn up. Eager, not fierce. The parts hug the face's
-# surface (a ball of radius 0.38 centred on 0, 0.03, 0.38), or they slide when the head tilts.
+# His face for this picture. The rig's own face is two eyes; here he gets a character's:
+# dark brows (one cocked), a glint in each eye, a button nose, a fringe of hair under the
+# helmet, a chin strap, and a lopsided open grin showing his teeth. Eager and a bit cheeky.
+# The parts hug the face's surface (a ball of radius 0.38 centred on 0, 0.03, 0.38), or they
+# slide when the head tilts.
 [[parts]]
 name = "brow_r"
 joint = "head"
 shape = "rod"
-a = [0.06, 0.375, 0.535]
-b = [0.17, 0.345, 0.53]
-r1 = 0.02
-r2 = 0.02
+a = [0.05, 0.385, 0.505]
+b = [0.18, 0.345, 0.525]
+r1 = 0.026
+r2 = 0.018
 material = "ink"
 
 [[parts]]
 name = "brow_l"
 joint = "head"
 shape = "rod"
-a = [-0.06, 0.375, 0.535]
-b = [-0.17, 0.345, 0.53]
+a = [-0.05, 0.38, 0.535]
+b = [-0.18, 0.335, 0.555]
+r1 = 0.026
+r2 = 0.018
+material = "ink"
+
+[[parts]]
+name = "glint_r"
+joint = "head"
+shape = "box"
+low = [0.07, 0.44, 0.39]
+high = [0.105, 0.475, 0.43]
+material = "blade"
+
+[[parts]]
+name = "glint_l"
+joint = "head"
+shape = "box"
+low = [-0.15, 0.44, 0.39]
+high = [-0.115, 0.475, 0.43]
+material = "blade"
+
+[[parts]]
+name = "nose"
+joint = "head"
+shape = "ball"
+centre = [0.0, 0.395, 0.3]
+radius = 0.05
+material = "skin"
+
+[[parts]]
+name = "fringe_a"
+joint = "head"
+shape = "ball"
+centre = [-0.07, 0.27, 0.665]
+radius = 0.07
+material = "leather"
+
+[[parts]]
+name = "fringe_b"
+joint = "head"
+shape = "ball"
+centre = [0.06, 0.28, 0.67]
+radius = 0.06
+material = "leather"
+
+[[parts]]
+name = "fringe_c"
+joint = "head"
+shape = "ball"
+centre = [0.17, 0.24, 0.655]
+radius = 0.05
+material = "leather"
+
+[[parts]]
+name = "strap_r"
+joint = "head"
+shape = "rod"
+a = [0.33, 0.12, 0.42]
+b = [0.13, 0.27, 0.07]
 r1 = 0.02
 r2 = 0.02
+material = "leather"
+
+[[parts]]
+name = "strap_l"
+joint = "head"
+shape = "rod"
+a = [-0.33, 0.12, 0.42]
+b = [-0.13, 0.27, 0.07]
+r1 = 0.02
+r2 = 0.02
+material = "leather"
+
+[[parts]]
+name = "mouth"
+joint = "head"
+shape = "box"
+low = [-0.07, 0.3, 0.13]
+high = [0.09, 0.365, 0.2]
 material = "ink"
 
 [[parts]]
-name = "smile"
+name = "teeth"
 joint = "head"
 shape = "box"
-low = [-0.055, 0.3, 0.125]
-high = [0.055, 0.365, 0.175]
-material = "ink"
+low = [-0.055, 0.31, 0.172]
+high = [0.075, 0.375, 0.2]
+material = "blade"
 
 [[parts]]
-name = "smile_r"
+name = "grin_up"
 joint = "head"
 shape = "box"
-low = [0.055, 0.3, 0.155]
-high = [0.105, 0.365, 0.2]
-material = "ink"
-
-[[parts]]
-name = "smile_l"
-joint = "head"
-shape = "box"
-low = [-0.105, 0.3, 0.155]
-high = [-0.055, 0.365, 0.2]
-material = "ink"
-
-[[parts]]
-name = "smile_tip_r"
-joint = "head"
-shape = "box"
-low = [0.105, 0.295, 0.19]
-high = [0.14, 0.355, 0.23]
-material = "ink"
-
-[[parts]]
-name = "smile_tip_l"
-joint = "head"
-shape = "box"
-low = [-0.14, 0.295, 0.19]
-high = [-0.105, 0.355, 0.23]
+low = [0.09, 0.295, 0.17]
+high = [0.14, 0.355, 0.235]
 material = "ink"
