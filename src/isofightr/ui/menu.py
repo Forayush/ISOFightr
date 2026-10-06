@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Final
 
+from isofightr.input.gamepad import PadState
 from isofightr.sim.input_frame import Button, InputFrame, world_to_stick
 
 STICK_THRESHOLD: Final[float] = 0.5
@@ -78,6 +79,29 @@ def held_actions(frame: InputFrame) -> frozenset[MenuAction]:
     return frozenset(actions)
 
 
+def pad_actions(state: PadState, start_confirms: bool = True) -> frozenset[MenuAction]:
+    """Return the menu actions a gamepad's own buttons hold, whatever is bound to them
+    (decision D-061): A confirms and B goes back, as Enter and Escape do on a keyboard, and
+    the d-pad moves. A player who unbinds attack can still use the menus. Start confirms
+    too, except where the caller gives it another job (pausing a match)."""
+    actions = set()
+    if state.a or (start_confirms and state.start):
+        actions.add(MenuAction.CONFIRM)
+    if state.b:
+        actions.add(MenuAction.BACK)
+    if state.dpad_up:
+        actions.add(MenuAction.UP)
+    elif state.dpad_down:
+        actions.add(MenuAction.DOWN)
+    if state.dpad_left:
+        actions.add(MenuAction.LEFT)
+    elif state.dpad_right:
+        actions.add(MenuAction.RIGHT)
+    return frozenset(actions)
+
+
+PAD_OWN_ACTIONS: Final[frozenset[MenuAction]] = frozenset({MenuAction.CONFIRM, MenuAction.BACK})
+"""The actions a gamepad does only with its own A, B and Start, never through a binding."""
 HELD_OVER: Final[int] = -1
 """Marks an action that was already held when the menu opened: ignored until released."""
 
@@ -98,16 +122,33 @@ class MenuInput:
     """Per player: how many ticks each held action has been held."""
     primed: bool = False
 
-    def update(self, frames: Sequence[InputFrame]) -> list[frozenset[MenuAction]]:
-        """Take this tick's frames (one per player) and return each player's new actions."""
+    def update(
+        self,
+        frames: Sequence[InputFrame],
+        extras: Sequence[frozenset[MenuAction] | None] | None = None,
+    ) -> list[frozenset[MenuAction]]:
+        """Take this tick's frames (one per player) and return each player's new actions.
+
+        ``extras`` are, for a gamepad, the actions its own buttons hold
+        (:func:`pad_actions`), and ``None`` for a keyboard. A gamepad confirms and goes back
+        with those buttons **only**: whatever its bindings make of A and B is ignored for
+        the two, so a button bound to attack never confirms and goes back at once.
+        """
+        held = []
+        for index, frame in enumerate(frames):
+            own = extras[index] if extras is not None else None
+            if own is None:
+                held.append(held_actions(frame))
+            else:
+                held.append((held_actions(frame) - PAD_OWN_ACTIONS) | own)
         if not self.primed or len(self.held_for) != len(frames):
             self.primed = True
-            self.held_for = [dict.fromkeys(held_actions(frame), HELD_OVER) for frame in frames]
+            self.held_for = [dict.fromkeys(each, HELD_OVER) for each in held]
             return [frozenset()] * len(frames)
         fired: list[frozenset[MenuAction]] = []
-        for index, frame in enumerate(frames):
+        for index in range(len(frames)):
             counts = self.held_for[index]
-            now = held_actions(frame)
+            now = held[index]
             new = set()
             for action in MenuAction:
                 if action not in now:

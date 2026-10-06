@@ -12,8 +12,9 @@ from PIL import Image
 
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.paths import REPO_ROOT
+from isofightr.input.gamepad import MODIFIER_BUMPERS
 from isofightr.render import placeholder_art
-from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, PRESET_BUMPERS, Settings
+from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, Settings
 from isofightr.ui import anim, backdrop, icons, kit_art, theme
 from isofightr.ui.focus import FocusMap, Rect
 from isofightr.ui.hints import device_labels, hint_text
@@ -396,7 +397,7 @@ def test_an_unbound_or_unknown_action_keeps_its_name() -> None:
     labels = device_labels(unbound, "keyboard:solo")
     assert hint_text("{attack}: pick", labels) == "attack: pick"
     assert hint_text("{grab}: add CPU", device_labels(Settings(), "")) == "grab: add CPU"
-    bumpers = Settings(gamepad_preset=PRESET_BUMPERS)
+    bumpers = Settings().with_pad(1, MODIFIER_BUMPERS)
     assert hint_text("{up}", device_labels(bumpers, "pad:1")) == "LB"
     assert hint_text("{nonsense}: x", labels) == "{nonsense}: x", "a bad template is shown as is"
     assert hint_text("plain", labels) == "plain"

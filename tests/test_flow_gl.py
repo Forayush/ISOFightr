@@ -13,6 +13,7 @@ import pytest
 
 from isofightr.config import TICK_SECONDS
 from isofightr.sim.constants import COUNTDOWN_FRAMES
+from isofightr.sim.input_frame import Button
 from isofightr.sim.math3d import Vec3
 
 pytestmark = pytest.mark.gl
@@ -35,6 +36,7 @@ class FakeController:
         self.name = name
         self.a = self.b = self.x = self.y = False
         self.leftshoulder = self.rightshoulder = False
+        self.leftstick = self.rightstick = self.start = False
         self.lefttrigger = self.righttrigger = 0.0
         self.handlers: dict[str, list[Callable[..., None]]] = {}
 
@@ -52,6 +54,13 @@ class FakeController:
         for name, handler in handlers.items():
             if handler in self.handlers.get(name, []):
                 self.handlers[name].remove(handler)
+
+    def move_dpad(self, x: float, y: float) -> None:
+        """Send a d-pad event (up positive) to everything listening."""
+        from pyglet.math import Vec2
+
+        for handler in list(self.handlers.get("on_dpad_motion", [])):
+            handler(self, Vec2(x, y))
 
     def move_stick(self, x: float, y: float) -> None:
         """Send a left stick event to everything listening."""
@@ -245,6 +254,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
         "versus",
         "training",
         "rules",
+        "controls",
         "settings",
         "quit",
     ]
@@ -668,7 +678,7 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
 
     path = tmp_path / "settings.toml"
     flow = to_main_menu(window, settings_path=path)
-    for _ in range(3):
+    for _ in range(4):
         press(window, keys().S)
     press(window, keys().ENTER)
     view = window.current_view
@@ -683,23 +693,62 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
     press(window, keys().S)
     press(window, keys().A)
     assert flow.settings.screen_shake == 75
-    for _ in range(4):
+
+    # The gamepad layout and the deadzone now live on the controls screen (D-061).
+    assert "gamepad_preset" not in [item.key for item in view.menu.items]
+    while view.menu.selected.key != "controls":
         press(window, keys().S)
+    press(window, keys().ENTER)
+    assert name(window) == "ControlsView"
+    controls = window.current_view
+    controls.cursor = "device"
     press(window, keys().D)
-    assert flow.settings.gamepad_preset == "modifier_bumpers"
-    press(window, keys().S)
+    press(window, keys().D)
+    controls = window.current_view
+    assert controls.device == "pad:0" and controls.cursor == "device"
+    assert flow.settings.slot_devices[0] == "pad:0", "the tab's player will join with it"
+    controls.cursor = "layout"
+    press(window, keys().D)
+    assert flow.settings.pad(0).layout == "modifier_bumpers"
+    assert flow.settings.pad(1).layout == "right_stick_modifiers", "this pad only"
+    controls.cursor = "deadzone"
     press(window, keys().D)
     assert flow.settings.deadzone == 0.25
     saved = load_settings(path)
-    assert (saved.screen_shake, saved.gamepad_preset, saved.deadzone) == (
+    assert (saved.screen_shake, saved.pad(0).layout, saved.deadzone) == (
         75,
         "modifier_bumpers",
         0.25,
     )
     press(window, keys().ESCAPE)
+    assert name(window) == "SettingsView", "back to where it was opened from"
+    press(window, keys().ESCAPE)
     assert name(window) == "MainMenuView"
     press(window, keys().ENTER)
     assert window.current_view.hub.settings.deadzone == 0.25, "new scenes use the new settings"
+
+
+def test_resetting_the_settings_keeps_the_controls_and_the_rules(window: Any) -> None:
+    from dataclasses import replace
+
+    from isofightr.settings import SavedRules, Settings
+
+    flow = to_main_menu(window)
+    flow.settings = replace(
+        Settings().with_key("solo", "taunt", "G"),
+        scale=2,
+        music_volume=3,
+        rules=SavedRules(stocks=7),
+    )
+    flow.show_settings()
+    step(window, 2)
+    view = window.current_view
+    while view.menu.selected.key != "defaults":
+        press(window, keys().S)
+    press(window, keys().ENTER)
+    assert flow.settings.music_volume == Settings().music_volume
+    assert flow.settings.bound_keys("solo", "taunt") == ("G",)
+    assert flow.settings.rules.stocks == 7
 
 
 def test_screen_shake_setting_scales_the_shake(window: Any) -> None:
@@ -717,44 +766,293 @@ def test_screen_shake_setting_scales_the_shake(window: Any) -> None:
     assert bytes(window.pixel_buffer.framebuffer.read(components=4)) == still
 
 
+def open_controls(window: Any, tab: int = 0, **flow_options: Any) -> tuple[Any, Any]:
+    flow = start(window, **flow_options)
+    flow.show_controls(tab=tab)
+    step(window, 2)
+    assert name(window) == "ControlsView"
+    return flow, window.current_view
+
+
 def test_rebinding_a_key(window: Any, tmp_path: Path) -> None:
     from isofightr.settings import load_settings
+    from isofightr.ui.kit_art import Look
 
     path = tmp_path / "settings.toml"
     flow = to_main_menu(window, settings_path=path)
     for _ in range(3):
         press(window, keys().S)
-    press(window, keys().ENTER)
-    for _ in range(8):
-        press(window, keys().S)
-    assert window.current_view.menu.selected.key == "keys_solo"
+    assert window.current_view.menu.selected.key == "controls"
     press(window, keys().ENTER)
     view = window.current_view
-    assert name(window) == "RebindView"
-    for _ in range(6):
-        press(window, keys().S)
-    assert view.menu.selected.key == "attack" and view.menu.selected.label.endswith("J")
+    assert name(window) == "ControlsView" and view.device == "keyboard:solo"
+    assert view.cursor == "move_up:0", "it opens on the first cap"
+    press(window, keys().D)
+    assert view.cursor == "attack:0", "the stick walks from tile to tile"
+    assert view.caps[("attack", 0)]._state == ("J", Look.FOCUS)
     press(window, keys().ENTER)
-    assert view.waiting_for == "attack" and "press a key" in view.menu.selected.label
+    assert view.listening == ("attack", 0) and view.info()[1][0] == "for ATTACK (primary)."
+    step(window, 1)
+    assert view.caps[("attack", 0)]._state[0] == "?", "the cap shows it is waiting"
+    assert view.info_title.text == "PRESS A KEY"
     press(window, keys().F)
-    assert view.waiting_for is None
+    assert view.listening is None
     assert flow.settings.keys["solo"]["attack"] == "F"
     assert load_settings(path).keys["solo"]["attack"] == "F"
-    assert view.menu.selected.label.endswith("F")
+    assert view.caps[("attack", 0)]._state[0] == "F"
 
     # Taking a key another action uses unbinds that action.
-    press(window, keys().S)
+    press(window, keys().D)
+    assert view.cursor == "special:0"
     press(window, keys().ENTER)
     press(window, keys().F)
     assert flow.settings.keys["solo"]["special"] == "F"
     assert flow.settings.keys["solo"]["attack"] == ""
+    assert view.caps[("attack", 0)]._state == ("n/a", Look.DANGER), "n/a, in red"
+    assert "F was taken from ATTACK" in view.message
+    assert view.info_lines[2].text == view.message
     press(window, keys().ENTER)
+    assert view.listening == ("special", 0)
     press(window, keys().ESCAPE)  # Escape cancels the capture
+    assert view.listening is None and name(window) == "ControlsView"
     assert flow.settings.keys["solo"]["special"] == "F"
+    step(window, 2)
+    assert "NOT BOUND: ATTACK" in [label.text for label in view.info_lines] or view.message
 
     # The new key works at once: F is now "special" = back.
     press(window, keys().F)
-    assert name(window) == "SettingsView"
+    assert name(window) == "MainMenuView"
+
+
+def test_enter_cannot_be_bound_and_keeps_the_cap_waiting(window: Any) -> None:
+    flow, view = open_controls(window)
+    view.cursor = "jump:0"
+    press(window, keys().J)
+    assert view.listening == ("jump", 0)
+    press(window, keys().ENTER)
+    assert view.listening == ("jump", 0) and "cannot be bound" in view.message
+    assert flow.settings.bound_keys("solo", "jump") == ("SPACE",)
+    press(window, keys().V)
+    assert view.listening is None and flow.settings.bound_keys("solo", "jump") == ("V",)
+
+
+def test_a_second_key_per_action_and_clearing_a_cap(window: Any) -> None:
+    flow, view = open_controls(window)
+    view.cursor = "jump:0"
+    press(window, keys().S)
+    assert view.cursor == "jump:1", "the small cap sits under the big one"
+    press(window, keys().ENTER)
+    press(window, keys().V)
+    assert flow.settings.bound_keys("solo", "jump") == ("SPACE", "V")
+    assert view.caps[("jump", 1)]._state[0] == "V" and view.cursor == "jump:1"
+
+    hub_frame = view.hub.frame("keyboard:solo", {keys().V})
+    assert hub_frame.held == Button.JUMP, "the second key works at once"
+    assert view.hub.frame("keyboard:solo", {keys().SPACE}).held == Button.JUMP
+
+    press(window, keys().L)  # grab clears the cap under the cursor
+    assert flow.settings.bound_keys("solo", "jump") == ("SPACE",)
+    view.cursor = "taunt:1"
+    press(window, keys().ENTER)
+    press(window, keys().G)
+    assert flow.settings.bound_keys("solo", "taunt") == ("T", "G")
+    view.cursor = "taunt:0"
+    press(window, keys().L)
+    assert flow.settings.bound_keys("solo", "taunt") == ("G",), "the second key moves up"
+
+
+def test_the_live_test_lights_the_caps_of_held_keys(window: Any) -> None:
+    from isofightr.ui.kit_art import Look
+
+    _, view = open_controls(window)
+    view.cursor = "back"
+    view.on_key_press(keys().U, 0)
+    step(window, 2)
+    assert view.caps[("strong", 0)]._state == ("U", Look.LIT)
+    assert view.live.text == "U" and view.side_note.text == ""
+    assert view.caps[("attack", 0)]._state == ("J", Look.NORMAL)
+    view.on_key_release(keys().U, 0)
+    step(window, 2)
+    assert view.caps[("strong", 0)]._state == ("U", Look.NORMAL)
+    assert view.live.text == "" and "LIGHTS UP" in view.side_note.text
+
+
+def test_default_resets_this_device_after_a_confirm(window: Any) -> None:
+    flow, view = open_controls(window)
+    flow.settings = flow.settings.with_key("solo", "attack", "F").with_key(
+        "arrows", "attack", "RSHIFT"
+    )
+    view.hub.apply_settings(flow.settings)
+    view.cursor = "default"
+    press(window, keys().ENTER)
+    assert view.confirming_default and view.buttons["default"].label.text == "SURE?"
+    assert flow.settings.bound_keys("solo", "attack") == ("F",), "nothing yet"
+    press(window, keys().D)
+    assert not view.confirming_default and view.cursor == "back", "moving away cancels"
+    press(window, keys().A)
+    press(window, keys().ENTER)
+    press(window, keys().ENTER)
+    assert flow.settings.bound_keys("solo", "attack") == ("J",)
+    assert flow.settings.bound_keys("arrows", "attack") == ("RSHIFT",), "only this device"
+    assert not view.confirming_default and "default controls" in view.message
+
+
+def test_tabs_show_each_players_device(window: Any, pads: list[FakeController]) -> None:
+    flow, view = open_controls(window)
+    assert [tab.active for tab in view.tabs] == [True, False, False, False]
+    view.cursor = "tab:0"
+    press(window, keys().D)
+    assert view.cursor == "tab:1"
+    press(window, keys().ENTER)
+    view = window.current_view
+    assert view.tab == 1 and view.device == "keyboard:arrows" and view.cursor == "tab:1"
+    assert view.caps[("attack", 0)]._state[0] == "NUM 4"
+    press(window, keys().D)
+    press(window, keys().ENTER)
+    view = window.current_view
+    assert view.tab == 2 and view.device == "pad:0" and view.pad and view.diagram is not None
+    assert view.caps[("jump", 0)]._state[0] == "X" and view.caps[("jump", 1)]._state[0] == "Y"
+    assert view.caps[("stick", 0)]._state[0] == "L-STICK"
+    assert ("move_up", 0) not in view.caps and "layout" in view.steppers
+    assert view.side_note.text == "", "pad 1 is plugged in"
+    flow.show_controls(tab=3)
+    step(window, 2)
+    assert window.current_view.device == "pad:1"
+
+
+def test_rebinding_a_gamepad_button_changes_what_the_game_does(
+    window: Any, pads: list[FakeController], tmp_path: Path
+) -> None:
+    from isofightr.settings import load_settings
+    from isofightr.ui.kit_art import Look
+
+    path = tmp_path / "settings.toml"
+    flow, view = open_controls(window, tab=2, settings_path=path)
+    pad = pads[0]
+    assert view.device == "pad:0"
+    assert view.hub.frame("pad:0", set()).held == 0
+    view.cursor = "taunt:0"
+    tap_pad(window, pad, "a")  # the pad's own A confirms
+    assert view.listening == ("taunt", 0) and view.info()[1][1].startswith("Start")
+    pad.move_dpad(0.0, 1.0)
+    step(window, 1)
+    pad.move_dpad(0.0, 0.0)
+    step(window, 2)
+    assert view.listening is None
+    assert flow.settings.pad(0).taunt == ("dpup",) and flow.settings.pad(0).layout == "custom"
+    assert load_settings(path).pad(0).taunt == ("dpup",)
+    assert flow.settings.pad(1).taunt == (), "the other pad is untouched"
+    assert view.steppers["layout"].label.text == "Custom"
+    pad.move_dpad(0.0, 1.0)
+    assert view.hub.frame("pad:0", set()).held == Button.TAUNT, "the game sees it at once"
+    step(window, 2)
+    assert view.caps[("taunt", 0)]._state == ("D-UP", Look.LIT), "and the live test lights it"
+    pad.move_dpad(0.0, 0.0)
+    step(window, 2)
+
+    # Swap attack onto B: B is taken from special, which is left with nothing.
+    view.cursor = "attack:0"
+    tap_pad(window, pad, "a")
+    assert view.listening == ("attack", 0)
+    tap_pad(window, pad, "b")
+    assert flow.settings.pad(0).attack == ("b",) and flow.settings.pad(0).special == ()
+    assert view.caps[("special", 0)]._state == ("n/a", Look.DANGER)
+    assert "NOT BOUND: SPECIAL" in [label.text for label in view.info_lines] or view.message
+    pad.b = True
+    assert view.hub.frame("pad:0", set()).held == Button.ATTACK
+    pad.b = False
+    step(window, 2)
+
+    # A no longer attacks, but it still confirms in menus; Start cancels a waiting cap.
+    assert name(window) == "ControlsView"
+    view.cursor = "special:0"
+    tap_pad(window, pad, "a")
+    assert view.listening == ("special", 0), "A confirmed although nothing is bound to it"
+    tap_pad(window, pad, "start")
+    assert view.listening is None and flow.settings.pad(0).special == ()
+    tap_pad(window, pad, "b")
+    assert name(window) == "MainMenuView", "B goes back although it is bound to attack"
+
+
+def test_a_gamepad_that_is_not_plugged_in_can_be_looked_at_but_not_rebound(window: Any) -> None:
+    flow, view = open_controls(window, tab=2)
+    assert view.device == "pad:0" and view.side_note.text == "NOT CONNECTED"
+    view.cursor = "attack:0"
+    press(window, keys().ENTER)
+    assert view.listening is None and "not connected" in view.message
+    view.cursor = "layout"
+    press(window, keys().D)
+    assert flow.settings.pad(0).layout == "modifier_bumpers", "layouts need no pad"
+    view.cursor = "stick"
+    press(window, keys().D)
+    assert flow.settings.pad(0).right_stick == "modifiers"
+    assert view.steppers["layout"].label.text == "Custom"
+
+
+def test_the_mouse_rebinds_and_steps_on_the_controls_screen(window: Any) -> None:
+    flow, view = open_controls(window)
+    cap = view.rects["grab:0"]
+    click(window, cap.left + 5, cap.bottom + 5)
+    assert view.cursor == "grab:0" and view.listening == ("grab", 0)
+    click(window, 300, 300)
+    assert view.listening == ("grab", 0), "a click does nothing while a cap waits"
+    press(window, keys().H)
+    assert flow.settings.bound_keys("solo", "grab") == ("H",)
+    device = view.rects["device"]
+    click(window, device.right - 4, device.bottom + 5)
+    view = window.current_view
+    assert view.device == "keyboard:arrows"
+    click(window, view.rects["device"].left + 4, device.bottom + 5)
+    assert window.current_view.device == "keyboard:solo"
+    tab = window.current_view.rects["tab:3"]
+    click(window, tab.left + 20, tab.bottom + 8)
+    assert window.current_view.tab == 3
+
+
+def test_start_pauses_a_match_and_the_d_pad_moves_in_menus(
+    window: Any, pads: list[FakeController]
+) -> None:
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = to_main_menu(window)
+    menu = window.current_view.menu
+    pads[0].move_dpad(0.0, -1.0)
+    step(window, 1)
+    pads[0].move_dpad(0.0, 0.0)
+    step(window, 2)
+    assert menu.cursor == 1, "the d-pad moves the cursor"
+
+    flow.start_battle(MatchSetup(characters=("rook", "mote"), devices=("pad:0", "keyboard:solo")))
+    step(window, COUNTDOWN_FRAMES + 5)
+    battle = window.current_view
+    tap_pad(window, pads[0], "start")
+    assert battle.menu_open
+    frame = battle.match.frame
+    step(window, 3)
+    assert battle.match.frame == frame, "the match is frozen"
+    tap_pad(window, pads[0], "start")
+    assert not battle.menu_open, "Start closes the pause menu again"
+
+    flow.start_battle(
+        MatchSetup(characters=("rook", "mote"), devices=("pad:0", "keyboard:solo"), pausing=False)
+    )
+    step(window, COUNTDOWN_FRAMES + 5)
+    tap_pad(window, pads[0], "start")
+    assert not window.current_view.menu_open, "not when the rules have pausing off"
+
+
+def test_the_help_and_the_move_list_follow_a_rebind(window: Any) -> None:
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = start(window)
+    flow.settings = flow.settings.with_key("solo", "attack", "F")
+    flow.start_battle(MatchSetup(characters=("rook", "mote"), devices=KEYBOARD_PAIR))
+    step(window, 3)
+    battle = window.current_view
+    assert any("F attack" in line for line in battle._help_text)
+    assert not any("J attack" in line for line in battle._help_text)
+    _, left, right = battle.move_list_lines(0)
+    assert any(line.rstrip().endswith(" F") for line in [*left, *right]), "the jab is on F"
 
 
 # --- recording from the menus -------------------------------------------------------------

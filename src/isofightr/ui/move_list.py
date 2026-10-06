@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, fields
 from typing import Final
 
-from isofightr.input.gamepad import GamepadPreset
+from isofightr.input.gamepad import PadBindings
 from isofightr.sim.character_def import MoveSet
 
 ACTIONS: Final[tuple[str, ...]] = (
@@ -47,12 +47,18 @@ PAD_LABELS: Final[Mapping[str, str]] = {
     "b": "B",
     "x": "X",
     "y": "Y",
-    "left_shoulder": "LB",
-    "right_shoulder": "RB",
-    "left_trigger": "LT",
-    "right_trigger": "RT",
+    "leftshoulder": "LB",
+    "rightshoulder": "RB",
+    "lefttrigger": "LT",
+    "righttrigger": "RT",
+    "leftstick": "L3",
+    "rightstick": "R3",
+    "dpup": "D-UP",
+    "dpdown": "D-DOWN",
+    "dpleft": "D-LEFT",
+    "dpright": "D-RIGHT",
 }
-"""Gamepad control names (:class:`~isofightr.input.gamepad.PadState` fields) as printed."""
+"""Gamepad control names (:data:`~isofightr.input.gamepad.PAD_CONTROLS`) as printed."""
 NAME_WIDTH: Final[int] = 15
 """Width of the move-name column in a formatted row."""
 
@@ -97,15 +103,16 @@ def keyboard_labels(keys: Mapping[str, str]) -> dict[str, str]:
     return labels
 
 
-def gamepad_labels(preset: GamepadPreset) -> dict[str, str]:
-    """Return the action labels for a gamepad preset."""
+def gamepad_labels(preset: PadBindings) -> dict[str, str]:
+    """Return the action labels for a gamepad's bindings."""
 
     def named(controls: Sequence[str], fallback: str = UNBOUND) -> str:
         return "/".join(PAD_LABELS.get(control, control) for control in controls) or fallback
 
     up, down = named(preset.up), named(preset.down)
     if preset.right_stick_modifiers:
-        up, down = "RS up", "RS down"
+        up = "RS up" if not preset.up else f"RS up/{up}"
+        down = "RS down" if not preset.down else f"RS down/{down}"
     return {
         "stick": "LS",
         "attack": named(preset.attack),
@@ -116,7 +123,7 @@ def gamepad_labels(preset: GamepadPreset) -> dict[str, str]:
         "shield": named(preset.shield),
         "up": up,
         "down": down,
-        "taunt": UNBOUND,
+        "taunt": named(preset.taunt),
     }
 
 

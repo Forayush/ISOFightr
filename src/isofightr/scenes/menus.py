@@ -28,7 +28,7 @@ from isofightr.config import (
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import list_stage_ids, load_stage
-from isofightr.input.devices import KEYBOARD_PREFIX, DeviceHub, key_name
+from isofightr.input.devices import KEYBOARD_PREFIX, DeviceHub
 from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.fighter_look import costume_index
@@ -47,10 +47,6 @@ from isofightr.scenes.setup import (
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     CAMERA_ZOOMS,
-    DEADZONES,
-    GAMEPAD_PRESETS,
-    KEYBOARD_ACTIONS,
-    KEYBOARD_ARROWS,
     KEYBOARD_SOLO,
     SCALES,
     SHAKE_STEPS,
@@ -247,9 +243,10 @@ class MenuView(TickedView):
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""
         frames = self.hub.frames(self._keys.keys())
         self._keys.end_tick()
-        self.hub.end_tick()
         devices = list(frames)
-        fired = self.menu_input.update([frames[device] for device in devices])
+        extras = self.hub.menu_extras(devices)
+        self.hub.end_tick()
+        fired = self.menu_input.update([frames[device] for device in devices], extras)
         self.flow.menu_ticks += 1
         for action in self._key_actions:
             if self.window.current_view is self:
@@ -374,6 +371,7 @@ class MainMenuView(MenuListView):
                 MenuItem("versus", "Versus"),
                 MenuItem("training", "Training"),
                 MenuItem("rules", "Rules"),
+                MenuItem("controls", "Controls"),
                 MenuItem("settings", "Settings"),
                 MenuItem("quit", "Quit"),
             ]
@@ -389,6 +387,8 @@ class MainMenuView(MenuListView):
             self.flow.show_character_select(training_setup())
         elif key == "rules":
             self.flow.show_rules()
+        elif key == "controls":
+            self.flow.show_controls()
         elif key == "settings":
             self.flow.show_settings()
         else:
@@ -426,22 +426,7 @@ class SettingsView(MenuListView):
                 MenuItem("master_volume", "Master volume", volumes, settings.master_volume),
                 MenuItem("music_volume", "Music volume", volumes, settings.music_volume),
                 MenuItem("sfx_volume", "Effects volume", volumes, settings.sfx_volume),
-                _setting(
-                    "gamepad_preset",
-                    "Gamepad layout",
-                    ["right stick = up/down", "bumpers = up/down, right stick = smash"],
-                    GAMEPAD_PRESETS,
-                    settings.gamepad_preset,
-                ),
-                _setting(
-                    "deadzone",
-                    "Stick deadzone",
-                    [f"{zone:.2f}" for zone in DEADZONES],
-                    DEADZONES,
-                    settings.deadzone,
-                ),
-                MenuItem("keys_solo", "Keys: keyboard (WASD)..."),
-                MenuItem("keys_arrows", "Keys: keyboard (arrows)..."),
+                MenuItem("controls", "Controls: keyboard and gamepad..."),
                 _setting(
                     "camera_zoom",
                     "Camera zoom",
@@ -471,21 +456,29 @@ class SettingsView(MenuListView):
                 master_volume=menu.item("master_volume").index,
                 music_volume=menu.item("music_volume").index,
                 sfx_volume=menu.item("sfx_volume").index,
-                gamepad_preset=GAMEPAD_PRESETS[menu.item("gamepad_preset").index],
-                deadzone=DEADZONES[menu.item("deadzone").index],
                 camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
                 reduce_flashing=bool(menu.item("reduce_flashing").index),
             )
         )
 
     def choose(self, key: str) -> None:
-        """Open a rebinding screen, reset, or leave."""
-        if key == "keys_solo":
-            self.flow.show_rebind(KEYBOARD_SOLO)
-        elif key == "keys_arrows":
-            self.flow.show_rebind(KEYBOARD_ARROWS)
+        """Open the controls screen, reset, or leave."""
+        if key == "controls":
+            self.flow.show_controls(self.flow.show_settings)
         elif key == "defaults":
-            self.flow.update_settings(Settings(slot_devices=self.flow.settings.slot_devices))
+            # Video, audio and accessibility only: the controls and the rules have their
+            # own DEFAULT buttons.
+            kept = self.flow.settings
+            self.flow.update_settings(
+                Settings(
+                    slot_devices=kept.slot_devices,
+                    rules=kept.rules,
+                    keys=kept.keys,
+                    alt_keys=kept.alt_keys,
+                    pads=kept.pads,
+                    deadzone=kept.deadzone,
+                )
+            )
             self.flow.show_settings()
         else:
             self.back()
@@ -501,62 +494,6 @@ def _setting[T](
     """Return a setting row whose choices stand for ``values``, with ``value`` selected."""
     index = values.index(value) if value in values else 0
     return MenuItem(key, label, tuple(names), index)
-
-
-class RebindView(MenuListView):
-    """Rebind one keyboard layout: pick an action, then press the key for it."""
-
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, layout: str) -> None:
-        """Build one row per action of the layout."""
-        self.layout = layout
-        self.waiting_for: str | None = None
-        items = [MenuItem(action, "") for action in KEYBOARD_ACTIONS]
-        items += [MenuItem("defaults", "Reset these keys"), MenuItem("back", "Back")]
-        title = "KEYS: WASD KEYBOARD" if layout == KEYBOARD_SOLO else "KEYS: ARROWS KEYBOARD"
-        super().__init__(pixel_buffer, flow, title, Menu(items), HEADING_BOTTOM - 14)
-        self.footer("{attack}: rebind, then press the new key   {special}: back")
-
-    def on_key_press(self, symbol: int, modifiers: int) -> None:
-        """While waiting for a key, the next key press is the new binding (Escape cancels)."""
-        if self.waiting_for is None:
-            super().on_key_press(symbol, modifiers)
-            return
-        action, self.waiting_for = self.waiting_for, None
-        name = key_name(symbol)
-        if symbol != KEY_BACK and name:
-            self.flow.update_settings(self.flow.settings.with_key(self.layout, action, name))
-            self.hub.close()
-            self.hub = DeviceHub(self.flow.settings)
-        self.menu_input.reset()
-
-    def act(self, device: str, action: MenuAction) -> None:
-        """Ignore the devices while waiting for a key."""
-        if self.waiting_for is None:
-            super().act(device, action)
-
-    def choose(self, key: str) -> None:
-        """Start waiting for a key, reset the layout, or leave."""
-        if key == "defaults":
-            self.flow.update_settings(self.flow.settings.with_default_keys(self.layout))
-            self.hub.close()
-            self.hub = DeviceHub(self.flow.settings)
-        elif key == "back":
-            self.back()
-        else:
-            self.waiting_for = key
-            self._key_actions = []
-
-    def back(self) -> None:
-        """Back to the settings."""
-        self.flow.show_settings()
-
-    def refresh(self) -> None:
-        """Show each action with its key, or a prompt while waiting."""
-        keys = self.flow.settings.keys[self.layout]
-        for action in KEYBOARD_ACTIONS:
-            shown = "press a key..." if action == self.waiting_for else (keys[action] or "-")
-            self.menu.item(action).label = f"{action.replace('_', ' '):<12} {shown}"
-        super().refresh()
 
 
 @dataclass(slots=True)

@@ -10,16 +10,12 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 from collections.abc import Mapping
 from typing import Final
 
-from isofightr.input.gamepad import MODIFIER_BUMPERS, RIGHT_STICK_MODIFIERS, GamepadPreset
-from isofightr.settings import PRESET_BUMPERS, PRESET_RIGHT_STICK, Settings
+from isofightr.settings import Settings
 from isofightr.ui.move_list import ACTIONS, UNBOUND, gamepad_labels, keyboard_labels
 
 KEYBOARD_PREFIX: Final[str] = "keyboard:"
 """Device ids of keyboard layouts start with this (as in :mod:`isofightr.input.devices`)."""
-PRESETS: Final[Mapping[str, GamepadPreset]] = {
-    PRESET_RIGHT_STICK: RIGHT_STICK_MODIFIERS,
-    PRESET_BUMPERS: MODIFIER_BUMPERS,
-}
+PAD_PREFIX: Final[str] = "pad:"
 KEYBOARD_STICK: Final[str] = "arrows"
 """What the move keys are called when they are the arrow keys."""
 
@@ -33,8 +29,8 @@ def device_labels(settings: Settings, device: str) -> dict[str, str]:
         keys = settings.keys.get(device[len(KEYBOARD_PREFIX) :])
         if keys is not None:
             return keyboard_labels(keys)
-    elif device:
-        return gamepad_labels(PRESETS[settings.gamepad_preset])
+    elif device.startswith(PAD_PREFIX) and device[len(PAD_PREFIX) :].isdigit():
+        return gamepad_labels(settings.pad(int(device[len(PAD_PREFIX) :])))
     return {action: action for action in ACTIONS}
 
 
@@ -52,3 +48,17 @@ def hint_text(template: str, labels: Mapping[str, str]) -> str:
         return template.format_map(shown)
     except (KeyError, IndexError, ValueError):
         return template
+
+
+HELP_TEMPLATES: Final[tuple[str, ...]] = (
+    "{stick} move  {jump} jump  {up}/{down} up/down  {attack} attack  {special} special  "
+    "{strong} smash  {grab} grab  {shield} shield",
+    "AIR  {attack} + direction  {up} up  {down} down  {jump}+{attack} = short hop aerial",
+)
+"""The in-battle help's control lines, filled in with the first player's own bindings."""
+
+
+def battle_help(labels: Mapping[str, str]) -> list[str]:
+    """Return the in-battle help's control lines for a device's labels, so the help follows
+    a rebind (decision D-061)."""
+    return [hint_text(template, labels) for template in HELP_TEMPLATES]

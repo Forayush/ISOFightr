@@ -20,6 +20,14 @@ from pathlib import Path
 from typing import Any, Final
 
 from isofightr.config import DEFAULT_WINDOW_SCALE, MAX_PLAYERS, STICK_DEADZONE
+from isofightr.input.gamepad import (
+    CONTROL_FIELDS,
+    MAX_CONTROLS,
+    PAD_ACTIONS,
+    PAD_LAYOUTS,
+    RIGHT_STICK_MODES,
+    PadBindings,
+)
 from isofightr.sim.constants import DEFAULT_STOCKS, DEFAULT_TIME_MINUTES
 
 LOG = logging.getLogger(__name__)
@@ -37,6 +45,13 @@ DEADZONES: Final[tuple[float, ...]] = (0.10, 0.15, 0.20, 0.25, 0.30, 0.35)
 PRESET_RIGHT_STICK: Final[str] = "right_stick_modifiers"
 PRESET_BUMPERS: Final[str] = "modifier_bumpers"
 GAMEPAD_PRESETS: Final[tuple[str, ...]] = (PRESET_RIGHT_STICK, PRESET_BUMPERS)
+"""The stock gamepad layouts (:data:`isofightr.input.gamepad.PAD_LAYOUTS`). Since decision
+D-061 a layout only fills a pad's binding table; ``[gamepad] preset`` in an old settings
+file is still read, to fill the tables the file does not have."""
+RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "RETURN", "ESCAPE"})
+"""Keys that run the menus and so can never be bound to an action."""
+MAX_KEYS: Final[int] = MAX_CONTROLS
+"""An action has at most a primary and a secondary key."""
 ZOOM_STATIC: Final[str] = "static"
 ZOOM_STEPPED: Final[str] = "stepped"
 CAMERA_ZOOMS: Final[tuple[str, ...]] = (ZOOM_STATIC, ZOOM_STEPPED)
@@ -108,6 +123,14 @@ def _default_keys() -> dict[str, dict[str, str]]:
     return {layout: dict(keys) for layout, keys in DEFAULT_KEYS.items()}
 
 
+def _no_alt_keys() -> dict[str, dict[str, str]]:
+    return {layout: dict.fromkeys(KEYBOARD_ACTIONS, "") for layout in DEFAULT_KEYS}
+
+
+def _default_pads() -> tuple[PadBindings, ...]:
+    return (PadBindings(),) * MAX_PLAYERS
+
+
 def _default_slots() -> tuple[str, ...]:
     """Player 1 starts on the WASD keyboard; everyone else joins on character select."""
     return ("keyboard:" + KEYBOARD_SOLO, *[""] * (MAX_PLAYERS - 1))
@@ -169,32 +192,85 @@ class Settings:
     master_volume: int = VOLUME_MAX
     music_volume: int = 8
     sfx_volume: int = VOLUME_MAX
-    gamepad_preset: str = PRESET_RIGHT_STICK
-    """Which gamepad layout to use. It also decides what the right stick does: up and down
-    modifiers, or a smash stick in every direction."""
+    pads: tuple[PadBindings, ...] = field(default_factory=_default_pads)
+    """The binding table of each gamepad slot (``pad:0`` to ``pad:3``; decision D-061)."""
     deadzone: float = STICK_DEADZONE
     keys: dict[str, dict[str, str]] = field(default_factory=_default_keys)
-    """Key name per action, per keyboard layout."""
+    """Primary key name per action, per keyboard layout ("" = not bound)."""
+    alt_keys: dict[str, dict[str, str]] = field(default_factory=_no_alt_keys)
+    """Secondary key name per action, per keyboard layout ("" = none). An action never has a
+    secondary key without a primary one."""
     slot_devices: tuple[str, ...] = field(default_factory=_default_slots)
     """The device each player slot last used ("" = none): rejoined automatically."""
     rules: SavedRules = field(default_factory=SavedRules)
     """The versus rules (the Rules screen), kept from one session to the next."""
 
-    def with_key(self, layout: str, action: str, key_name: str) -> Settings:
-        """Return the settings with one action rebound. The key is taken away from any other
-        action of the same layout, so one key never does two things."""
-        keys = {name: dict(bound) for name, bound in self.keys.items()}
-        for other, bound in keys[layout].items():
-            if bound == key_name and other != action:
-                keys[layout][other] = ""
-        keys[layout][action] = key_name
-        return replace(self, keys=keys)
+    def bound_keys(self, layout: str, action: str) -> tuple[str, ...]:
+        """Return the keys bound to an action: none, the primary, or both."""
+        primary = self.keys.get(layout, {}).get(action, "")
+        secondary = self.alt_keys.get(layout, {}).get(action, "")
+        return tuple(name for name in (primary, secondary) if name)
+
+    def _with_bound(self, layout: str, bound: Mapping[str, tuple[str, ...]]) -> Settings:
+        keys = {name: dict(each) for name, each in self.keys.items()}
+        alt_keys = {name: dict(each) for name, each in self.alt_keys.items()}
+        keys[layout] = {action: (bound[action] + ("",))[0] for action in KEYBOARD_ACTIONS}
+        alt_keys[layout] = {action: (bound[action] + ("", ""))[1] for action in KEYBOARD_ACTIONS}
+        return replace(self, keys=keys, alt_keys=alt_keys)
+
+    def with_key(self, layout: str, action: str, key_name: str, slot: int = 0) -> Settings:
+        """Return the settings with a key put on an action, as its primary (slot 0) or
+        secondary (slot 1) key. The key is taken away from any other action of the same
+        layout, so one key never does two things; an action that loses its only key is left
+        unbound. An empty name clears the slot (:meth:`without_key`). Enter and Escape run
+        the menus and cannot be bound: asking for one changes nothing."""
+        if not key_name:
+            return self.without_key(layout, action, slot)
+        if key_name in RESERVED_KEYS or layout not in self.keys or action not in KEYBOARD_ACTIONS:
+            return self
+        bound = {
+            each: tuple(name for name in self.bound_keys(layout, each) if name != key_name)
+            for each in KEYBOARD_ACTIONS
+        }
+        mine = list(bound[action])
+        if slot <= 0 or not mine:
+            mine[:1] = [key_name]
+        else:
+            mine[1:] = [key_name]
+        bound[action] = tuple(mine[:MAX_KEYS])
+        return self._with_bound(layout, bound)
+
+    def without_key(self, layout: str, action: str, slot: int = 0) -> Settings:
+        """Return the settings with one key of an action removed (a secondary key moves up
+        to be the primary)."""
+        if layout not in self.keys or action not in KEYBOARD_ACTIONS:
+            return self
+        bound = {each: self.bound_keys(layout, each) for each in KEYBOARD_ACTIONS}
+        mine = list(bound[action])
+        if slot < len(mine):
+            del mine[slot]
+        bound[action] = tuple(mine)
+        return self._with_bound(layout, bound)
 
     def with_default_keys(self, layout: str) -> Settings:
         """Return the settings with one keyboard layout back on its default keys."""
         keys = {name: dict(bound) for name, bound in self.keys.items()}
+        alt_keys = {name: dict(bound) for name, bound in self.alt_keys.items()}
         keys[layout] = dict(DEFAULT_KEYS[layout])
-        return replace(self, keys=keys)
+        alt_keys[layout] = dict.fromkeys(KEYBOARD_ACTIONS, "")
+        return replace(self, keys=keys, alt_keys=alt_keys)
+
+    def pad(self, slot: int) -> PadBindings:
+        """Return a gamepad slot's bindings (the defaults for a slot that does not exist)."""
+        return self.pads[slot] if 0 <= slot < len(self.pads) else PadBindings()
+
+    def with_pad(self, slot: int, bindings: PadBindings) -> Settings:
+        """Return the settings with one gamepad slot's bindings replaced."""
+        if not 0 <= slot < len(self.pads):
+            return self
+        pads = list(self.pads)
+        pads[slot] = bindings
+        return replace(self, pads=tuple(pads))
 
 
 def config_dir() -> Path:
@@ -271,6 +347,75 @@ def rules_from_data(data: object) -> SavedRules:
     )
 
 
+def keys_from_data(saved: object, defaults: Mapping[str, str]) -> dict[str, tuple[str, ...]]:
+    """Read one ``[keyboard.<layout>]`` table: per action a key name, or a list of up to two.
+
+    An action the table does not mention keeps its default key. Anything that is not a key
+    name is skipped, as are Enter and Escape, a third key, and a key an earlier action
+    already has: one key never does two things.
+    """
+    bound = {
+        action: ((defaults[action],) if defaults[action] else ()) for action in KEYBOARD_ACTIONS
+    }
+    if not isinstance(saved, dict):
+        return bound
+    given: dict[str, tuple[str, ...]] = {}
+    for action in KEYBOARD_ACTIONS:
+        value = saved.get(action)
+        if isinstance(value, str):
+            given[action] = (value,)
+        elif isinstance(value, list):
+            given[action] = tuple(name for name in value if isinstance(name, str))
+    taken: set[str] = set()
+    for action, names in given.items():
+        kept = []
+        for name in names:
+            if name and name not in RESERVED_KEYS and name not in taken and len(kept) < MAX_KEYS:
+                kept.append(name)
+                taken.add(name)
+        bound[action] = tuple(kept)
+    for action in KEYBOARD_ACTIONS:
+        if action not in given:
+            # A default key the file gave to something else is not bound twice.
+            bound[action] = tuple(name for name in bound[action] if name not in taken)
+            taken.update(bound[action])
+    return bound
+
+
+def pad_from_data(saved: object, fallback: PadBindings) -> PadBindings:
+    """Read one ``[pad.<slot>]`` table: per action a control name or a list of up to two,
+    and ``right_stick``. A missing table gives ``fallback``; inside a table, an action that
+    is missing or malformed keeps the fallback's controls (minus any the table gave to
+    another action), unknown control names are skipped, and a control an earlier action
+    already has is skipped too."""
+    if not isinstance(saved, dict):
+        return fallback
+    given: dict[str, tuple[str, ...]] = {}
+    for action in PAD_ACTIONS:
+        value = saved.get(action)
+        if isinstance(value, str):
+            given[action] = (value,)
+        elif isinstance(value, list):
+            given[action] = tuple(name for name in value if isinstance(name, str))
+    taken: set[str] = set()
+    controls: dict[str, tuple[str, ...]] = {}
+    for action, names in given.items():
+        kept = []
+        for name in names:
+            if name in CONTROL_FIELDS and name not in taken and len(kept) < MAX_CONTROLS:
+                kept.append(name)
+                taken.add(name)
+        controls[action] = tuple(kept)
+    for action in PAD_ACTIONS:
+        if action not in given:
+            controls[action] = tuple(
+                name for name in fallback.controls(action) if name not in taken
+            )
+            taken.update(controls[action])
+    stick = _pick(saved.get("right_stick"), RIGHT_STICK_MODES, fallback.right_stick)
+    return PadBindings(right_stick=stick, **controls)
+
+
 def from_data(data: Mapping[str, Any]) -> Settings:
     """Build settings from a parsed ``settings.toml``. Anything missing or out of range falls
     back to its default, so an old or hand-edited file still loads."""
@@ -282,14 +427,17 @@ def from_data(data: Mapping[str, Any]) -> Settings:
     players = data.get("players", {}) if isinstance(data.get("players"), dict) else {}
 
     keys = _default_keys()
-    for layout, bound in keys.items():
-        saved = keyboard.get(layout)
-        if not isinstance(saved, dict):
-            continue
-        for action in KEYBOARD_ACTIONS:
-            name = saved.get(action)
-            if isinstance(name, str):
-                bound[action] = name
+    alt_keys = _no_alt_keys()
+    for layout in keys:
+        bound = keys_from_data(keyboard.get(layout), DEFAULT_KEYS[layout])
+        keys[layout] = {action: (bound[action] + ("",))[0] for action in KEYBOARD_ACTIONS}
+        alt_keys[layout] = {action: (bound[action] + ("", ""))[1] for action in KEYBOARD_ACTIONS}
+    # Files from before per-button binding name a layout for every pad instead of a table.
+    old_layout = PAD_LAYOUTS[_pick(gamepad.get("preset"), GAMEPAD_PRESETS, PRESET_RIGHT_STICK)]
+    pad_tables = data.get("pad", {}) if isinstance(data.get("pad"), dict) else {}
+    pads = tuple(
+        pad_from_data(pad_tables.get(str(slot)), old_layout) for slot in range(MAX_PLAYERS)
+    )
     fullscreen = video.get("fullscreen")
     reduce_flashing = video.get("reduce_flashing")
     devices = players.get("devices")
@@ -309,13 +457,14 @@ def from_data(data: Mapping[str, Any]) -> Settings:
         master_volume=_volume(audio.get("master"), defaults.master_volume),
         music_volume=_volume(audio.get("music"), defaults.music_volume),
         sfx_volume=_volume(audio.get("sfx"), defaults.sfx_volume),
-        gamepad_preset=_pick(gamepad.get("preset"), GAMEPAD_PRESETS, defaults.gamepad_preset),
+        pads=pads,
         deadzone=_pick(
             round(deadzone, 2) if isinstance(deadzone, float) else deadzone,
             DEADZONES,
             defaults.deadzone,
         ),
         keys=keys,
+        alt_keys=alt_keys,
         slot_devices=tuple(slots),
         rules=rules_from_data(data.get("rules")),
     )
@@ -343,7 +492,6 @@ def to_toml(settings: Settings) -> str:
         f"sfx = {settings.sfx_volume}",
         "",
         "[gamepad]",
-        f"preset = {text(settings.gamepad_preset)}",
         f"deadzone = {settings.deadzone:.2f}",
         "",
         "[players]",
@@ -362,12 +510,20 @@ def to_toml(settings: Settings) -> str:
     ]
     lines += [f"{name} = {'true' if getattr(rules, name) else 'false'}" for name in RULE_FLAGS]
     lines.append("random_pool = [" + ", ".join(text(stage) for stage in rules.random_pool) + "]")
+
+    def names(bound: tuple[str, ...]) -> str:
+        return "[" + ", ".join(text(name) for name in bound) + "]"
+
+    for slot, pad in enumerate(settings.pads):
+        lines += ["", f"[pad.{slot}]"]
+        lines += [f"{action} = {names(pad.controls(action))}" for action in PAD_ACTIONS]
+        lines.append(f"right_stick = {text(pad.right_stick)}")
     for layout in DEFAULT_KEYS:
         lines += ["", f"[keyboard.{layout}]"]
-        lines += [
-            f"{action} = {text(settings.keys[layout].get(action, ''))}"
-            for action in KEYBOARD_ACTIONS
-        ]
+        for action in KEYBOARD_ACTIONS:
+            bound = settings.bound_keys(layout, action)
+            # One key is written as a plain string, as it always was; two as a list.
+            lines.append(f"{action} = {names(bound) if len(bound) > 1 else text((*bound, '')[0])}")
     return "\n".join(lines) + "\n"
 
 

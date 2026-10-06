@@ -20,22 +20,16 @@ from pyglet.math import Vec2 as PygletVec2
 
 from isofightr.config import MAX_PLAYERS
 from isofightr.input.gamepad import (
-    MODIFIER_BUMPERS,
     RIGHT_STICK_MODIFIERS,
-    GamepadPreset,
+    PadBindings,
     PadState,
     gamepad_frame,
     merge_frames,
 )
 from isofightr.input.keyboard import KeyboardBindings, keyboard_frame
-from isofightr.settings import (
-    KEYBOARD_ARROWS,
-    KEYBOARD_SOLO,
-    PRESET_BUMPERS,
-    PRESET_RIGHT_STICK,
-    Settings,
-)
+from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, Settings
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, InputFrame
+from isofightr.ui.menu import MenuAction, pad_actions
 
 LOG = logging.getLogger(__name__)
 KEY = arcade.key
@@ -117,10 +111,14 @@ class PadReader:
         self.controller = controller
         self._left = (0.0, 0.0)
         self._right = (0.0, 0.0)
+        self._dpad = (0.0, 0.0)
         self._tapped: set[str] = set()
+        self._start_was_held = False
         controller.open()
         controller.push_handlers(
-            on_stick_motion=self._on_stick_motion, on_button_press=self._on_button_press
+            on_stick_motion=self._on_stick_motion,
+            on_button_press=self._on_button_press,
+            on_dpad_motion=self._on_dpad_motion,
         )
 
     def _on_stick_motion(self, controller: object, stick: str, vector: PygletVec2) -> None:
@@ -129,12 +127,20 @@ class PadReader:
         elif stick == "rightstick":
             self._right = (vector.x, vector.y)
 
+    def _on_dpad_motion(self, controller: object, vector: PygletVec2) -> None:
+        """The d-pad arrives as one vector (up positive); the bindings see four buttons."""
+        self._dpad = (vector.x, vector.y)
+        if vector.x:
+            self._tapped.add("dpright" if vector.x > 0 else "dpleft")
+        if vector.y:
+            self._tapped.add("dpup" if vector.y > 0 else "dpdown")
+
     def _on_button_press(self, controller: object, button: str) -> None:
         self._tapped.add(button)
 
     def _button(self, name: str) -> bool:
         """Whether a button is held, or was pressed since the last tick (a quick tap)."""
-        return bool(getattr(self.controller, name)) or name in self._tapped
+        return bool(getattr(self.controller, name, False)) or name in self._tapped
 
     def state(self) -> PadState:
         """Return the controller's current state."""
@@ -152,16 +158,31 @@ class PadReader:
             y=self._button("y"),
             left_shoulder=self._button("leftshoulder"),
             right_shoulder=self._button("rightshoulder"),
+            left_stick_click=self._button("leftstick"),
+            right_stick_click=self._button("rightstick"),
+            dpad_up=self._dpad[1] > 0 or "dpup" in self._tapped,
+            dpad_down=self._dpad[1] < 0 or "dpdown" in self._tapped,
+            dpad_left=self._dpad[0] < 0 or "dpleft" in self._tapped,
+            dpad_right=self._dpad[0] > 0 or "dpright" in self._tapped,
+            start=self._button("start"),
         )
+
+    def start_tapped(self) -> bool:
+        """Whether Start went down since the last tick (it pauses a match): a press event,
+        or the button found held when it was not a tick ago."""
+        return self._button("start") and not self._start_was_held
 
     def end_tick(self) -> None:
         """Forget the quick taps once this tick has read them."""
+        self._start_was_held = bool(getattr(self.controller, "start", False))
         self._tapped.clear()
 
     def close(self) -> None:
         """Stop listening and release the controller."""
         self.controller.remove_handlers(
-            on_stick_motion=self._on_stick_motion, on_button_press=self._on_button_press
+            on_stick_motion=self._on_stick_motion,
+            on_button_press=self._on_button_press,
+            on_dpad_motion=self._on_dpad_motion,
         )
         self.controller.close()
 
@@ -173,7 +194,7 @@ class InputSource:
         self,
         player_count: int,
         keyboards: Sequence[KeyboardBindings | None] = DEFAULT_KEYBOARDS,
-        preset: GamepadPreset = RIGHT_STICK_MODIFIERS,
+        preset: PadBindings = RIGHT_STICK_MODIFIERS,
     ) -> None:
         """Assign keyboard layouts and any connected controllers to the player slots."""
         self.player_count = player_count
@@ -261,7 +282,8 @@ _BUTTON_ACTIONS = (
 )
 NO_KEY = 0
 """Key code of an unbound action: no real key has it."""
-PRESETS = {PRESET_RIGHT_STICK: RIGHT_STICK_MODIFIERS, PRESET_BUMPERS: MODIFIER_BUMPERS}
+_DIRECTIONS = ("move_up", "move_down", "move_left", "move_right", "up", "down")
+"""The keyboard actions that are not buttons."""
 
 
 def key_code(name: str) -> int:
@@ -281,6 +303,7 @@ def key_name(code: int) -> str:
 def bindings_from_settings(settings: Settings, layout: str) -> KeyboardBindings:
     """Build a keyboard layout from the key names in the settings."""
     keys = settings.keys[layout]
+    alt_keys = settings.alt_keys.get(layout, {})
     return KeyboardBindings(
         name=KEYBOARD_NAMES[layout],
         move_up=key_code(keys["move_up"]),
@@ -290,9 +313,15 @@ def bindings_from_settings(settings: Settings, layout: str) -> KeyboardBindings:
         up=key_code(keys["up"]),
         down=key_code(keys["down"]),
         buttons=tuple(
-            (key_code(keys[action]), button)
+            (key_code(name), button)
             for action, button in _BUTTON_ACTIONS
-            if key_code(keys[action]) != NO_KEY
+            for name in settings.bound_keys(layout, action)
+            if key_code(name) != NO_KEY
+        ),
+        alternates=tuple(
+            (key_code(alt_keys.get(action, "")), action)
+            for action in _DIRECTIONS
+            if key_code(alt_keys.get(action, "")) != NO_KEY
         ),
     )
 
@@ -309,16 +338,45 @@ class DeviceHub:
     def __init__(self, settings: Settings | None = None) -> None:
         """Build the keyboard layouts from the settings and open the connected controllers."""
         self.settings = settings or Settings()
-        self.keyboards = {
-            KEYBOARD_PREFIX + layout: bindings_from_settings(self.settings, layout)
-            for layout in self.settings.keys
-        }
-        self.preset = PRESETS[self.settings.gamepad_preset]
+        self.keyboards: dict[str, KeyboardBindings] = {}
+        self.apply_settings(self.settings)
         self.pads: list[PadReader | None] = [None] * MAX_PLAYERS
         self._manager = pyglet.input.ControllerManager()
         self._manager.push_handlers(on_connect=self._connect, on_disconnect=self._disconnect)
         for controller in self._manager.get_controllers():
             self._connect(controller)
+
+    def apply_settings(self, settings: Settings) -> None:
+        """Take new settings: rebuild the keyboard layouts and use the new pad bindings."""
+        self.settings = settings
+        self.keyboards = {
+            KEYBOARD_PREFIX + layout: bindings_from_settings(settings, layout)
+            for layout in settings.keys
+        }
+
+    def pad_state(self, device: str) -> PadState | None:
+        """Return a gamepad's raw state (``None`` for a keyboard or an unplugged pad)."""
+        pad = self._pad(device)
+        return None if pad is None else pad.state()
+
+    def menu_extras(
+        self, devices: Sequence[str], start_confirms: bool = True
+    ) -> list[frozenset[MenuAction] | None]:
+        """Return, per device, the menu actions its own buttons hold whatever is bound: a
+        pad's A, B and d-pad. ``None`` for a keyboard, whose menu actions all come from its
+        bindings (and Enter and Escape)."""
+        extras: list[frozenset[MenuAction] | None] = []
+        for device in devices:
+            if not device.startswith(PAD_PREFIX):
+                extras.append(None)
+                continue
+            state = self.pad_state(device)
+            extras.append(frozenset() if state is None else pad_actions(state, start_confirms))
+        return extras
+
+    def start_tapped(self) -> bool:
+        """Whether any gamepad's Start was pressed since the last tick."""
+        return any(pad is not None and pad.start_tapped() for pad in self.pads)
 
     def ids(self) -> list[str]:
         """Return every device that can be used right now: the keyboards, then the pads."""
@@ -346,7 +404,8 @@ class DeviceHub:
         pad = self._pad(device)
         if pad is None:
             return NEUTRAL_INPUT
-        return gamepad_frame(pad.state(), self.preset, self.settings.deadzone)
+        slot = int(device[len(PAD_PREFIX) :])
+        return gamepad_frame(pad.state(), self.settings.pad(slot), self.settings.deadzone)
 
     def frames(self, held_keys: Set[int]) -> dict[str, InputFrame]:
         """Return every usable device's input this tick, by device id."""

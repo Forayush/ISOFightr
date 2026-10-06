@@ -28,7 +28,7 @@ from isofightr.scenes.menus import ResultsView
 from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
-from isofightr.settings import KEYBOARD_SOLO, SavedRules, Settings
+from isofightr.settings import SavedRules, Settings
 from isofightr.sim.input_frame import facing_from_move
 from isofightr.sim.math3d import Vec3
 
@@ -39,6 +39,7 @@ SCREENS: tuple[str, ...] = (
     "rules",
     "pool",
     "controls",
+    "controls_pad",
     "charselect",
     "stageselect",
     "results",
@@ -210,7 +211,9 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
     elif screen == "settings":
         flow.show_settings()
     elif screen == "controls":
-        flow.show_rebind(KEYBOARD_SOLO)
+        flow.show_controls()
+    elif screen == "controls_pad":
+        flow.show_controls(tab=2)
     elif screen == "kit":
         window.show_view(UiKitView(window.pixel_buffer, flow))
     elif screen == "charselect":

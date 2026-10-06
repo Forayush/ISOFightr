@@ -47,7 +47,6 @@ from isofightr.data.validation import DataError
 from isofightr.input.devices import (
     KEYBOARD_PREFIX,
     PAD_PREFIX,
-    PRESETS,
     DeviceHub,
     InputSource,
 )
@@ -77,14 +76,13 @@ from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui import font, kit_art, theme
 from isofightr.ui.font import ARROW_DOWN, TextSize
+from isofightr.ui.hints import HELP_TEMPLATES, battle_help, device_labels
 from isofightr.ui.hud import DamageHud
 from isofightr.ui.hud_layout import tag_anchor, tag_text
 from isofightr.ui.input_display import input_lines
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.move_list import (
     build_move_list,
-    gamepad_labels,
-    keyboard_labels,
     page_columns,
 )
 from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
@@ -119,12 +117,12 @@ TAG_PLATE_HEIGHT = 14
 HUD_MARGIN = 4
 HUD_CAPACITY = 104
 LINE_HEIGHT = GLYPH_HEIGHT
-HELP_LINES = (
-    "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
-    "AIR  J + direction  I up  , down  SPACE+J = short hop aerial",
+DEBUG_HELP = (
     "F1 hitboxes  F2 info  F3 stage  F5 pause  F6 step  F8 restart  F9 reload  F10 inputs  "
-    "Z zoom  H help",
+    "Z zoom  H help"
 )
+HELP_LINES = (*HELP_TEMPLATES, DEBUG_HELP)
+"""The help text's lines; the control lines are filled in with player 1's own bindings."""
 TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
 DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
 """The damage readout sits just above the help text."""
@@ -241,6 +239,8 @@ class BattleView(TickedView):
         # the fixed default assignment (keyboards plus controllers in order).
         self.devices = tuple(setup.devices) if setup is not None and setup.devices else ()
         self.hub = DeviceHub(self.settings) if self.devices else None
+        self._menu_extras: list[frozenset[MenuAction] | None] | None = None
+        self._start_tapped = False
         self.inputs = None if self.devices else InputSource(len(self.characters))
         self._unplugged: set[str] = set()
         self.menu_input = MenuInput()
@@ -277,7 +277,8 @@ class BattleView(TickedView):
             glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors, self._stock_icons()
         )
         self._text: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
-        help_lines = [*HELP_LINES, TRAINING_HELP] if training else list(HELP_LINES)
+        controls = battle_help(device_labels(self.settings, self.move_list_device(0)))
+        help_lines = [*controls, DEBUG_HELP, *([TRAINING_HELP] if training else [])]
         self._help_text = list(reversed(help_lines))
         self._help = [
             PixelLabel(glyphs, self._text, HUD_MARGIN, HUD_MARGIN + row * LINE_HEIGHT, len(line))
@@ -457,12 +458,8 @@ class BattleView(TickedView):
     def move_list_lines(self, player: int) -> tuple[str, list[str], list[str]]:
         """Return the title and the two columns of a player's move list page."""
         device = self.move_list_device(player)
-        if device.startswith(KEYBOARD_PREFIX):
-            labels = keyboard_labels(self.settings.keys[device.removeprefix(KEYBOARD_PREFIX)])
-            source = "keys"
-        else:
-            labels = gamepad_labels(PRESETS[self.settings.gamepad_preset])
-            source = "gamepad"
+        labels = device_labels(self.settings, device)
+        source = "keys" if device.startswith(KEYBOARD_PREFIX) else "gamepad"
         character = self.match.fighters[player].character
         sections = build_move_list(character.moveset, labels, self.match.rules.short_hop_macro)
         left, right = page_columns(sections, MOVES_COLUMN_CAPACITY)
@@ -489,6 +486,14 @@ class BattleView(TickedView):
             self.show_move_list(players[(index + step) % len(players)])
         elif action in (MenuAction.BACK, MenuAction.CONFIRM):
             self.move_list_player = None
+
+    def request_pause(self) -> None:
+        """A player asked to pause (Escape, Enter or a gamepad's Start): open the menu,
+        unless the rules have pausing off."""
+        if self.can_pause or self.match.phase is MatchPhase.OVER:
+            self.open_menu()
+        else:
+            self.say("pausing is off (see Rules)")
 
     def open_menu(self) -> None:
         """Pause and show the pause menu."""
@@ -562,10 +567,7 @@ class BattleView(TickedView):
         self._keys.press(symbol)
         if symbol in KEYS_MENU:
             if not self.menu_open:
-                if self.can_pause or self.match.phase is MatchPhase.OVER:
-                    self.open_menu()
-                else:
-                    self.say("pausing is off (see Rules)")
+                self.request_pause()
             elif symbol == arcade.key.ESCAPE:
                 self.menu_action(MenuAction.BACK)
             else:
@@ -713,8 +715,16 @@ class BattleView(TickedView):
         if self._message_ticks > 0:
             self._message_ticks -= 1
         frames, menu_frames = self._poll()
+        if self._start_tapped:
+            # Start is a gamepad's pause button: it opens the menu, and closes it again.
+            self._start_tapped = False
+            if self.menu_open:
+                self.menu_action(MenuAction.BACK)
+            else:
+                self.request_pause()
+            return
         if self.menu_open:
-            for fired in self.menu_input.update(menu_frames):
+            for fired in self.menu_input.update(menu_frames, self._menu_extras):
                 for action in MenuAction:
                     if action in fired and self.menu_open:
                         self.menu_action(action)
@@ -762,9 +772,13 @@ class BattleView(TickedView):
             assert self.inputs is not None
             frames = self.inputs.poll(keys)
             self.inputs.end_tick()
+            self._menu_extras = None
             return frames, frames
         frames = self.hub.poll(self.devices, keys)
-        menu_frames = list(self.hub.frames(keys).values())
+        by_device = self.hub.frames(keys)
+        menu_frames = list(by_device.values())
+        self._menu_extras = self.hub.menu_extras(list(by_device), start_confirms=False)
+        self._start_tapped = self.hub.start_tapped()
         self.hub.end_tick()
         frames += [NEUTRAL_INPUT] * (len(self.characters) - len(frames))
         for device in self.devices:

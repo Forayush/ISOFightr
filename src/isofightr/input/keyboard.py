@@ -35,12 +35,23 @@ class KeyboardBindings:
     down: int
     """The "down" vertical modifier (fast fall, platform drop...)."""
     buttons: tuple[tuple[int, Button], ...]
-    """Key code and the button it holds, for every bound button."""
+    """Key code and the button it holds, for every bound button (a button with two keys is
+    listed twice)."""
+    alternates: tuple[tuple[int, str], ...] = ()
+    """Second keys for the directions and modifiers: a key code and the field it also holds
+    (``"move_up"``, ``"down"``...). Decision D-061: two keys per action."""
 
     def keys(self) -> list[int]:
         """Return every key code this binding uses."""
         movement = [self.move_up, self.move_down, self.move_left, self.move_right]
-        return [*movement, self.up, self.down, *(key for key, _ in self.buttons)]
+        extra = [key for key, _ in self.alternates]
+        return [*movement, self.up, self.down, *(key for key, _ in self.buttons), *extra]
+
+    def holds(self, name: str, held_keys: Set[int]) -> bool:
+        """Return whether a direction or modifier (by field name) is held by either key."""
+        if getattr(self, name) in held_keys:
+            return True
+        return any(key in held_keys for key, field_name in self.alternates if field_name == name)
 
 
 def keyboard_frame(bindings: KeyboardBindings, held_keys: Set[int]) -> InputFrame:
@@ -48,18 +59,19 @@ def keyboard_frame(bindings: KeyboardBindings, held_keys: Set[int]) -> InputFram
 
     Opposite directions cancel. Diagonals are normalized, so they are not faster.
     """
-    stick_u = float(bindings.move_right in held_keys) - float(bindings.move_left in held_keys)
-    stick_v = float(bindings.move_up in held_keys) - float(bindings.move_down in held_keys)
+    held = bindings.holds
+    stick_u = float(held("move_right", held_keys)) - float(held("move_left", held_keys))
+    stick_v = float(held("move_up", held_keys)) - float(held("move_down", held_keys))
     move = stick_to_world(stick_u, stick_v).normalized()
 
-    up, down = bindings.up in held_keys, bindings.down in held_keys
+    up, down = held("up", held_keys), held("down", held_keys)
     vertical = VERTICAL_NONE if up == down else (VERTICAL_UP if up else VERTICAL_DOWN)
 
-    held = 0
+    buttons = 0
     for key, button in bindings.buttons:
         if key in held_keys:
-            held |= button
-    return InputFrame(move=move, vertical=vertical, held=held)
+            buttons |= button
+    return InputFrame(move=move, vertical=vertical, held=buttons)
 
 
 class KeyLatch:

@@ -20,10 +20,10 @@ from isofightr.data.replay_io import numbered
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
+from isofightr.scenes.controls_view import ControlsView
 from isofightr.scenes.menus import (
     CharacterSelectView,
     MainMenuView,
-    RebindView,
     ResultsView,
     SettingsView,
     StageSelectView,
@@ -129,9 +129,12 @@ class GameFlow:
         """Go to the settings."""
         self.window.show_view(SettingsView(self.pixel_buffer, self))
 
-    def show_rebind(self, layout: str) -> None:
-        """Go to the key rebinding screen of one keyboard layout."""
-        self.window.show_view(RebindView(self.pixel_buffer, self, layout))
+    def show_controls(
+        self, on_back: Callable[[], None] | None = None, tab: int = 0, cursor: str = ""
+    ) -> None:
+        """Go to the controls screen: ``tab`` is the player whose device it shows,
+        ``on_back`` where BACK leads (the main menu if not given)."""
+        self.window.show_view(ControlsView(self.pixel_buffer, self, on_back, tab, cursor))
 
     def show_character_select(self, setup: MatchSetup) -> None:
         """Go to character select with the given setup."""

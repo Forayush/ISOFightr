@@ -12,7 +12,7 @@ import pytest
 from helpers import place
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
-from isofightr.input.gamepad import PadState, gamepad_frame, process_stick
+from isofightr.input.gamepad import PAD_LAYOUTS, PadState, gamepad_frame, process_stick
 from isofightr.scenes.setup import MatchSetup, can_start, results_table
 from isofightr.settings import (
     CONFIG_DIR_ENV,
@@ -40,7 +40,8 @@ def test_defaults() -> None:
     settings = Settings()
     assert (settings.scale, settings.fullscreen, settings.screen_shake) == (2, False, 100)
     assert (settings.master_volume, settings.music_volume, settings.sfx_volume) == (10, 8, 10)
-    assert settings.deadzone == 0.20 and settings.gamepad_preset == "right_stick_modifiers"
+    assert settings.deadzone == 0.20
+    assert [pad.layout for pad in settings.pads] == ["right_stick_modifiers"] * 4
     assert settings.keys["solo"]["attack"] == "J" and settings.keys["arrows"]["jump"] == "NUM_0"
     assert settings.slot_devices == ("keyboard:solo", "", "", "")
     assert set(DEFAULT_KEYS["solo"]) == set(DEFAULT_KEYS["arrows"]) == set(KEYBOARD_ACTIONS)
@@ -55,11 +56,10 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
         master_volume=4,
         music_volume=0,
         sfx_volume=7,
-        gamepad_preset=PRESET_BUMPERS,
         deadzone=0.30,
         reduce_flashing=True,
         slot_devices=("pad:1", "keyboard:solo", "", "pad:0"),
-    )
+    ).with_pad(1, PAD_LAYOUTS[PRESET_BUMPERS])
     path = tmp_path / "nested" / "settings.toml"
     save_settings(path, settings)
     assert load_settings(path) == settings
@@ -96,7 +96,7 @@ def test_bad_values_fall_back_one_by_one() -> None:
     )
     assert (settings.scale, settings.fullscreen, settings.screen_shake) == (2, False, 50)
     assert (settings.master_volume, settings.music_volume, settings.sfx_volume) == (10, 0, 10)
-    assert settings.gamepad_preset == "right_stick_modifiers" and settings.deadzone == 0.30
+    assert settings.pad(0).layout == "right_stick_modifiers" and settings.deadzone == 0.30
     assert settings.keys["solo"]["attack"] == "Q" and settings.keys["solo"]["jump"] == "SPACE"
     assert settings.slot_devices == ("pad:0", "", "", "")
     assert from_data({"video": 3, "audio": []}) == Settings()
