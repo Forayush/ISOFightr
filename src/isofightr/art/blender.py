@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -27,6 +28,10 @@ CANVAS: Final[tuple[int, int]] = (128, 128)
 """Render canvas in pixels; frames are trimmed afterwards."""
 PIVOT: Final[tuple[int, int]] = (64, 96)
 """The pixel corner, from the canvas's top-left, where the feet (world origin) land."""
+GAME_ELEVATION: Final[float] = 30.0
+"""Degrees the game's camera looks down (``tools/blender/isoscene.py``)."""
+TURNED_VIEW: Final[str] = "VIEW"
+"""The name of the single view a job with a ``turn`` renders."""
 RENDER_TIMEOUT_SECONDS: Final[int] = 3600
 VERSION_TIMEOUT_SECONDS: Final[int] = 60
 
@@ -76,6 +81,12 @@ def blender_directions() -> list[dict[str, object]]:
 
 
 def _directions(job: RenderJob) -> list[dict[str, object]]:
+    if job.turn is not None:
+        toward_viewer = Dir8.S.world
+        angle = math.radians(job.turn)
+        x = toward_viewer.x * math.cos(angle) - toward_viewer.y * math.sin(angle)
+        y = toward_viewer.x * math.sin(angle) + toward_viewer.y * math.cos(angle)
+        return [{"name": TURNED_VIEW, "blender": [y, x]}]
     every = blender_directions()
     if not job.directions:
         return every
@@ -122,6 +133,14 @@ class RenderJob:
     """Facings to render (by ``Dir8`` name); empty means all eight."""
     canvas: tuple[int, int] = CANVAS
     pivot: tuple[int, int] = PIVOT
+    elevation: float = GAME_ELEVATION
+    """Degrees the camera looks down. Only hero art changes it (decision D-061)."""
+    z_squash: float | None = None
+    """Vertical scale of the model, or ``None`` for the game's (which makes renders match
+    the game's projection). Hero art uses 1.0: true proportions."""
+    turn: float | None = None
+    """Hero art only: render one view, the character turned this many degrees from facing
+    the viewer (positive turns it toward the screen's right). Replaces ``directions``."""
 
 
 def stamp_for(job: RenderJob, anim: str) -> str:
@@ -130,6 +149,8 @@ def stamp_for(job: RenderJob, anim: str) -> str:
     for path in (job.rig, job.library, job.anims[anim], *sorted(SCRIPTS_DIR.glob("*.py"))):
         digest.update(path.read_bytes() if path.is_file() else b"-")
     settings = [job.materials, job.canvas, job.pivot, _directions(job), job.scale]
+    if job.elevation != GAME_ELEVATION or job.z_squash is not None:
+        settings += [job.elevation, job.z_squash]
     digest.update(json.dumps(settings).encode())
     return digest.hexdigest()
 
@@ -160,6 +181,8 @@ def render(blender: Path, job: RenderJob, force: bool = False) -> list[str]:
                 "scale": job.scale,
                 "canvas": list(job.canvas),
                 "pivot": list(job.pivot),
+                "elevation": job.elevation,
+                "z_squash": job.z_squash,
                 "out": str(job.out),
             },
             indent=1,

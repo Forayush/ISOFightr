@@ -1,0 +1,24 @@
+{
+  "character": "bramble",
+  "source": "5c436c8e1ecbe95908f0b34c267c8173fae72396fd9f1d7e4d3fab7d2ab18b87",
+  "blender": "4.5.5",
+  "scale": 2,
+  "camera": {
+    "turn": 10.0,
+    "elevation": 4.0
+  },
+  "sizes": {
+    "hero": [
+      114,
+      117
+    ],
+    "hero_win": [
+      91,
+      134
+    ],
+    "tile": [
+      40,
+      40
+    ]
+  }
+}

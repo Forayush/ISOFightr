@@ -80,9 +80,18 @@ class SpriteSet:
         return self.frames[f"{anim}/{pose}/{direction}"]
 
     def portrait_path(self, name: str) -> Path | None:
-        """Return ``bust.png`` or ``icon.png`` if the character has it."""
-        path = self.folder / f"{name}.png"
+        """Return a picture of the character if it has it: ``bust`` or ``icon`` (beside the
+        sheets), or the menu art ``hero``, ``hero_win`` or ``tile`` (in the ``ui`` folder
+        next to them; decision D-061). All are indexed like the sheets."""
+        folder = self.folder.parent / UI_DIR_NAME if name in UI_PICTURES else self.folder
+        path = folder / f"{name}.png"
         return path if path.is_file() else None
+
+
+UI_DIR_NAME: Final[str] = "ui"
+"""The folder, next to a character's ``sprites``, that holds its menu art."""
+UI_PICTURES: Final[tuple[str, ...]] = ("hero", "hero_win", "tile")
+"""The menu art: the big key pose, the win pose, and the roster tile."""
 
 
 def sprites_folder(character_id: str, characters_dir: Path = CHARACTERS_DIR) -> Path:

@@ -57,7 +57,9 @@ CARD_MAX_WIDTH = 190
 CARD_GAP = 10
 CARD_MARGIN = 20
 BUST_SCALE = 3
-"""The 30 px bust is shown three times as big until the hero art exists (M13 group 4)."""
+"""A character without hero art gets its 30 px bust, three times as big."""
+ART_BOTTOM = 22
+"""Height of a card's art's feet above the card's bottom: just behind the name plate's top."""
 STAGE_SIZE = (150, 70)
 """The stage picture's size in native pixels."""
 STAGE_BOTTOM = 66
@@ -133,6 +135,8 @@ class LoadingView(MenuView):
         ui = self.ui
         self.cards: list[tuple[SlideGroup, int]] = []
         self._busts: dict[int, arcade.Sprite] = {}
+        self._art_spots: dict[int, tuple[int, int]] = {}
+        """Where each card's art stands: centre x and the y of its feet."""
         rects = card_rects(len(setup.characters))
         for player, rect in enumerate(rects):
             color = theme.player_color(self._color_of(player))
@@ -154,14 +158,11 @@ class LoadingView(MenuView):
                     strip, player_tag(setup, player), TextSize.BODY, theme.TEXT_ON_FOCUS,
                     shadow=False,
                 )  # fmt: skip
-                bust = arcade.Sprite(
-                    scale=BUST_SCALE,
-                    center_x=rect.left + rect.width / 2,
-                    center_y=rect.bottom + 28 + 15 * BUST_SCALE,
-                )
+                bust = arcade.Sprite(center_x=rect.left + rect.width // 2, center_y=rect.bottom)
                 bust.visible = False
                 ui.panels.append(bust)
                 self._busts[player] = bust
+                self._art_spots[player] = (rect.left + rect.width // 2, rect.bottom + ART_BOTTOM)
                 plate = Rect(rect.left + 6, rect.bottom + 6, rect.width - 12, 20)
                 add_panel(ui, plate, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER)
                 name = load_character(setup.characters[player]).display_name.upper()
@@ -255,10 +256,20 @@ class LoadingView(MenuView):
             if character != name or player not in self._busts:
                 continue
             costume = player_costume(setup, player, len(bank.sprite_set.costumes))
-            texture = bank.portrait("bust", costume)
-            if texture is not None:
-                self._busts[player].texture = texture
-                self._busts[player].visible = True
+            sprite = self._busts[player]
+            hero = bank.portrait("hero", costume)
+            texture = hero or bank.portrait("bust", costume)
+            if texture is None:
+                continue
+            # Hero art is shown as drawn, standing on the name plate; a character that only
+            # has the small bust gets it enlarged.
+            x, base = self._art_spots[player]
+            sprite.scale = 1 if hero is not None else BUST_SCALE
+            sprite.texture = texture
+            height = texture.height * (1 if hero is not None else BUST_SCALE)
+            group = self.cards[player][0]
+            group.place(sprite, x + (texture.width % 2) / 2, base + height / 2)
+            sprite.visible = True
 
     @property
     def ready(self) -> bool:

@@ -70,7 +70,8 @@ class SpriteBank:
         return texture
 
     def portrait(self, name: str, costume: int) -> arcade.Texture | None:
-        """Return the ``"bust"`` or ``"icon"`` portrait in a costume, if the character has it."""
+        """Return a picture of the character in a costume, if it has it: the ``"bust"`` or
+        ``"icon"`` portrait, or the menu art ``"hero"``, ``"hero_win"`` or ``"tile"``."""
         key = (name, costume)
         if key not in self._portraits:
             path = self.sprite_set.portrait_path(name)

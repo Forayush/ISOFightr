@@ -24,8 +24,14 @@ from rig import Rig, load_library, merged_poses
 def main(job_path: Path) -> None:
     job = json.loads(job_path.read_text(encoding="utf-8"))
     scene = isoscene.reset_scene()
-    isoscene.setup_camera(scene, *job["canvas"], tuple(job["pivot"]), job.get("scale", 1.0))
-    isoscene.setup_sun(scene)
+    elevation = job.get("elevation", isoscene.ELEVATION_DEGREES)
+    isoscene.setup_camera(
+        scene, *job["canvas"], tuple(job["pivot"]), job.get("scale", 1.0), elevation
+    )
+    isoscene.setup_sun(scene, elevation)
+    if job.get("z_squash") is not None:
+        # Hero art is not laid over the game's tiles, so it can keep true proportions.
+        isoscene.root().scale = (1.0, 1.0, job["z_squash"])
     rig = Rig(Path(job["rig"]), job["materials"], isoscene.root())
     library = load_library(Path(job["library"]))
     out = Path(job["out"])

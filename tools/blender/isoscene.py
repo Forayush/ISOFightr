@@ -56,13 +56,13 @@ def game_to_blender(x: float, y: float, z: float = 0.0) -> Vector:
     return Vector((y, x, z))
 
 
-def screen_axes() -> tuple[Vector, Vector, Vector]:
+def screen_axes(elevation_degrees: float = ELEVATION_DEGREES) -> tuple[Vector, Vector, Vector]:
     """Return Blender vectors for screen right, screen up and toward the viewer (unit length).
 
     The camera looks along ``(-1, -1)`` tilted down by 30 degrees, so screen right is Blender
-    ``(-1, 1)/sqrt(2)`` (game ``(1, -1)/sqrt(2)``).
+    ``(-1, 1)/sqrt(2)`` (game ``(1, -1)/sqrt(2)``). Hero art may ask for another tilt.
     """
-    elevation = math.radians(ELEVATION_DEGREES)
+    elevation = math.radians(elevation_degrees)
     right = Vector((-1.0, 1.0, 0.0)).normalized()
     horizontal_back = Vector((1.0, 1.0, 0.0)).normalized()
     world_up = Vector((0.0, 0.0, 1.0))
@@ -117,6 +117,7 @@ def setup_camera(
     height: int,
     pivot: tuple[int, int],
     scale: float = 1.0,
+    elevation_degrees: float = ELEVATION_DEGREES,
 ) -> None:
     """Add the orthographic camera.
 
@@ -124,6 +125,8 @@ def setup_camera(
         width, height: the canvas in pixels.
         pivot: the pixel corner, from the top-left, where world ``(0, 0, 0)`` lands.
         scale: pixels per unit relative to the game (0.5 renders half size, for icons).
+        elevation_degrees: how far the camera looks down (30 is the game's view; hero art
+            uses lower, more front-on views).
     """
     px_per_unit = PX_PER_UNIT * scale
     scene.render.resolution_x = width
@@ -140,18 +143,18 @@ def setup_camera(
     scene.collection.objects.link(camera)
     scene.camera = camera
 
-    right, up, toward_viewer = screen_axes()
+    right, up, toward_viewer = screen_axes(elevation_degrees)
     # The image centre shows the world point that is this many pixels right/up of the origin.
     centre_right = (width / 2 - pivot[0]) / px_per_unit
     centre_up = (pivot[1] - height / 2) / px_per_unit
     target = right * centre_right + up * centre_up
     camera.location = target + toward_viewer * CAMERA_DISTANCE
-    camera.rotation_euler = (math.radians(90.0 - ELEVATION_DEGREES), 0.0, math.radians(135.0))
+    camera.rotation_euler = (math.radians(90.0 - elevation_degrees), 0.0, math.radians(135.0))
 
 
-def setup_sun(scene: bpy.types.Scene) -> None:
+def setup_sun(scene: bpy.types.Scene, elevation_degrees: float = ELEVATION_DEGREES) -> None:
     """Add the key light: one sun from the screen's top-left, a little toward the viewer."""
-    right, up, toward_viewer = screen_axes()
+    right, up, toward_viewer = screen_axes(elevation_degrees)
     light_from = (
         right * LIGHT_FROM_SCREEN[0]
         + up * LIGHT_FROM_SCREEN[1]

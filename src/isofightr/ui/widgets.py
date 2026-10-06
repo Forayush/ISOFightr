@@ -765,6 +765,13 @@ class SlideGroup:
             self._sprites.extend(sprites[index] for index in range(before, len(sprites)))
         self._home = [(sprite.center_x, sprite.center_y) for sprite in self._sprites]
 
+    def place(self, sprite: arcade.Sprite, x: float, y: float) -> None:
+        """Give one of the group's sprites a new resting place (its centre); it keeps
+        moving with the group from there."""
+        index = self._sprites.index(sprite)
+        self._home[index] = (x, y)
+        sprite.position = (x + self._offset[0], y + self._offset[1])
+
     def offset(self, dx: int, dy: int) -> None:
         """Move the whole group ``(dx, dy)`` pixels from where it was made."""
         if (dx, dy) == self._offset:

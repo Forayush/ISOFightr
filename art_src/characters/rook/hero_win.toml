@@ -1,0 +1,20 @@
+# Rook's win picture (decision D-061): sword thrust straight up, buckler arm flung wide, chin
+# up. Rendered from hero.toml's camera. (Without this file the first pose of the victory
+# animation would be used; from the front its sword crosses his face.)
+[[poses]]
+use = "ready"
+hips = [0.0, 0.0, 6.0]
+chest = [10.0, 0.0, -4.0]
+head = [14.0, 0.0, 4.0]
+cape = [-34.0, 0.0, 0.0]
+shoulder_r = [6.0, -176.0, 0.0]
+elbow_r = [4.0, 0.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, -14.0]
+knee_r = [-14.0, 0.0, 0.0]
+ankle_r = [4.0, 0.0, 0.0]
+hip_l = [-6.0, 0.0, 18.0]
+knee_l = [-8.0, 0.0, 0.0]
+ankle_l = [10.0, 0.0, -10.0]

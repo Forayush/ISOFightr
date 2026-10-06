@@ -1,0 +1,24 @@
+{
+  "character": "zephyr",
+  "source": "f6ec083586850f3250c33760c3f7e95e985d844bd12be8febc52179c196ffb30",
+  "blender": "4.5.5",
+  "scale": 2,
+  "camera": {
+    "turn": 58.0,
+    "elevation": 14.0
+  },
+  "sizes": {
+    "hero": [
+      61,
+      82
+    ],
+    "hero_win": [
+      59,
+      94
+    ],
+    "tile": [
+      40,
+      40
+    ]
+  }
+}

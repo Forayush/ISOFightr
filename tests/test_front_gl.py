@@ -449,3 +449,55 @@ def test_the_tip_changes_while_the_screen_is_up(window: Any) -> None:
     assert first.startswith("TIP: ")
     step(window, TIP_TICKS)
     assert view.tip.text != first and view.tip.text.startswith("TIP: ")
+
+
+# --- hero art (M13 group 4) ----------------------------------------------------------------
+
+
+def test_the_sprite_bank_serves_hero_art_in_every_costume(window: Any) -> None:
+    import json
+
+    from isofightr.data.sprite_sheet import UI_PICTURES, load_sprite_set
+    from isofightr.render.sprite_bank import SpriteBank
+
+    window.switch_to()
+    sprite_set = load_sprite_set("bramble")
+    assert sprite_set is not None
+    bank = SpriteBank(sprite_set)
+    index = json.loads((sprite_set.folder.parent / "ui" / "ui.json").read_text(encoding="utf-8"))
+    for name in UI_PICTURES:
+        texture = bank.portrait(name, 0)
+        assert texture is not None and [texture.width, texture.height] == index["sizes"][name]
+        assert bank.portrait(name, 0) is texture, "made once"
+    heroes = [bank.portrait("hero", costume) for costume in range(len(sprite_set.costumes))]
+    pictures = {texture.image.tobytes() for texture in heroes if texture is not None}
+    assert len(pictures) == len(sprite_set.costumes), "each costume recolours it"
+    assert bank.portrait("bust", 0) is not None, "the small portraits are still there"
+
+
+def test_loading_cards_show_hero_art_standing_on_the_name_plate(window: Any) -> None:
+    from isofightr.scenes import loading_view
+    from isofightr.scenes.setup import MatchSetup
+
+    setup = MatchSetup(
+        characters=("rook", "bramble", "zephyr", "mote"),
+        devices=("keyboard:solo", "", "", ""),
+        cpus=(0, 5, 5, 5),
+    )
+    _, view = to_loading(window, setup)
+    while not view.ready:
+        step(window, 1)
+    step(window, loading_view.SLIDE_TICKS + 2)
+    rects = loading_view.card_rects(4)
+    for player, rect in enumerate(rects):
+        art = view._busts[player]
+        bank = view._banks[setup.characters[player]]
+        costume = loading_view.player_costume(setup, player, len(bank.sprite_set.costumes))
+        assert art.visible and art.texture is bank.portrait("hero", costume)
+        assert art.scale == (1.0, 1.0), "one art pixel per screen pixel"
+        left = art.center_x - art.texture.width / 2
+        bottom = art.center_y - art.texture.height / 2
+        assert bottom == rect.bottom + loading_view.ART_BOTTOM, "feet behind the plate"
+        assert rect.left <= left and left + art.texture.width <= rect.right, "inside its card"
+        assert bottom + art.texture.height <= rect.top - 17, "under the card's coloured strip"
+        assert float(left).is_integer() and float(bottom).is_integer(), "on whole pixels"

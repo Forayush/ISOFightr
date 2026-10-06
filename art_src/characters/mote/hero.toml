@@ -1,0 +1,29 @@
+# Mote's hero art (decision D-061). Mote is the zoner: a hooded lantern mage who keeps you
+# at arm's length. Hovering, toes pointed and robe hanging, the lantern held out and up
+# between you and it, the free hand open at its side as if weighing a spell. Still, patient,
+# a little eerie.
+# Built by `tools/build_art.py mote --hero`, at twice the game's pixels per unit.
+
+[camera]
+turn = -16        # degrees turned from facing the viewer (+ = toward the screen's right)
+elevation = 10    # degrees the camera looks down (30 is the game's view from above)
+
+[[poses]]
+use = "ready"
+offset = [0.0, 0.0, 0.3]
+hips = [0.0, 0.0, 8.0]
+chest = [2.0, 0.0, -8.0]
+head = [-6.0, 0.0, 6.0]
+cape = [-18.0, 0.0, 0.0]
+shoulder_r = [62.0, -30.0, 0.0]
+elbow_r = [40.0, 0.0, 0.0]
+hand_r = [-92.0, 0.0, 0.0]
+shoulder_l = [26.0, 46.0, 0.0]
+elbow_l = [58.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-26.0, 0.0, 0.0]
+ankle_r = [46.0, 0.0, 0.0]
+hip_l = [-4.0, 0.0, 0.0]
+knee_l = [-12.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]

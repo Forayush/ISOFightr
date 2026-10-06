@@ -80,6 +80,7 @@ WINDOWLESS_MODULES = (
     "isofightr.ai.levels",
     "isofightr.art.anims",
     "isofightr.art.blender",
+    "isofightr.art.hero",
     "isofightr.art.packer",
     "isofightr.art.palettes",
     "isofightr.art.portraits",

@@ -14,6 +14,7 @@ portraits go to ``assets/characters/<id>/sprites/``; a tileset's tile images and
 """
 
 import argparse
+import json
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -24,10 +25,27 @@ from isofightr.art.anims import anims_dir, list_anims, list_anims_in, load_timin
 from isofightr.art.blender import (
     BUILD_DIR,
     PIVOT,
+    TURNED_VIEW,
     RenderJob,
     blender_version,
     render,
     require_blender,
+)
+from isofightr.art.hero import (
+    HERO_CANVAS,
+    HERO_FILE,
+    HERO_PIVOT,
+    HERO_SCALE,
+    INDEX_FILE,
+    MARGIN,
+    TILE_SCALE,
+    TILE_SIZE,
+    HeroCamera,
+    character_dir,
+    has_hero,
+    load_camera,
+    source_hash,
+    win_pose_file,
 )
 from isofightr.art.packer import compose, palette_bytes, trim, write_sheets
 from isofightr.art.palettes import (
@@ -56,14 +74,8 @@ from isofightr.data.tileset_art import TILESETS_DIR
 from isofightr.sim.input_frame import Dir8
 
 SPRITES_DIR_NAME = "sprites"
-HERO_FACING = "S"
-"""Hero art faces the viewer."""
-HERO_SCALE = 3
-"""Model scale of the hero art, in game pixels per unit (decision D-061)."""
-HERO_CANVAS = (112, 112)
-"""Canvas of the hero render at scale 1; it grows with the scale."""
-HERO_PIVOT = (56, 92)
-"""Where the feet land on that canvas, from its top-left."""
+UI_DIR_NAME = "ui"
+"""Where a character's hero art goes, next to its ``sprites`` folder."""
 
 
 def main() -> None:
@@ -75,12 +87,7 @@ def main() -> None:
     parser.add_argument(
         "--hero",
         action="store_true",
-        help="render only the hero art (hero.toml) and write its preview images",
-    )
-    parser.add_argument(
-        "--hero-scales",
-        default="",
-        help="with --hero: model scales to render for comparison, e.g. 2,3",
+        help="render and pack only the hero art (hero.toml), not the sprite sheets",
     )
     args = parser.parse_args()
 
@@ -94,13 +101,7 @@ def main() -> None:
     blender = require_blender()
     out = BUILD_DIR / character
     if args.hero:
-        scales = [int(value) for value in args.hero_scales.split(",") if value] or [HERO_SCALE]
-        for scale in scales:
-            image = render_hero(blender, character, palettes, scale, args.force)
-            target = out / f"hero_{scale}x.png"
-            image.save(target)
-            box = image.getbbox()
-            print(f"hero art at {scale}x: {target} (drawn {box[2] - box[0]}x{box[3] - box[1]} px)")
+        build_hero(blender, character, palettes, args.force)
         return
     job = RenderJob(
         character,
@@ -137,35 +138,93 @@ def main() -> None:
         f"in {time.perf_counter() - started:.1f} s"
     )
     build_portraits(blender, job, palettes)
+    build_hero(blender, character, palettes, args.force)
 
 
-def render_hero(
-    blender: Path, character: str, palettes: CharacterPalettes, scale: int, force: bool = False
-) -> Image.Image:
-    """Render a character's ``hero.toml`` pose facing the viewer at ``scale`` times the game's
-    pixels per unit, and return it composed like a sprite (cel bands, outlines, the default
-    costume) on a transparent canvas. More model per pixel, the same pixel size."""
-    source = ART_SRC / "characters" / character
-    out = BUILD_DIR / character / f"_hero{scale}"
-    job = RenderJob(
+def _hero_job(
+    character: str, palettes: CharacterPalettes, name: str, pose_file: Path, camera: HeroCamera
+) -> RenderJob:
+    source = character_dir(character)
+    return RenderJob(
         character,
         source / "rig.toml",
         source / "poses.toml",
         tuple(material.name for material in palettes.materials),
-        {"hero": source / "hero.toml"},
-        out,
-        scale=float(scale),
-        directions=(HERO_FACING,),
-        canvas=(HERO_CANVAS[0] * scale, HERO_CANVAS[1] * scale),
-        pivot=(HERO_PIVOT[0] * scale, HERO_PIVOT[1] * scale),
+        {name: pose_file},
+        BUILD_DIR / character / "_hero",
+        scale=float(HERO_SCALE),
+        canvas=HERO_CANVAS,
+        pivot=HERO_PIVOT,
+        elevation=camera.elevation,
+        z_squash=1.0,
+        turn=camera.turn,
     )
-    render(blender, job, force=force)
-    stem = out / "hero" / f"00_{HERO_FACING}"
-    composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
-    indexed = composed.convert("P")
+
+
+def _save_indexed(image: Image.Image, palettes: CharacterPalettes, path: Path) -> None:
+    indexed = image.convert("P")
     indexed.putpalette(palette_bytes(palettes.costumes[0]))
-    indexed.info["transparency"] = TRANSPARENT_INDEX
-    return indexed.convert("RGBA")
+    indexed.save(path, transparency=TRANSPARENT_INDEX, optimize=True)
+
+
+def build_hero(blender: Path, character: str, palettes: CharacterPalettes, force: bool) -> None:
+    """Render a character's hero art (``hero.toml``), its win picture (the first pose of the
+    ``victory`` animation from the same camera) and its roster tile (the portrait pose), and
+    save them indexed in ``assets/characters/<id>/ui/`` with ``ui.json``."""
+    if not has_hero(character):
+        print(f"{character}: no {HERO_FILE}")
+        return
+    source = character_dir(character)
+    camera = load_camera(character)
+    folder = CHARACTERS_DIR / character / UI_DIR_NAME
+    folder.mkdir(parents=True, exist_ok=True)
+    sizes = {}
+    for name, pose_file in (
+        ("hero", source / HERO_FILE),
+        ("hero_win", win_pose_file(character)),
+    ):
+        job = _hero_job(character, palettes, name, pose_file, camera)
+        render(blender, job, force=force)
+        stem = job.out / name / f"00_{TURNED_VIEW}"
+        composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
+        box = composed.point(lambda value: 255 if value else 0).getbbox()
+        assert box is not None, f"{character}: the {name} render is empty"
+        left, top, right, bottom = box
+        trimmed = Image.new(
+            "L", (right - left + 2 * MARGIN, bottom - top + 2 * MARGIN), TRANSPARENT_INDEX
+        )
+        trimmed.paste(composed.crop(box), (MARGIN, MARGIN))
+        _save_indexed(trimmed, palettes, folder / f"{name}.png")
+        sizes[name] = list(trimmed.size)
+
+    portrait = RenderJob(
+        character,
+        source / "rig.toml",
+        source / "poses.toml",
+        tuple(material.name for material in palettes.materials),
+        {"portrait": source / "portrait.toml"},
+        BUILD_DIR / character / "_tile",
+        scale=TILE_SCALE,
+        directions=(PORTRAIT_FACING,),
+    )
+    render(blender, portrait, force=force)
+    stem = portrait.out / "portrait" / f"00_{PORTRAIT_FACING}"
+    composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
+    _save_indexed(crop_top(composed, TILE_SIZE), palettes, folder / "tile.png")
+    sizes["tile"] = [TILE_SIZE, TILE_SIZE]
+
+    index = {
+        "character": character,
+        "source": source_hash(character),
+        "blender": blender_version(blender),
+        "scale": HERO_SCALE,
+        "camera": {"turn": camera.turn, "elevation": camera.elevation},
+        "sizes": sizes,
+    }
+    (folder / INDEX_FILE).write_text(
+        json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+    print(f"hero art: {', '.join(f'{name} {w}x{h}' for name, (w, h) in sizes.items())}")
 
 
 def build_tileset(tileset_id: str, force: bool) -> None:
