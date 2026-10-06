@@ -60,7 +60,7 @@ class TextSize(Enum):
 _SPECS: Final[dict[TextSize, tuple[str, int, int]]] = {
     TextSize.SMALL: ("Tiny5-Regular.ttf", 8, 1),
     TextSize.BODY: ("DepartureMono-Regular.otf", 11, 1),
-    TextSize.TITLE: ("Jersey20-Regular.ttf", 20, 1),
+    TextSize.TITLE: ("Jersey25-Regular.ttf", 20, 1),
     TextSize.DISPLAY: ("Jersey25-Regular.ttf", 25, 1),
     TextSize.NUMERAL: ("Jersey10-Regular.ttf", 30, 3),
 }
