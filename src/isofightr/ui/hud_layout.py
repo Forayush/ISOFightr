@@ -100,3 +100,35 @@ def bubble_position(
     x = min(max(screen_x, BUBBLE_MARGIN), width - BUBBLE_MARGIN)
     y = min(max(screen_y, BUBBLE_MARGIN), height - BUBBLE_MARGIN)
     return (round(x), round(y))
+
+
+# --- score and player tags (the Rules screen's display options, decision D-061) -------------
+SCORE_CAPACITY: Final[int] = len("+99")
+SCORE_COLOR: Final[Rgb] = (249, 194, 43)
+TAG_GAP: Final[int] = 5
+"""Pixels between the top of a fighter's head and the tip of its name tag's arrow."""
+TAG_MARGIN: Final[int] = 10
+"""A tag is dropped once its fighter is this far outside the screen."""
+CPU_TAG: Final[str] = "CPU"
+
+
+def score_text(score: int) -> str:
+    """Return a player's score as the HUD shows it: signed, so 0 reads as a score."""
+    return f"{max(min(score, 99), -99):+d}" if score else "0"
+
+
+def tag_text(player_index: int, cpu_level: int = 0) -> str:
+    """Return the name tag over a fighter: ``P1`` to ``P4``, or ``CPU``."""
+    return CPU_TAG if cpu_level > 0 else f"P{player_index + 1}"
+
+
+def tag_anchor(head_x: float, head_y: float, width: int, height: int) -> tuple[int, int] | None:
+    """Return where a name tag's arrow tip goes, in native pixels (centre x, bottom y), for
+    a fighter whose head top is at a screen position; ``None`` when that is off screen (the
+    off-screen marker takes over). The tag sits above the head, so it can never cover the
+    fighter's shadow or ring."""
+    if not -TAG_MARGIN <= head_x <= width + TAG_MARGIN:
+        return None
+    if not -TAG_MARGIN <= head_y <= height + TAG_MARGIN:
+        return None
+    return (round(head_x), round(head_y) + TAG_GAP)

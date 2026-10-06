@@ -386,3 +386,138 @@ def test_three_sides_two_against_one_against_one() -> None:
     assert match.phase is MatchPhase.PLAYING
     knock_out(match, 1)
     assert match.result == MatchResult(winner=3, placements=((3,), (0, 1), (2,)), winners=(3,))
+
+
+# --- starting damage (decision D-061) -----------------------------------------------------
+
+
+def test_default_rules_start_and_respawn_at_zero() -> None:
+    assert MatchRules().start_damage == 0.0
+    match = new_match()
+    assert [fighter.damage for fighter in match.fighters] == [0.0, 0.0]
+
+
+def test_fighters_start_and_come_back_with_the_starting_damage() -> None:
+    match = new_match(stocks=3, start_damage=60.0)
+    first, second = match.fighters
+    assert first.damage == second.damage == 60.0
+    match.set_damage(1, 150.0)
+    knock_out(match, 1)
+    for _ in range(300):
+        if second.state is StateId.REVIVAL:
+            break
+        tick(match)
+    assert second.state is StateId.REVIVAL and second.damage == 60.0
+    assert first.damage == 60.0
+
+
+def test_starting_damage_is_kept_in_range_and_sudden_death_keeps_its_own() -> None:
+    assert new_match(start_damage=-40.0).fighters[0].damage == 0.0
+    assert new_match(start_damage=5000.0).fighters[0].damage < 1000.0
+    match = new_match(stocks=None, time_frames=50, start_damage=30.0)
+    tick(match, 50)
+    assert match.sudden_death
+    assert [fighter.damage for fighter in match.fighters] == [SUDDEN_DEATH_DAMAGE] * 2
+
+
+def test_starting_damage_shows_in_the_state_hash() -> None:
+    assert new_match(start_damage=10.0).state_hash() != new_match().state_hash()
+    assert new_match(start_damage=0.0).state_hash() == new_match().state_hash()
+
+
+# --- stocks and a clock together (decision D-061) -----------------------------------------
+
+
+def test_with_stocks_and_a_clock_the_most_stocks_win_on_time() -> None:
+    match = new_match(players=3, stocks=3, time_frames=900)
+    knock_out(match, 1)
+    tick(match, 200)
+    knock_out(match, 2)
+    tick(match, 200)
+    knock_out(match, 2)
+    match.set_damage(0, 250.0)  # damage does not matter while the stocks differ
+    tick(match, 900)
+    assert match.phase is MatchPhase.OVER and not match.sudden_death
+    assert match.result == MatchResult(winner=0, placements=((0,), (1,), (2,)), winners=(0,))
+
+
+def test_level_stocks_are_settled_by_the_least_damage() -> None:
+    match = new_match(players=3, stocks=2, time_frames=300)
+    match.set_damage(0, 80.0)
+    match.set_damage(1, 35.0)
+    match.set_damage(2, 120.0)
+    tick(match, 300)
+    assert match.result is not None and not match.sudden_death
+    assert match.result.winner == 1
+    assert match.result.placements == ((1,), (0,), (2,))
+
+
+def test_level_stocks_and_damage_go_to_sudden_death() -> None:
+    match = new_match(players=3, stocks=2, time_frames=300)
+    match.set_damage(2, 50.0)
+    tick(match, 299)
+    assert match.phase is MatchPhase.PLAYING
+    tick(match, 1)
+    [event] = [e for e in match.events if isinstance(e, SuddenDeathEvent)]
+    assert event.players == (0, 1), "the two level leaders; the third is out"
+    assert match.sudden_death and match.time_left is None and match.result is None
+    assert [fighter.stocks for fighter in match.fighters] == [1, 1, 0]
+    knock_out(match, 0)
+    assert match.result is not None and match.result.winner == 1
+    assert match.result.placements == ((1,), (0,), (2,))
+
+
+def test_a_stock_and_time_match_still_ends_when_one_fighter_is_left() -> None:
+    match = new_match(players=3, stocks=1, time_frames=5000)
+    knock_out(match, 2)
+    knock_out(match, 0)
+    assert match.phase is MatchPhase.OVER and match.time_left is not None
+    assert match.result == MatchResult(winner=1, placements=((1,), (0,), (2,)), winners=(1,))
+
+
+def test_on_time_fighters_still_in_rank_above_those_already_out() -> None:
+    match = new_match(players=4, stocks=1, time_frames=600)
+    knock_out(match, 3)
+    tick(match, 50)
+    knock_out(match, 1)
+    match.set_damage(0, 20.0)
+    match.set_damage(2, 90.0)
+    tick(match, 600)
+    assert match.result is not None
+    assert match.result.placements == ((0,), (2,), (1,), (3,))
+
+
+def test_level_fighters_behind_the_winner_share_a_rank() -> None:
+    match = new_match(players=3, stocks=2, time_frames=200)
+    match.set_damage(1, 40.0)
+    match.set_damage(2, 40.0)
+    tick(match, 200)
+    assert match.result is not None
+    assert match.result.placements == ((0,), (1, 2))
+
+
+def test_teams_add_up_their_stocks_then_their_damage() -> None:
+    match = new_match(players=4, stocks=2, time_frames=1000, teams=RED_VS_BLUE)
+    red = [index for index, team in enumerate(RED_VS_BLUE) if team == RED_VS_BLUE[0]]
+    blue = [index for index in range(4) if index not in red]
+    knock_out(match, blue[0])
+    tick(match, 1000)
+    assert match.result is not None and match.result.winners == tuple(red), "4 stocks to 3"
+
+    match = new_match(players=4, stocks=2, time_frames=300, teams=RED_VS_BLUE)
+    match.set_damage(red[0], 30.0)
+    match.set_damage(red[1], 30.0)
+    match.set_damage(blue[0], 59.0)
+    tick(match, 300)
+    assert match.result is not None and match.result.winners == tuple(blue), "59% to 60%"
+
+
+def test_time_only_and_stock_only_matches_are_unchanged_by_the_new_rule() -> None:
+    timed = new_match(stocks=None, time_frames=300)
+    timed.set_damage(0, 200.0)
+    knock_out(timed, 1)
+    tick(timed, 300)
+    assert timed.result is not None and timed.result.winner == 0, "score, not damage"
+    stock = new_match(stocks=1)
+    tick(stock, 5000)
+    assert stock.result is None and stock.time_left is None, "no clock: it never times out"

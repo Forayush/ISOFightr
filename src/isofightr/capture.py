@@ -13,7 +13,7 @@ Imports ``arcade`` (through the app), so it needs a display.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import arcade
 from PIL import Image
@@ -25,9 +25,10 @@ from isofightr.data.stage_loader import load_stage
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
 from isofightr.scenes.menus import ResultsView
+from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
-from isofightr.settings import KEYBOARD_SOLO, Settings
+from isofightr.settings import KEYBOARD_SOLO, SavedRules, Settings
 from isofightr.sim.input_frame import facing_from_move
 from isofightr.sim.math3d import Vec3
 
@@ -36,6 +37,7 @@ SCREENS: tuple[str, ...] = (
     "title",
     "main",
     "rules",
+    "pool",
     "controls",
     "charselect",
     "stageselect",
@@ -177,11 +179,13 @@ def _run(
     return sheet
 
 
-def versus_setup(players: int, cpus: bool = False) -> MatchSetup:
+def versus_setup(players: int, cpus: bool = False, rules: SavedRules | None = None) -> MatchSetup:
     """Return a versus setup with the roster's first ``players`` characters: the first two
-    on the keyboards, or (with ``cpus``) everyone but player 1 a CPU."""
+    on the keyboards, or (with ``cpus``) everyone but player 1 a CPU. ``rules`` are the
+    rules to play under (the defaults if not given)."""
     count = min(max(players, 2), len(ROSTER))
-    return MatchSetup(
+    return replace(
+        with_saved(MatchSetup(), rules or SavedRules()),
         characters=ROSTER[:count],
         devices=("keyboard:solo", *[""] * (count - 1)) if cpus else KEYBOARDS[:count],
         cpus=(0, *[HUD_CPU_LEVEL] * (count - 1)) if cpus else (),
@@ -194,12 +198,15 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
     Raises:
         ValueError: the name is unknown, or the screen is not built yet.
     """
+    rules = flow.settings.rules
     if screen == "title":
         flow.show_title()
     elif screen == "main":
         flow.show_main_menu()
     elif screen == "rules":
         flow.show_rules()
+    elif screen == "pool":
+        flow.show_random_pool()
     elif screen == "settings":
         flow.show_settings()
     elif screen == "controls":
@@ -209,9 +216,10 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
     elif screen == "charselect":
         flow.show_character_select(flow.setup)
     elif screen == "stageselect":
-        flow.show_stage_select(versus_setup(players))
+        flow.show_stage_select(versus_setup(players, rules=rules))
     elif screen in ("hud", "pause"):
-        flow.start_battle(versus_setup(max(players, 4) if screen == "hud" else players, cpus=True))
+        count = max(players, 4) if screen == "hud" else players
+        flow.start_battle(versus_setup(count, cpus=True, rules=rules))
         view = window.current_view
         assert isinstance(view, BattleView)
         view.show_help = False
@@ -226,7 +234,7 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
         view.show_help = False
         view.open_menu()
     elif screen == "results":
-        flow.start_battle(versus_setup(players))
+        flow.start_battle(versus_setup(players, rules=rules))
         view = window.current_view
         assert isinstance(view, BattleView)
         for _ in range(RESULTS_TICK_LIMIT):

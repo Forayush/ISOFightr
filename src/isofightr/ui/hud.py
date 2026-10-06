@@ -23,6 +23,9 @@ from isofightr.ui.hud_layout import (
     DAMAGE_SCALE,
     KO_TEXT,
     MAX_STOCK_ICONS,
+    PANEL_WIDTH,
+    SCORE_CAPACITY,
+    SCORE_COLOR,
     STOCK_ICON_STEP,
     STOCK_SLOT_SIZE,
     TAG_CAPACITY,
@@ -32,6 +35,7 @@ from isofightr.ui.hud_layout import (
     damage_color,
     damage_text,
     panel_lefts,
+    score_text,
     stock_count_text,
     stock_icons_shown,
 )
@@ -71,6 +75,7 @@ class DamageHud:
         self._damage: list[PixelLabel] = []
         self._stock_text: list[PixelLabel] = []
         self._combo: list[PixelLabel] = []
+        self._score: list[PixelLabel] = []
         self._stock_icons: list[list[arcade.Sprite]] = []
         self._bubbles: list[arcade.Sprite] = []
         self._colors: list[Rgb | None] = [None] * player_count
@@ -110,6 +115,16 @@ class DamageHud:
                     scale=DAMAGE_SCALE,
                 )
             )
+            self._score.append(
+                PixelLabel(
+                    glyphs,
+                    self.sprites,
+                    left + PANEL_WIDTH + GLYPH_ADVANCE,
+                    self.damage_bottom,
+                    SCORE_CAPACITY,
+                    SCORE_COLOR,
+                )
+            )
             given = icons[index] if index < len(icons) else None
             icon = given or arcade.Texture(art.build_stock_icon(color))
             row = []
@@ -137,10 +152,20 @@ class DamageHud:
             self.sprites.append(bubble)
             self._bubbles.append(bubble)
 
-    def update(self, fighters: Sequence[Fighter], effects: BattleEffects) -> None:
-        """Refresh the text, colors, stock icons and hit pops from the current state."""
+    def update(
+        self,
+        fighters: Sequence[Fighter],
+        effects: BattleEffects,
+        scores: Sequence[int] | None = None,
+    ) -> None:
+        """Refresh the text, colors, stock icons and hit pops from the current state.
+
+        ``scores`` (one per player) shows each player's score beside the damage; ``None``
+        hides it (the Rules screen's "score display").
+        """
         for fighter in fighters:
             index = fighter.player_index
+            self._score[index].text = "" if scores is None else score_text(scores[index])
             label = self._damage[index]
             label.text = damage_text(fighter.damage) if fighter.in_play else KO_TEXT
             color = damage_color(fighter.damage)
@@ -179,6 +204,10 @@ class DamageHud:
     def bubble_shown(self, player_index: int) -> bool:
         """Return whether a player's off-screen marker is showing."""
         return bool(self._bubbles[player_index].visible)
+
+    def score_shown(self, player_index: int) -> str:
+        """Return the score text a player's panel is showing ("" when scores are off)."""
+        return self._score[player_index].text
 
     def stocks_shown(self, player_index: int) -> int:
         """Return how many stock icons a player's panel is showing."""

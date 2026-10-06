@@ -18,6 +18,7 @@ from isofightr.sim.math3d import Vec3
 pytestmark = pytest.mark.gl
 
 BELOW_THE_STAGE = Vec3(5.0, 5.0, -9.0)
+KEYBOARD_PAIR = ("keyboard:solo", "keyboard:arrows")
 
 
 def keys() -> Any:
@@ -163,10 +164,11 @@ def test_the_rules_screen_turns_the_short_hop_macro_off(window: Any) -> None:
     press(window, keys().S)
     press(window, keys().ENTER)
     assert name(window) == "RulesView"
-    menu = window.current_view.menu
-    keys_in_order = [item.key for item in menu.items]
-    assert keys_in_order.index("short_hop_macro") == keys_in_order.index("parry") + 1
-    while menu.selected.key != "short_hop_macro":
+    from isofightr.scenes.rules_model import ROW_KEYS
+
+    rules = window.current_view
+    assert ROW_KEYS.index("short_hop_macro") == ROW_KEYS.index("parry") + 1
+    while rules.cursor != "short_hop_macro":
         press(window, keys().S)
     press(window, keys().D)
     assert window.current_view.setup.short_hop_macro is False
@@ -348,12 +350,14 @@ def test_time_mode_shows_a_clock_and_ends_on_time(window: Any) -> None:
     press(window, keys().S)
     press(window, keys().ENTER)
     rules = window.current_view
-    press(window, keys().D)
-    assert rules.setup.mode.value == "time"
+    press(window, keys().J)  # the time limit's switch
+    assert rules.setup.time_on and rules.setup.stock_on
+    press(window, keys().A)
+    press(window, keys().A)
+    assert rules.setup.minutes == 1 and rules._steppers["time"].label.text == "1:00"
     press(window, keys().S)
-    press(window, keys().A)
-    press(window, keys().A)
-    assert rules.menu.selected.text == "< 1 minute >"
+    press(window, keys().J)  # stock off: the old time mode
+    assert rules.setup.time_on and not rules.setup.stock_on
     press(window, keys().K)
     two_players_to_stage_select(window)
     press(window, keys().ENTER)
@@ -457,8 +461,8 @@ def test_team_match_from_the_menus(window: Any, pads: list[FakeController]) -> N
     press(window, keys().S)
     press(window, keys().S)
     press(window, keys().ENTER)
-    press(window, keys().S)
-    press(window, keys().S)
+    while window.current_view.cursor != "team_play":
+        press(window, keys().S)
     press(window, keys().D)  # teams on
     assert window.current_view.setup.team_play
     press(window, keys().ESCAPE)
@@ -849,3 +853,304 @@ def test_hud_shows_names_stocks_and_off_screen_markers(window: Any) -> None:
     view.camera.snap_to([view.match.fighters[0].pos])
     view.on_draw()
     assert view.hud.bubble_shown(1) and not view.hud.bubble_shown(0)
+
+
+# --- the Rules screen (M13 group 1, decision D-061) ---------------------------------------
+
+
+def open_rules(window: Any, **flow_options: Any) -> tuple[Any, Any]:
+    flow = start(window, **flow_options)
+    flow.show_rules()
+    step(window, 2)
+    assert name(window) == "RulesView"
+    return flow, window.current_view
+
+
+def go_to(window: Any, key: str) -> None:
+    """Walk the rules cursor down to a row or button."""
+    for _ in range(40):
+        if window.current_view.cursor == key:
+            return
+        press(window, keys().S)
+    raise AssertionError(f"never reached {key}")
+
+
+def click(window: Any, x: float, y: float) -> None:
+    """Left-click the middle of a native pixel."""
+    import arcade
+
+    view = window.current_view
+    viewport = view.window_viewport()
+    ratio = window.get_pixel_ratio()
+    view.on_mouse_press(
+        round((viewport.left + (x + 0.5) * viewport.scale) / ratio),
+        round((viewport.bottom + (y + 0.5) * viewport.scale) / ratio),
+        arcade.MOUSE_BUTTON_LEFT,
+        0,
+    )
+    step(window, 2)
+
+
+def test_every_rules_row_changes_its_own_rule(window: Any) -> None:
+    from isofightr.scenes.rules_model import ROW_KEYS, RULE_ROWS, row_on, row_value
+
+    flow, rules = open_rules(window)
+    assert rules.cursor == "time" and list(rules._rows) == list(ROW_KEYS)
+    for row in RULE_ROWS:
+        go_to(window, row.key)
+        before = rules.setup
+        if row.has_value:
+            press(window, keys().D)
+            assert row_value(rules.setup, row.key) != row_value(before, row.key), row.key
+            assert rules._steppers[row.key].label.text == row_value(rules.setup, row.key)
+            press(window, keys().A)
+            assert rules.setup == before
+        if row.has_switch:
+            press(window, keys().J)
+            assert row_on(rules.setup, row.key) is (not row_on(before, row.key)), row.key
+            assert rules._switches[row.key].on is row_on(rules.setup, row.key)
+            assert flow.setup == rules.setup, "kept at once, not on leaving"
+            press(window, keys().J)
+            if row.key not in ("time", "stock"):
+                assert rules.setup == before
+    assert set(rules._steppers) == {row.key for row in RULE_ROWS if row.has_value}
+    assert set(rules._switches) == {row.key for row in RULE_ROWS if row.has_switch}
+
+
+def test_the_last_of_time_and_stock_cannot_be_switched_off(window: Any) -> None:
+    _, rules = open_rules(window)
+    go_to(window, "stock")
+    press(window, keys().J)
+    assert rules.setup.time_on and not rules.setup.stock_on, "the clock came on instead"
+    assert rules._switches["time"].on and not rules._switches["stock"].on
+    press(window, keys().W)
+    press(window, keys().J)
+    assert rules.setup.stock_on and not rules.setup.time_on
+    press(window, keys().J)
+    assert rules.setup.stock_on and rules.setup.time_on
+    assert "most stocks" in rules.help.text, "the help line explains both on"
+
+
+def test_default_restores_every_rule_at_once(window: Any) -> None:
+    from isofightr.scenes.setup import MatchSetup
+
+    flow, rules = open_rules(window)
+    for key, key_press in (
+        ("stock", keys().D),
+        ("start_damage", keys().D),
+        ("parry", keys().J),
+        ("hud_display", keys().J),
+        ("pausing", keys().J),
+    ):
+        go_to(window, key)
+        press(window, key_press)
+    assert flow.setup.rules() != MatchSetup().rules() and not flow.setup.pausing
+    go_to(window, "pool")
+    press(window, keys().D)
+    assert rules.cursor == "default"
+    press(window, keys().J)
+    assert name(window) == "RulesView", "no confirm step, and it stays on the screen"
+    assert rules.setup == MatchSetup() and flow.setup == MatchSetup()
+    assert rules._steppers["stock"].label.text == "3" and not rules._switches["parry"].on
+    press(window, keys().D)
+    assert rules.cursor == "back"
+    press(window, keys().D)
+    assert rules.cursor == "back", "the buttons do not wrap"
+    press(window, keys().J)
+    assert name(window) == "MainMenuView"
+
+
+def test_the_rules_cursor_wraps_through_rows_and_buttons(window: Any) -> None:
+    _, rules = open_rules(window)
+    press(window, keys().W)
+    assert rules.cursor == "back", "up from the first row"
+    press(window, keys().S)
+    assert rules.cursor == "time"
+    go_to(window, "pausing")
+    press(window, keys().S)
+    assert rules.cursor == "pool"
+    press(window, keys().W)
+    assert rules.cursor == "pausing"
+
+
+def test_the_mouse_steps_and_switches_rules(window: Any) -> None:
+    _, rules = open_rules(window)
+    stepper = rules._steppers["stock"].rect
+    y = stepper.bottom + stepper.height // 2
+    click(window, stepper.right - 6, y)
+    assert rules.cursor == "stock" and rules.setup.stocks == 4, "the right half steps up"
+    click(window, stepper.left + 6, y)
+    click(window, stepper.left + 6, y)
+    assert rules.setup.stocks == 2, "the left half steps down"
+    switch = rules._switches["parry"].rect
+    click(window, switch.left + 5, switch.bottom + 5)
+    assert rules.setup.parry and rules.cursor == "parry"
+    row = rules.rects["player_tags"]
+    click(window, row.left + 60, row.bottom + 5)
+    assert rules.setup.player_tags, "anywhere on a switch row flips it"
+    launch = rules.rects["launch_rate"]
+    click(window, launch.left + 60, launch.bottom + 5)
+    assert rules.setup.launch_rate == 1.25, "a value row without a switch steps forward"
+    default = rules.buttons["default"].rect
+    click(window, default.left + 10, default.bottom + 5)
+    assert rules.setup.stocks == 3 and not rules.setup.parry
+    click(window, 4, 200)
+    assert name(window) == "RulesView", "a click on nothing does nothing"
+
+
+def test_rules_are_saved_and_loaded_at_start(window: Any, tmp_path: Path) -> None:
+    from isofightr.scenes.setup import MatchSetup
+    from isofightr.settings import load_settings
+
+    path = tmp_path / "settings.toml"
+    open_rules(window, settings_path=path)
+    go_to(window, "stock")
+    press(window, keys().D)
+    go_to(window, "start_damage")
+    press(window, keys().D)
+    press(window, keys().D)
+    go_to(window, "score_display")
+    press(window, keys().J)
+    saved = load_settings(path).rules
+    assert (saved.stocks, saved.start_damage, saved.score_display) == (4, 20, True)
+
+    again = start(window, settings=load_settings(path), settings_path=path)
+    assert again.setup.stocks == 4 and again.setup.start_damage == 20 and again.setup.score_display
+    assert again.setup.rules().start_damage == 20.0
+    path.write_text("[rules]\nstocks = -4\nparry = 3\nstart_damage = 40\n", "utf-8")
+    broken = start(window, settings=load_settings(path), settings_path=path)
+    assert broken.setup == MatchSetup(start_damage=40), "bad values fall back one by one"
+
+
+def test_rules_can_lead_back_somewhere_else(window: Any) -> None:
+    flow = start(window)
+    flow.show_rules(lambda: flow.show_character_select(flow.setup))
+    step(window, 2)
+    press(window, keys().K)
+    assert name(window) == "CharacterSelectView"
+
+
+def test_the_random_stage_pool_keeps_one_stage_and_random_picks_from_it(window: Any) -> None:
+    from dataclasses import replace
+
+    from isofightr.data.stage_loader import list_stage_ids
+
+    flow, _ = open_rules(window)
+    go_to(window, "pool")
+    press(window, keys().J)
+    assert name(window) == "RandomPoolView"
+    pool = window.current_view
+    stages = list_stage_ids()
+    assert pool.stages == stages and pool.cursor == stages[0]
+    keep = stages[2]
+    for stage_id in stages:
+        if stage_id != keep:
+            while pool.cursor != stage_id:
+                press(window, keys().S)
+            press(window, keys().J)
+    assert flow.setup.pool(stages) == [keep] and flow.setup.random_pool == (keep,)
+    while pool.cursor != keep:
+        press(window, keys().S)
+    press(window, keys().J)
+    assert flow.setup.pool(stages) == [keep], "the last stage cannot be taken out"
+    press(window, keys().K)
+    assert name(window) == "RulesView" and window.current_view.cursor == "pool"
+    assert window.current_view.buttons["pool"].label.text.endswith(f"1/{len(stages)}")
+
+    setup = replace(
+        flow.setup, stage="random", characters=("rook", "rook"), devices=("keyboard:solo", "")
+    )
+    for _ in range(6):
+        flow.start_battle(setup)
+        assert window.current_view.stage.id == keep
+    everything = replace(setup, random_pool=())
+    seen = set()
+    for _ in range(40):
+        flow.start_battle(everything)
+        seen.add(window.current_view.stage.id)
+    assert len(seen) > 1, "with every stage in, random still varies"
+
+
+def battle_with(window: Any, **options: Any) -> Any:
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = start(window)
+    setup = MatchSetup(
+        characters=("rook", "mote"), devices=("keyboard:solo", "keyboard:arrows"), **options
+    )
+    flow.start_battle(setup)
+    step(window, COUNTDOWN_FRAMES + 5)
+    return window.current_view
+
+
+def test_hud_display_off_keeps_only_the_clock_and_the_countdown(window: Any) -> None:
+    from isofightr.capture import read_frame
+
+    shown = battle_with(window, time_on=True)
+    assert shown.hud_display and shown.clock.text
+    with_hud = read_frame(window)
+    hidden = battle_with(window, time_on=True, hud_display=False, player_tags=True)
+    assert not hidden.hud_display and hidden.clock.text == shown.clock.text
+    without = read_frame(window)
+    assert with_hud.tobytes() != without.tobytes()
+    low = (0, 250, 640, 360)  # the HUD's strip at the bottom of the picture
+    assert with_hud.crop(low).tobytes() != without.crop(low).tobytes()
+    top = (260, 0, 380, 30)  # the clock
+    assert with_hud.crop(top).tobytes() == without.crop(top).tobytes(), "the clock stays"
+    fresh = start(window)
+    from isofightr.scenes.setup import MatchSetup
+
+    fresh.start_battle(
+        MatchSetup(characters=("rook", "mote"), devices=KEYBOARD_PAIR, hud_display=False)
+    )
+    step(window, 5)
+    assert window.current_view.banner.text == "3", "the countdown still shows"
+
+
+def test_score_display_shows_kos_minus_falls(window: Any) -> None:
+    plain = battle_with(window)
+    assert plain.hud.score_shown(0) == "", "off by default"
+    battle = battle_with(window, score_display=True)
+    assert battle.hud.score_shown(0) == "0" and battle.hud.score_shown(1) == "0"
+    knock_out(window, 1)
+    step(window, 2)
+    assert battle.hud.score_shown(1) == "-1" and battle.hud.score_shown(0) == "0"
+
+
+def test_player_tags_float_over_the_fighters(window: Any) -> None:
+    plain = battle_with(window)
+    assert not plain.tag_shown(0), "off by default"
+    battle = battle_with(window, player_tags=True, cpus=(0, 4))
+    assert battle.tag_shown(0) and battle.tag_shown(1)
+    names = [name_label.text for name_label, _ in battle._tags]
+    assert names == ["P1", "CPU"]
+    name_label, arrow = battle._tags[0]
+    fighter = battle.match.fighters[0]
+    [(x, head)] = battle._screen_positions([fighter], fighter.character.body.height)
+    [(_, feet)] = battle._screen_positions([fighter], 0.0)
+    assert abs(name_label.x - x) <= 1 and arrow.bottom > head > feet, "above the head"
+    assert name_label.bottom > arrow.bottom
+    knock_out(window, 0)
+    step(window, 2)
+    assert not battle.tag_shown(0) and battle.tag_shown(1), "no tag while out of play"
+
+
+def test_pausing_off_disables_the_pause_menu_in_versus_only(window: Any) -> None:
+    from isofightr.scenes.setup import training_setup
+
+    battle = battle_with(window, pausing=False)
+    press(window, keys().ESCAPE)
+    assert not battle.menu_open and not battle.paused and "pausing is off" in battle._message
+    frame = battle.match.frame
+    step(window, 3)
+    assert battle.match.frame == frame + 3, "the match runs on"
+    allowed = battle_with(window)
+    press(window, keys().ESCAPE)
+    assert allowed.menu_open
+
+    flow = start(window)
+    flow.setup = flow.setup.__class__(pausing=False)
+    flow.start_battle(training_setup())
+    step(window, 3)
+    press(window, keys().ESCAPE)
+    assert window.current_view.menu_open, "training can always pause"

@@ -109,6 +109,8 @@ SMALL_CORNER: Final[int] = 2
 GAP: Final[int] = 4
 PAD: Final[int] = 8
 MARGIN: Final[int] = 12
+HEADER_HEIGHT: Final[int] = 28
+"""Height of the title bar across the top of a screen."""
 FOOTER_HEIGHT: Final[int] = 18
 """Height of the dark strip the hint line at the bottom of a screen sits on."""
 """Distance from the screen edge to the outermost panels."""

@@ -13,7 +13,7 @@ from helpers import place
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.input.gamepad import PadState, gamepad_frame, process_stick
-from isofightr.scenes.setup import MatchSetup, Mode, can_start, results_table
+from isofightr.scenes.setup import MatchSetup, can_start, results_table
 from isofightr.settings import (
     CONFIG_DIR_ENV,
     DEFAULT_KEYS,
@@ -155,7 +155,7 @@ def test_setup_carries_teams_and_the_optional_rules_into_the_match_rules() -> No
     assert MatchSetup().rules().short_hop_macro, "the macro is on unless the Rules screen says"
     free = replace(setup, team_play=False)
     assert free.rules().teams is None, "team numbers are ignored in a free-for-all"
-    timed = replace(setup, mode=Mode.TIME, minutes=5)
+    timed = replace(setup, stock_on=False, time_on=True, minutes=5)
     assert timed.rules().time_frames == 5 * 3600 and timed.rules().stocks is None
     assert replace(setup, training=True).rules() == MatchRules(stocks=None)
 

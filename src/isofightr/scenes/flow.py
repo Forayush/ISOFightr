@@ -8,6 +8,8 @@ which applies and saves them.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import arcade
@@ -23,11 +25,12 @@ from isofightr.scenes.menus import (
     MainMenuView,
     RebindView,
     ResultsView,
-    RulesView,
     SettingsView,
     StageSelectView,
     TitleView,
 )
+from isofightr.scenes.rules_model import to_saved, with_saved
+from isofightr.scenes.rules_view import RandomPoolView, RulesView
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
 from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
@@ -66,7 +69,8 @@ class GameFlow:
         self.record = record
         self.settings = settings or Settings()
         self.settings_path = settings_path
-        self.setup = MatchSetup()
+        self.setup = with_saved(MatchSetup(), self.settings.rules)
+        """The versus setup: who plays and under which rules (the saved ones to begin with)."""
         self.rng = Rng.seeded(seed)
         self.matches_started = 0
         self.menu_ticks = 0
@@ -94,6 +98,13 @@ class GameFlow:
         if self.settings_path is not None:
             save_settings(self.settings_path, settings)
 
+    def set_rules(self, setup: MatchSetup) -> None:
+        """Take a setup whose rules changed (the Rules screen): keep it and save its rules."""
+        self.setup = setup
+        saved = to_saved(setup)
+        if saved != self.settings.rules:
+            self.update_settings(replace(self.settings, rules=saved))
+
     # --- scenes ----------------------------------------------------------------------------
 
     def show_title(self) -> None:
@@ -104,9 +115,15 @@ class GameFlow:
         """Go to the main menu."""
         self.window.show_view(MainMenuView(self.pixel_buffer, self))
 
-    def show_rules(self) -> None:
-        """Go to the versus rules."""
-        self.window.show_view(RulesView(self.pixel_buffer, self))
+    def show_rules(self, on_back: Callable[[], None] | None = None, cursor: str = "") -> None:
+        """Go to the versus rules. ``on_back`` says where BACK leads (the main menu if not
+        given); ``cursor`` names the row or button to start on."""
+        self.window.show_view(RulesView(self.pixel_buffer, self, on_back, cursor))
+
+    def show_random_pool(self, on_back: Callable[[], None] | None = None) -> None:
+        """Go to the list of stages "Random" may pick; ``on_back`` is where the rules screen
+        it returns to leads."""
+        self.window.show_view(RandomPoolView(self.pixel_buffer, self, on_back))
 
     def show_settings(self) -> None:
         """Go to the settings."""
@@ -132,7 +149,7 @@ class GameFlow:
             self.setup = setup
         stage_id = setup.stage
         if stage_id == RANDOM_STAGE:
-            stages = list_stage_ids()
+            stages = setup.pool(list_stage_ids())
             stage_id = stages[self.rng.below(len(stages))]
         self.matches_started += 1
         view = BattleView(

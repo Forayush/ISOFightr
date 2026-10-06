@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Final
 
 from isofightr.config import DEFAULT_WINDOW_SCALE, MAX_PLAYERS, STICK_DEADZONE
+from isofightr.sim.constants import DEFAULT_STOCKS, DEFAULT_TIME_MINUTES
 
 LOG = logging.getLogger(__name__)
 
@@ -39,6 +40,13 @@ GAMEPAD_PRESETS: Final[tuple[str, ...]] = (PRESET_RIGHT_STICK, PRESET_BUMPERS)
 ZOOM_STATIC: Final[str] = "static"
 ZOOM_STEPPED: Final[str] = "stepped"
 CAMERA_ZOOMS: Final[tuple[str, ...]] = (ZOOM_STATIC, ZOOM_STEPPED)
+
+MIN_COUNT: Final[int] = 1
+MAX_COUNT: Final[int] = 99
+"""Stocks and minutes both go from 1 to 99."""
+LAUNCH_RATES: Final[tuple[float, ...]] = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
+START_DAMAGE_MAX: Final[int] = 300
+START_DAMAGE_STEP: Final[int] = 10
 
 KEYBOARD_SOLO: Final[str] = "solo"
 KEYBOARD_ARROWS: Final[str] = "arrows"
@@ -106,6 +114,45 @@ def _default_slots() -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, slots=True)
+class SavedRules:
+    """The versus rules as the Rules screen leaves them (decision D-061). The defaults are
+    the rules the game had before they could be saved, and what DEFAULT restores."""
+
+    stock_on: bool = True
+    stocks: int = DEFAULT_STOCKS
+    time_on: bool = False
+    minutes: int = DEFAULT_TIME_MINUTES
+    launch_rate: float = 1.0
+    start_damage: int = 0
+    """Percent every fighter starts and respawns with."""
+    team_play: bool = False
+    friendly_fire: bool = False
+    parry: bool = False
+    short_hop_macro: bool = True
+    air_dodge_helpless: bool = False
+    hud_display: bool = True
+    score_display: bool = False
+    player_tags: bool = False
+    pausing: bool = True
+    random_pool: tuple[str, ...] = ()
+    """Stage ids "Random" may pick; empty means every stage."""
+
+
+RULE_FLAGS: Final[tuple[str, ...]] = (
+    "team_play",
+    "friendly_fire",
+    "parry",
+    "short_hop_macro",
+    "air_dodge_helpless",
+    "hud_display",
+    "score_display",
+    "player_tags",
+    "pausing",
+)
+"""The on/off rules, as named in :class:`SavedRules` and in ``[rules]``."""
+
+
+@dataclass(frozen=True, slots=True)
 class Settings:
     """Everything the settings screen can change."""
 
@@ -130,6 +177,8 @@ class Settings:
     """Key name per action, per keyboard layout."""
     slot_devices: tuple[str, ...] = field(default_factory=_default_slots)
     """The device each player slot last used ("" = none): rejoined automatically."""
+    rules: SavedRules = field(default_factory=SavedRules)
+    """The versus rules (the Rules screen), kept from one session to the next."""
 
     def with_key(self, layout: str, action: str, key_name: str) -> Settings:
         """Return the settings with one action rebound. The key is taken away from any other
@@ -178,6 +227,50 @@ def _volume(value: object, default: int) -> int:
     return min(max(value, 0), VOLUME_MAX)
 
 
+def _count(value: object, default: int) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return default
+    return value if MIN_COUNT <= value <= MAX_COUNT else default
+
+
+def rules_from_data(data: object) -> SavedRules:
+    """Build the saved rules from a parsed ``[rules]`` table. Each value that is missing, of
+    the wrong type or out of range falls back to its own default; nothing raises."""
+    defaults = SavedRules()
+    if not isinstance(data, dict):
+        return defaults
+    flags = {
+        name: data[name] if isinstance(data.get(name), bool) else getattr(defaults, name)
+        for name in ("stock_on", "time_on", *RULE_FLAGS)
+    }
+    if not flags["stock_on"] and not flags["time_on"]:
+        # A match needs a way to end: an impossible pair goes back to the defaults.
+        flags["stock_on"], flags["time_on"] = defaults.stock_on, defaults.time_on
+    rate = data.get("launch_rate")
+    rate = float(rate) if isinstance(rate, int) and not isinstance(rate, bool) else rate
+    damage = data.get("start_damage")
+    damage_ok = (
+        isinstance(damage, int)
+        and not isinstance(damage, bool)
+        and 0 <= damage <= START_DAMAGE_MAX
+        and damage % START_DAMAGE_STEP == 0
+    )
+    pool = data.get("random_pool")
+    stages = (
+        tuple(stage for stage in pool if isinstance(stage, str) and stage)
+        if isinstance(pool, list)
+        else ()
+    )
+    return SavedRules(
+        stocks=_count(data.get("stocks"), defaults.stocks),
+        minutes=_count(data.get("minutes"), defaults.minutes),
+        launch_rate=_pick(rate, LAUNCH_RATES, defaults.launch_rate),
+        start_damage=damage if damage_ok else defaults.start_damage,  # type: ignore[arg-type]
+        random_pool=tuple(dict.fromkeys(stages)),
+        **flags,
+    )
+
+
 def from_data(data: Mapping[str, Any]) -> Settings:
     """Build settings from a parsed ``settings.toml``. Anything missing or out of range falls
     back to its default, so an old or hand-edited file still loads."""
@@ -224,6 +317,7 @@ def from_data(data: Mapping[str, Any]) -> Settings:
         ),
         keys=keys,
         slot_devices=tuple(slots),
+        rules=rules_from_data(data.get("rules")),
     )
 
 
@@ -255,6 +349,19 @@ def to_toml(settings: Settings) -> str:
         "[players]",
         "devices = [" + ", ".join(text(device) for device in settings.slot_devices) + "]",
     ]
+    rules = settings.rules
+    lines += [
+        "",
+        "[rules]",
+        f"stock_on = {'true' if rules.stock_on else 'false'}",
+        f"stocks = {rules.stocks}",
+        f"time_on = {'true' if rules.time_on else 'false'}",
+        f"minutes = {rules.minutes}",
+        f"launch_rate = {rules.launch_rate:g}" + ("" if rules.launch_rate % 1 else ".0"),
+        f"start_damage = {rules.start_damage}",
+    ]
+    lines += [f"{name} = {'true' if getattr(rules, name) else 'false'}" for name in RULE_FLAGS]
+    lines.append("random_pool = [" + ", ".join(text(stage) for stage in rules.random_pool) + "]")
     for layout in DEFAULT_KEYS:
         lines += ["", f"[keyboard.{layout}]"]
         lines += [

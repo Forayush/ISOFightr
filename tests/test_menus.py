@@ -16,7 +16,6 @@ from isofightr.render import placeholder_art as art
 from isofightr.scenes.setup import (
     RANDOM_STAGE,
     MatchSetup,
-    Mode,
     clock_text,
     countdown_text,
     result_awards,
@@ -144,23 +143,27 @@ def test_menu_navigation_wraps_and_confirm_returns_the_key() -> None:
 def test_setup_rules_for_each_mode() -> None:
     stock = MatchSetup(stocks=4)
     assert stock.rules() == MatchRules(stocks=4, countdown_frames=COUNTDOWN_FRAMES)
-    timed = MatchSetup(mode=Mode.TIME, minutes=2)
+    timed = MatchSetup(stock_on=False, time_on=True, minutes=2)
     assert timed.rules() == MatchRules(
         stocks=None, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES
     )
+    both = MatchSetup(time_on=True, minutes=2, stocks=4)
+    assert both.rules() == MatchRules(
+        stocks=4, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES
+    ), "stocks and a clock together (decision D-061)"
     training = training_setup()
     assert training.rules() == MatchRules(stocks=None) and training.stage == "training_grid"
 
 
-def test_setup_counts_follow_the_mode_and_stay_in_range() -> None:
+def test_setup_counts_are_independent_and_stay_in_range() -> None:
     setup = MatchSetup()
-    assert (setup.stocks, setup.minutes, setup.count_label) == (3, 3, "3 stocks")
-    assert setup.with_count(1).stocks == 4 and setup.with_count(1).minutes == 3
-    assert setup.with_count(-5).stocks == 1 and setup.with_count(500).stocks == 99
-    assert setup.with_count(-2).count_label == "1 stock"
-    timed = MatchSetup(mode=Mode.TIME)
-    assert timed.with_count(2).minutes == 5 and timed.with_count(2).stocks == 3
-    assert timed.count_label == "3 minutes" and timed.with_count(-2).count_label == "1 minute"
+    assert (setup.stocks, setup.minutes, setup.time_label) == (3, 3, "3:00")
+    assert setup.with_stocks(1).stocks == 4 and setup.with_stocks(1).minutes == 3
+    assert setup.with_stocks(-5).stocks == 1 and setup.with_stocks(500).stocks == 99
+    timed = MatchSetup(stock_on=False, time_on=True)
+    assert timed.with_minutes(2).minutes == 5 and timed.with_minutes(2).stocks == 3
+    assert timed.with_minutes(2).time_label == "5:00"
+    assert timed.with_minutes(-9).minutes == 1 and timed.with_minutes(500).minutes == 99
 
 
 def test_clock_and_countdown_text() -> None:

@@ -75,7 +75,10 @@ from isofightr.sim.math3d import Vec3
 from isofightr.sim.replay import Recorder, Replay
 from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
+from isofightr.ui import font, kit_art, theme
+from isofightr.ui.font import ARROW_DOWN, TextSize
 from isofightr.ui.hud import DamageHud
+from isofightr.ui.hud_layout import tag_anchor, tag_text
 from isofightr.ui.input_display import input_lines
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.move_list import (
@@ -109,6 +112,9 @@ KEY_DUMMY_DAMAGE_UP = arcade.key.EQUAL
 KEY_DUMMY_DAMAGE_RESET = arcade.key.KEY_0
 KEY_DUMMY_CONTROL = arcade.key.TAB
 KEYS_MENU = (arcade.key.ESCAPE, arcade.key.ENTER)
+TAG_PLATE_PAD = 3
+"""Pixels of plate around a name tag's text."""
+TAG_PLATE_HEIGHT = 14
 
 HUD_MARGIN = 4
 HUD_CAPACITY = 104
@@ -300,6 +306,49 @@ class BattleView(TickedView):
             CLOCK_CAPACITY,
             scale=CLOCK_SCALE,
         )
+        # The Rules screen's display options (decision D-061). Sandboxes and training show
+        # the HUD and can always pause.
+        versus = setup is not None and not training
+        self.hud_display = setup.hud_display if versus and setup is not None else True
+        self.score_display = setup.score_display if versus and setup is not None else False
+        self.player_tags = setup.player_tags if versus and setup is not None else False
+        self.can_pause = setup.pausing if versus and setup is not None else True
+        self.tags_ui = UiLayer(glyphs)
+        self._tag_plates: list[arcade.Sprite] = []
+        for index, fighter in enumerate(self.match.fighters):
+            color = theme.player_color(fighter.color_index)
+            width = font.text_width(tag_text(index, self.cpu_levels[index])) + 2 * TAG_PLATE_PAD
+            self._tag_plates.append(
+                self.tags_ui.picture(
+                    ("tag-plate", width, color),
+                    lambda width=width, color=color: kit_art.tag_plate(
+                        width, TAG_PLATE_HEIGHT, color
+                    ),
+                    0,
+                    0,
+                )
+            )
+        self._tags = [
+            (
+                self.tags_ui.write(
+                    tag_text(index, self.cpu_levels[index]),
+                    0,
+                    0,
+                    TextSize.BODY,
+                    theme.player_color(fighter.color_index),
+                    "centre",
+                ),
+                self.tags_ui.write(
+                    ARROW_DOWN,
+                    0,
+                    0,
+                    TextSize.SMALL,
+                    theme.player_color(fighter.color_index),
+                    "centre",
+                ),
+            )
+            for index, fighter in enumerate(self.match.fighters)
+        ]
         self.pause_menu = self._build_pause_menu()
         self.pause_ui = UiLayer(glyphs)
         self._build_pause_ui()
@@ -513,7 +562,10 @@ class BattleView(TickedView):
         self._keys.press(symbol)
         if symbol in KEYS_MENU:
             if not self.menu_open:
-                self.open_menu()
+                if self.can_pause or self.match.phase is MatchPhase.OVER:
+                    self.open_menu()
+                else:
+                    self.say("pausing is off (see Rules)")
             elif symbol == arcade.key.ESCAPE:
                 self.menu_action(MenuAction.BACK)
             else:
@@ -778,13 +830,40 @@ class BattleView(TickedView):
         lift = Vec3(0.0, 0.0, BODY_CENTRE_HEIGHT)
         return [fighter.pos + lift for fighter in self._in_play()]
 
-    def _screen_positions(self, fighters: Sequence[Fighter]) -> list[tuple[float, float]]:
-        """Return each fighter's middle in native screen pixels."""
+    def _place_tags(self, fighters: Sequence[Fighter]) -> None:
+        """Put each fighter's name tag over its head (hidden for fighters out of play or
+        off screen)."""
+        shown = {fighter.player_index: fighter for fighter in fighters}
+        for index, (name, arrow) in enumerate(self._tags):
+            fighter = shown.get(index)
+            spot = None
+            if fighter is not None:
+                top = fighter.character.body.height
+                head_x, head_y = self._screen_positions([fighter], top)[0]
+                spot = tag_anchor(head_x, head_y, NATIVE_W, NATIVE_H)
+            plate = self._tag_plates[index]
+            name.visible = arrow.visible = plate.visible = spot is not None
+            if spot is not None:
+                arrow.move_to(spot[0], spot[1])
+                bottom = spot[1] + font.line_height(TextSize.SMALL)
+                name.move_to(spot[0], bottom + TAG_PLATE_PAD - 1)
+                left = spot[0] - int(plate.width) // 2
+                plate.position = (left + plate.width / 2, bottom + plate.height / 2)
+
+    def tag_shown(self, player_index: int) -> bool:
+        """Return whether a player's name tag is showing."""
+        return self.player_tags and self._tags[player_index][0].visible
+
+    def _screen_positions(
+        self, fighters: Sequence[Fighter], height: float = BODY_CENTRE_HEIGHT
+    ) -> list[tuple[float, float]]:
+        """Return each fighter's middle (or the point ``height`` units above its feet) in
+        native screen pixels."""
         centre_x, centre_y = self.camera.pixel_centre
         positions = []
         for fighter in fighters:
             pos = fighter.pos
-            sx, sy = project(pos.x, pos.y, pos.z + BODY_CENTRE_HEIGHT)
+            sx, sy = project(pos.x, pos.y, pos.z + height)
             zoom = self.camera.zoom
             positions.append(
                 ((sx - centre_x) * zoom + NATIVE_W / 2, (sy - centre_y) * zoom + NATIVE_H / 2)
@@ -839,8 +918,11 @@ class BattleView(TickedView):
         )
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
-        self.hud.update(self.match.fighters, self.effects)
+        scores = [stats.score for stats in self.match.stats] if self.score_display else None
+        self.hud.update(self.match.fighters, self.effects, scores)
         self.hud.place_bubbles(fighters, self._screen_positions(fighters))
+        if self.player_tags:
+            self._place_tags(fighters)
         self._update_text()
 
         overlays: list[Overlay] = [self.effect_renderer]
@@ -855,7 +937,10 @@ class BattleView(TickedView):
         shake_x, shake_y = (round(part * strength) for part in self.effects.shake.offset)
         with self.pixel_buffer.drawing():
             self.renderer.draw((centre_x + shake_x, centre_y + shake_y), overlays, self.camera.zoom)
-            self.hud.draw()
+            if self.player_tags and self.hud_display:
+                self.tags_ui.draw()
+            if self.hud_display:
+                self.hud.draw()
             self._text.draw(pixelated=True)
             if self.menu_open:
                 self._pause_rows.set_lines(self.pause_menu.lines(), self.pause_menu.cursor)

@@ -183,3 +183,29 @@ def test_the_state_hash_does_not_care_whether_held_is_an_int_or_a_flag() -> None
     live.tick([InputFrame(held=Button.ATTACK | Button.JUMP)] * 2)
     loaded.tick([InputFrame(held=9)] * 2)
     assert live.state_hash() == loaded.state_hash()
+
+
+def test_the_new_rules_are_recorded_and_played_back(tmp_path: Path) -> None:
+    """Starting damage and stocks with a clock (decision D-061) survive the file format."""
+    rules = MatchRules(stocks=2, time_frames=1200, start_damage=70.0, countdown_frames=10)
+    replay = recorded(ticks=1400, rules=rules, players=3)
+    data = to_data(replay)
+    assert data["rules"]["start_damage"] == 70.0 and data["rules"]["time_frames"] == 1200
+    path = tmp_path / "rules.json"
+    save_replay(path, replay)
+    loaded = load_replay(path)
+    assert loaded == replay and loaded.rules == rules
+    match = match_for(loaded)
+    assert [fighter.damage for fighter in match.fighters] == [70.0] * 3
+    assert play_back(match, loaded)
+    assert match.result is not None, "it ran past the clock"
+    changed = from_data({**data, "rules": {**data["rules"], "start_damage": 0.0}})
+    assert not play_back(match_for(changed), changed), "other rules, another match"
+
+
+def test_a_replay_from_before_starting_damage_plays_with_none() -> None:
+    replay = recorded(ticks=200)
+    data = to_data(replay)
+    del data["rules"]["start_damage"]
+    old = from_data(data)
+    assert old.rules.start_damage == 0.0 and play_back(match_for(old), old)

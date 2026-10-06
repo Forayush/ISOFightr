@@ -185,6 +185,20 @@ def stepper(width: int, height: int, focused: bool = False) -> Image.Image:
     return filled(shape_mask(width, height, theme.SMALL_CORNER), theme.PANEL_DEEP, border)
 
 
+def list_row(width: int, height: int, focused: bool = False) -> Image.Image:
+    """Return the strip behind one row of a list (rules, stages): dark at rest, lit and
+    ringed in the focus colour under the cursor."""
+    if focused:
+        return filled(shape_mask(width, height, theme.SMALL_CORNER), theme.BUTTON_FILL, theme.FOCUS)
+    return filled(shape_mask(width, height, theme.SMALL_CORNER), theme.PANEL_DEEP)
+
+
+def tag_plate(width: int, height: int, color: Rgb) -> Image.Image:
+    """Return the dark plate behind a fighter's name tag, edged in the player's colour, so
+    the name reads over any stage."""
+    return filled(shape_mask(width, height, 1, ALL_CORNERS), theme.PANEL_DEEP, color)
+
+
 def gauge(
     width: int,
     height: int,

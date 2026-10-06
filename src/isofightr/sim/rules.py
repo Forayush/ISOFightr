@@ -2,7 +2,9 @@
 
 Plan note "13 - Game Modes UI and Flow" ("Modes", "Results screen"). Runs as the last step of
 every tick. Stock mode ends when one fighter has stocks left; time mode ends when the clock
-runs out and the best score (KOs minus falls) wins. Any tie is settled by sudden death.
+runs out and the best score (KOs minus falls) wins. With both a stock count and a clock
+(decision D-061) the match ends on whichever comes first, and when it is the clock the most
+stocks win, then the least damage. Any tie is settled by sudden death.
 Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``random``.
 """
 
@@ -23,6 +25,8 @@ from isofightr.sim.states.base import change_state
 if TYPE_CHECKING:
     from isofightr.sim.match import Match
 
+STANDING_DECIMALS = 6
+"""Damage is compared at the state hash's precision when the clock decides a stock match."""
 COMBO_STATES = frozenset({StateId.FLINCH, StateId.TUMBLE, StateId.GRABBED})
 """States in which a fighter cannot act, so further hits extend the combo."""
 
@@ -139,6 +143,16 @@ def side_score(match: Match, players: tuple[int, ...]) -> int:
     return sum(match.stats[index].score for index in players)
 
 
+def side_standing(match: Match, players: tuple[int, ...]) -> tuple[int, float]:
+    """Return how a side stands when the clock runs out on a stock match, bigger is better:
+    its stocks left, then its damage counted against it (decision D-061). A side's stocks
+    and the damage of its fighters still in the match are added up."""
+    fighters = [match.fighters[index] for index in players]
+    stocks = sum(fighter.stocks or 0 for fighter in fighters)
+    damage = sum(fighter.damage for fighter in fighters if not fighter.eliminated)
+    return (stocks, -round(damage, STANDING_DECIMALS))
+
+
 def step(match: Match) -> None:
     """Run the clock and decide whether the match is over (tick step 9).
 
@@ -169,8 +183,15 @@ def step(match: Match) -> None:
         tied = [index for side, players in all_sides.items() if side in fallen for index in players]
         _start_sudden_death(match, tied)
     elif match.time_left is not None and match.time_left <= 0:
-        best = max(side_score(match, players) for players in alive.values())
-        leaders = [players for players in alive.values() if side_score(match, players) == best]
+        leaders: list[tuple[int, ...]]
+        if match.rules.stocks is not None:
+            top = max(side_standing(match, players) for players in alive.values())
+            leaders = [
+                players for players in alive.values() if side_standing(match, players) == top
+            ]
+        else:
+            best = max(side_score(match, players) for players in alive.values())
+            leaders = [players for players in alive.values() if side_score(match, players) == best]
         if len(leaders) == 1:
             _finish(match, leaders[0])
         else:
@@ -187,7 +208,23 @@ def placements(match: Match, winners: tuple[int, ...]) -> tuple[tuple[int, ...],
     """Rank the sides: the winners, then by score in time mode (level scores share a rank)
     or by which side lasted longest in stock mode."""
     others = [players for players in sides(match).values() if players != winners]
-    if match.rules.time_frames is not None:
+    timed = match.rules.time_frames is not None
+    if timed and match.rules.stocks is not None:
+        # Stocks and a clock: sides still in by stocks then damage (level sides share a
+        # rank), then the sides that ran out, last out first.
+        def is_out(players: tuple[int, ...]) -> bool:
+            return all(match.fighters[index].eliminated for index in players)
+
+        standing = [players for players in others if not is_out(players)]
+        ranked_in: list[tuple[int, ...]] = []
+        marks = sorted({side_standing(match, players) for players in standing}, reverse=True)
+        for mark in marks:
+            level_sides = [p for p in standing if side_standing(match, p) == mark]
+            ranked_in.append(tuple(index for players in level_sides for index in players))
+        gone = [players for players in others if is_out(players)]
+        gone.sort(key=lambda players: max(match.eliminated.index(i) for i in players), reverse=True)
+        return (winners, *ranked_in, *gone)
+    if timed:
         ranked: list[tuple[int, ...]] = []
         scores = sorted({side_score(match, players) for players in others}, reverse=True)
         for score in scores:

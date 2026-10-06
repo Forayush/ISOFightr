@@ -6,11 +6,18 @@ select through stage select into the battle, and reused by "Rematch".
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from enum import Enum
 from typing import Final
 
 from isofightr.config import DEFAULT_CHARACTER_ID, DEFAULT_STAGE_ID, TRAINING_STAGE_ID
+from isofightr.settings import (
+    LAUNCH_RATES,
+    MAX_COUNT,
+    MIN_COUNT,
+    START_DAMAGE_MAX,
+    START_DAMAGE_STEP,
+)
 from isofightr.sim.constants import (
     COUNTDOWN_FRAMES,
     DEFAULT_STOCKS,
@@ -19,18 +26,8 @@ from isofightr.sim.constants import (
 )
 from isofightr.sim.match import Match, MatchRules
 
-MIN_COUNT: Final[int] = 1
-MAX_COUNT: Final[int] = 99
-"""Stocks and minutes both go from 1 to 99."""
 RANDOM_STAGE: Final[str] = "random"
 """Stage id that stands for "pick one at random when the match starts"."""
-
-
-class Mode(Enum):
-    """The versus modes."""
-
-    STOCK = "stock"
-    TIME = "time"
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,8 +37,13 @@ class MatchSetup:
     characters: tuple[str, ...] = (DEFAULT_CHARACTER_ID, DEFAULT_CHARACTER_ID)
     """Character id per player, in player order."""
     stage: str = DEFAULT_STAGE_ID
-    mode: Mode = Mode.STOCK
+    stock_on: bool = True
+    """Whether fighters have a stock count. Off with the clock on is the old time mode:
+    endless stocks, best score wins."""
     stocks: int = DEFAULT_STOCKS
+    time_on: bool = False
+    """Whether there is a clock. On with stocks as well, the match ends on whichever comes
+    first (decision D-061). At least one of the two is always on."""
     minutes: int = DEFAULT_TIME_MINUTES
     training: bool = False
     devices: tuple[str, ...] = ()
@@ -56,15 +58,28 @@ class MatchSetup:
     parry: bool = False
     air_dodge_helpless: bool = False
     short_hop_macro: bool = True
+    start_damage: int = 0
+    """Percent every fighter starts and respawns with (0 to 300 in steps of 10)."""
+    hud_display: bool = True
+    """Whether the battle shows the players' damage, stocks and names. The countdown and
+    the clock are always shown."""
+    score_display: bool = False
+    """Whether the HUD shows each player's score (KOs minus falls)."""
+    player_tags: bool = False
+    """Whether a coloured name tag floats over each fighter."""
+    pausing: bool = True
+    """Whether a versus match can be paused. Training always can."""
+    random_pool: tuple[str, ...] = ()
+    """Stage ids "Random" may pick; empty means every stage."""
 
     def rules(self) -> MatchRules:
         """Return the sim rules for this setup. Training has no stocks, clock or countdown."""
         if self.training:
             return MatchRules(stocks=None)
-        timed = self.mode is Mode.TIME
+        stock_on = self.stock_on or not self.time_on
         return MatchRules(
-            stocks=None if timed else self.stocks,
-            time_frames=self.minutes * FRAMES_PER_MINUTE if timed else None,
+            stocks=self.stocks if stock_on else None,
+            time_frames=self.minutes * FRAMES_PER_MINUTE if self.time_on else None,
             countdown_frames=COUNTDOWN_FRAMES,
             launch_rate=self.launch_rate,
             teams=self.teams[: len(self.characters)] if self.team_play and self.teams else None,
@@ -72,20 +87,47 @@ class MatchSetup:
             parry=self.parry,
             air_dodge_helpless=self.air_dodge_helpless,
             short_hop_macro=self.short_hop_macro,
+            start_damage=float(self.start_damage),
         )
 
-    def with_count(self, step: int) -> "MatchSetup":
-        """Return the setup with the current mode's count (stocks or minutes) changed."""
-        if self.mode is Mode.TIME:
-            return replace(self, minutes=_clamp(self.minutes + step))
+    def with_stocks(self, step: int) -> "MatchSetup":
+        """Return the setup with the stock count changed, kept between 1 and 99."""
         return replace(self, stocks=_clamp(self.stocks + step))
 
+    def with_minutes(self, step: int) -> "MatchSetup":
+        """Return the setup with the time limit changed, kept between 1 and 99 minutes."""
+        return replace(self, minutes=_clamp(self.minutes + step))
+
+    def with_start_damage(self, steps: int) -> "MatchSetup":
+        """Return the setup with the starting damage moved by whole steps of 10%."""
+        damage = self.start_damage + steps * START_DAMAGE_STEP
+        return replace(self, start_damage=min(max(damage, 0), START_DAMAGE_MAX))
+
+    def with_launch_rate(self, step: int) -> "MatchSetup":
+        """Return the setup with the launch rate moved along :data:`LAUNCH_RATES`."""
+        rates = LAUNCH_RATES
+        index = rates.index(self.launch_rate) if self.launch_rate in rates else rates.index(1.0)
+        return replace(self, launch_rate=rates[min(max(index + step, 0), len(rates) - 1)])
+
+    def with_stock_on(self, on: bool) -> "MatchSetup":
+        """Return the setup with stocks on or off. Switching them off switches the clock on:
+        a match needs a way to end."""
+        return replace(self, stock_on=on, time_on=self.time_on or not on)
+
+    def with_time_on(self, on: bool) -> "MatchSetup":
+        """Return the setup with the clock on or off. Switching it off switches stocks on."""
+        return replace(self, time_on=on, stock_on=self.stock_on or not on)
+
     @property
-    def count_label(self) -> str:
-        """The current mode's count as shown in menus: "3 stocks" or "3 minutes"."""
-        if self.mode is Mode.TIME:
-            return f"{self.minutes} minute{'s' if self.minutes != 1 else ''}"
-        return f"{self.stocks} stock{'s' if self.stocks != 1 else ''}"
+    def time_label(self) -> str:
+        """The time limit as shown in menus: ``3:00``."""
+        return f"{self.minutes}:00"
+
+    def pool(self, stages: Sequence[str]) -> list[str]:
+        """Return the stages "Random" may pick from ``stages``: the pool's, or all of them
+        when the pool is empty or names none that exist."""
+        chosen = [stage for stage in stages if stage in self.random_pool]
+        return chosen or list(stages)
 
 
 def training_setup() -> MatchSetup:
@@ -175,7 +217,6 @@ def result_awards(match: Match) -> list[str]:
 
 TEAM_NAMES: Final[tuple[str, ...]] = ("Red", "Blue", "Yellow", "Green")
 """Team names, in the order of the player colors."""
-LAUNCH_RATES: Final[tuple[float, ...]] = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 MIN_VERSUS_PLAYERS: Final[int] = 2
 
 

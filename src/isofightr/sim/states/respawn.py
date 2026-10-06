@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from isofightr.sim.combat.constants import SHIELD_MAX_HP
+from isofightr.sim.combat.constants import MAX_DAMAGE, SHIELD_MAX_HP
 from isofightr.sim.constants import (
     RESPAWN_DELAY_FRAMES,
     REVIVAL_HEIGHT,
@@ -76,10 +76,11 @@ class Revival(State):
     id = StateId.REVIVAL
 
     def enter(self, match: Match, fighter: Fighter) -> None:
-        """Appear on the platform at 0%, with fresh air jumps and an empty input buffer."""
+        """Appear on the platform at the rules' starting damage (0% unless they say more),
+        with fresh air jumps and an empty input buffer."""
         fighter.pos = revival_point(match, fighter)
         fighter.ground = GroundKind.REVIVAL
-        fighter.damage = 0.0
+        fighter.damage = min(max(match.rules.start_damage, 0.0), MAX_DAMAGE)
         fighter.last_hit_by = NO_PARTNER
         fighter.last_hit_timer = 0
         fighter.combo_hits = 0

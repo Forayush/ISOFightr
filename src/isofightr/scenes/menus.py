@@ -36,11 +36,9 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import window_to_native
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.setup import (
-    LAUNCH_RATES,
     RANDOM_STAGE,
     TEAM_NAMES,
     MatchSetup,
-    Mode,
     can_start,
     result_awards,
     results_table,
@@ -61,7 +59,7 @@ from isofightr.settings import (
 )
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.match import Match
-from isofightr.ui import theme
+from isofightr.ui import kit_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
 from isofightr.ui.hints import device_labels, hint_text
@@ -76,6 +74,7 @@ from isofightr.ui.widgets import (
     UiLayer,
     centred_left,
     picture_texture,
+    text_bottom,
 )
 
 if TYPE_CHECKING:
@@ -116,6 +115,7 @@ class MenuView(TickedView):
         self.ui = UiLayer(GlyphAtlas())
         self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
+        self._clicks: list[tuple[int, int]] = []
         self.fade_ticks = FADE_TICKS
         self.backdrop = flow.backdrop()
         self.dim: arcade.SpriteList[arcade.Sprite] | None = arcade.SpriteList()
@@ -140,8 +140,25 @@ class MenuView(TickedView):
         self._footer: TextLabel | None = None
 
     def heading(self, text: str) -> None:
-        """Add the scene's heading."""
+        """Add the scene's heading (the old look, for screens not yet rebuilt)."""
         self.ui.centred(text, HEADING_BOTTOM, HIGHLIGHT, HEADING_SCALE)
+
+    def header(self, text: str, icon: str | None = None) -> None:
+        """Add the title bar across the top of a rebuilt screen (decision D-061)."""
+        bar = Rect(0, NATIVE_H - theme.HEADER_HEIGHT, NATIVE_W, theme.HEADER_HEIGHT)
+        self.ui.picture(
+            ("header", NATIVE_W),
+            lambda: art.build_panel(bar.width, bar.height, theme.PANEL_DEEP, theme.PANEL_DEEP),
+            bar.left,
+            bar.bottom,
+        )
+        self.ui.picture(("header-rule", NATIVE_W), lambda: kit_art.divider(NATIVE_W), 0, bar.bottom)
+        left = theme.MARGIN
+        if icon is not None and self.ui.icon(icon, left, bar.bottom + 8, theme.HEADING):
+            left += theme.ICON_SIZE + theme.GAP + 2
+        self.ui.write(
+            text, left, text_bottom(bar, TextSize.DISPLAY), TextSize.DISPLAY, theme.HEADING
+        )
 
     def footer(self, template: str) -> None:
         """Set the hint line at the bottom. ``{attack}``, ``{special}``, ``{grab}``,
@@ -195,13 +212,20 @@ class MenuView(TickedView):
         spot = self.native_point(x, y)
         if button == MOUSE_RIGHT:
             self._key_actions.append(MenuAction.BACK)
-        elif button == MOUSE_LEFT and spot is not None and self.hover(*spot):
-            self._key_actions.append(MenuAction.CONFIRM)
+        elif button == MOUSE_LEFT and spot is not None:
+            self._clicks.append(spot)
 
     def hover(self, x: int, y: int) -> bool:
         """Move the cursor to the thing at a native pixel. Returns whether there is one (a
         click only confirms then). Override in scenes."""
         return False
+
+    def click(self, x: int, y: int) -> None:
+        """Handle a left click at a native pixel: by default, confirm whatever is there.
+        Scenes whose widgets care where they are clicked (steppers) override this."""
+        if self.hover(x, y):
+            self.audio.play(MENU_SOUNDS[MenuAction.CONFIRM])
+            self.act(KEYBOARD_DEVICE, MenuAction.CONFIRM)
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Stop tracking a released key."""
@@ -233,6 +257,11 @@ class MenuView(TickedView):
                 self.active_device = KEYBOARD_DEVICE
                 self.act(KEYBOARD_DEVICE, action)
         self._key_actions = []
+        for spot in self._clicks:
+            if self.window.current_view is self:
+                self.active_device = KEYBOARD_DEVICE
+                self.click(*spot)
+        self._clicks = []
         for device, actions in zip(devices, fired, strict=True):
             for action in MenuAction:
                 if action in actions and self.window.current_view is self:
@@ -368,79 +397,6 @@ class MainMenuView(MenuListView):
     def back(self) -> None:
         """Back to the title."""
         self.flow.show_title()
-
-
-class RulesView(MenuListView):
-    """The versus rules: mode, stocks or minutes, teams, friendly fire and the optional rules."""
-
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the rows from the flow's current versus setup."""
-        setup = flow.setup
-        self.setup = setup
-        modes = tuple(mode.value.title() for mode in Mode)
-        rates = tuple(f"{rate:g}x" for rate in LAUNCH_RATES)
-        rate = LAUNCH_RATES.index(setup.launch_rate) if setup.launch_rate in LAUNCH_RATES else 2
-        menu = Menu(
-            [
-                MenuItem("mode", "Mode", modes, list(Mode).index(setup.mode)),
-                MenuItem("count", ""),
-                MenuItem("teams", "Teams", ON_OFF, int(setup.team_play)),
-                MenuItem("friendly_fire", "Friendly fire", ON_OFF, int(setup.friendly_fire)),
-                MenuItem("launch_rate", "Launch rate", rates, rate),
-                MenuItem("parry", "Parry", ON_OFF, int(setup.parry)),
-                MenuItem(
-                    "short_hop_macro",
-                    "Jump + attack = short-hop aerial",
-                    ON_OFF,
-                    int(setup.short_hop_macro),
-                ),
-                MenuItem(
-                    "helpless",
-                    "Helpless after a directional air dodge",
-                    ON_OFF,
-                    int(setup.air_dodge_helpless),
-                ),
-                MenuItem("back", "Back"),
-            ]
-        )
-        super().__init__(pixel_buffer, flow, "RULES", menu)
-        self.footer("{stick}: row and value   {special}: back")
-
-    def act(self, device: str, action: MenuAction) -> None:
-        """The stocks/minutes row counts up and down instead of cycling choices."""
-        on_count = self.menu.selected.key == "count"
-        if on_count and action in (MenuAction.LEFT, MenuAction.RIGHT, MenuAction.CONFIRM):
-            self.setup = self.setup.with_count(-1 if action is MenuAction.LEFT else 1)
-            return
-        super().act(device, action)
-
-    def changed(self) -> None:
-        """Copy the rows back into the setup."""
-        menu = self.menu
-        self.setup = replace(
-            self.setup,
-            mode=list(Mode)[menu.item("mode").index],
-            team_play=bool(menu.item("teams").index),
-            friendly_fire=bool(menu.item("friendly_fire").index),
-            launch_rate=LAUNCH_RATES[menu.item("launch_rate").index],
-            parry=bool(menu.item("parry").index),
-            air_dodge_helpless=bool(menu.item("helpless").index),
-            short_hop_macro=bool(menu.item("short_hop_macro").index),
-        )
-
-    def choose(self, key: str) -> None:
-        """ "Back" leaves, keeping the rules."""
-        self.back()
-
-    def back(self) -> None:
-        """Keep the rules and go back to the main menu."""
-        self.flow.setup = self.setup
-        self.flow.show_main_menu()
-
-    def refresh(self) -> None:
-        """Show the rows; the count row shows stocks or minutes for the current mode."""
-        self.menu.item("count").label = f"< {self.setup.count_label} >"
-        super().refresh()
 
 
 class SettingsView(MenuListView):

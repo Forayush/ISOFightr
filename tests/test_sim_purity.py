@@ -108,6 +108,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.vfx_art",
     "isofightr.scenes.setup",
     "isofightr.settings",
+    "isofightr.scenes.rules_model",
     "isofightr.ui.anim",
     "isofightr.ui.backdrop",
     "isofightr.ui.focus",

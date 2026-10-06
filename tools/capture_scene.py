@@ -17,16 +17,31 @@ Player 1's default keys: ``K`` special, ``J`` attack, ``U`` smash, ``L`` grab, `
 ``KEY!tick`` releases. See :mod:`isofightr.capture`. Needs a display (the window is hidden).
 
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
-rules, controls, charselect, stageselect, results, hud, loading, settings, pause, training,
+rules, pool, controls, charselect, stageselect, results, hud, loading, settings, pause, training,
 kit (the UI kit sheet). The script's keys go to whatever scene is showing; ``--players``
 sets how many fighters a screen with fighters has.
 """
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 
 from isofightr.app import GameWindow
 from isofightr.capture import SCREENS, capture, capture_screen, parse_script
+from isofightr.settings import Settings, rules_from_data
+
+
+def _rules(text: str) -> dict[str, object]:
+    """Parse ``name=value`` pairs into a ``[rules]`` table (true/false, whole numbers, or
+    a number with a point)."""
+    table: dict[str, object] = {}
+    for pair in (part.strip() for part in text.split(",") if part.strip()):
+        name, _, value = pair.partition("=")
+        if value in ("true", "false"):
+            table[name] = value == "true"
+        else:
+            table[name] = float(value) if "." in value else int(value)
+    return table
 
 
 def _numbers(text: str) -> tuple[float, ...]:
@@ -38,6 +53,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--screen", choices=SCREENS, help="capture a screen, not a battle")
     parser.add_argument("--players", type=int, default=2, help="fighters on a --screen")
+    parser.add_argument(
+        "--rules",
+        default="",
+        help='rules for a --screen, e.g. "player_tags=true,score_display=true,stocks=5"',
+    )
     parser.add_argument("--p1", default="rook")
     parser.add_argument("--p2", default="rook")
     parser.add_argument("--stage", default="training_grid")
@@ -75,6 +95,7 @@ def main() -> None:
             scale=args.scale,
             players=args.players,
             seed=args.seed,
+            settings=replace(Settings(), rules=rules_from_data(_rules(args.rules))),
         )
     else:
         sheet = capture(

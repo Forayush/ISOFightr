@@ -47,7 +47,8 @@ class MatchRules:
     """Stocks per fighter, or ``None`` for infinite (training, and time mode)."""
     time_frames: int | None = None
     """Length of a timed match in frames, or ``None`` for no clock. When the clock runs out
-    the best score (KOs minus falls) wins."""
+    the best score (KOs minus falls) wins; with stocks as well (decision D-061) the most
+    stocks win, then the least damage. Any tie goes to sudden death."""
     countdown_frames: int = 0
     """Frames of "3, 2, 1" before the fighters can move (0 = start at once)."""
     launch_rate: float = 1.0
@@ -63,6 +64,9 @@ class MatchRules:
     short_hop_macro: bool = True
     """Whether an attack pressed with the jump makes a short hop even while jump is held, so
     jump and attack together give a short-hop aerial (decision D-053; on by default)."""
+    start_damage: float = 0.0
+    """Damage percent every fighter starts with, at the start of the match and after each
+    respawn (decision D-061). Sudden death still sets its own."""
 
 
 @dataclass(slots=True)
@@ -123,6 +127,7 @@ class Match:
                     air_jumps_left=character.movement.air_jumps,
                     stocks=rules.stocks,
                     team=NO_TEAM if rules.teams is None else rules.teams[index],
+                    damage=min(max(rules.start_damage, 0.0), MAX_DAMAGE),
                 )
             )
         return cls(

@@ -251,7 +251,7 @@ def test_the_mouse_works_on_the_list_menus(window: Any) -> None:
     step(window)
     assert type(window.current_view).__name__ == "RulesView"
     below = (native[0], rows.top - 40 * rows.row_height)
-    assert window.current_view.rows.row_at(*below) is None
+    assert rows.row_at(*below) is None
 
 
 def test_the_mouse_is_mapped_through_the_letterbox(
@@ -294,11 +294,24 @@ def test_the_footer_names_the_controls_of_the_device_that_acted(window: Any) -> 
     assert view._footer.text.startswith("WASD")
 
 
-@pytest.mark.parametrize(
-    "screen",
-    ["title", "main", "rules", "controls", "charselect", "stageselect", "settings", "kit", "hud",
-     "pause", "training", "results"],
-)  # fmt: skip
+CAPTURED = (
+    "title",
+    "main",
+    "rules",
+    "pool",
+    "controls",
+    "charselect",
+    "stageselect",
+    "settings",
+    "kit",
+    "hud",
+    "pause",
+    "training",
+    "results",
+)
+
+
+@pytest.mark.parametrize("screen", CAPTURED)
 def test_every_screen_can_be_captured(window: Any, screen: str) -> None:
     from isofightr.capture import SCREENS, capture_screen
 
@@ -311,6 +324,7 @@ def test_every_screen_can_be_captured(window: Any, screen: str) -> None:
         "title": "TitleView",
         "main": "MainMenuView",
         "rules": "RulesView",
+        "pool": "RandomPoolView",
         "controls": "RebindView",
         "charselect": "CharacterSelectView",
         "stageselect": "StageSelectView",
