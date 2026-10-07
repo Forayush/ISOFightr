@@ -1818,3 +1818,74 @@ def test_character_select_draws_the_stage_pictures_ahead(window: Any) -> None:
     open_select(window)
     step(window, len(list_stage_ids()) + 1)
     assert not stage_preview.warm_next(window), "every stage has its picture already"
+
+
+# --- the battle HUD (M13 group 7) -----------------------------------------------------------
+
+
+def test_a_ko_fills_the_feed_shows_the_sash_and_breaks_a_stock(window: Any) -> None:
+    battle = battle_with(window, stocks=3)
+    knock_out(window, 1)
+    step(window, 3)
+    assert battle.hud_state.shatters and battle.hud_state.shatters[0].player == 1
+    assert battle.extras.feed_text[0].text == "P2 MOTE FELL"
+    assert battle.extras.sash_text.text == "P2 MOTE  KO!"
+    assert battle.hud.stocks_shown(1) == 2
+
+
+def test_the_clock_turns_red_in_the_last_thirty_seconds(window: Any) -> None:
+    from isofightr.ui import theme
+
+    battle = battle_with(window, time_on=True)
+    step(window, 2)
+    assert battle.clock.text and battle.clock.color == theme.TEXT
+    battle.match.time_left = 20 * 60
+    step(window, 2)
+    assert battle.clock.text in ("0:20", "0:19") and battle.clock.color == theme.SALMON
+
+
+def test_the_leader_wears_the_crown_when_scores_show(window: Any) -> None:
+    plain = battle_with(window)
+    knock_out(window, 0)
+    step(window, 2)
+    assert plain.hud.crowned() is None, "no crown without the score display"
+    battle = battle_with(window, score_display=True)
+    assert battle.hud.crowned() is None, "nobody leads at 0 - 0"
+    knock_out(window, 0)
+    step(window, 2)
+    assert battle.hud.crowned() == 1
+
+
+def test_hits_rise_as_popups_and_reduce_flashing_keeps_the_number_still(window: Any) -> None:
+    from dataclasses import replace
+
+    from isofightr.scenes.setup import MatchSetup
+    from isofightr.sim.math3d import Vec3
+    from isofightr.ui import theme
+    from isofightr.ui.hud_state import Popup
+
+    battle = battle_with(window)
+    battle.hud_state.popups.append(Popup(Vec3(5, 5, 1), 13.0))
+    battle.hud_state.flash[1] = 3
+    battle.on_draw()
+    assert battle.extras.popups_shown() == ["+13%"]
+    assert battle.hud._damage[1].color == theme.WHITE
+
+    flow = start(window)
+    flow.settings = replace(flow.settings, reduce_flashing=True)
+    flow.start_battle(
+        MatchSetup(characters=("rook", "mote"), devices=("keyboard:solo", "keyboard:arrows"))
+    )
+    calm = window.current_view
+    calm.match.set_damage(1, 160.0)
+    calm.hud_state.flash[1] = 3
+    for _ in range(20):
+        calm.on_draw()
+    label = calm.hud._damage[1]
+    assert label.color != theme.WHITE and label.text == "160%"
+    spots = set()
+    for tick in range(8):
+        calm.hud_state.tick = tick
+        calm.on_draw()
+        spots.add((label.x, label.bottom))
+    assert len(spots) == 1, "no trembling with reduce flashing"

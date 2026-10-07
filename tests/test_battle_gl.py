@@ -71,7 +71,7 @@ def frame_bytes(window: Any) -> bytes:
 
 def pixel_at(window: Any, view: Any, world: Vec3) -> tuple[int, ...]:
     """Read the native pixel under a world point."""
-    centre = view.camera.pixel_centre
+    centre = view.view_centre()
     sx, sy = (snap(value) for value in project(world.x, world.y, world.z))
     x = sx - centre[0] + NATIVE_W // 2
     y = sy - centre[1] + NATIVE_H // 2
@@ -189,8 +189,11 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     assert view.effects.shake.offset != (0, 0)
     assert len(view.effects.sparks) == 1
     view.on_draw()
+    assert view.hud._damage[1].color[:3] == (255, 255, 255), "the number flashes on a hit"
+    assert view.hud._damage[1].text != "76%", "it rolls up from 60%"
+    for _ in range(12):
+        view.on_draw()
     assert view.hud._damage[1].text == "76%"
-    assert view.hud._damage[1].color[:3] != (255, 255, 255)
     shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
     swing = len(active_hitboxes(view.match.fighters[0]))
     assert len(shown) == 3 + swing, "a spark, its slash line, the launch streak and the swing"

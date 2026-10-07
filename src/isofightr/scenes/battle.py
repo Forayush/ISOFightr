@@ -75,10 +75,20 @@ from isofightr.sim.replay import Recorder, Replay
 from isofightr.sim.rules import MatchPhase
 from isofightr.sim.stage import Stage
 from isofightr.ui import font, kit_art, theme
-from isofightr.ui.font import ARROW_DOWN, TextSize
-from isofightr.ui.hints import HELP_TEMPLATES, battle_help, device_labels
-from isofightr.ui.hud import DamageHud
-from isofightr.ui.hud_layout import tag_anchor, tag_text
+from isofightr.ui.focus import Rect
+from isofightr.ui.font import ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, TextSize
+from isofightr.ui.hints import HELP_TEMPLATES, battle_help, device_labels, hint_text
+from isofightr.ui.hud import CardInfo, DamageHud
+from isofightr.ui.hud_extras import HudExtras
+from isofightr.ui.hud_layout import (
+    CAMERA_LIFT,
+    GO_TICKS,
+    HUD_BAND,
+    pause_row_parts,
+    tag_anchor,
+    tag_text,
+)
+from isofightr.ui.hud_state import HudState
 from isofightr.ui.input_display import input_lines
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.move_list import (
@@ -87,7 +97,15 @@ from isofightr.ui.move_list import (
 )
 from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
-from isofightr.ui.widgets import HIGHLIGHT, TextBlock, UiLayer, centred_left
+from isofightr.ui.widgets import (
+    HIGHLIGHT,
+    Picture,
+    TextBlock,
+    TextLabel,
+    UiLayer,
+    add_panel,
+    text_bottom,
+)
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
@@ -124,8 +142,8 @@ DEBUG_HELP = (
 HELP_LINES = (*HELP_TEMPLATES, DEBUG_HELP)
 """The help text's lines; the control lines are filled in with player 1's own bindings."""
 TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
-DAMAGE_HUD_BOTTOM = HUD_MARGIN + (len(HELP_LINES) + 1) * LINE_HEIGHT + HUD_MARGIN
-"""The damage readout sits just above the help text."""
+HELP_BOTTOM = HUD_BAND + HUD_MARGIN
+"""The help text (sandboxes) sits just above the player cards."""
 INFO_LINES_PER_FIGHTER = 2
 DUMMY_DAMAGE_STEP = 10.0
 MESSAGE_TICKS = 180
@@ -135,14 +153,7 @@ FIRST_DUMMY = 1
 BODY_CENTRE_HEIGHT = art.BODY_HEIGHT / 2 / Z_PX
 """The camera tracks a fighter's middle rather than its feet, in units above the feet."""
 
-BANNER_SCALE = 4
 FULL_PERCENT = 100
-BANNER_CAPACITY = len("SUDDEN DEATH")
-BANNER_BOTTOM = NATIVE_H // 2 + 30
-CLOCK_CAPACITY = len("99:59")
-CLOCK_SCALE = 2
-GO_TICKS = 40
-"""How long "GO!" stays up after the countdown."""
 SUDDEN_DEATH_TEXT_FRAMES = 60
 """The first part of a sudden-death countdown says so instead of showing a number."""
 GAME_SLOW_TICKS = 60
@@ -151,7 +162,10 @@ GAME_SLOW_FACTOR = 3
 GAME_HOLD_TICKS = 150
 """Ticks between "GAME!" and the results screen."""
 PAUSE_PANEL_WIDTH = 300
-PAUSE_ROW_CAPACITY = 44
+PAUSE_HEADER = 30
+"""Height of the pause panel's title bar."""
+PAUSE_FOOT = 24
+"""Room under the pause menu's rows for the controls line."""
 MOVES_COLUMN_CAPACITY = 48
 MOVES_MAX_ROWS = 18
 MOVES_COLUMN_GAP = 12
@@ -278,20 +292,15 @@ class BattleView(TickedView):
 
         glyphs = GlyphAtlas()
         self.overlay = StageOverlay(stage, glyphs)
-        names = [
-            character.display_name + (f" CPU{level}" if level else "")
-            for character, level in zip(self.characters, self.cpu_levels, strict=False)
-        ]
-        colors = [fighter.color_index for fighter in self.match.fighters]
-        self.hud = DamageHud(
-            glyphs, len(self.characters), DAMAGE_HUD_BOTTOM, names, colors, self._stock_icons()
-        )
+        self.hud = DamageHud(glyphs, self._card_infos())
+        self.hud_state = HudState(names=self._feed_names())
+        self.extras = HudExtras(self.hud.ramps, self._feed_names())
         self._text: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         controls = battle_help(device_labels(self.settings, self.move_list_device(0)))
         help_lines = [*controls, DEBUG_HELP, *([TRAINING_HELP] if training else [])]
         self._help_text = list(reversed(help_lines))
         self._help = [
-            PixelLabel(glyphs, self._text, HUD_MARGIN, HUD_MARGIN + row * LINE_HEIGHT, len(line))
+            PixelLabel(glyphs, self._text, HUD_MARGIN, HELP_BOTTOM + row * LINE_HEIGHT, len(line))
             for row, line in enumerate(self._help_text)
         ]
         top = NATIVE_H - HUD_MARGIN - LINE_HEIGHT
@@ -300,23 +309,9 @@ class BattleView(TickedView):
             PixelLabel(glyphs, self._text, HUD_MARGIN, top - row * LINE_HEIGHT, HUD_CAPACITY)
             for row in range(rows)
         ]
-        self.banner = PixelLabel(
-            glyphs,
-            self._text,
-            0,
-            BANNER_BOTTOM,
-            BANNER_CAPACITY,
-            HIGHLIGHT,
-            scale=BANNER_SCALE,
-        )
-        self.clock = PixelLabel(
-            glyphs,
-            self._text,
-            centred_left(CLOCK_CAPACITY, CLOCK_SCALE),
-            NATIVE_H - HUD_MARGIN - GLYPH_HEIGHT * CLOCK_SCALE,
-            CLOCK_CAPACITY,
-            scale=CLOCK_SCALE,
-        )
+        self.banner = self.extras.banner
+        """The big text in the middle (``banner.text``): countdown, GO!, GAME!."""
+        self.clock = self.extras.clock
         # The Rules screen's display options (decision D-061). Sandboxes and training show
         # the HUD and can always pause.
         versus = setup is not None and not training
@@ -361,7 +356,7 @@ class BattleView(TickedView):
             for index, fighter in enumerate(self.match.fighters)
         ]
         self.pause_menu = self._build_pause_menu()
-        self.pause_ui = UiLayer(glyphs)
+        self.pause_ui = UiLayer(GlyphAtlas())
         self._build_pause_ui()
         self.move_list_player: int | None = None
         self.moves_ui = UiLayer(glyphs)
@@ -415,19 +410,75 @@ class BattleView(TickedView):
         return Menu(items)
 
     def _build_pause_ui(self) -> None:
+        """The pause menu (decision D-061): the battle dimmed, a panel with a title bar, one
+        strip per row (lit under the cursor, a setting's value at its right end with arrows
+        while it is selected) and the controls along its foot."""
+        ui = self.pause_ui
         rows = len(self.pause_menu.items)
-        height = (rows + 3) * (GLYPH_HEIGHT + 2) + 16
-        left = (NATIVE_W - PAUSE_PANEL_WIDTH) // 2
-        bottom = (NATIVE_H - height) // 2
-        self.pause_ui.panel(0, 0, NATIVE_W, NATIVE_H, art.DIM_OVERLAY, art.DIM_OVERLAY)
-        self.pause_ui.panel(left, bottom, PAUSE_PANEL_WIDTH, height)
-        self.pause_ui.centred("PAUSED", bottom + height - GLYPH_HEIGHT * 2 - 8, HIGHLIGHT, 2)
-        self._pause_rows = TextBlock(
-            self.pause_ui,
-            left + 16,
-            bottom + height - GLYPH_HEIGHT * 2 - 16,
-            rows,
-            PAUSE_ROW_CAPACITY,
+        height = PAUSE_HEADER + rows * (theme.ROW_HEIGHT + 2) + PAUSE_FOOT
+        rect = Rect((NATIVE_W - PAUSE_PANEL_WIDTH) // 2, (NATIVE_H - height) // 2,
+                    PAUSE_PANEL_WIDTH, height)  # fmt: skip
+        ui.picture(
+            ("pause-veil", NATIVE_W, NATIVE_H),
+            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), theme.DIM_OVERLAY),
+            0,
+            0,
+        )
+        add_panel(ui, rect)
+        title = "TRAINING" if self.training else "PAUSED"
+        ui.icon("pause", rect.left + theme.PAD, rect.top - 19, theme.HEADING)
+        ui.write(title, rect.left + theme.PAD + 18, rect.top - 22, TextSize.TITLE, theme.HEADING)
+        ui.picture(
+            ("pause-rule", rect.width - 16),
+            lambda: kit_art.divider(rect.width - 16),
+            rect.left + 8,
+            rect.top - PAUSE_HEADER + 4,
+        )
+        self._pause_strips: list[Picture] = []
+        self._pause_labels: list[tuple[TextLabel, TextLabel]] = []
+        top = rect.top - PAUSE_HEADER
+        for row in range(rows):
+            strip = Rect(rect.left + 8, top - (row + 1) * (theme.ROW_HEIGHT + 2), rect.width - 16,
+                         theme.ROW_HEIGHT)  # fmt: skip
+            self._pause_strips.append(Picture(ui, strip))
+            bottom = text_bottom(strip, TextSize.BODY)
+            self._pause_labels.append(
+                (
+                    ui.write("", strip.left + theme.PAD, bottom, TextSize.BODY),
+                    ui.write(
+                        "", strip.right - theme.PAD, bottom, TextSize.BODY, theme.TEXT, "right"
+                    ),
+                )
+            )
+        self._pause_hint = ui.write(
+            "", rect.left + rect.width // 2, rect.bottom + 6, TextSize.BODY, theme.TEXT_MUTED,
+            "centre",
+        )  # fmt: skip
+
+    def _sync_pause_rows(self) -> None:
+        """Show the pause menu's rows as they are now."""
+        menu = self.pause_menu
+        for index, (item, strip, (label, value)) in enumerate(
+            zip(menu.items, self._pause_strips, self._pause_labels, strict=True)
+        ):
+            focused = index == menu.cursor
+            rect = strip.rect
+            strip.show(
+                ("pause-row", rect.width, rect.height, focused),
+                lambda rect=rect, focused=focused: kit_art.list_row(
+                    rect.width, rect.height, focused
+                ),
+            )
+            name, shown = pause_row_parts(item)
+            label.text = name.upper()
+            label.color = theme.FOCUS if focused else theme.TEXT
+            if shown and focused:
+                shown = f"{ARROW_LEFT} {shown} {ARROW_RIGHT}"
+            value.text = shown.upper()
+            value.color = theme.FOCUS if focused else theme.TEXT_MUTED
+        labels = device_labels(self.settings, self.move_list_device(0))
+        self._pause_hint.text = hint_text(
+            "{stick}: move   {attack}: pick   {special}: resume", labels
         )
 
     def _build_moves_ui(self) -> None:
@@ -673,20 +724,40 @@ class BattleView(TickedView):
             return self.setup.costume_of(fighter.player_index, count)
         return costume_for(fighter, count)
 
-    def _stock_icons(self) -> list[arcade.Texture | None]:
-        """Each player's stock icon: the character's head in its costume, if it has art."""
-        icons: list[arcade.Texture | None] = []
-        for fighter in self.match.fighters:
+    def _card_infos(self) -> list[CardInfo]:
+        """What each player's HUD card shows: name, colour, bust and stock icon in the
+        fighter's costume (if it has art), CPU level and team."""
+        cards = []
+        team_play = self.match.rules.teams is not None
+        for index, fighter in enumerate(self.match.fighters):
             bank = self.renderer.banks.get(fighter.character.id)
             costume = 0 if bank is None else self.costume(fighter, len(bank.sprite_set.costumes))
-            icons.append(None if bank is None else bank.portrait("icon", costume))
-        return icons
+            level = self.cpu_levels[index] if index < len(self.cpu_levels) else 0
+            cards.append(
+                CardInfo(
+                    name=fighter.character.display_name,
+                    color=fighter.color_index,
+                    bust=None if bank is None else bank.portrait("bust", costume),
+                    icon=None if bank is None else bank.portrait("icon", costume),
+                    cpu=level,
+                    team=fighter.team if team_play else None,
+                )
+            )
+        return cards
+
+    def _feed_names(self) -> list[str]:
+        """Each player's name as the KO feed shows it."""
+        return [
+            f"P{index + 1} {fighter.character.display_name.upper()}"
+            for index, fighter in enumerate(self.match.fighters)
+        ]
 
     def restart(self) -> None:
         """Start the match over (F8)."""
         self.match = self._new_match()
         self._sounds.reset()
         self.effects.clear()
+        self.hud_state = HudState(names=self._feed_names())
         self._go_ticks = 0
         self._over_ticks = 0
         self.camera.snap_to(self._camera_targets())
@@ -773,6 +844,9 @@ class BattleView(TickedView):
             self._go_ticks -= 1
         self.effects.tick()
         self.effects.consume(self.match.events)
+        self.hud_state.step(
+            self.match.fighters, self.match.events, self.match.phase is MatchPhase.OVER
+        )
         self.effects.observe(self.match.fighters, self.stage)
         looks = self.effect_renderer.projectile_looks
         looks.learn(self.characters)
@@ -895,12 +969,26 @@ class BattleView(TickedView):
         """Return whether a player's name tag is showing."""
         return self.player_tags and self._tags[player_index][0].visible
 
+    def view_centre(self) -> tuple[int, int]:
+        """Return the world pixel at the middle of the screen: the camera's centre, lowered
+        so the world is drawn :data:`CAMERA_LIFT` pixels higher and the fight is centred in
+        the play area between the HUD's bands (decision D-061)."""
+        centre_x, centre_y = self.camera.pixel_centre
+        return (centre_x, centre_y - round(CAMERA_LIFT / self.camera.zoom))
+
+    def _point_on_screen(self, point: Vec3) -> tuple[float, float]:
+        """Return where a world point is on the screen, in native pixels."""
+        centre_x, centre_y = self.view_centre()
+        sx, sy = project(point.x, point.y, point.z)
+        zoom = self.camera.zoom
+        return ((sx - centre_x) * zoom + NATIVE_W / 2, (sy - centre_y) * zoom + NATIVE_H / 2)
+
     def _screen_positions(
         self, fighters: Sequence[Fighter], height: float = BODY_CENTRE_HEIGHT
     ) -> list[tuple[float, float]]:
         """Return each fighter's middle (or the point ``height`` units above its feet) in
         native screen pixels."""
-        centre_x, centre_y = self.camera.pixel_centre
+        centre_x, centre_y = self.view_centre()
         positions = []
         for fighter in fighters:
             pos = fighter.pos
@@ -955,13 +1043,31 @@ class BattleView(TickedView):
             self.match.projectiles,
             animated,
             colors,
-            self.camera.pixel_centre,
+            self.view_centre(),
         )
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
         scores = [stats.score for stats in self.match.stats] if self.score_display else None
-        self.hud.update(self.match.fighters, self.effects, scores)
-        self.hud.place_bubbles(fighters, self._screen_positions(fighters))
+        calm = self.settings.reduce_flashing
+        self.hud_state.roll(self.match.fighters)
+        self.hud.update(
+            self.match.fighters,
+            self.effects,
+            scores,
+            self.hud_state,
+            self.settings.screen_shake / FULL_PERCENT,
+            flashing=not calm,
+        )
+        self.hud.place_bubbles(fighters, self._screen_positions(fighters), self.hud_state)
+        time_left = self.match.time_left
+        self.extras.update(
+            self.hud_state,
+            time_left,
+            "" if time_left is None else clock_text(time_left),
+            self.banner_text(),
+            self._point_on_screen,
+            flashing=not calm,
+        )
         if self.player_tags:
             self._place_tags(fighters)
         self._update_text()
@@ -971,7 +1077,7 @@ class BattleView(TickedView):
             overlays.append(self.hitboxes)
         if self.show_overlay:
             overlays.append(self.overlay)
-        centre_x, centre_y = self.camera.pixel_centre
+        centre_x, centre_y = self.view_centre()
         strength = self.settings.screen_shake / FULL_PERCENT
         if self.settings.reduce_flashing:
             strength = 0.0  # the calm setting: no screen shake either (D-059)
@@ -982,9 +1088,10 @@ class BattleView(TickedView):
                 self.tags_ui.draw()
             if self.hud_display:
                 self.hud.draw()
+            self.extras.draw(self.hud_display)
             self._text.draw(pixelated=True)
             if self.menu_open:
-                self._pause_rows.set_lines(self.pause_menu.lines(), self.pause_menu.cursor)
+                self._sync_pause_rows()
                 if self.move_list_player is None:
                     self.pause_ui.draw()
                 else:
@@ -1011,13 +1118,6 @@ class BattleView(TickedView):
     def _update_text(self) -> None:
         for label, line in zip(self._help, self._help_text, strict=True):
             label.text = line if self.show_help else ""
-
-        banner = self.banner_text()
-        if banner != self.banner.text:
-            self.banner.move_to(centred_left(len(banner), BANNER_SCALE), BANNER_BOTTOM)
-            self.banner.text = banner
-        time_left = self.match.time_left
-        self.clock.text = "" if time_left is None else clock_text(time_left)
 
         lines: list[str] = []
         if self.show_fighter_info or self.show_overlay:

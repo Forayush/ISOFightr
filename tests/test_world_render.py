@@ -23,6 +23,7 @@ from isofightr.render.iso import HALF_TILE_W, project
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec2, Vec3
 from isofightr.sim.stage import SoftPlatform, Stage, build_stage
+from isofightr.ui.hud_layout import CAMERA_LIFT
 
 pytestmark = pytest.mark.gl
 
@@ -154,7 +155,8 @@ def make_view(window: Any, stage: Stage) -> Any:
 
 
 def render(view: Any, pos: Vec3, facing: Dir8 = Dir8.N) -> tuple[int, int]:
-    """Place P1, centre the camera on it, draw, and return the camera centre.
+    """Place P1, centre the camera on it, draw, and return the world pixel at the middle of
+    the screen (the camera centre, lowered by the HUD's lift: decision D-061).
 
     Only the fighter's position and facing are set: rendering reads nothing else, and no
     tick runs, so it does not matter that the position may be in mid-air.
@@ -163,7 +165,7 @@ def render(view: Any, pos: Vec3, facing: Dir8 = Dir8.N) -> tuple[int, int]:
     fighter.pos, fighter.facing = pos, facing
     view.camera.snap_to([pos])
     view.on_draw()
-    return view.camera.pixel_centre
+    return view.view_centre()
 
 
 def read_pixel(
@@ -344,10 +346,11 @@ def test_no_platform_hides_a_fighter_standing_on_another(window: Any) -> None:
 def test_camera_centres_the_fighter_in_the_native_buffer(window: Any) -> None:
     view = make_view(window, load_stage("training_grid"))
     pos = Vec3(4.0, 7.0, 0.0)
-    centre = render(view, pos)
-    assert centre == tuple(snap(value) for value in project(pos.x, pos.y, pos.z))
+    render(view, pos)
+    assert view.camera.pixel_centre == tuple(snap(value) for value in project(pos.x, pos.y, pos.z))
+    lift = NATIVE_H // 2 + CAMERA_LIFT
     data = window.pixel_buffer.framebuffer.read(
-        viewport=(NATIVE_W // 2 - 1, NATIVE_H // 2 + LEG_SAMPLE_ABOVE_FEET, 1, 1), components=4
+        viewport=(NATIVE_W // 2 - 1, lift + LEG_SAMPLE_ABOVE_FEET, 1, 1), components=4
     )
     assert tuple(data) == P1_BODY
 

@@ -36,8 +36,9 @@ LIGHT_ROWS: Final[int] = 2
 """Rows of lighter gold along the top of each letter's face, after enlarging."""
 
 
-def letter_mask(text: str = LOGO_TEXT) -> Image.Image:
-    """Return the logo's letters as a flat mask, enlarged, with wider letter spacing."""
+def letter_mask(text: str = LOGO_TEXT, scale: int = LETTER_SCALE) -> Image.Image:
+    """Return the logo's letters as a flat mask, enlarged ``scale`` times, with wider
+    letter spacing."""
     letters = [font.mask(character, TextSize.DISPLAY) for character in text]
     width = sum(letter.width for letter in letters) + LETTER_GAP * (len(letters) - 1)
     face = font.face(TextSize.DISPLAY)
@@ -46,14 +47,23 @@ def letter_mask(text: str = LOGO_TEXT) -> Image.Image:
     for letter in letters:
         row.paste(letter.crop((0, face.cap_top, letter.width, face.baseline)), (x, 0))
         x += letter.width + LETTER_GAP
-    return row.resize(
-        (row.width * LETTER_SCALE, row.height * LETTER_SCALE), Image.Resampling.NEAREST
-    )
+    return row.resize((row.width * scale, row.height * scale), Image.Resampling.NEAREST)
 
 
-def build_logo(text: str = LOGO_TEXT) -> Image.Image:
-    """Return the logo: gold letters with their depth and an ink outline, on transparency."""
-    letters = letter_mask(text)
+GOLD_LETTERS: Final[tuple[Rgb, Rgb, Rgb, Rgb]] = (FACE, FACE_LIGHT, SIDE, SIDE_DEEP)
+"""Face, its lit rim, the near depth and the far depth: the logo's colours."""
+
+
+def build_logo(
+    text: str = LOGO_TEXT,
+    scale: int = LETTER_SCALE,
+    colors: tuple[Rgb, Rgb, Rgb, Rgb] = GOLD_LETTERS,
+) -> Image.Image:
+    """Return the logo (or any word in its lettering, such as the countdown's): letters
+    with their depth and an ink outline, on transparency. ``colors`` are the face, its lit
+    rim, the near depth and the far depth."""
+    face_color, light_color, side_color, deep_color = colors
+    letters = letter_mask(text, scale)
     pad = OUTLINE
     size = (letters.width + 2 * DEPTH + 2 * pad, letters.height + DEPTH + 2 * pad)
     face = Image.new("L", size, 0)
@@ -71,14 +81,14 @@ def build_logo(text: str = LOGO_TEXT) -> Image.Image:
 
     image = Image.new("RGBA", size, (0, 0, 0, 0))
     image.paste((*EDGE, 255), (0, 0), outline)
-    image.paste((*SIDE_DEEP, 255), (0, 0), far)
-    image.paste((*SIDE, 255), (0, 0), near)
-    image.paste((*FACE, 255), (0, 0), face)
+    image.paste((*deep_color, 255), (0, 0), far)
+    image.paste((*side_color, 255), (0, 0), near)
+    image.paste((*face_color, 255), (0, 0), face)
     # A lit rim along the top of every stroke: face pixels with nothing just above them.
     above = Image.new("L", size, 0)
     above.paste(face, (0, LIGHT_ROWS))
     rim = ImageChops.subtract(face, above)
-    image.paste((*FACE_LIGHT, 255), (0, 0), rim)
+    image.paste((*light_color, 255), (0, 0), rim)
     return _with_seam(image, face)
 
 
