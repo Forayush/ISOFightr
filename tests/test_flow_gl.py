@@ -320,14 +320,18 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert name(window) == "ResultsView"
     assert results.table_lines[1].split()[:2] == ["1st", "P1"]
     assert results.table_lines[2].split()[:2] == ["2nd", "P2"]
-    assert len(results._winners) == 1, "the winner's victory animation"
-    sprite = results._winners[0][2]
-    seen = set()
+    assert len(results._winners) == 1, "the winner, in the victory-pose hero art"
+    bank, costume, sprite = results._winners[0]
+    assert sprite.texture is bank.portrait("hero_win", costume)
+    assert not sprite.visible, "the podium has not risen yet"
+    heights = set()
     for _ in range(40):
         step(window, 1)
-        seen.add(sprite.texture)
-    assert len(seen) >= 3, "it animates"
-    assert sprite.center_x < 120 and sprite.scale_x == 2
+        heights.add(sprite.center_y)
+    assert sprite.visible and len(heights) >= 3, "it rises with its step"
+    first = next(standing for standing in results.standings if standing.winner)
+    assert abs(sprite.center_x - first.x) <= 1 and first.player == 0
+    assert results.selected == "rematch"
 
     # Rematch plays the same setup again; then back to character select.
     press(window, keys().ENTER)
@@ -339,7 +343,8 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     step(window, 200)
     assert name(window) == "ResultsView"
     assert window.current_view.table_lines[1].split()[:2] == ["1st", "P2"]
-    press(window, keys().S)
+    press(window, keys().D)  # the buttons are a row: the next one is character select
+    assert window.current_view.selected == "characters"
     press(window, keys().ENTER)
     css = window.current_view
     assert name(window) == "CharacterSelectView"
@@ -1889,3 +1894,85 @@ def test_hits_rise_as_popups_and_reduce_flashing_keeps_the_number_still(window: 
         calm.on_draw()
         spots.add((label.x, label.bottom))
     assert len(spots) == 1, "no trembling with reduce flashing"
+
+
+# --- the victory screen (M13 group 8) -------------------------------------------------------
+
+
+def to_results(window: Any, loser: int = 1, **options: Any) -> tuple[Any, Any]:
+    """Play a one-stock match to its end by dropping ``loser`` out, and wait for results."""
+    battle = battle_with(window, stocks=1, **options)
+    knock_out(window, loser)
+    step(window, 200)
+    assert name(window) == "ResultsView"
+    return battle, window.current_view
+
+
+def test_the_victory_screen_plays_its_timeline(window: Any) -> None:
+    from isofightr.scenes import results_model as model
+
+    _, results = to_results(window)
+    assert {"banner", "buttons"} <= results.shown()
+    assert "row0" not in results.shown() or results.tick_count >= model.ROWS_START
+    step(window, model.AWARDS_START + 80)
+    shown = results.shown()
+    assert {"step0", "step1", "row0", "row1"} <= shown
+    assert model.settled(results.tick_count, 2, len(results.awards))
+    _, _, counts, dealt_text, _ = results._row_parts[1]
+    assert counts.text.startswith("KO") and dealt_text.text.endswith("%")
+    assert [row.place for row in results.rows] == ["1ST", "2ND"]
+    assert results.sub.text == ""
+    letters = [sprite.center_y for sprite, _ in results._letters]
+    step(window, 20)
+    assert letters != [sprite.center_y for sprite, _ in results._letters], "the letters wave"
+    assert any(sprite.visible for sprite in results._confetti)
+
+
+def test_the_victory_screen_buttons_lead_everywhere(window: Any) -> None:
+    _, results = to_results(window)
+    assert list(results.buttons) == ["rematch", "characters", "stages", "menu"]
+    press(window, keys().A)
+    assert results.selected == "menu", "the row wraps"
+    press(window, keys().A)
+    assert results.selected == "stages"
+    press(window, keys().J)
+    assert name(window) == "StageSelectView"
+    assert window.current_view.setup.characters == ("rook", "mote")
+
+    _, results = to_results(window)
+    rect = results.buttons["menu"].rect
+    click(window, rect.left + 20, rect.bottom + 8)
+    step(window, 1)
+    assert name(window) == "MainMenuView"
+
+    _, results = to_results(window)
+    press(window, keys().K)
+    assert name(window) == "CharacterSelectView", "back goes to character select"
+
+
+def test_a_team_win_puts_every_member_on_the_top_step(window: Any) -> None:
+    from isofightr.scenes import results_model as model
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = start(window)
+    setup = MatchSetup(
+        characters=("rook", "mote", "bramble"),
+        devices=("keyboard:solo", "keyboard:arrows", ""),
+        cpus=(0, 0, 3),
+        team_play=True,
+        teams=(0, 1, 0),
+        stocks=1,
+    )
+    flow.start_battle(setup)
+    step(window, COUNTDOWN_FRAMES + 5)
+    knock_out(window, 1)
+    step(window, 200)
+    results = window.current_view
+    assert name(window) == "ResultsView"
+    assert model.banner_text(results.match) == "RED TEAM WINS!"
+    winners = [standing for standing in results.standings if standing.winner]
+    assert sorted(standing.player for standing in winners) == [0, 2]
+    assert len({standing.height for standing in winners}) == 1, "the same step height"
+    assert abs(winners[0].x - winners[1].x) == model.TEAM_STEP_WIDTH
+    assert len(results._winners) == 2
+    assert [row.place for row in results.rows] == ["1ST", "1ST", "2ND"]

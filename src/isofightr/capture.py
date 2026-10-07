@@ -24,7 +24,7 @@ from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
-from isofightr.scenes.menus import ResultsView
+from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
@@ -59,7 +59,9 @@ HUD_CPU_LEVEL = 5
 KEYBOARDS: tuple[str, ...] = ("keyboard:solo", "keyboard:arrows", "", "")
 OUT_OF_BOUNDS = Vec3(5.0, 5.0, -90.0)
 """Far below any stage: a fighter put here is knocked out on the next tick."""
-RESULTS_TICK_LIMIT = 1200
+RESULTS_TICK_LIMIT = 6000
+RESULTS_FIGHT_TICKS = 420
+"""How long the CPUs fight before the results capture ends the match."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,16 +240,18 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
         view.show_help = False
         view.open_menu()
     elif screen == "results":
-        flow.start_battle(versus_setup(players, rules=rules))
+        flow.start_battle(versus_setup(players, cpus=True, rules=rules))
         view = window.current_view
         assert isinstance(view, BattleView)
-        for _ in range(RESULTS_TICK_LIMIT):
+        # Level 5 CPUs fight for a while, so the results have numbers to show; then, as in
+        # the tests, everyone but player 1 is dropped out of bounds until the match ends.
+        for tick in range(RESULTS_TICK_LIMIT):
             if isinstance(window.current_view, ResultsView):
                 break
-            # A sandbox, as in the tests: the last player keeps falling until it is out.
-            loser = view.match.fighters[-1]
-            if view.match.result is None and loser.in_play:
-                loser.pos = OUT_OF_BOUNDS
+            if tick >= RESULTS_FIGHT_TICKS and view.match.result is None:
+                standing = [f for f in view.match.fighters[1:] if f.in_play]
+                if standing:
+                    standing[-1].pos = OUT_OF_BOUNDS
             window.current_view.on_update(TICK_SECONDS)
         else:
             raise ValueError("the match never reached the results screen")

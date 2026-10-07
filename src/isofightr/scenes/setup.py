@@ -212,28 +212,50 @@ def results_table(match: Match) -> list[str]:
     ]
 
 
-def result_awards(match: Match) -> list[str]:
-    """Return the award lines under the results table: who dealt the most damage, who had
-    the longest combo and who took the hardest beating before falling (plan note 13,
-    "Results screen"). An award nobody earned is left out."""
+@dataclass(frozen=True, slots=True)
+class Award:
+    """One award on the results screen: its icon, its title, who earned it and with what."""
+
+    icon: str
+    title: str
+    player: int
+    name: str
+    value: str
+
+    @property
+    def line(self) -> str:
+        """The award as one line of text."""
+        return f"{self.title}: {self.name} ({self.value})"
+
+
+def award_items(match: Match) -> list[Award]:
+    """Return the awards: who dealt the most damage, who had the longest combo and who took
+    the hardest beating before falling (plan note 13, "Results screen"). An award nobody
+    earned is left out."""
 
     def name(player: int) -> str:
         return f"P{player + 1} {match.fighters[player].character.display_name}"
 
     players = range(len(match.stats))
-    awards = []
+    earned = []
     dealer = max(players, key=lambda player: match.stats[player].damage_given)
     if match.stats[dealer].damage_given > 0.0:
-        awards.append(f"Most damage: {name(dealer)} ({match.stats[dealer].damage_given:.0f}%)")
+        value = f"{match.stats[dealer].damage_given:.0f}%"
+        earned.append(Award("burst", "Most damage", dealer, name(dealer), value))
     combo = max(players, key=lambda player: match.stats[player].longest_combo)
     if match.stats[combo].longest_combo > 1:
-        awards.append(f"Longest combo: {name(combo)} ({match.stats[combo].longest_combo} hits)")
+        value = f"{match.stats[combo].longest_combo} hits"
+        earned.append(Award("swords", "Longest combo", combo, name(combo), value))
     tough = max(players, key=lambda player: match.stats[player].peak_damage)
     if match.stats[tough].peak_damage > 0.0:
-        awards.append(
-            f"Toughest: {name(tough)} (survived to {match.stats[tough].peak_damage:.0f}%)"
-        )
-    return awards
+        value = f"survived to {match.stats[tough].peak_damage:.0f}%"
+        earned.append(Award("shield", "Toughest", tough, name(tough), value))
+    return earned
+
+
+def result_awards(match: Match) -> list[str]:
+    """Return the awards as lines of text."""
+    return [award.line for award in award_items(match)]
 
 
 TEAM_NAMES: Final[tuple[str, ...]] = ("Red", "Blue", "Yellow", "Green")

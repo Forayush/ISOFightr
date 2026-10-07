@@ -16,23 +16,14 @@ import arcade
 
 from isofightr.config import (
     AUDIO_MENU_SONG,
-    AUDIO_VICTORY_SONG,
     NATIVE_H,
     NATIVE_W,
 )
-from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.input.devices import KEYBOARD_PREFIX
 from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import window_to_native
-from isofightr.render.sprite_bank import SpriteBank
-from isofightr.scenes.setup import (
-    TEAM_NAMES,
-    MatchSetup,
-    result_awards,
-    results_table,
-)
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     CAMERA_ZOOMS,
@@ -43,17 +34,14 @@ from isofightr.settings import (
     Settings,
 )
 from isofightr.sim.input_frame import Dir8
-from isofightr.sim.match import Match
 from isofightr.ui import kit_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
 from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
-from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
     HIGHLIGHT,
-    MUTED,
     TextBlock,
     TextLabel,
     UiLayer,
@@ -421,96 +409,3 @@ def _setting[T](
     """Return a setting row whose choices stand for ``values``, with ``value`` selected."""
     index = values.index(value) if value in values else 0
     return MenuItem(key, label, tuple(names), index)
-
-
-class ResultsView(MenuListView):
-    """Placements and stats after a match; rematch or go back to character select."""
-
-    STATS_TOP = HEADING_BOTTOM - 20
-    music = AUDIO_VICTORY_SONG
-    music_loops = False
-    _victory_feet: list[tuple[int, int]]
-
-    def __init__(
-        self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup, match: Match
-    ) -> None:
-        """Build the table from the finished match."""
-        self.setup = setup
-        self._victory_feet = []
-        menu = Menu([MenuItem("rematch", "Rematch"), MenuItem("back", "Back to character select")])
-        lines = results_table(match)
-        awards = result_awards(match)
-        line_height = GLYPH_HEIGHT + 2
-        awards_top = self.STATS_TOP - (len(lines) + 1) * line_height
-        rows_top = awards_top - (len(awards) + 1) * line_height
-        super().__init__(pixel_buffer, flow, winner_text(match), menu, rows_top)
-        self.table_lines = lines
-        self.award_lines = awards
-        table = TextBlock(self.ui, centred_left(len(lines[0])), self.STATS_TOP, len(lines), 80)
-        table.set_lines(lines)
-        if awards:
-            block = TextBlock(self.ui, centred_left(len(lines[0])), awards_top, len(awards), 80)
-            block.set_lines(awards)
-            for label in block.labels:
-                label.color = MUTED
-        self._winners = self._victory_sprites(match)
-
-    def _victory_sprites(self, match: Match) -> list[tuple[SpriteBank, int, arcade.Sprite]]:
-        """A sprite for each winner that has a ``victory`` animation, down the left side."""
-        result = match.result
-        if result is None:
-            return []
-        sprites = []
-        for place, player in enumerate(result.winners):
-            fighter = match.fighters[player]
-            try:
-                sprite_set = load_sprite_set(fighter.character.id)
-            except SpriteSheetError:
-                sprite_set = None
-            if sprite_set is None or VICTORY_ANIM not in sprite_set.anims:
-                continue
-            bank = SpriteBank(sprite_set)
-            costume = self.setup.costume_of(player, len(sprite_set.costumes))
-            sprite = self.ui.image(bank.texture(VICTORY_ANIM, 0, VICTORY_FACING, costume), 0, 0)
-            sprite.scale = VICTORY_SCALE
-            sprites.append((bank, costume, sprite))
-            self._victory_feet.append((VICTORY_LEFT + place * VICTORY_SPACING, VICTORY_BOTTOM))
-        return sprites
-
-    def refresh(self) -> None:
-        """Show the menu rows and step the winners' victory animations."""
-        super().refresh()
-        for (bank, costume, sprite), (feet_x, feet_y) in zip(
-            getattr(self, "_winners", []), self._victory_feet, strict=False
-        ):
-            info = bank.sprite_set.anims[VICTORY_ANIM]
-            pose = info.pose_at(self.tick_count + 1)
-            rect = bank.frame(VICTORY_ANIM, pose, VICTORY_FACING)
-            sprite.texture = bank.texture(VICTORY_ANIM, pose, VICTORY_FACING, costume)
-            sprite.scale = VICTORY_SCALE
-            sprite.position = (
-                feet_x + (rect.width / 2 - rect.pivot_x) * VICTORY_SCALE,
-                feet_y + (rect.pivot_y - rect.height / 2) * VICTORY_SCALE,
-            )
-
-    def choose(self, key: str) -> None:
-        """Play again with the same settings, or change them."""
-        if key == "rematch":
-            self.flow.begin_match(self.setup)
-        else:
-            self.flow.show_character_select(self.setup)
-
-    def back(self) -> None:
-        """Back to character select."""
-        self.flow.show_character_select(self.setup)
-
-
-def winner_text(match: Match) -> str:
-    """Return the results heading: the winning player, or the winning team."""
-    result = match.result
-    if result is None:
-        return "NO CONTEST"
-    if match.rules.teams is not None:
-        team = match.fighters[result.winner].team
-        return f"{TEAM_NAMES[team % len(TEAM_NAMES)].upper()} TEAM WINS!"
-    return f"PLAYER {result.winner + 1} WINS!"

@@ -24,7 +24,8 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
 from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
-from isofightr.scenes.menus import ResultsView, SettingsView
+from isofightr.scenes.menus import SettingsView
+from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
 from isofightr.scenes.select_view import CharacterSelectView
