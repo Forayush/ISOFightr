@@ -21,7 +21,6 @@ from isofightr.config import (
     NATIVE_W,
 )
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
-from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.input.devices import KEYBOARD_PREFIX
 from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
@@ -29,7 +28,6 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import window_to_native
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.setup import (
-    RANDOM_STAGE,
     TEAM_NAMES,
     MatchSetup,
     result_awards,
@@ -423,91 +421,6 @@ def _setting[T](
     """Return a setting row whose choices stand for ``values``, with ``value`` selected."""
     index = values.index(value) if value in values else 0
     return MenuItem(key, label, tuple(names), index)
-
-
-class StageSelectView(MenuView):
-    """Pick a stage from rows of thumbnails, or a random one."""
-
-    COLUMNS = 3
-    ROW_HEIGHT = 128
-    FIRST_LABEL_BOTTOM = 172
-    THUMBNAIL_GAP = 14
-    THUMBNAIL_MAX = (186, 96)
-
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup) -> None:
-        """Build a thumbnail and a name for every stage."""
-        super().__init__(pixel_buffer, flow)
-        self.setup = setup
-        self.stage_ids = [*list_stage_ids(), RANDOM_STAGE]
-        self.cursor = self.stage_ids.index(setup.stage) if setup.stage in self.stage_ids else 0
-        self.heading("CHOOSE A STAGE")
-        self.footer("{stick}: stage   {attack}: fight   {special}: back")
-        columns = min(self.COLUMNS, len(self.stage_ids))
-        slot = NATIVE_W // columns
-        self._names = []
-        self._frames = []
-        for index, stage_id in enumerate(self.stage_ids):
-            row, column = divmod(index, columns)
-            left = column * slot
-            label_bottom = self.FIRST_LABEL_BOTTOM - row * self.ROW_HEIGHT
-            thumb_bottom = label_bottom + self.THUMBNAIL_GAP
-            if stage_id == RANDOM_STAGE:
-                name = "Random"
-                mark = self.ui.label(
-                    left + centred_left(1, TITLE_SCALE, slot),
-                    thumb_bottom + 30,
-                    1,
-                    MUTED,
-                    TITLE_SCALE,
-                )
-                mark.text = "?"
-            else:
-                stage = load_stage(stage_id)
-                name = stage.display_name
-                picture = art.build_stage_thumbnail(stage, *self.THUMBNAIL_MAX)
-                texture = arcade.Texture(picture)
-                self.ui.image(texture, left + (slot - texture.width) // 2, thumb_bottom)
-            label = self.ui.label(
-                left + centred_left(len(name), width=slot), label_bottom, len(name) + 2
-            )
-            label.text = name
-            self._names.append(label)
-            frame = self.ui.panel(
-                left + 4,
-                label_bottom - 6,
-                slot - 8,
-                self.ROW_HEIGHT - 6,
-                (0, 0, 0, 0),
-                art.PANEL_BORDER,
-            )
-            self._frames.append(frame)
-        self.refresh()
-
-    @property
-    def selected(self) -> str:
-        """The stage id under the cursor."""
-        return self.stage_ids[self.cursor]
-
-    def act(self, device: str, action: MenuAction) -> None:
-        """Move the cursor, start the match, or go back."""
-        if action is MenuAction.LEFT:
-            self.cursor = (self.cursor - 1) % len(self.stage_ids)
-        elif action is MenuAction.RIGHT:
-            self.cursor = (self.cursor + 1) % len(self.stage_ids)
-        elif action in (MenuAction.UP, MenuAction.DOWN):
-            step = -self.COLUMNS if action is MenuAction.UP else self.COLUMNS
-            if 0 <= self.cursor + step < len(self.stage_ids):
-                self.cursor += step
-        elif action is MenuAction.CONFIRM:
-            self.flow.begin_match(replace(self.setup, stage=self.selected))
-        elif action is MenuAction.BACK:
-            self.flow.show_character_select(self.setup)
-
-    def refresh(self) -> None:
-        """Frame and highlight the stage under the cursor."""
-        for index, (label, frame) in enumerate(zip(self._names, self._frames, strict=True)):
-            label.color = HIGHLIGHT if index == self.cursor else MUTED
-            frame.visible = index == self.cursor
 
 
 class ResultsView(MenuListView):

@@ -3,6 +3,7 @@
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "final_plateau"
 display_name = "Final Plateau"
+description = "A flat stone plateau. No platforms, no excuses."
 tileset = "grass_stone"
 music = "final_plateau"            # a song in assets/audio/music
 

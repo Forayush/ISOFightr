@@ -2,6 +2,7 @@
 # platforms between them (plan note "11 - Stages").
 id = "lily_pads"
 display_name = "Lily Pads"
+description = "Five little isles at three heights. A party stage."
 tileset = "grass_stone"
 music = "lily_pads"            # a song in assets/audio/music
 

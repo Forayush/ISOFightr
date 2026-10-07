@@ -32,6 +32,7 @@ from isofightr.sim.stage import (
 _TOP_LEVEL_KEYS = (
     "id",
     "display_name",
+    "description",
     "tileset",
     "music",
     "grid",
@@ -106,6 +107,7 @@ def parse_stage(
         return build_stage(
             id=stage_id,
             display_name=root.string("display_name"),
+            description=root.optional_string("description") or "",
             tileset=root.string("tileset"),
             music=root.optional_string("music"),
             grid_rows=_grid_rows(root),

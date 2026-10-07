@@ -193,3 +193,27 @@ def accent_bar(width: int, height: int, ramp: Ramp) -> Image.Image:
     draw.line((0, 0, width - 1, 0), fill=ramp[0])
     draw.line((0, height - 1, width - 1, height - 1), fill=ramp[2])
     return image
+
+
+def spawn_marker(width: int, ramp: Ramp) -> Image.Image:
+    """Return the marker on a spawn point in the stage preview: a 2:1 diamond ring in the
+    player's colour with a lit back edge and an ink rim, flat on the ground."""
+    height = width // 2
+    image = Image.new("RGBA", (width, height), kit_art.TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    half_w, half_h = (width - 1) / 2, (height - 1) / 2
+
+    def diamond(inset: float) -> list[tuple[float, float]]:
+        return [
+            (half_w, inset / 2),
+            (width - 1 - inset, half_h),
+            (half_w, height - 1 - inset / 2),
+            (inset, half_h),
+        ]
+
+    draw.polygon(diamond(0), fill=theme.INK)
+    draw.polygon(diamond(2), fill=ramp[1])
+    draw.polygon(diamond(6), fill=ramp[3])
+    draw.line((2, half_h, half_w, 1), fill=ramp[0])
+    draw.line((half_w, 1, width - 3, half_h), fill=ramp[0])
+    return image

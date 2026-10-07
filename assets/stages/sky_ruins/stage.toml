@@ -4,6 +4,7 @@
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "sky_ruins"
 display_name = "Sky Ruins"
+description = "The classic: one island and three soft platforms."
 tileset = "grass_stone"
 music = "sky_ruins"            # a song in assets/audio/music
 

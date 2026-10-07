@@ -23,7 +23,7 @@ from isofightr.config import NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import load_stage
-from isofightr.render import placeholder_art as art
+from isofightr.render import stage_preview
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes.battle import BattleView
@@ -177,8 +177,11 @@ class LoadingView(MenuView):
         stage = self.stage
         ui.image(
             picture_texture(
-                ("stage-thumbnail", stage.id, width, height),
-                lambda: art.build_stage_thumbnail(stage, width, height),
+                ("stage-card", stage.id, width, height),
+                lambda: stage_preview.thumbnail(
+                    stage_preview.stage_picture(self.window, stage, stage_preview.PREVIEW_SIZE),
+                    (width, height),
+                ),
             ),
             frame.left + 4,
             frame.bottom + 4,

@@ -26,6 +26,7 @@ from isofightr.config import (
 )
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
+from isofightr.render import stage_preview
 from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
@@ -663,6 +664,8 @@ class CharacterSelectView(MenuView):
                     if cpu.owner == slot.device:
                         cpu.clear()
                 slot.clear()
+        # Stage select's pictures are drawn now, one a tick, so it opens without a pause.
+        stage_preview.warm_next(self.window)
         editing = {index: owner for owner, index in self.focus.items()}
         for index in range(MAX_PLAYERS):
             self._refresh_panel(index, index in editing)

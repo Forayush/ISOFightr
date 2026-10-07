@@ -283,8 +283,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert sss.setup.devices == ("keyboard:solo", "keyboard:arrows")
     assert flow.settings.slot_devices == ("keyboard:solo", "keyboard:arrows", "", "")
     assert sss.stage_ids[-1] == "random" and "final_plateau" in sss.stage_ids
-    while sss.selected != "sky_ruins":
-        press(window, keys().D)
+    go_to_stage(window, sss, "sky_ruins")
     press(window, keys().ENTER)
 
     # Battle: countdown, GO!, a KO, GAME!, results.
@@ -1370,6 +1369,20 @@ def test_the_random_stage_pool_keeps_one_stage_and_random_picks_from_it(window: 
     assert len(seen) > 1, "with every stage in, random still varies"
 
 
+def go_to_stage(window: Any, view: Any, stage_id: str) -> None:
+    """Walk stage select's cursor to a stage, a row at a time, then along the row."""
+    from isofightr.scenes.stage_info import STAGE_COLUMNS
+
+    target = view.stage_ids.index(stage_id)
+    for _ in range(20):
+        if view.selected == stage_id:
+            return
+        row, target_row = view.cursor // STAGE_COLUMNS, target // STAGE_COLUMNS
+        key = keys().S if row < target_row else keys().W if row > target_row else keys().D
+        press(window, key)
+    raise AssertionError(f"could not reach {stage_id}")
+
+
 def battle_with(window: Any, **options: Any) -> Any:
     from isofightr.scenes.setup import MatchSetup
 
@@ -1705,3 +1718,103 @@ def test_the_toast_says_why_a_match_cannot_start(window: Any) -> None:
     assert css.toast.sprite.visible
     press(window, keys().D)
     assert css.message == "" and not css.toast.sprite.visible, "it clears on the next input"
+
+
+# --- stage select: previews, the random pool, the rules chips (M13 group 6) -----------------
+
+
+def open_stage_select(window: Any, **setup_options: Any) -> tuple[Any, Any]:
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = start(window)
+    options = {"characters": ("rook", "mote"), "devices": ("keyboard:solo", "keyboard:arrows")}
+    flow.show_stage_select(MatchSetup(**{**options, **setup_options}))
+    step(window, 2)
+    assert name(window) == "StageSelectView"
+    return flow, window.current_view
+
+
+def test_stage_select_shows_the_stage_under_the_cursor(window: Any) -> None:
+    from isofightr.data.stage_loader import list_stage_ids
+
+    _, sss = open_stage_select(window, stage="sky_ruins")
+    assert sss.stage_ids == [*list_stage_ids(), "random"]
+    assert sss.selected == "sky_ruins" and sss.name_label.text == "SKY RUINS"
+    assert sss.description.text.endswith(".") and sss.music_label.text
+    sky = sss.preview.sprite.texture
+    assert sky.width == 400 and sky.height == 206
+    for first, second in zip(sss.tile_rects, sss.tile_rects[1:], strict=False):
+        assert not first.overlaps(second)
+    go_to_stage(window, sss, "final_plateau")
+    assert sss.name_label.text == "FINAL PLATEAU" and sss.preview.sprite.texture is not sky
+    go_to_stage(window, sss, "random")
+    assert sss.name_label.text == "RANDOM" and "pool" in sss.description.text
+    assert sss.chips, "the rules as chips"
+
+
+def test_grab_takes_a_stage_out_of_the_random_pool_and_the_rules_see_it(window: Any) -> None:
+    from isofightr.data.stage_loader import list_stage_ids
+
+    flow, sss = open_stage_select(window, stage="final_plateau")
+    stages = list_stage_ids()
+    assert (
+        sss.pool == stages and sss.pool_label.text == f"RANDOM POOL {len(stages)} / {len(stages)}"
+    )
+    press(window, keys().L)
+    assert "final_plateau" not in sss.pool and flow.setup.random_pool
+    assert "final_plateau" not in flow.settings.rules.random_pool, "saved with the rules"
+    assert sss.pool_label.text == f"RANDOM POOL {len(stages) - 1} / {len(stages)}"
+    press(window, keys().L)
+    assert sss.pool == stages and flow.setup.random_pool == (), "every stage again"
+    go_to_stage(window, sss, "random")
+    press(window, keys().L)
+    assert sss.pool == stages, "Random itself is not in the pool"
+
+    for stage_id in stages[1:]:
+        go_to_stage(window, sss, stage_id)
+        press(window, keys().L)
+    assert sss.pool == stages[:1]
+    go_to_stage(window, sss, stages[0])
+    press(window, keys().L)
+    assert sss.pool == stages[:1], "the last stage stays"
+
+    go_to_stage(window, sss, "random")
+    press(window, keys().J)
+    assert name(window) == "BattleView" and window.current_view.stage.id == stages[0], (
+        "Random picks from the pool"
+    )
+
+
+def test_clicking_a_box_toggles_the_pool_and_a_tile_fights_there(window: Any) -> None:
+    _, sss = open_stage_select(window, stage="sky_ruins")
+    index = sss.stage_ids.index("lily_pads")
+    box = sss.checkboxes[index]
+    click(window, box.rect.left + 3, box.rect.bottom + 3)
+    step(window, 1)
+    assert sss.selected == "lily_pads" and "lily_pads" not in sss.pool
+    rect = sss.tile_rects[sss.stage_ids.index("twin_isles")]
+    click(window, rect.left + 20, rect.bottom + 30)
+    step(window, 1)
+    assert name(window) == "BattleView" and window.current_view.stage.id == "twin_isles"
+
+
+def test_training_stage_select_has_no_pool_boxes(window: Any) -> None:
+    from isofightr.scenes.setup import training_setup
+
+    flow = start(window)
+    flow.show_stage_select(training_setup())
+    step(window, 2)
+    sss = window.current_view
+    assert all(box is None for box in sss.checkboxes) and not sss.chips
+    pool = sss.pool
+    press(window, keys().L)
+    assert sss.pool == pool and sss.pool_label.text == ""
+
+
+def test_character_select_draws_the_stage_pictures_ahead(window: Any) -> None:
+    from isofightr.data.stage_loader import list_stage_ids
+    from isofightr.render import stage_preview
+
+    open_select(window)
+    step(window, len(list_stage_ids()) + 1)
+    assert not stage_preview.warm_next(window), "every stage has its picture already"

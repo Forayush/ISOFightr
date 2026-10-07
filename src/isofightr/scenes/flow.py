@@ -24,15 +24,12 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
 from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
-from isofightr.scenes.menus import (
-    ResultsView,
-    SettingsView,
-    StageSelectView,
-)
+from isofightr.scenes.menus import ResultsView, SettingsView
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
 from isofightr.scenes.select_view import CharacterSelectView
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
+from isofightr.scenes.stage_select_view import StageSelectView
 from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
 from isofightr.sim.rng import Rng

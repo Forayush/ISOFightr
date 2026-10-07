@@ -116,6 +116,8 @@ class Stage:
     blast_zone: Box3
     camera_bounds: Box3
     backgrounds: tuple[BackgroundLayer, ...]
+    description: str = ""
+    """One line for the stage select screen (menu text only; empty = made from the data)."""
 
     @property
     def size_x(self) -> int:
@@ -200,6 +202,7 @@ def build_stage(
     camera_margin: float,
     music: str | None = None,
     backgrounds: Sequence[BackgroundLayer] = (),
+    description: str = "",
 ) -> Stage:
     """Validate parsed stage values and derive ledges, bounds, blast zone and camera bounds.
 
@@ -230,6 +233,7 @@ def build_stage(
         ),
         camera_bounds=_camera_bounds(bounds, soft_platforms, camera_margin),
         backgrounds=tuple(backgrounds),
+        description=description,
     )
     _validate_platforms(stage)
     _validate_spawns(stage)

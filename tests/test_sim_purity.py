@@ -108,6 +108,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.stage_art",
     "isofightr.render.vfx_art",
     "isofightr.scenes.setup",
+    "isofightr.scenes.stage_info",
     "isofightr.settings",
     "isofightr.scenes.controls_model",
     "isofightr.scenes.roster_model",

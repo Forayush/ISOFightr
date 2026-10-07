@@ -4,6 +4,7 @@
 # top-down grid the gap runs diagonally.
 id = "twin_isles"
 display_name = "Twin Isles"
+description = "Two isles split by a gap, one platform above it."
 tileset = "grass_stone"
 music = "twin_isles"            # a song in assets/audio/music
 
