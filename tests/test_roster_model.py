@@ -197,3 +197,19 @@ def test_strong_and_the_modifiers_are_menu_actions() -> None:
     assert set(MENU_SOUNDS) == set(MenuAction) and MENU_SOUNDS[MenuAction.ALT] == ""
     menu = Menu([MenuItem("a", "A"), MenuItem("b", "B")])
     assert menu.apply(MenuAction.ALT) is None and menu.cursor == 0, "plain menus ignore them"
+
+
+# --- quitting a match that cannot be paused ---------------------------------------------------
+
+
+def test_the_quit_chord_needs_the_quit_control_attack_and_special() -> None:
+    from isofightr.scenes.setup import quit_chord
+    from isofightr.settings import QUIT_KEY, RESERVED_KEYS
+
+    both = InputFrame(held=int(Button.ATTACK | Button.SPECIAL))
+    attack = InputFrame(held=int(Button.ATTACK))
+    assert quit_chord([attack, both], [False, True])
+    assert not quit_chord([both, attack], [False, True]), "one player's own control"
+    assert not quit_chord([attack], [True]) and not quit_chord([both], [False])
+    assert not quit_chord([], [])
+    assert QUIT_KEY == "BACKSPACE" and QUIT_KEY in RESERVED_KEYS

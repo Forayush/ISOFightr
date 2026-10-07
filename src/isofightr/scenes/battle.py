@@ -63,7 +63,7 @@ from isofightr.render.iso import project, project_point
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
-from isofightr.scenes.setup import MatchSetup, clock_text, countdown_text
+from isofightr.scenes.setup import QUIT_HINT, MatchSetup, clock_text, countdown_text, quit_chord
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, ZOOM_STEPPED, Settings
 from isofightr.sim.character_def import CharacterDef
@@ -246,6 +246,7 @@ class BattleView(TickedView):
             self.hub = flow.hub() if flow is not None else DeviceHub(self.settings)
         self._menu_extras: list[frozenset[MenuAction] | None] | None = None
         self._start_tapped = False
+        self._quit_chord = False
         self.inputs = None if self.devices else InputSource(len(self.characters))
         self._unplugged: set[str] = set()
         self.menu_input = MenuInput()
@@ -502,7 +503,7 @@ class BattleView(TickedView):
         if self.can_pause or self.match.phase is MatchPhase.OVER:
             self.open_menu()
         else:
-            self.say("pausing is off (see Rules)")
+            self.say(QUIT_HINT)
 
     def open_menu(self) -> None:
         """Pause and show the pause menu."""
@@ -732,6 +733,9 @@ class BattleView(TickedView):
         if self._message_ticks > 0:
             self._message_ticks -= 1
         frames, menu_frames = self._poll()
+        if self._quit_chord and not self.can_pause and not self.menu_open:
+            self.quit_match()
+            return
         if self._start_tapped:
             # Start is a gamepad's pause button: it opens the menu, and closes it again.
             self._start_tapped = False
@@ -796,6 +800,12 @@ class BattleView(TickedView):
         menu_frames = list(by_device.values())
         self._menu_extras = self.hub.menu_extras(list(by_device), start_confirms=False)
         self._start_tapped = self.hub.start_tapped()
+        backspace = arcade.key.BACKSPACE in keys
+        quit_held = []
+        for device in self.devices:
+            state = self.hub.pad_state(device) if device else None
+            quit_held.append(state.start if state is not None else bool(device) and backspace)
+        self._quit_chord = quit_chord(frames, quit_held)
         self.hub.end_tick()
         frames += [NEUTRAL_INPUT] * (len(self.characters) - len(frames))
         for device in self.devices:

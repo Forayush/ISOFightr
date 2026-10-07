@@ -25,7 +25,12 @@ from isofightr.sim.constants import (
     DEFAULT_TIME_MINUTES,
     FRAMES_PER_MINUTE,
 )
+from isofightr.sim.input_frame import Button, InputFrame
 from isofightr.sim.match import Match, MatchRules
+
+QUIT_BUTTONS: Final[int] = int(Button.ATTACK | Button.SPECIAL)
+"""Held with the quit control (Backspace, or a gamepad's Start), these quit a match."""
+QUIT_HINT: Final[str] = "pausing is off: BACKSPACE (pad: START) + attack + special quits"
 
 RANDOM_STAGE: Final[str] = "random"
 """Stage id that stands for "pick one at random when the match starts"."""
@@ -245,3 +250,13 @@ def can_start(setup: MatchSetup, joined: int) -> str:
     if setup.team_play and len(set(setup.teams[:joined])) < 2:
         return "everyone is on one team: change a team"
     return ""
+
+
+def quit_chord(frames: Sequence[InputFrame], quit_held: Sequence[bool]) -> bool:
+    """Return whether a player asks to leave a match that cannot be paused: their device's
+    quit control (``quit_held``, per player: Backspace on a keyboard, Start on a gamepad)
+    held together with attack and special (plan note 13, decision D-061)."""
+    return any(
+        held and frame.held & QUIT_BUTTONS == QUIT_BUTTONS
+        for frame, held in zip(frames, quit_held, strict=False)
+    )

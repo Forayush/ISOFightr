@@ -259,7 +259,8 @@ def is_missing(settings: Settings, device: str, action: str) -> bool:
 
 
 def can_bind(device: str, control: str) -> bool:
-    """Return whether a control may be bound on a device. Enter and Escape run the menus;
+    """Return whether a control may be bound on a device. Enter and Escape run the menus,
+    Backspace quits a match that cannot be paused;
     a gamepad's Start pauses."""
     if is_pad(device):
         return control in PAD_CONTROLS

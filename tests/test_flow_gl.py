@@ -1455,6 +1455,36 @@ def test_pausing_off_disables_the_pause_menu_in_versus_only(window: Any) -> None
     assert window.current_view.menu_open, "training can always pause"
 
 
+def hold_keys(window: Any, *held: int) -> None:
+    """Hold keys down together for one tick, then let them go."""
+    view = window.current_view
+    for key in held:
+        view.on_key_press(key, 0)
+    view.on_update(TICK_SECONDS)
+    for key in held:
+        window.current_view.on_key_release(key, 0)
+        if window.current_view is not view:
+            view.on_key_release(key, 0)
+    step(window, 2)
+
+
+def test_backspace_attack_and_special_quit_a_match_that_cannot_pause(window: Any) -> None:
+    battle = battle_with(window, pausing=False)
+    hold_keys(window, keys().BACKSPACE, keys().J)
+    hold_keys(window, keys().J, keys().K)
+    assert window.current_view is battle, "all three, together"
+    hold_keys(window, keys().BACKSPACE, keys().NUM_4, keys().NUM_5)
+    assert name(window) == "CharacterSelectView", "either keyboard player can quit"
+
+    allowed = battle_with(window)
+    hold_keys(window, keys().BACKSPACE, keys().J, keys().K)
+    assert window.current_view is allowed, "with pausing on, the pause menu has Quit"
+
+    hinted = battle_with(window, pausing=False)
+    press(window, keys().ESCAPE)
+    assert "BACKSPACE" in hinted._message
+
+
 # --- character select: the roster grid, costumes, the rules chip (M13 group 5) --------------
 
 
@@ -1559,7 +1589,8 @@ def test_a_ready_player_cannot_change_character_or_costume(window: Any) -> None:
     slot = css.slots[0]
     press(window, keys().NUM_4)
     press(window, keys().J)
-    assert slot.ready and css.panels[0].line2.text == "READY!"
+    assert slot.ready and css.panels[0].sash.sprite.visible
+    assert css.panels[0].sash_text.text == "READY!" and "cancel" in css.panels[0].line2.text
     before = (slot.character, slot.costume)
     press(window, keys().D)
     press(window, keys().U)

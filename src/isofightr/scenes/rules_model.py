@@ -115,7 +115,7 @@ RULE_ROWS: Final[tuple[RuleRow, ...]] = (
         "pausing",
         "PAUSING",
         "pause",
-        help="Off: a versus match cannot be paused. Training always can.",
+        help="Off: no pause. Backspace or Start + attack + special quits.",
     ),
 )
 """The rows, top to bottom. The switch rows' keys are :class:`MatchSetup` fields."""

@@ -25,6 +25,10 @@
     "tag",
     "pause",
     "dice",
+    "cpu",
+    "weight",
+    "speed",
+    "air",
     "arrow_right",
     "arrow_down",
     "arrow_up"

@@ -284,7 +284,7 @@ class ControlsView(MenuView):
             if model.can_bind(self.device, name):
                 self.stop_listening(name)
             else:
-                self.message = "Enter and Escape run the menus: they cannot be bound"
+                self.message = "Enter, Escape and Backspace are fixed: they cannot be bound"
                 self.audio.play("ui_back")
 
     def tick(self) -> None:

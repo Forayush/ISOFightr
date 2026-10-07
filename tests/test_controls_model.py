@@ -275,7 +275,7 @@ def test_a_key_taken_from_another_action_leaves_it_unbound() -> None:
     assert both.bound_keys("solo", "grab") == ("J",)
 
 
-@pytest.mark.parametrize("key", ["ENTER", "ESCAPE", "RETURN"])
+@pytest.mark.parametrize("key", ["ENTER", "ESCAPE", "RETURN", "BACKSPACE"])
 def test_enter_and_escape_cannot_be_bound(key: str) -> None:
     assert Settings().with_key("solo", "attack", key) == Settings()
     assert Settings().with_key("solo", "attack", key, slot=1) == Settings()

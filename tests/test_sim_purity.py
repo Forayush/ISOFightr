@@ -122,6 +122,7 @@ WINDOWLESS_MODULES = (
     "isofightr.ui.input_display",
     "isofightr.ui.kit_art",
     "isofightr.ui.logo",
+    "isofightr.ui.select_art",
     "isofightr.ui.menu",
     "isofightr.ui.move_list",
     "isofightr.ui.pad_art",

@@ -49,10 +49,17 @@ MAROON: Final[Rgb] = rgb("6e2727")
 GREEN: Final[Rgb] = rgb("1ebc73")
 PLUM: Final[Rgb] = rgb("6b3e75")
 VIOLET: Final[Rgb] = rgb("905ea9")
+ASH: Final[Rgb] = rgb("625565")
+SALMON: Final[Rgb] = rgb("f68181")
+BRICK: Final[Rgb] = rgb("9e4539")
+LEAF: Final[Rgb] = rgb("91db69")
+FOREST: Final[Rgb] = rgb("239063")
+PINE: Final[Rgb] = rgb("165a4c")
 
 PALETTE: Final[tuple[Rgb, ...]] = (
     INK, SLATE, NIGHT, NAVY, STEEL, SKY, ICE, DEEP_TEAL, TEAL, AQUA, MINT, GOLD, PALE_GOLD,
-    AMBER, WHITE, FOG, MIST, DUST, RED, CRIMSON, MAROON, GREEN, PLUM, VIOLET,
+    AMBER, WHITE, FOG, MIST, DUST, RED, CRIMSON, MAROON, GREEN, PLUM, VIOLET, ASH, SALMON,
+    BRICK, LEAF, FOREST, PINE,
 )  # fmt: skip
 """Every colour above, for the palette test."""
 
@@ -99,6 +106,24 @@ PLAYER_COLORS: Final[tuple[Rgb, ...]] = (RED, SKY, GOLD, GREEN)
 def player_color(index: int) -> Rgb:
     """Return a player's colour (indices wrap)."""
     return PLAYER_COLORS[index % len(PLAYER_COLORS)]
+
+
+Ramp = tuple[Rgb, Rgb, Rgb, Rgb]
+"""Four shades of one colour: light, base, dark and deep."""
+PLAYER_RAMPS: Final[tuple[Ramp, ...]] = (
+    (SALMON, RED, CRIMSON, MAROON),
+    (ICE, SKY, STEEL, NAVY),
+    (PALE_GOLD, GOLD, AMBER, BRICK),
+    (LEAF, GREEN, FOREST, PINE),
+)
+"""Each player colour with its lighter and darker neighbours, for art painted in it."""
+EMPTY_RAMP: Final[Ramp] = (MIST, DUST, ASH, SLATE)
+"""The greys a slot nobody has joined is painted in."""
+
+
+def player_ramp(index: int) -> Ramp:
+    """Return a player's colour ramp (indices wrap)."""
+    return PLAYER_RAMPS[index % len(PLAYER_RAMPS)]
 
 
 # --- sizes -----------------------------------------------------------------------------------

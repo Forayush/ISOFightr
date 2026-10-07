@@ -34,7 +34,7 @@ from isofightr.scenes.menus import KEYBOARD_DEVICE, MenuView
 from isofightr.scenes.roster_model import RANDOM, RANDOM_ENTRY, STAT_LABELS, STAT_NAMES
 from isofightr.scenes.rules_model import rule_chips, with_saved
 from isofightr.scenes.setup import TEAM_NAMES, MatchSetup, can_start
-from isofightr.ui import kit_art, theme
+from isofightr.ui import anim, kit_art, select_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import ARROW_LEFT, ARROW_RIGHT, TextSize
 from isofightr.ui.hints import device_labels, hint_text
@@ -45,35 +45,55 @@ from isofightr.ui.widgets import (
     Picture,
     TextLabel,
     add_panel,
+    icon_texture,
+    text_bottom,
 )
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-ROSTER_LEFT = 14
+ROSTER_FRAME = Rect(8, 238, 310, 88)
 ROSTER_TOP = 322
+"""Where the roster's first row hangs from when the rows do not fit inside the frame."""
 TILE = (46, 46)
 """A roster tile: the 40x40 portrait with a name strip across its foot."""
 TILE_GAP = 4
 NAME_STRIP = 10
-DETAIL = Rect(326, 236, 302, 88)
+DETAIL = Rect(326, 238, 302, 88)
 PANEL_WIDTH = 148
 PANEL_GAP = 8
 PANEL_LEFT = 12
-PANEL_BOTTOM = 22
-PANEL_HEIGHT = 206
+PANEL_BOTTOM = 20
+PANEL_HEIGHT = 214
 STRIP_HEIGHT = 16
-PLATE_HEIGHT = 18
-ART_BOTTOM = 72
-"""Height of the hero art's feet above the panel's bottom."""
-SWATCH = 12
+ART_BOTTOM = 78
+"""Height of the hero art's feet (the middle of its isle) above the panel's bottom."""
+ISLE_WIDTH = 68
+PLATE = (132, 18)
+PLATE_BOTTOM = 40
+SWATCH = 10
 SWATCH_GAP = 4
+SWATCH_BOTTOM = 26
+LINE1_BOTTOM = 13
+LINE2_BOTTOM = 1
+SASH = (140, 24)
+SASH_BOTTOM = ART_BOTTOM - 8
+"""The sash crosses the fighter's feet, so the fighter stays in view."""
+ENTER_TICKS = 8
+"""A fighter slides into its panel over this many ticks when it changes."""
+ENTER_SLIDE = 12
+SASH_TICKS = 12
+SASH_SLIDE = 36
+FLOAT_PERIOD = 120
+"""Each isle bobs a pixel up and down over this many ticks, a little out of step."""
+JOIN_BLINK = 40
 CHIP = Rect(388, NATIVE_H - 24, 240, 20)
-TOAST = Rect(110, 226, 420, 16)
+TOAST = Rect(110, 140, 420, 18)
 CHIP_ROW = -1
 """A player's cursor row when it is on the rules chip, above the roster."""
 ROSTER_ROW = 0
-GAUGE_WIDTH = 86
+GAUGE_WIDTH = 84
+STAT_ICONS = {"weight": "weight", "speed": "speed", "air": "air", "power": "burst"}
 STRIP_NAMES = {"keyboard:solo": "WASD KEYS", "keyboard:arrows": "ARROW KEYS"}
 
 
@@ -116,28 +136,54 @@ class PlayerPanel:
         left = PANEL_LEFT + index * (PANEL_WIDTH + PANEL_GAP)
         self.rect = Rect(left, PANEL_BOTTOM, PANEL_WIDTH, PANEL_HEIGHT)
         rect = self.rect
+        self.index = index
         self.frame = Picture(ui, rect)
         self.strip_rect = Rect(left + 1, rect.top - STRIP_HEIGHT - 1, PANEL_WIDTH - 2, STRIP_HEIGHT)
         self.strip = Picture(ui, self.strip_rect)
-        self.art = arcade.Sprite(center_x=left + PANEL_WIDTH // 2, center_y=rect.bottom)
+        self.icon = arcade.Sprite(
+            center_x=self.strip_rect.left + 12, center_y=self.strip_rect.bottom + 8
+        )
+        self.icon.visible = False
+        ui.panels.append(self.icon)
+        centre = left + PANEL_WIDTH // 2
+        isle_height = ISLE_WIDTH // 2 + select_art.ISLE_DEPTH + select_art.ISLE_ROOT
+        self.isle_rect = Rect(
+            centre - ISLE_WIDTH // 2,
+            rect.bottom + ART_BOTTOM + ISLE_WIDTH // 4 - isle_height,
+            ISLE_WIDTH,
+            isle_height,
+        )
+        self.isle = Picture(ui, self.isle_rect)
+        self.art = arcade.Sprite(center_x=centre, center_y=rect.bottom)
         self.art.visible = False
         ui.panels.append(self.art)
-        self.plate_rect = Rect(left + 6, rect.bottom + 62, PANEL_WIDTH - 12, PLATE_HEIGHT)
+        self.plate_rect = Rect(left + 8, rect.bottom + PLATE_BOTTOM, *PLATE)
         self.plate = Picture(ui, self.plate_rect)
         width = 6 * SWATCH + 5 * SWATCH_GAP
         first = left + (PANEL_WIDTH - width) // 2
         self.swatch_rects = [
-            Rect(first + slot * (SWATCH + SWATCH_GAP), rect.bottom + 46, SWATCH, SWATCH)
+            Rect(first + slot * (SWATCH + SWATCH_GAP), rect.bottom + SWATCH_BOTTOM, SWATCH, SWATCH)
             for slot in range(6)
         ]
         self.swatches = [Picture(ui, each) for each in self.swatch_rects]
-        centre = left + PANEL_WIDTH // 2
-        self.tag = ui.write_in(
-            self.strip_rect, "", TextSize.BODY, theme.TEXT_ON_FOCUS, shadow=False
+        self.sash_rect = Rect(left + (PANEL_WIDTH - SASH[0]) // 2, rect.bottom + SASH_BOTTOM, *SASH)
+        self.sash = Picture(ui, self.sash_rect)
+        self.tag = ui.write(
+            "",
+            0,
+            text_bottom(self.strip_rect, TextSize.BODY),
+            TextSize.BODY,
+            theme.TEXT_ON_FOCUS,
+            shadow=False,
         )
-        self.name = ui.write_in(self.plate_rect, "", TextSize.TITLE)
+        # The plate's left end is a solid block: the name centres on the rest of it.
+        block = PLATE[1]
+        name_rect = Rect(
+            self.plate_rect.left + block, self.plate_rect.bottom, PLATE[0] - block - 4, PLATE[1]
+        )
+        self.name = ui.write_in(name_rect, "", TextSize.TITLE)
         self.unknown = ui.write(
-            "?", centre, rect.bottom + 130, TextSize.DISPLAY, theme.TEXT_DIM, "centre"
+            "?", centre, rect.bottom + ART_BOTTOM + 36, TextSize.DISPLAY, theme.TEXT_DIM, "centre"
         )
         self.prompt = [
             ui.write(
@@ -145,9 +191,20 @@ class PlayerPanel:
             )
             for row in range(3)
         ]
-        self.line1 = ui.write("", centre, rect.bottom + 30, TextSize.BODY, theme.TEXT, "centre")
-        self.line2 = ui.write("", centre, rect.bottom + 16, TextSize.BODY, theme.TEXT, "centre")
-        self.banner_rect = Rect(left + 4, rect.bottom + 4, PANEL_WIDTH - 8, 40)
+        self.line1 = ui.write(
+            "", centre, rect.bottom + LINE1_BOTTOM, TextSize.BODY, theme.TEXT, "centre"
+        )
+        self.line2 = ui.write(
+            "", centre, rect.bottom + LINE2_BOTTOM, TextSize.BODY, theme.TEXT, "centre"
+        )
+        self.sash_text = ui.write_in(
+            self.sash_rect, "", TextSize.DISPLAY, theme.TEXT_ON_FOCUS, shadow=False
+        )
+        self.banner_rect = Rect(left + 4, rect.bottom + 2, PANEL_WIDTH - 8, 42)
+        self.shown: tuple[str, int] | None = None
+        """The fighter and costume the art shows, to notice a change."""
+        self.enter_tick = 0
+        self.ready_tick: int | None = None
 
 
 class CharacterSelectView(MenuView):
@@ -211,11 +268,19 @@ class CharacterSelectView(MenuView):
         self.chip: Button | None = None
         if not setup.training:
             self.chip = Button(ui, CHIP, "", "gear")
-        self.tile_rects = roster_model.tile_rects(
-            len(self.tiles), ROSTER_LEFT, ROSTER_TOP, *TILE, TILE_GAP
-        )
+        rows = -(-len(self.tiles) // roster_model.TILES_PER_ROW)
+        needed = rows * TILE[1] + (rows - 1) * TILE_GAP
+        top = ROSTER_TOP
+        if needed <= ROSTER_FRAME.height - 2 * theme.PAD:
+            top = ROSTER_FRAME.top - (ROSTER_FRAME.height - needed) // 2
+        columns = min(len(self.tiles), roster_model.TILES_PER_ROW)
+        row_width = columns * TILE[0] + (columns - 1) * TILE_GAP
+        left = ROSTER_FRAME.left + (ROSTER_FRAME.width - row_width) // 2
+        self.tile_rects = roster_model.tile_rects(len(self.tiles), left, top, *TILE, TILE_GAP)
+        add_panel(ui, ROSTER_FRAME)
+        self.tile_backs: list[Picture] = []
         for tile, rect in zip(self.tiles, self.tile_rects, strict=True):
-            add_panel(ui, rect, theme.PANEL_FILL, theme.PANEL_BORDER, theme.SMALL_CORNER)
+            self.tile_backs.append(Picture(ui, rect))
             bank = None if tile == RANDOM else self._bank(tile)
             texture = None if bank is None else bank.portrait("tile", 0)
             if texture is not None:
@@ -241,7 +306,8 @@ class CharacterSelectView(MenuView):
 
         add_panel(ui, DETAIL)
         left, top = DETAIL.left + theme.PAD, DETAIL.top
-        self.detail_name = ui.write("", left, top - 20, TextSize.TITLE, theme.HEADING)
+        self.detail_accent = Picture(ui, Rect(left, top - 21, 4, 16))
+        self.detail_name = ui.write("", left + 9, top - 20, TextSize.TITLE, theme.HEADING)
         self.detail_kind = ui.write("", left, top - 19, TextSize.BODY, theme.TEXT)
         self.detail_blurb = [
             ui.write("", left, top - 34 - row * 12, TextSize.BODY, theme.TEXT_MUTED)
@@ -251,12 +317,13 @@ class CharacterSelectView(MenuView):
         self.gauge_labels: dict[str, TextLabel] = {}
         for index, stat in enumerate(STAT_NAMES):
             column, row = index % 2, index // 2
-            x = left + column * 148
+            x = left + column * 146
             y = DETAIL.bottom + 22 - row * 14
+            ui.icon(STAT_ICONS[stat], x, y - 3, theme.TEXT_MUTED)
             self.gauge_labels[stat] = ui.write(
-                STAT_LABELS[stat], x, y, TextSize.SMALL, theme.TEXT_MUTED
+                STAT_LABELS[stat], x + 15, y, TextSize.SMALL, theme.TEXT_MUTED
             )
-            self.gauges[stat] = Gauge(ui, Rect(x + 44, y - 1, GAUGE_WIDTH, 8), segmented=True)
+            self.gauges[stat] = Gauge(ui, Rect(x + 52, y - 1, GAUGE_WIDTH, 8), segmented=True)
 
         self.panels = [PlayerPanel(self, index) for index in range(MAX_PLAYERS)]
         self.toast = Picture(ui, TOAST)
@@ -623,52 +690,55 @@ class CharacterSelectView(MenuView):
     def _stepper(self, text: str, focused: bool) -> str:
         return f"{ARROW_LEFT} {text} {ARROW_RIGHT}" if focused else text
 
+    def slot_ramp(self, index: int) -> theme.Ramp:
+        """Return the colour ramp a slot's panel is painted in: greys while it is empty."""
+        if not self.slots[index].taken:
+            return theme.EMPTY_RAMP
+        return theme.player_ramp(self.slots[index].team if self._rows() == 2 else index)
+
     def _refresh_panel(self, index: int, editing: bool) -> None:
         slot, panel = self.slots[index], self.panels[index]
         color = self.slot_color(index)
+        ramp = self.slot_ramp(index)
         rect = panel.rect
         taken = slot.taken
-        border = theme.with_alpha(color if taken else theme.DUST, 255)
+        ticks = self.flow.menu_ticks
+        border = theme.FOCUS if slot.ready else ramp[1]
         panel.frame.show(
-            ("select-panel", rect.width, rect.height, border),
-            lambda: kit_art.panel(rect.width, rect.height, theme.PANEL_FILL, border),
+            ("select-panel", rect.width, rect.height, ramp, border, taken),
+            lambda: select_art.panel_backdrop(rect.width, rect.height, ramp, border, taken),
         )
         strip = panel.strip_rect
-        strip_color = color if taken else theme.SLATE
+        strip_color, stripes = (ramp[1], ramp[2]) if taken else (theme.SLATE, theme.ASH)
         panel.strip.show(
-            ("select-strip", strip.width, strip_color),
-            lambda: kit_art.filled(
-                kit_art.shape_mask(
-                    strip.width, strip.height, theme.CORNER - 1, (True,) + (False,) * 3
-                ),
-                strip_color,
-            ),
+            ("select-strip", strip.width, strip.height, strip_color, stripes),
+            lambda: select_art.strip(strip.width, strip.height, strip_color, stripes),
         )
+        panel.isle.show(
+            ("select-isle", ISLE_WIDTH, ramp), lambda: select_art.isle(ISLE_WIDTH, ramp)
+        )
+        rise = anim.wave(ticks, index, 1, FLOAT_PERIOD, FLOAT_PERIOD // 5)
+        isle = panel.isle_rect
+        panel.isle.sprite.center_y = isle.bottom + isle.height / 2 + rise
         teams = self._rows() == 2
         tile = self.character_of(slot)
         labels = device_labels(self.flow.settings, self.active_device)
         for line in panel.prompt:
             line.text = ""
         plate = panel.plate_rect
-        if taken:
-            panel.plate.show(
-                ("select-plate", plate.width, plate.height),
-                lambda: kit_art.panel(
-                    plate.width,
-                    plate.height,
-                    theme.PANEL_DEEP,
-                    theme.PANEL_LIGHT,
-                    theme.SMALL_CORNER,
-                ),
-            )
-        else:
-            panel.plate.hide()
+        self._show_sash(index)
         if not taken:
+            panel.plate.hide()
+            panel.icon.visible = False
             panel.tag.text, panel.tag.color = f"P{index + 1}", theme.TEXT_MUTED
+            panel.tag.move_to(
+                strip.left + strip.width // 2 - panel.tag.width // 2, panel.tag.bottom
+            )
             panel.name.text = ""
             panel.line1.text = panel.line2.text = ""
             panel.unknown.visible = False
             panel.art.visible = False
+            panel.shown = None
             for swatch in panel.swatches:
                 swatch.hide()
             join = hint_text("PRESS {attack}", labels).upper()
@@ -677,13 +747,24 @@ class CharacterSelectView(MenuView):
                 lines.append(hint_text("{grab}: ADD A CPU", labels))
             for line, text in zip(panel.prompt, lines, strict=False):
                 line.text = text
+            panel.prompt[0].color = theme.FOCUS if anim.blink(ticks, JOIN_BLINK) else theme.TEXT
             return
 
+        panel.plate.show(
+            ("select-plate", plate.width, plate.height, color),
+            lambda: select_art.name_plate(plate.width, plate.height, color),
+        )
+        icon = "cpu" if slot.cpu else "controller" if slot.device.startswith("pad") else "keyboard"
+        texture = icon_texture(icon, theme.INK)
+        panel.icon.visible = texture is not None
+        if texture is not None and panel.icon.texture is not texture:
+            panel.icon.texture = texture
         panel.tag.color = theme.TEXT_ON_FOCUS
         if slot.cpu:
             panel.tag.text = f"P{index + 1}  CPU {slot.cpu}"
         else:
             panel.tag.text = f"P{index + 1}  {self.device_name(slot.device)}"
+        panel.tag.move_to(strip.left + 22, panel.tag.bottom)
         if tile == RANDOM:
             panel.name.text = "RANDOM"
         else:
@@ -709,7 +790,8 @@ class CharacterSelectView(MenuView):
         else:
             panel.line1.text = ""
         if slot.ready:
-            panel.line2.text, panel.line2.color = "READY!", theme.FOCUS
+            panel.line2.text = hint_text("{special}: cancel", labels)
+            panel.line2.color = theme.TEXT_MUTED
         else:
             panel.line2.text = hint_text("{attack}: ready", labels)
             panel.line2.color = theme.TEXT_MUTED
@@ -729,11 +811,40 @@ class CharacterSelectView(MenuView):
             texture = bank.portrait("hero", self.shown_costume(index))
         panel.art.visible = texture is not None
         panel.unknown.visible = texture is None
+        panel.unknown.color = self.slot_ramp(index)[0]
+        ticks = self.flow.menu_ticks
+        shown = (tile, self.shown_costume(index))
+        if shown != panel.shown:
+            # A new fighter (or costume) slides in from the left.
+            panel.shown = shown
+            panel.enter_tick = ticks
         if texture is not None:
             if panel.art.texture is not texture:
                 panel.art.texture = texture
-            x = panel.rect.left + PANEL_WIDTH // 2 + (texture.width % 2) / 2
-            panel.art.position = (x, panel.rect.bottom + ART_BOTTOM + texture.height / 2)
+            slide = anim.slide(ticks, panel.enter_tick, ENTER_TICKS, -ENTER_SLIDE, 0)
+            rise = anim.wave(ticks, index, 1, FLOAT_PERIOD, FLOAT_PERIOD // 5)
+            x = panel.rect.left + PANEL_WIDTH // 2 + (texture.width % 2) / 2 + slide
+            y = panel.rect.bottom + ART_BOTTOM + rise + texture.height / 2
+            panel.art.position = (x, y)
+            panel.art.alpha = round(255 * anim.progress(ticks, panel.enter_tick, ENTER_TICKS))
+
+    def _show_sash(self, index: int) -> None:
+        """Lay the READY sash across a ready player's panel; it swings in from the left."""
+        slot, panel = self.slots[index], self.panels[index]
+        if not slot.ready:
+            panel.ready_tick = None
+            panel.sash.hide()
+            panel.sash_text.text = ""
+            return
+        ticks = self.flow.menu_ticks
+        if panel.ready_tick is None:
+            panel.ready_tick = ticks
+        rect = panel.sash_rect
+        panel.sash.show(("select-sash", *SASH), lambda: select_art.sash(*SASH))
+        slide = anim.slide(ticks, panel.ready_tick, SASH_TICKS, -SASH_SLIDE, 0, anim.ease_out_back)
+        panel.sash.sprite.center_x = rect.left + rect.width / 2 + slide
+        panel.sash_text.text = "READY!"
+        panel.sash_text.move_to(rect.left + rect.width // 2 + 3 + slide, panel.sash_text.bottom)
 
     def _show_swatches(self, index: int) -> None:
         slot, panel = self.slots[index], self.panels[index]
@@ -777,6 +888,7 @@ class CharacterSelectView(MenuView):
         """Put a frame in each player's colour on the tile their cursor is on (a CPU's shows
         while it is being set up). Cursors on the same tile nest."""
         on_tile: dict[int, int] = {}
+        lit_tiles: dict[int, theme.Ramp] = {}
         for index, slot in enumerate(self.slots):
             cursor, tag = self.cursors[index], self.cursor_tags[index]
             shown = bool(slot.device) or index in editing
@@ -792,6 +904,8 @@ class CharacterSelectView(MenuView):
             active = not slot.ready and (index in editing or slot.device not in self.focus)
             cursor.sprite.center_x = rect.left + rect.width / 2
             cursor.sprite.center_y = rect.bottom + rect.height / 2
+            if tile not in lit_tiles:
+                lit_tiles[tile] = self.slot_ramp(index)
             cursor.show(
                 ("select-cursor", rect.width, rect.height, color, active),
                 lambda rect=rect, color=color, active=active: kit_art.focus_frame(
@@ -801,6 +915,12 @@ class CharacterSelectView(MenuView):
             tag.text = "CPU" if slot.cpu else f"P{index + 1}"
             tag.color = color
             tag.move_to(self.tile_rects[tile].left + order * 16, self.tile_rects[tile].top + 2)
+        for tile, back in enumerate(self.tile_backs):
+            rect, ramp = self.tile_rects[tile], lit_tiles.get(tile)
+            back.show(
+                ("select-tile", rect.width, rect.height, ramp),
+                lambda rect=rect, ramp=ramp: select_art.roster_tile(rect.width, rect.height, ramp),
+            )
 
     def _refresh_detail(self) -> None:
         slot = self.slots[self.detail_slot]
@@ -808,6 +928,10 @@ class CharacterSelectView(MenuView):
             slot = next((each for each in self.slots if each.taken), slot)
         tile = self.character_of(slot)
         entry = RANDOM_ENTRY if tile == RANDOM else self.entries[tile]
+        ramp = self.slot_ramp(next(i for i, each in enumerate(self.slots) if each is slot))
+        self.detail_accent.show(
+            ("select-accent", 4, 16, ramp), lambda: select_art.accent_bar(4, 16, ramp)
+        )
         self.detail_name.text = entry.name.upper()
         self.detail_kind.text = entry.archetype
         self.detail_kind.move_to(

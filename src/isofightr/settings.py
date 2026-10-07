@@ -48,8 +48,10 @@ GAMEPAD_PRESETS: Final[tuple[str, ...]] = (PRESET_RIGHT_STICK, PRESET_BUMPERS)
 """The stock gamepad layouts (:data:`isofightr.input.gamepad.PAD_LAYOUTS`). Since decision
 D-061 a layout only fills a pad's binding table; ``[gamepad] preset`` in an old settings
 file is still read, to fill the tables the file does not have."""
-RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "RETURN", "ESCAPE"})
-"""Keys that run the menus and so can never be bound to an action."""
+QUIT_KEY: Final[str] = "BACKSPACE"
+"""Held with attack and special, quits a match whose rules have pausing off."""
+RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "RETURN", "ESCAPE", QUIT_KEY})
+"""Keys that run the menus or quit a match, and so can never be bound to an action."""
 MAX_KEYS: Final[int] = MAX_CONTROLS
 """An action has at most a primary and a secondary key."""
 ZOOM_STATIC: Final[str] = "static"
@@ -222,8 +224,8 @@ class Settings:
         """Return the settings with a key put on an action, as its primary (slot 0) or
         secondary (slot 1) key. The key is taken away from any other action of the same
         layout, so one key never does two things; an action that loses its only key is left
-        unbound. An empty name clears the slot (:meth:`without_key`). Enter and Escape run
-        the menus and cannot be bound: asking for one changes nothing."""
+        unbound. An empty name clears the slot (:meth:`without_key`). Enter, Escape and
+        Backspace (:data:`RESERVED_KEYS`) cannot be bound: asking for one changes nothing."""
         if not key_name:
             return self.without_key(layout, action, slot)
         if key_name in RESERVED_KEYS or layout not in self.keys or action not in KEYBOARD_ACTIONS:
