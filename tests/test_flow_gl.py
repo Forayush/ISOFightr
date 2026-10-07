@@ -1976,3 +1976,47 @@ def test_a_team_win_puts_every_member_on_the_top_step(window: Any) -> None:
     assert abs(winners[0].x - winners[1].x) == model.TEAM_STEP_WIDTH
     assert len(results._winners) == 2
     assert [row.place for row in results.rows] == ["1ST", "1ST", "2ND"]
+
+
+# --- settings and the move list in the new look (M13 group 9) -------------------------------
+
+
+def test_settings_rows_show_switches_steppers_and_volume_bars(window: Any) -> None:
+    flow = to_main_menu(window)
+    flow.show_settings()
+    step(window, 2)
+    view = window.current_view
+    rows = view.rows
+    assert set(rows._switches) == {"fullscreen", "reduce_flashing"}
+    assert set(rows._gauges) == {"master_volume", "music_volume", "sfx_volume"}
+    assert rows._steppers["scale"].label.text == "2X" and not rows._switches["fullscreen"].on
+    assert view.help_label.text, "a line about the row under the cursor"
+    while view.menu.selected.key != "music_volume":
+        press(window, keys().S)
+    before = rows._gauges["music_volume"].value
+    press(window, keys().A)
+    assert rows._gauges["music_volume"].value < before
+    assert rows._steppers["music_volume"].label.text == str(flow.settings.music_volume)
+    while view.menu.selected.key != "reduce_flashing":
+        press(window, keys().S)
+    press(window, keys().D)
+    assert rows._switches["reduce_flashing"].on and flow.settings.reduce_flashing
+    for index in range(len(view.menu.items) - 1):
+        assert rows.rect(index).bottom > rows.rect(index + 1).top - 1, "rows do not overlap"
+
+
+def test_the_move_list_page_marks_its_section_titles(window: Any) -> None:
+    from isofightr.ui import theme
+
+    battle = battle_with(window)
+    battle.open_menu()
+    battle.show_move_list(0)
+    battle.on_draw()
+    labels = battle._moves_columns[0].labels
+    titles = [label.text for label in labels if label.color == theme.FOCUS]
+    assert titles == ["GROUND", "AIR"]
+    assert battle._moves_title.text == "P1 ROOK MOVES (keys)"
+    assert "back" in battle._moves_hint.text
+    right = [label.text for label in battle._moves_columns[1].labels]
+    special = next(label for label in battle._moves_columns[1].labels if "Neutral" in label.text)
+    assert special.color == theme.TEXT and "SPECIALS" in right

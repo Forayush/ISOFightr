@@ -1,4 +1,4 @@
-"""The menu scenes: title, main menu, rules, settings, character select, stage select, results.
+"""The menus' shared base (:class:`MenuView`), the list menu and the settings screen.
 
 Plan note "13 - Game Modes UI and Flow" ("Screen flow", "Character select screen",
 "Settings"). Every scene is driven by every connected device through
@@ -10,7 +10,7 @@ Scenes ask the :class:`~isofightr.scenes.flow.GameFlow` to move on.
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import arcade
 
@@ -33,7 +33,6 @@ from isofightr.settings import (
     VOLUME_MAX,
     Settings,
 )
-from isofightr.sim.input_frame import Dir8
 from isofightr.ui import kit_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
@@ -41,11 +40,13 @@ from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
-    HIGHLIGHT,
-    TextBlock,
+    Gauge,
+    Picture,
+    Stepper,
     TextLabel,
+    Toggle,
     UiLayer,
-    centred_left,
+    add_panel,
     picture_texture,
     text_bottom,
 )
@@ -53,27 +54,24 @@ from isofightr.ui.widgets import (
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-VICTORY_ANIM = "victory"
-VICTORY_FACING = Dir8.S
-"""The winner faces the camera."""
-VICTORY_SCALE = 2
-VICTORY_LEFT = 44
-VICTORY_SPACING = 56
-VICTORY_BOTTOM = 96
 KEY_CONFIRM = arcade.key.ENTER
 KEY_BACK = arcade.key.ESCAPE
 KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
 """The device Enter and Escape act as."""
 MOUSE_LEFT = arcade.MOUSE_BUTTON_LEFT
 MOUSE_RIGHT = arcade.MOUSE_BUTTON_RIGHT
-TITLE_SCALE = 4
-HEADING_SCALE = 2
-HEADING_BOTTOM = NATIVE_H - 60
-ROW_CAPACITY = 52
 FADE_TICKS = 10
 """A scene fades in from black over this many ticks."""
-BLINK_TICKS = 30
 ON_OFF = ("off", "on")
+LIST_WIDTH = 400
+"""Width of a list menu's panel."""
+LIST_ROW_GAP = 2
+LIST_TOP_GAP = 10
+LIST_VALUE_WIDTH = 96
+"""Width of the well a row's value sits in."""
+LIST_SWITCH_WIDTH = 44
+LIST_BAR_WIDTH = 70
+LIST_HELP_HEIGHT = 18
 
 
 class MenuView(TickedView):
@@ -111,10 +109,6 @@ class MenuView(TickedView):
         self._footer_template = ""
         self._footer_device = ""
         self._footer: TextLabel | None = None
-
-    def heading(self, text: str) -> None:
-        """Add the scene's heading (the old look, for screens not yet rebuilt)."""
-        self.ui.centred(text, HEADING_BOTTOM, HIGHLIGHT, HEADING_SCALE)
 
     def header(self, text: str, icon: str | None = None) -> None:
         """Add the title bar across the top of a rebuilt screen (decision D-061)."""
@@ -261,8 +255,102 @@ class MenuView(TickedView):
         self.blit_to_window()
 
 
+class ListRows:
+    """The rows of a list menu, drawn with the UI kit (decision D-061): a strip per row, lit
+    under the cursor, with the row's icon and name on the left and, for a setting, its value
+    on the right: a switch for an on/off row, a ``< value >`` stepper for the others, and a
+    bar as well for a volume."""
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        menu: Menu,
+        left: int,
+        top: int,
+        width: int,
+        icons: dict[str, str] | None = None,
+        bars: dict[str, int] | None = None,
+        danger: tuple[str, ...] = (),
+    ) -> None:
+        """Lay the rows out hanging down from ``top``. ``icons`` gives a row's icon by its
+        key; ``bars`` the top value of a row that also shows a bar; ``danger`` the rows that
+        overwrite things."""
+        self.left, self.top, self.width = left, top, width
+        self.row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
+        self.menu = menu
+        self.bars = bars or {}
+        self.danger = danger
+        self._strips: list[Picture] = []
+        self._labels: list[TextLabel] = []
+        self._steppers: dict[str, Stepper] = {}
+        self._switches: dict[str, Toggle] = {}
+        self._gauges: dict[str, Gauge] = {}
+        for index, item in enumerate(menu.items):
+            rect = self.rect(index)
+            self._strips.append(Picture(layer, rect))
+            icon = (icons or {}).get(item.key)
+            if icon is not None:
+                layer.icon(icon, rect.left + theme.GAP, rect.bottom + 3, theme.TEXT_MUTED)
+            box = Rect(rect.left + theme.ICON_SIZE + theme.GAP, rect.bottom, 200, rect.height)
+            self._labels.append(layer.write_in(box, item.label.upper(), align="left"))
+            well = Rect(rect.right - LIST_VALUE_WIDTH - theme.GAP, rect.bottom + 1,
+                        LIST_VALUE_WIDTH, rect.height - 2)  # fmt: skip
+            if item.choices == ON_OFF:
+                switch = Rect(well.right - LIST_SWITCH_WIDTH, well.bottom, LIST_SWITCH_WIDTH,
+                              well.height)  # fmt: skip
+                self._switches[item.key] = Toggle(layer, switch)
+            elif item.choices:
+                self._steppers[item.key] = Stepper(layer, well)
+                if item.key in self.bars:
+                    bar = Rect(well.left - LIST_BAR_WIDTH - theme.PAD, rect.bottom + 5,
+                               LIST_BAR_WIDTH, rect.height - 10)  # fmt: skip
+                    self._gauges[item.key] = Gauge(layer, bar, segmented=True)
+
+    def rect(self, index: int) -> Rect:
+        """Return a row's strip."""
+        bottom = self.top - (index + 1) * self.row_height + LIST_ROW_GAP
+        return Rect(self.left, bottom, self.width, theme.ROW_HEIGHT)
+
+    def row_at(self, x: float, y: float) -> int | None:
+        """Return the row under a native pixel, or ``None``."""
+        if not self.left <= x < self.left + self.width or y > self.top:
+            return None
+        row = int((self.top - y) // self.row_height)
+        return row if 0 <= row < len(self.menu.items) else None
+
+    def refresh(self) -> None:
+        """Show the rows as the menu has them now."""
+        for index, item in enumerate(self.menu.items):
+            focused = index == self.menu.cursor
+            rect = self.rect(index)
+            danger = item.key in self.danger and not focused
+            self._strips[index].show(
+                ("list-row", rect.width, rect.height, focused, danger),
+                lambda rect=rect, focused=focused, danger=danger: (
+                    kit_art.button(rect.width, rect.height, kit_art.Look.DANGER)
+                    if danger
+                    else kit_art.list_row(rect.width, rect.height, focused)
+                ),
+            )
+            self._labels[index].color = theme.FOCUS if focused else theme.TEXT
+            if item.key in self._switches:
+                self._switches[item.key].set(bool(item.index), focused)
+            elif item.key in self._steppers:
+                self._steppers[item.key].set(item.value.upper(), focused)
+            if item.key in self._gauges:
+                self._gauges[item.key].value = item.index / max(self.bars[item.key], 1)
+
+
 class MenuListView(MenuView):
-    """A scene that is one vertical menu in the middle of the screen, shared by every device."""
+    """A scene that is one vertical menu on a panel, shared by every device."""
+
+    icons: ClassVar[dict[str, str]] = {}
+    """A row's icon, by its key."""
+    bars: ClassVar[dict[str, int]] = {}
+    """The top value of a row that also shows a bar (volumes), by its key."""
+    danger: tuple[str, ...] = ()
+    help: ClassVar[dict[str, str]] = {}
+    """A line about a row, shown under the list while the cursor is on it."""
 
     def __init__(
         self,
@@ -270,14 +358,39 @@ class MenuListView(MenuView):
         flow: GameFlow,
         title: str,
         menu: Menu,
-        rows_top: int = HEADING_BOTTOM - 30,
+        icon: str | None = None,
     ) -> None:
-        """Build the heading and the menu rows, whose first row hangs under ``rows_top``."""
+        """Build the title bar, the panel and the menu's rows."""
         super().__init__(pixel_buffer, flow)
+        self.dim = None
         self.menu = menu
-        self.heading(title)
-        left = centred_left(ROW_CAPACITY)
-        self.rows = TextBlock(self.ui, left, rows_top, len(menu.items), ROW_CAPACITY)
+        self.header(title, icon)
+        row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
+        height = len(menu.items) * row_height + 2 * theme.GAP
+        top = NATIVE_H - theme.HEADER_HEIGHT - LIST_TOP_GAP
+        panel = Rect((NATIVE_W - LIST_WIDTH) // 2, top - height, LIST_WIDTH, height)
+        add_panel(self.ui, panel)
+        self.rows = ListRows(
+            self.ui,
+            menu,
+            panel.left + theme.GAP,
+            panel.top - theme.GAP,
+            panel.width - 2 * theme.GAP,
+            self.icons,
+            self.bars,
+            self.danger,
+        )
+        strip = Rect(panel.left, panel.bottom - LIST_HELP_HEIGHT - theme.GAP, panel.width,
+                     LIST_HELP_HEIGHT)  # fmt: skip
+        self.ui.picture(
+            ("list-help", strip.width, strip.height),
+            lambda: kit_art.panel(
+                strip.width, strip.height, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER
+            ),
+            strip.left,
+            strip.bottom,
+        )
+        self.help_label = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
         self.refresh()
 
     def act(self, device: str, action: MenuAction) -> None:
@@ -310,12 +423,46 @@ class MenuListView(MenuView):
         return True
 
     def refresh(self) -> None:
-        """Show the menu rows."""
-        self.rows.set_lines(self.menu.lines(), self.menu.cursor)
+        """Show the menu rows and the line about the one under the cursor."""
+        self.rows.refresh()
+        self.help_label.text = self.help.get(self.menu.selected.key, "")
 
 
 class SettingsView(MenuListView):
     """Video, audio and control settings. Every change is applied and saved at once."""
+
+    icons: ClassVar[dict[str, str]] = {
+        "scale": "hud",
+        "fullscreen": "hud",
+        "screen_shake": "burst",
+        "master_volume": "speaker",
+        "music_volume": "speaker",
+        "sfx_volume": "speaker",
+        "controls": "controller",
+        "camera_zoom": "stage",
+        "reduce_flashing": "shield",
+        "defaults": "cross",
+        "back": "arrow_left",
+    }
+    bars: ClassVar[dict[str, int]] = {
+        "master_volume": VOLUME_MAX,
+        "music_volume": VOLUME_MAX,
+        "sfx_volume": VOLUME_MAX,
+    }
+    danger = ("defaults",)
+    help: ClassVar[dict[str, str]] = {
+        "scale": "How many screen pixels each game pixel covers.",
+        "fullscreen": "Fill the screen, keeping whole pixels.",
+        "screen_shake": "How hard big hits shake the picture.",
+        "master_volume": "Everything.",
+        "music_volume": "The songs.",
+        "sfx_volume": "Hits, swings and menu blips.",
+        "controls": "Rebind the keyboards and the gamepads.",
+        "camera_zoom": "Stepped: the camera doubles when everyone is close.",
+        "reduce_flashing": "No hit flashes, no screen shake, no pulsing clock.",
+        "defaults": "Video, sound and accessibility back to how they came.",
+        "back": "Back to the main menu.",
+    }
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Build the rows from the current settings."""
@@ -341,7 +488,7 @@ class SettingsView(MenuListView):
                 MenuItem("master_volume", "Master volume", volumes, settings.master_volume),
                 MenuItem("music_volume", "Music volume", volumes, settings.music_volume),
                 MenuItem("sfx_volume", "Effects volume", volumes, settings.sfx_volume),
-                MenuItem("controls", "Controls: keyboard and gamepad..."),
+                MenuItem("controls", "Controls"),
                 _setting(
                     "camera_zoom",
                     "Camera zoom",
@@ -352,11 +499,11 @@ class SettingsView(MenuListView):
                 MenuItem(
                     "reduce_flashing", "Reduce flashing", ON_OFF, int(settings.reduce_flashing)
                 ),
-                MenuItem("defaults", "Reset everything to defaults"),
+                MenuItem("defaults", "Reset to defaults"),
                 MenuItem("back", "Back"),
             ]
         )
-        super().__init__(pixel_buffer, flow, "SETTINGS", menu)
+        super().__init__(pixel_buffer, flow, "SETTINGS", menu, "gear")
         self.footer("{stick}: row and value   {attack}: pick   {special}: back")
 
     def changed(self) -> None:

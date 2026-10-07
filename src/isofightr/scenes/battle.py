@@ -95,12 +95,10 @@ from isofightr.ui.move_list import (
     build_move_list,
     page_columns,
 )
-from isofightr.ui.pixel_font import GLYPH_ADVANCE, GLYPH_HEIGHT
+from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
 from isofightr.ui.widgets import (
-    HIGHLIGHT,
     Picture,
-    TextBlock,
     TextLabel,
     UiLayer,
     add_panel,
@@ -166,10 +164,15 @@ PAUSE_HEADER = 30
 """Height of the pause panel's title bar."""
 PAUSE_FOOT = 24
 """Room under the pause menu's rows for the controls line."""
-MOVES_COLUMN_CAPACITY = 48
+MOVES_COLUMN_CAPACITY = 43
+"""Characters across one column of the move list (the body font is 7 px a character)."""
 MOVES_MAX_ROWS = 18
 MOVES_COLUMN_GAP = 12
-MOVES_TITLE_CAPACITY = 100
+MOVES_ROW_HEIGHT = 12
+MOVES_HEADER = 30
+MOVES_FOOT = 24
+MOVES_MARGIN = 6
+"""Gap between the move list's panel and the sides of the screen."""
 SANDBOX_KEYBOARDS = (KEYBOARD_SOLO, KEYBOARD_ARROWS)
 """Keyboard layout of each player in a battle started without a setup (``InputSource``)."""
 
@@ -186,6 +189,24 @@ MENU_DUMMY_LEVEL = "dummy_level"
 CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
+
+
+class MoveColumn:
+    """One column of the move list: a line of text per row, section titles in gold."""
+
+    def __init__(self, layer: UiLayer, left: int, top: int) -> None:
+        """Create the column's empty lines, hanging down from ``top``."""
+        self.labels = [
+            layer.write("", left, top - (row + 1) * MOVES_ROW_HEIGHT, TextSize.BODY)
+            for row in range(MOVES_MAX_ROWS)
+        ]
+
+    def set_lines(self, lines: Sequence[str]) -> None:
+        """Show the lines; a line in capitals is a section's title."""
+        for index, label in enumerate(self.labels):
+            line = lines[index] if index < len(lines) else ""
+            label.text = line
+            label.color = theme.FOCUS if line.isupper() else theme.TEXT
 
 
 class BattleView(TickedView):
@@ -359,7 +380,7 @@ class BattleView(TickedView):
         self.pause_ui = UiLayer(GlyphAtlas())
         self._build_pause_ui()
         self.move_list_player: int | None = None
-        self.moves_ui = UiLayer(glyphs)
+        self.moves_ui = UiLayer(GlyphAtlas())
         self._build_moves_ui()
 
     def _new_match(self) -> Match:
@@ -482,22 +503,38 @@ class BattleView(TickedView):
         )
 
     def _build_moves_ui(self) -> None:
-        width = MOVES_COLUMN_CAPACITY * 2 * GLYPH_ADVANCE + MOVES_COLUMN_GAP + 32
-        height = (MOVES_MAX_ROWS + 3) * (GLYPH_HEIGHT + 2) + 16
-        left = (NATIVE_W - width) // 2
-        bottom = (NATIVE_H - height) // 2
-        top = bottom + height - GLYPH_HEIGHT - 8
-        self.moves_ui.panel(0, 0, NATIVE_W, NATIVE_H, art.DIM_OVERLAY, art.DIM_OVERLAY)
-        self.moves_ui.panel(left, bottom, width, height)
-        self._moves_title = self.moves_ui.label(left + 16, top, MOVES_TITLE_CAPACITY, HIGHLIGHT)
-        column_left = (
-            left + 16,
-            left + 16 + MOVES_COLUMN_CAPACITY * GLYPH_ADVANCE + MOVES_COLUMN_GAP,
+        """The move list page (decision D-061): the battle dimmed, a wide panel with the
+        player's name on a title bar and the moves in two columns, section titles in gold."""
+        ui = self.moves_ui
+        height = MOVES_HEADER + MOVES_MAX_ROWS * MOVES_ROW_HEIGHT + MOVES_FOOT
+        rect = Rect(MOVES_MARGIN, (NATIVE_H - height) // 2, NATIVE_W - 2 * MOVES_MARGIN, height)
+        ui.picture(
+            ("pause-veil", NATIVE_W, NATIVE_H),
+            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), theme.DIM_OVERLAY),
+            0,
+            0,
         )
+        add_panel(ui, rect)
+        ui.icon("swords", rect.left + theme.PAD, rect.top - 19, theme.HEADING)
+        self._moves_title = ui.write(
+            "", rect.left + theme.PAD + 18, rect.top - 20, TextSize.BODY, theme.HEADING
+        )
+        ui.picture(
+            ("pause-rule", rect.width - 16),
+            lambda: kit_art.divider(rect.width - 16),
+            rect.left + 8,
+            rect.top - MOVES_HEADER + 4,
+        )
+        column_width = MOVES_COLUMN_CAPACITY * font.text_width("M")
+        top = rect.top - MOVES_HEADER
         self._moves_columns = [
-            TextBlock(self.moves_ui, x, top - 6, MOVES_MAX_ROWS, MOVES_COLUMN_CAPACITY)
-            for x in column_left
+            MoveColumn(ui, rect.left + theme.PAD + index * (column_width + MOVES_COLUMN_GAP), top)
+            for index in range(2)
         ]
+        self._moves_hint = ui.write(
+            "", rect.left + rect.width // 2, rect.bottom + 6, TextSize.BODY, theme.TEXT_MUTED,
+            "centre",
+        )  # fmt: skip
 
     def move_list_players(self) -> list[int]:
         """Return the players who get a move list page: everyone with a device (not the
@@ -524,10 +561,7 @@ class BattleView(TickedView):
         character = self.match.fighters[player].character
         sections = build_move_list(character.moveset, labels, self.match.rules.short_hop_macro)
         left, right = page_columns(sections, MOVES_COLUMN_CAPACITY)
-        switch = "  < > player" if len(self.move_list_players()) > 1 else ""
-        title = (
-            f"P{player + 1} {character.display_name.upper()} MOVES ({source}){switch}  back: close"
-        )
+        title = f"P{player + 1} {character.display_name.upper()} MOVES ({source})"
         return title, left, right
 
     def show_move_list(self, player: int) -> None:
@@ -537,6 +571,9 @@ class BattleView(TickedView):
         self._moves_title.text = title
         self._moves_columns[0].set_lines(left)
         self._moves_columns[1].set_lines(right)
+        labels = device_labels(self.settings, self.move_list_device(0))
+        switch = "{stick}: next player   " if len(self.move_list_players()) > 1 else ""
+        self._moves_hint.text = hint_text(switch + "{special}: back", labels)
 
     def _move_list_action(self, action: MenuAction) -> None:
         players = self.move_list_players()
