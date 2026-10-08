@@ -700,3 +700,61 @@ def test_the_diagram_lights_held_controls_and_marks_bound_ones() -> None:
         assert middle(lit, "b" if control != "b" else "x") == pad_art.IDLE
     assert pad_art.control_color("x", frozenset(), frozenset()) == pad_art.IDLE
     assert set(PAD_ACTIONS) >= {"attack", "taunt", "walk"}
+
+
+# --- keys two keyboard layouts share (decision D-062) ---------------------------------------
+
+
+def user_shared_settings() -> Settings:
+    """The user's file: the arrows layout rebound onto the left hand, over four WASD keys."""
+    return from_data(
+        {
+            "keyboard": {
+                "arrows": {
+                    "move_up": "MOTION_UP",
+                    "move_down": "DOWN",
+                    "move_left": "LEFT",
+                    "move_right": "MOTION_RIGHT",
+                    "up": "Z",
+                    "down": "LCTRL",
+                    "attack": "X",
+                    "special": "C",
+                    "strong": "S",
+                    "grab": "V",
+                    "jump": "LSHIFT",
+                    "shield": "SPACE",
+                    "walk": "",
+                    "taunt": "NUM_9",
+                }
+            }
+        }
+    )
+
+
+def test_a_tile_knows_when_its_key_is_on_the_other_keyboard_layout() -> None:
+    settings = user_shared_settings()
+    arrows = "keyboard:arrows"
+    assert model.shared_with(settings, arrows, "strong", 0) == SOLO, "S is WASD's move down"
+    assert model.shared_with(settings, arrows, "shield", 0) == SOLO
+    assert model.shared_with(settings, SOLO, "move_down", 0) == arrows, "and the other way"
+    assert model.shared_with(settings, arrows, "attack", 0) == "", "X is only on arrows"
+    assert model.shared_with(settings, arrows, "attack", 1) == "", "an empty second slot"
+    assert model.shared_with(settings, PAD0, "attack", 0) == "", "never for a gamepad"
+    assert model.shared_with(Settings(), SOLO, "attack", 0) == ""
+    assert model.shared_note(settings, arrows, "strong", 0) == "S is also used by Keyboard (WASD)"
+    assert model.shared_note(settings, arrows, "attack", 0) == ""
+
+
+def test_shared_keys_are_a_warning_not_a_block() -> None:
+    settings = user_shared_settings()
+    lines = model.warnings(settings, "keyboard:arrows")
+    assert lines == ["ALSO ON WASD KEYS: L-CTRL, S, L-SHIFT, SPACE"]
+    assert model.warnings(settings, SOLO) == ["ALSO ON ARROW KEYS: S, SPACE, L-SHIFT, L-CTRL"]
+    assert model.warnings(Settings(), SOLO) == [] == model.warnings(settings, PAD0)
+    still = model.bind(settings, "keyboard:arrows", "taunt", 0, "W")
+    assert still.keys["arrows"]["taunt"] == "W" and still.keys["solo"]["move_up"] == "W", (
+        "binding a key the other layout has is allowed: one player may use both"
+    )
+    from isofightr.ui import font
+
+    assert all(font.text_width(line) <= model.NOTE_WIDTH for line in lines)

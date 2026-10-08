@@ -27,7 +27,7 @@ from isofightr.input.gamepad import (
     merge_frames,
 )
 from isofightr.input.keyboard import KeyboardBindings, keyboard_frame
-from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, Settings
+from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, Settings, canonical_key
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, InputFrame
 from isofightr.ui.menu import MenuAction, pad_actions
 
@@ -292,12 +292,26 @@ def key_code(name: str) -> int:
     return code if isinstance(code, int) else NO_KEY
 
 
+def _key_names() -> dict[int, str]:
+    """Return the one name each key code is stored under: never an alias
+    (:data:`isofightr.settings.KEY_ALIASES`) and never a ``MOTION_*`` text-motion name."""
+    names: dict[int, str] = {}
+    for name in sorted(dir(KEY)):
+        code = getattr(KEY, name)
+        if not name.isupper() or name.startswith(("MOD_", "MOTION_")) or not isinstance(code, int):
+            continue
+        if canonical_key(name) == name:
+            names.setdefault(code, name)
+    return names
+
+
+_KEY_NAMES: dict[int, str] = _key_names()
+
+
 def key_name(code: int) -> str:
-    """Return the name a key code is stored under ("" if it has none)."""
-    for name in dir(KEY):
-        if name.isupper() and not name.startswith("MOD_") and getattr(KEY, name) == code:
-            return name
-    return ""
+    """Return the name a key code is stored and shown under ("" if it has none): one fixed
+    name per key (decision D-062), so the up arrow is ``UP``, not ``MOTION_UP``."""
+    return _KEY_NAMES.get(code, "")
 
 
 def bindings_from_settings(settings: Settings, layout: str) -> KeyboardBindings:

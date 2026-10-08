@@ -7,10 +7,11 @@ bindings. A hint line is a template with action names in braces.
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Final
 
 from isofightr.settings import Settings
+from isofightr.ui import font
 from isofightr.ui.move_list import ACTIONS, UNBOUND, gamepad_labels, keyboard_labels
 
 KEYBOARD_PREFIX: Final[str] = "keyboard:"
@@ -48,6 +49,25 @@ def hint_text(template: str, labels: Mapping[str, str]) -> str:
         return template.format_map(shown)
     except (KeyError, IndexError, ValueError):
         return template
+
+
+HINT_GAP: Final[str] = "   "
+"""What separates the items of a hint line."""
+
+
+def fit_hint(template: str, labels: Mapping[str, str], width: int, drop: Sequence[str] = ()) -> str:
+    """Fill a hint template and make it fit ``width`` pixels (decision D-062): items (parts
+    separated by three spaces) are dropped one at a time, in the order ``drop`` names them
+    (by a placeholder such as ``strong``, or a word in the item), until the line fits; if it
+    still does not, it is shortened with ".."."""
+    items = template.split(HINT_GAP)
+    for name in ("", *drop):
+        if name:
+            items = [item for item in items if f"{{{name}}}" not in item and name not in item]
+        line = hint_text(HINT_GAP.join(items), labels)
+        if font.text_width(line) <= width:
+            return line
+    return font.fit(line, width)
 
 
 HELP_TEMPLATES: Final[tuple[str, ...]] = (

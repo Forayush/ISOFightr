@@ -141,3 +141,33 @@ def test_four_players_only_the_first_two_have_keyboards(window: Any) -> None:
     assert described[1].startswith("Keyboard (arrows and numpad)")
     assert len(described) == 4
     source.close()
+
+
+# --- key names (decision D-062) ------------------------------------------------------------
+
+
+def test_every_key_code_has_one_canonical_name_that_round_trips() -> None:
+    import arcade
+
+    from isofightr.input.devices import key_code, key_name
+    from isofightr.settings import KEY_ALIASES, canonical_key
+
+    names_of: dict[int, list[str]] = {}
+    for name in dir(arcade.key):
+        value = getattr(arcade.key, name)
+        if name.isupper() and not name.startswith("MOD_") and isinstance(value, int):
+            names_of.setdefault(value, []).append(name)
+    assert len(names_of) > 150
+    for code, names in names_of.items():
+        if all(name.startswith("MOTION_") for name in names):
+            continue  # text-motion constants, not keys
+        shown = key_name(code)
+        assert shown in names and key_code(shown) == code, names
+        assert not shown.startswith("MOTION_") and canonical_key(shown) == shown, names
+        for other in names:
+            assert canonical_key(other) == shown, f"{other} should be stored as {shown}"
+            assert key_code(other) == code, "old names still work"
+    assert key_name(arcade.key.UP) == "UP" and key_name(arcade.key.RIGHT) == "RIGHT"
+    assert key_name(arcade.key.PAGEUP) == "PAGEUP" and key_name(arcade.key.ENTER) == "ENTER"
+    assert set(KEY_ALIASES) <= {name for names in names_of.values() for name in names}
+    assert key_name(-12345) == ""

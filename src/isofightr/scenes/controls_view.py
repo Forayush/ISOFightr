@@ -222,7 +222,7 @@ class ControlsView(MenuView):
             return
         self.flow.update_settings(settings)
         self.hub.apply_settings(settings)
-        self._footer_device = ""
+        self._footer_shown = None
 
     def reopen(self, tab: int, cursor: str) -> None:
         """Show the screen again for another tab or device (the tiles differ)."""
@@ -455,8 +455,13 @@ class ControlsView(MenuView):
         self.info_title.color = theme.TEXT if flashing else theme.HEADING
         warnings = model.warnings(settings, device)
         notes = [(line, theme.FOG) for line in lines]
+        focused = self.focused_tile()
+        shared = model.shared_note(settings, device, *focused) if focused else ""
         if self.message:
             notes.append((self.message, theme.FOCUS_GLOW))
+        elif shared:
+            # The key under the cursor is on the other keyboard layout too: say so.
+            notes.append((shared, theme.AMBER))
         elif warnings:
             notes.append((warnings[0], theme.DANGER))
         for label, (text, color) in zip(

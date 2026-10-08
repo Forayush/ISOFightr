@@ -13,6 +13,7 @@ from dataclasses import dataclass, fields
 from typing import Final
 
 from isofightr.input.gamepad import PadBindings
+from isofightr.settings import canonical_key
 from isofightr.sim.character_def import MoveSet
 
 ACTIONS: Final[tuple[str, ...]] = (
@@ -90,6 +91,7 @@ def key_label(name: str) -> str:
 
 def keyboard_labels(keys: Mapping[str, str]) -> dict[str, str]:
     """Return the action labels for a keyboard layout, from its key names in the settings."""
+    keys = {action: canonical_key(name) for action, name in keys.items()}
     labels = {action: key_label(keys.get(action, "")) for action in ACTIONS if action != "stick"}
     directions = [
         keys.get(name, "") for name in ("move_up", "move_left", "move_down", "move_right")

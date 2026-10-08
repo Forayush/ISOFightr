@@ -24,7 +24,7 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
 from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
-from isofightr.scenes.menus import SettingsView
+from isofightr.scenes.menus import KEYBOARD_DEVICE, SettingsView
 from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
@@ -73,6 +73,11 @@ class GameFlow:
         self.settings = settings or Settings()
         self.settings_path = settings_path
         self.setup = with_saved(MatchSetup(), self.settings.rules)
+        self.active_device: str = next(
+            (device for device in self.settings.slot_devices if device), KEYBOARD_DEVICE
+        )
+        """The device that acted last in a menu (its keys fill the hints); at the start,
+        the one player 1 last played on (decision D-062)."""
         """The versus setup: who plays and under which rules (the saved ones to begin with)."""
         self.rng = Rng.seeded(seed)
         self.matches_started = 0

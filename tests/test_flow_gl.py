@@ -267,7 +267,11 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert name(window) == "CharacterSelectView"
     assert [slot.device for slot in css.slots] == ["keyboard:solo", "", "", ""]
     assert css.panels[0].art.visible and not css.panels[1].art.visible, "art for the joined"
-    assert css.panels[0].name.text == "ROOK" and css.panels[1].prompt[1].text == "TO JOIN"
+    assert css.panels[0].name.text == "ROOK"
+    assert [label.text for label in css.panels[1].prompt[:2]] == [
+        "PRESS TO JOIN",
+        "NUM_4  ARROW KEYS",
+    ], "the next slot says how to join, in the free device's own key"
     press(window, keys().J)
     assert name(window) == "CharacterSelectView"
     assert "two players" in css.message, "one player cannot start a versus match"
@@ -1719,10 +1723,11 @@ def test_the_mouse_picks_fighters_costumes_and_the_rules(window: Any) -> None:
 def test_the_toast_says_why_a_match_cannot_start(window: Any) -> None:
     _, css = open_select(window)
     press(window, keys().J)
-    assert "two players" in css.message and css._status.text == css.message
-    assert css.toast.sprite.visible
+    assert "two players" in css.message and css.notice_shown == css.message.upper()
+    assert css._footer.text == css.notice_shown and css._notice_band.visible
     press(window, keys().D)
-    assert css.message == "" and not css.toast.sprite.visible, "it clears on the next input"
+    assert css.message == "" and not css._notice_band.visible, "it clears on the next input"
+    assert "J: ready" in css._footer.text, "and the footer is back"
 
 
 # --- stage select: previews, the random pool, the rules chips (M13 group 6) -----------------
@@ -2020,3 +2025,260 @@ def test_the_move_list_page_marks_its_section_titles(window: Any) -> None:
     right = [label.text for label in battle._moves_columns[1].labels]
     special = next(label for label in battle._moves_columns[1].labels if "Neutral" in label.text)
     assert special.color == theme.TEXT and "SPECIALS" in right
+
+
+# --- character select after the user's playtest (D-062, M13 group 10) -----------------------
+
+USER_ARROWS = {
+    "move_up": "MOTION_UP",
+    "move_down": "DOWN",
+    "move_left": "LEFT",
+    "move_right": "MOTION_RIGHT",
+    "up": "Z",
+    "down": "LCTRL",
+    "attack": "X",
+    "special": "C",
+    "strong": "S",
+    "grab": "V",
+    "jump": "LSHIFT",
+    "shield": "SPACE",
+    "walk": "",
+    "taunt": "NUM_9",
+}
+"""The arrows layout from the user's own settings file (it shares S, SPACE, LSHIFT and LCTRL
+with the WASD layout)."""
+ARROWS, SOLO = "keyboard:arrows", "keyboard:solo"
+
+
+def user_settings() -> Any:
+    from dataclasses import replace
+
+    from isofightr.settings import from_data
+
+    loaded = from_data({"keyboard": {"arrows": dict(USER_ARROWS)}})
+    return replace(loaded, slot_devices=(ARROWS, "", "", ""))
+
+
+def open_user_select(window: Any) -> tuple[Any, Any]:
+    """Open character select as the user had it: player 1 remembered on the arrows keyboard."""
+    flow = start(window, settings=user_settings())
+    flow.show_character_select(flow.setup)
+    step(window, 3)
+    return flow, window.current_view
+
+
+def devices(css: Any) -> list[str]:
+    return [slot.device for slot in css.slots]
+
+
+def prompts(panel: Any) -> list[str]:
+    lines = [label.text for label in panel.prompt]
+    while lines and not lines[-1]:
+        lines.pop()
+    return lines
+
+
+def test_every_prompt_shows_the_keys_of_the_device_it_is_about(window: Any) -> None:
+    from isofightr.scenes import select_text
+    from isofightr.ui import font
+
+    _, css = open_user_select(window)
+    assert devices(css) == [ARROWS, "", "", ""] and css.active_device == ARROWS
+    assert css.panels[0].tag.text == "P1  ARROW KEYS"
+    assert css.panels[0].line2.text == "X: ready", "the arrows layout's attack, not J"
+    assert prompts(css.panels[1]) == ["PRESS TO JOIN", "J  WASD KEYS", "", "V: ADD A CPU"]
+    assert prompts(css.panels[2]) == ["OPEN"] == prompts(css.panels[3])
+    footer = css._footer.text
+    assert "X: ready" in footer and "arrows: pick" in footer and "V: add CPU" in footer
+    assert "J:" not in footer and "MOTION" not in footer
+    assert font.text_width(footer) <= select_text.FOOTER_WIDTH
+    for panel in css.panels:
+        for label in (*panel.prompt, panel.line1, panel.line2, panel.tag):
+            assert font.text_width(label.text) <= panel.rect.width, label.text
+
+
+def test_a_gamepads_panel_shows_the_gamepads_buttons(
+    window: Any, pads: list[FakeController]
+) -> None:
+    _, css = open_user_select(window)
+    assert "A  PAD 1" in prompts(css.panels[1])
+    tap_pad(window, pads[0])
+    assert devices(css)[:2] == [ARROWS, "pad:0"]
+    assert css.panels[1].line2.text == "A: ready" and css.panels[0].line2.text == "X: ready"
+    assert css.active_device == "pad:0" and css.message == "P2 JOINED ON PAD 1"
+    step(window, 200)
+    assert "A: ready" in css._footer.text, "the footer follows the device that acted last"
+
+
+def test_the_users_sequence_switch_to_wasd_then_j_readies_and_l_adds_a_cpu(window: Any) -> None:
+    flow, css = open_user_select(window)
+    slot = css.slots[0]
+    character, costume = slot.character, slot.costume
+    press(window, keys().DOWN)  # the arrows device's own key
+    assert slot.row == css.controls_row and "controls" in css._footer.text
+    assert css.panels[0].line2.text == "← ARROW KEYS →"
+    press(window, keys().RIGHT)
+    assert devices(css) == [SOLO, "", "", ""], "player 1 now plays on the WASD keyboard"
+    assert css.active_device == SOLO and css.panels[0].tag.text == "P1  WASD KEYS"
+    assert css.panels[0].line2.text == "← WASD KEYS →"
+    assert (slot.character, slot.costume) == (character, costume), "nothing else changed"
+    assert flow.settings.slot_devices[0] == SOLO, "remembered at once"
+    assert css.message == "P1 NOW USES WASD KEYS"
+    press(window, keys().W)
+    assert slot.row == 0 and css.panels[0].line2.text == "J: ready"
+    press(window, keys().L)
+    assert css.slots[1].cpu and css.slots[1].owner == SOLO, "L adds a CPU"
+    press(window, keys().J)
+    assert not css.focus and not slot.ready, "the first attack finishes the CPU"
+    press(window, keys().J)
+    assert name(window) == "StageSelectView", "J readies: everyone is ready"
+    assert window.current_view.setup.devices == (SOLO, "")
+
+
+def test_switching_controls_keeps_cpus_and_goes_back_with_the_new_devices_keys(
+    window: Any,
+) -> None:
+    flow, css = open_user_select(window)
+    press(window, keys().V)  # arrows grab: a CPU, owned by the arrows device
+    press(window, keys().X)
+    assert css.slots[1].owner == ARROWS
+    press(window, keys().DOWN)
+    press(window, keys().LEFT)
+    assert devices(css)[0] == SOLO and css.slots[1].owner == SOLO, "its CPU follows"
+    assert not css.slots[0].ready
+    press(window, keys().RIGHT)
+    assert devices(css)[0] == SOLO, "the arrows keyboard no longer drives player 1"
+    press(window, keys().D)  # the WASD keyboard's own key switches back
+    assert devices(css)[0] == ARROWS and css.slots[1].owner == ARROWS
+    assert flow.settings.slot_devices[0] == ARROWS
+
+
+def test_the_chooser_skips_devices_other_players_hold(
+    window: Any, pads: list[FakeController]
+) -> None:
+    _, css = open_user_select(window)
+    press(window, keys().J)  # the WASD keyboard joins as player 2
+    assert devices(css)[:2] == [ARROWS, SOLO]
+    press(window, keys().DOWN)
+    press(window, keys().RIGHT)
+    assert devices(css)[0] == "pad:0", "the WASD keyboard is taken: the next free device"
+    pads[0].move_stick(1.0, 0.0)
+    step(window, 2)
+    pads[0].move_stick(0.0, 0.0)
+    step(window, 2)
+    assert devices(css)[0] == "pad:1"
+    pads[1].move_stick(1.0, 0.0)
+    step(window, 2)
+    pads[1].move_stick(0.0, 0.0)
+    step(window, 2)
+    assert devices(css)[0] == ARROWS, "round to where it started, never the WASD keyboard"
+
+
+def test_enter_and_the_mouse_act_for_player_one_not_for_the_wasd_keyboard(window: Any) -> None:
+    _, css = open_user_select(window)
+    press(window, keys().ENTER)
+    assert devices(css) == [ARROWS, "", "", ""], "Enter does not join a second player"
+    assert "two players" in css.message
+    target = css.tiles.index("mote")
+    rect = css.tile_rects[target]
+    click(window, rect.left + 10, rect.bottom + 20)
+    step(window, 1)
+    assert devices(css) == [ARROWS, "", "", ""] and css.slots[0].character == target
+    strip = css.panels[0].strip_rect
+    click(window, strip.left + 40, strip.bottom + 6)
+    step(window, 1)
+    assert devices(css)[0] == SOLO, "a click on the strip steps the controls"
+
+
+def test_a_key_two_layouts_share_does_not_join_the_other_layout(window: Any) -> None:
+    _, css = open_user_select(window)
+    costume = css.slots[0].costume
+    press(window, keys().S)  # arrows: strong (costume). WASD: move down, and not joined.
+    assert css.slots[0].costume != costume and devices(css) == [ARROWS, "", "", ""]
+    press(window, keys().LSHIFT)  # arrows: jump (confirm). WASD: shield (back).
+    assert devices(css) == [ARROWS, "", "", ""] and "two players" in css.message
+    press(window, keys().SPACE)  # arrows: shield (back): player 1 leaves. WASD: jump (confirm).
+    assert SOLO not in devices(css), "the WASD keyboard did not join on the shared key"
+
+
+def test_an_unjoined_device_is_told_to_join_and_a_join_is_announced(window: Any) -> None:
+    _, css = open_user_select(window)
+    played = window.audio.backend.played
+    press(window, keys().L)  # the WASD keyboard's grab, before it has joined
+    assert devices(css) == [ARROWS, "", "", ""] and css.message == "PRESS J TO JOIN FIRST"
+    assert css.notice_shown == css.message
+    assert not any(panel.rect.overlaps(css.notice_rect) for panel in css.panels)
+    step(window, 200)
+    assert css.message == "" and css.notice_shown == "", "it goes after about three seconds"
+    before = len(played)
+    press(window, keys().J)
+    assert devices(css)[:2] == [ARROWS, SOLO] and len(played) > before
+    assert css.message == "ARROW KEYS AND WASD KEYS SHARE LCTRL, S, LSHIFT, SPACE"
+
+    _, plain = open_select(window)
+    press(window, keys().NUM_4)
+    assert plain.message == "P2 JOINED ON ARROW KEYS"
+
+
+def test_setting_up_a_cpu_says_what_attack_does(window: Any) -> None:
+    _, css = open_user_select(window)
+    press(window, keys().V)
+    assert css.focus == {ARROWS: 1}
+    assert css.panels[1].line2.text == "X: done  C: remove"
+    assert css.panels[0].line2.text == "SETTING UP A CPU"
+    assert "X: done" in css._footer.text and "C: remove" in css._footer.text
+    press(window, keys().X)
+    assert not css.focus and css.panels[0].line2.text == "X: ready"
+    assert css.panels[1].line2.text == "CPU"
+
+
+def test_the_message_is_in_the_bottom_band_and_covers_no_panel(window: Any) -> None:
+    from isofightr.scenes import select_text
+    from isofightr.ui import font
+
+    _, css = open_user_select(window)
+    press(window, keys().X)
+    assert "two players" in css.message and css.message.endswith("V"), "the player's own key"
+    assert css.notice_shown == css.message.upper()
+    assert font.text_width(css.notice_shown) <= select_text.FOOTER_WIDTH
+    assert css.notice_rect.top <= min(panel.rect.bottom for panel in css.panels)
+    press(window, keys().LEFT)
+    assert css.message == "" and "X: ready" in css._footer.text, "the footer is back"
+
+
+def test_the_next_screen_keeps_the_players_device(window: Any) -> None:
+    open_user_select(window)
+    press(window, keys().V)
+    press(window, keys().X)
+    press(window, keys().X)
+    sss = window.current_view
+    assert name(window) == "StageSelectView" and sss.active_device == ARROWS
+    assert "X: fight" in sss._footer.text and "J:" not in sss._footer.text
+
+
+def test_the_footer_names_the_device_once_two_people_are_in(window: Any) -> None:
+    _, css = open_user_select(window)
+    assert not css._footer.text.startswith("ARROW KEYS")
+    press(window, keys().J)
+    step(window, 200)
+    assert css._footer.text.startswith("WASD KEYS   J: ready"), css._footer.text
+    press(window, keys().LEFT)
+    assert css._footer.text.startswith("ARROW KEYS   X: ready"), css._footer.text
+
+
+def test_the_controls_screen_says_when_a_key_is_on_both_keyboard_layouts(window: Any) -> None:
+    from isofightr.scenes.controls_view import tile_key
+
+    flow = start(window, settings=user_settings())
+    flow.show_controls()
+    step(window, 2)
+    view = window.current_view
+    assert view.device == ARROWS, "player 1's tab edits the device player 1 is remembered on"
+    view.cursor = tile_key("strong", 0)
+    step(window, 1)
+    notes = [label.text for label in view.info_lines]
+    assert "S is also used by Keyboard (WASD)" in notes
+    view.cursor = tile_key("attack", 0)
+    step(window, 1)
+    notes = [label.text for label in view.info_lines]
+    assert "ALSO ON WASD KEYS: L-CTRL, S, L-SHIFT, SPACE" in notes, "the layout's own warning"

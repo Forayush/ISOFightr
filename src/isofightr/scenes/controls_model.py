@@ -35,7 +35,10 @@ from isofightr.settings import (
     KEYBOARD_SOLO,
     RESERVED_KEYS,
     Settings,
+    canonical_key,
+    shared_keys,
 )
+from isofightr.ui import font
 from isofightr.ui.move_list import KEY_LABELS, PAD_LABELS
 
 KEYBOARD_PREFIX: Final[str] = "keyboard:"
@@ -53,6 +56,11 @@ DEVICE_NAMES: Final[dict[str, str]] = {
     DEVICES[1]: "Keyboard (arrows)",
     **{f"{PAD_PREFIX}{slot}": f"Gamepad {slot + 1}" for slot in range(MAX_PLAYERS)},
 }
+OTHER_KEYBOARD: Final[dict[str, str]] = {DEVICES[0]: DEVICES[1], DEVICES[1]: DEVICES[0]}
+"""The keyboard layout that shares the physical keyboard with each layout."""
+SHORT_NAMES: Final[dict[str, str]] = {DEVICES[0]: "WASD KEYS", DEVICES[1]: "ARROW KEYS"}
+NOTE_WIDTH: Final[int] = 336
+"""The widest a line of the info panel may be."""
 UNBOUND: Final[str] = "n/a"
 """What a tile with no control shows."""
 RIGHT_STICK_LABEL: Final[str] = "R-STICK"
@@ -264,7 +272,7 @@ def can_bind(device: str, control: str) -> bool:
     a gamepad's Start pauses."""
     if is_pad(device):
         return control in PAD_CONTROLS
-    return bool(control) and control not in RESERVED_KEYS
+    return bool(control) and canonical_key(control) not in RESERVED_KEYS
 
 
 def bind(settings: Settings, device: str, action: str, slot: int, control: str) -> Settings:
@@ -318,7 +326,34 @@ def warnings(settings: Settings, device: str) -> list[str]:
             lines.append("NO UP / DOWN MODIFIER: bind them, or use the right stick")
     elif not (bound(settings, device, "up") and bound(settings, device, "down")):
         lines.append("NOT BOUND: an up or down modifier (tilts, specials, fast fall)")
+    other = OTHER_KEYBOARD.get(device)
+    if other is not None:
+        keys = shared_keys(settings, layout_of(device), layout_of(other))
+        if keys:
+            names = ", ".join(control_label(name, pad=False) for name in keys)
+            lines.append(font.fit(f"ALSO ON {SHORT_NAMES[other]}: {names}", NOTE_WIDTH))
     return lines
+
+
+def shared_with(settings: Settings, device: str, action: str, slot: int) -> str:
+    """Return the other keyboard layout's device if the key on a tile is bound there too
+    (decision D-062: one press of it drives both layouts), else ""."""
+    other = OTHER_KEYBOARD.get(device)
+    names = bound(settings, device, action) if other is not None else ()
+    if other is None or slot >= len(names):
+        return ""
+    shared = shared_keys(settings, layout_of(device), layout_of(other))
+    return other if canonical_key(names[slot]) in shared else ""
+
+
+def shared_note(settings: Settings, device: str, action: str, slot: int) -> str:
+    """Return the warning for a tile whose key the other keyboard layout also uses ("" if
+    it does not). A warning, not a block: one player may use both layouts."""
+    other = shared_with(settings, device, action, slot)
+    if not other:
+        return ""
+    key = control_label(bound(settings, device, action)[slot], pad=False)
+    return f"{key} is also used by {DEVICE_NAMES[other]}"
 
 
 def lit(settings: Settings, device: str, held: Iterable[str]) -> set[tuple[str, int]]:

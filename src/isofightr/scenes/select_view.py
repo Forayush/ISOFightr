@@ -31,14 +31,15 @@ from isofightr.render.fighter_look import costume_index
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes import roster_model
-from isofightr.scenes.menus import KEYBOARD_DEVICE, MenuView
+from isofightr.scenes import select_text as text
+from isofightr.scenes.menus import MenuView
 from isofightr.scenes.roster_model import RANDOM, RANDOM_ENTRY, STAT_LABELS, STAT_NAMES
 from isofightr.scenes.rules_model import rule_chips, with_saved
 from isofightr.scenes.setup import TEAM_NAMES, MatchSetup, can_start
+from isofightr.sim.input_frame import InputFrame
 from isofightr.ui import anim, kit_art, select_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import ARROW_LEFT, ARROW_RIGHT, TextSize
-from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.menu import MenuAction
 from isofightr.ui.widgets import (
     Button,
@@ -88,14 +89,17 @@ SASH_SLIDE = 36
 FLOAT_PERIOD = 120
 """Each isle bobs a pixel up and down over this many ticks, a little out of step."""
 JOIN_BLINK = 40
+PROMPT_TOP = 180
+"""Height of an empty panel's first prompt line above the panel's bottom."""
+PROMPT_STEP = 12
 CHIP = Rect(388, NATIVE_H - 24, 240, 20)
-TOAST = Rect(110, 140, 420, 18)
 CHIP_ROW = -1
 """A player's cursor row when it is on the rules chip, above the roster."""
 ROSTER_ROW = 0
 GAUGE_WIDTH = 84
 STAT_ICONS = {"weight": "weight", "speed": "speed", "air": "air", "power": "burst"}
-STRIP_NAMES = {"keyboard:solo": "WASD KEYS", "keyboard:arrows": "ARROW KEYS"}
+OPEN_SLOT = "OPEN"
+"""What an empty panel says when it is not the next one to be filled."""
 
 
 @dataclass(slots=True)
@@ -188,9 +192,14 @@ class PlayerPanel:
         )
         self.prompt = [
             ui.write(
-                "", centre, rect.bottom + 150 - row * 14, TextSize.BODY, theme.TEXT_MUTED, "centre"
+                "",
+                centre,
+                rect.bottom + PROMPT_TOP - row * PROMPT_STEP,
+                TextSize.BODY,
+                theme.TEXT_MUTED,
+                "centre",
             )
-            for row in range(3)
+            for row in range(text.PROMPT_LINES)
         ]
         self.line1 = ui.write(
             "", centre, rect.bottom + LINE1_BOTTOM, TextSize.BODY, theme.TEXT, "centre"
@@ -242,7 +251,7 @@ class CharacterSelectView(MenuView):
         self.slots = [Slot(team=index % len(TEAM_NAMES)) for index in range(MAX_PLAYERS)]
         self.focus: dict[str, int] = {}
         """For a player editing one of their CPUs: which slot."""
-        self.message = ""
+        self._message = ""
         self.detail_slot = 0
         """The slot whose cursor the detail strip follows: whoever moved last."""
         for index, device in enumerate(flow.settings.slot_devices):
@@ -327,13 +336,11 @@ class CharacterSelectView(MenuView):
             self.gauges[stat] = Gauge(ui, Rect(x + 52, y - 1, GAUGE_WIDTH, 8), segmented=True)
 
         self.panels = [PlayerPanel(self, index) for index in range(MAX_PLAYERS)]
-        self.toast = Picture(ui, TOAST)
-        self._status = ui.write_in(TOAST, "", TextSize.BODY, theme.TEXT)
-        hint = "" if setup.training else "   {grab}: add CPU"
-        self.footer(
-            f"{{attack}}: join / ready   {{stick}}: pick   {{strong}}: costume{hint}"
-            "   {special}: back"
-        )
+        # The hints start in the keys of a device that is really in (decision D-062).
+        joined = [slot.device for slot in self.people]
+        if joined and self.active_device not in joined:
+            self.active_device = joined[0]
+        self.footer(*text.footer_template(self._footer_state(), setup.training))
         self.refresh()
 
     # --- helpers ---------------------------------------------------------------------------
@@ -361,8 +368,51 @@ class CharacterSelectView(MenuView):
         """The slots that people joined."""
         return [slot for slot in self.slots if slot.device]
 
-    def _rows(self) -> int:
-        return 2 if self.setup.team_play and not self.setup.training else 1
+    def _teams(self) -> bool:
+        """Whether players pick a team here (a team match, outside training)."""
+        return self.setup.team_play and not self.setup.training
+
+    @property
+    def controls_row(self) -> int:
+        """A person's last row: the controls chooser (after the team row in a team match)."""
+        return 2 if self._teams() else 1
+
+    @property
+    def message(self) -> str:
+        """The message in the bottom band right now ("" once it has gone)."""
+        return self._message if self.notice_shown else ""
+
+    @message.setter
+    def message(self, value: str) -> None:
+        self._message = value
+        self.notify(value)
+
+    def pointer_device(self) -> str:
+        """Enter, Escape and the mouse act for the first person who has joined (not always
+        the WASD keyboard: decision D-062); with nobody in, for the keyboard in use."""
+        people = self.people
+        return people[0].device if people else super().pointer_device()
+
+    def poll(self) -> dict[str, InputFrame]:
+        """Read every device. A keyboard layout that has not joined ignores the keys a
+        joined layout also binds, so one press of a shared key cannot be "back" for a player
+        and "join" for nobody (decision D-062)."""
+        keys = self._keys.keys()
+        joined = {slot.device for slot in self.slots if slot.device}
+        taken: set[int] = set()
+        for device in joined:
+            if device in self.hub.keyboards:
+                taken.update(self.hub.keyboards[device].keys())
+        frames = {}
+        for device in self.hub.ids():
+            unjoined_keyboard = device in self.hub.keyboards and device not in joined
+            frames[device] = self.hub.frame(device, keys - taken if unjoined_keyboard else keys)
+        return frames
+
+    def free_devices(self) -> list[str]:
+        """The devices nobody has joined on, in the hub's order."""
+        joined = {slot.device for slot in self.slots if slot.device}
+        return [device for device in self.hub.ids() if device not in joined]
 
     def _free_slot(self) -> Slot | None:
         return next((free for free in self.slots if not free.taken), None)
@@ -400,7 +450,7 @@ class CharacterSelectView(MenuView):
         else the one it picked."""
         slot = self.slots[index]
         count = self._costume_count(slot)
-        if self._rows() == 2:
+        if self._teams():
             return costume_index(slot.team, True, count)
         return slot.costume % max(count, 1)
 
@@ -409,7 +459,6 @@ class CharacterSelectView(MenuView):
     def act(self, device: str, action: MenuAction) -> None:
         """Join, move the device's own cursor (or a CPU's it added), change costume, toggle
         ready, add or remove a CPU, open the rules, or leave."""
-        self.message = ""
         slot = self._slot_of(device)
         if slot is None:
             if action is MenuAction.CONFIRM:
@@ -417,11 +466,17 @@ class CharacterSelectView(MenuView):
                 if free is not None:
                     free.clear()
                     free.device = device
-                    self._settle_costume(self.slots.index(free))
-                    self.detail_slot = self.slots.index(free)
+                    index = self.slots.index(free)
+                    self._settle_costume(index)
+                    self.detail_slot = index
+                    self._announce(self._shared_warning(device), text.joined(index, device))
             elif action is MenuAction.BACK and not self.people:
                 self.flow.show_main_menu()
+            elif action in (MenuAction.EXTRA, MenuAction.ALT, MenuAction.ALT_BACK):
+                # Never silence: a device that is not in is told how to get in.
+                self.message = text.join_first(self.flow.settings, device)
             return
+        self.message = ""
         if action is MenuAction.EXTRA and not slot.ready and not self.setup.training:
             self._add_cpu(device)
             return
@@ -456,15 +511,57 @@ class CharacterSelectView(MenuView):
             self._change_costume(index, 1 if action is MenuAction.ALT else -1)
         elif slot.row == ROSTER_ROW:
             self._move_on_roster(
-                index, action, low=CHIP_ROW if self.chip else 0, high=self._rows() - 1
+                index, action, low=CHIP_ROW if self.chip else 0, high=self.controls_row
             )
         elif action is MenuAction.UP:
             slot.row = max(slot.row - 1, CHIP_ROW if self.chip else 0)
         elif action is MenuAction.DOWN:
-            slot.row = min(slot.row + 1, self._rows() - 1)
-        elif slot.row > ROSTER_ROW and action in (MenuAction.LEFT, MenuAction.RIGHT):
+            slot.row = min(slot.row + 1, self.controls_row)
+        elif action in (MenuAction.LEFT, MenuAction.RIGHT):
             step = -1 if action is MenuAction.LEFT else 1
-            slot.team = (slot.team + step) % len(TEAM_NAMES)
+            if slot.row == self.controls_row:
+                self.switch_device(index, step)
+            elif slot.row > ROSTER_ROW:
+                slot.team = (slot.team + step) % len(TEAM_NAMES)
+
+    def switch_device(self, index: int, step: int) -> None:
+        """Give a person's slot the next (or previous) free device: the controls chooser.
+        The player keeps character, costume and team and is un-readied; the CPUs they added
+        follow them; the hints follow at once; and the choice is remembered."""
+        slot = self.slots[index]
+        old = slot.device
+        choices = [
+            device for device in self.hub.ids() if device == old or device in self.free_devices()
+        ]
+        if not old or len(choices) < 2:
+            self.message = "NO OTHER CONTROLS ARE FREE"
+            return
+        new = choices[(choices.index(old) + step) % len(choices)]
+        slot.device, slot.ready = new, False
+        for cpu in self.slots:
+            if cpu.owner == old:
+                cpu.owner = new
+        if old in self.focus:
+            self.focus[new] = self.focus.pop(old)
+        self.active_device = new
+        self.audio.play("ui_pick")
+        remembered = tuple(each.device for each in self.slots)
+        self.flow.update_settings(replace(self.flow.settings, slot_devices=remembered))
+        self._announce(self._shared_warning(new), text.switched(index, new))
+
+    def _announce(self, warning: str, news: str) -> None:
+        """Show a warning if there is one (red), else a piece of news (gold)."""
+        self._message = warning or news
+        self.notify(self._message, warning=bool(warning))
+
+    def _shared_warning(self, device: str) -> str:
+        """Return the warning if ``device`` and another joined keyboard share keys."""
+        for other in self.people:
+            if other.device != device:
+                warning = text.shared_message(self.flow.settings, other.device, device)
+                if warning:
+                    return warning
+        return ""
 
     def _move_on_roster(self, index: int, action: MenuAction, low: int, high: int) -> None:
         """Move a slot's cursor over the tiles; off the top or bottom of the grid it goes
@@ -480,7 +577,7 @@ class CharacterSelectView(MenuView):
 
     def _change_costume(self, index: int, step: int) -> None:
         slot = self.slots[index]
-        if self._rows() == 2 or self.character_of(slot) == RANDOM:
+        if self._teams() or self.character_of(slot) == RANDOM:
             return
         before = slot.costume
         slot.costume = roster_model.next_costume(
@@ -505,7 +602,7 @@ class CharacterSelectView(MenuView):
 
     def _edit_cpu(self, owner: str, cpu: Slot, action: MenuAction) -> None:
         """Set up a CPU: character, level and (in team play) team."""
-        rows = 3 if self._rows() == 2 else 2
+        rows = 3 if self._teams() else 2
         index = self.slots.index(cpu)
         self.detail_slot = index
         if action is MenuAction.BACK:
@@ -541,10 +638,10 @@ class CharacterSelectView(MenuView):
         """Come back from the rules screen: take the rules as they are now."""
         self.setup = with_saved(self.setup, self.flow.settings.rules)
         for slot in self.slots:
-            slot.row = min(max(slot.row, 0), self._rows() - 1) if slot.device else slot.row
+            slot.row = min(max(slot.row, 0), self.controls_row) if slot.device else slot.row
             slot.ready = False
         self.menu_input.reset()
-        self._footer_device = ""
+        self._footer_shown = None
         self.window.show_view(self)
 
     def hover(self, x: int, y: int) -> bool:
@@ -552,27 +649,31 @@ class CharacterSelectView(MenuView):
         return self._hit(x, y) is not None
 
     def _hit(self, x: int, y: int) -> tuple[str, int] | None:
-        """Return what is at a native pixel: a roster tile, the rules chip, or a costume
-        swatch or the lower part of the keyboard player's own panel."""
+        """Return what is at a native pixel: a roster tile, the rules chip, or, on the
+        panel of the player the mouse acts for, a costume swatch, the strip (the controls)
+        or the foot (ready)."""
         if self.chip is not None and CHIP.contains(x, y):
             return ("chip", 0)
         for index, rect in enumerate(self.tile_rects):
             if rect.contains(x, y):
                 return ("tile", index)
-        slot = self._slot_of(KEYBOARD_DEVICE)
+        slot = self._slot_of(self.pointer_device())
         if slot is not None:
             panel = self.panels[self.slots.index(slot)]
             for costume, rect in enumerate(panel.swatch_rects):
                 if rect.contains(x, y):
                     return ("swatch", costume)
+            if panel.strip_rect.contains(x, y):
+                return ("strip", 0)
             if panel.banner_rect.contains(x, y):
                 return ("ready", 0)
         return None
 
     def click(self, x: int, y: int) -> None:
-        """The mouse plays the WASD keyboard's player: a click on a tile joins and picks
-        that fighter, on a swatch picks that costume, on the foot of the panel readies, and
-        on the chip opens the rules."""
+        """The mouse plays the first person who has joined (or joins the keyboard in use,
+        if nobody has): a click on a tile picks that fighter, on a swatch that costume, on
+        the panel's strip the next controls, on its foot readies, and on the chip opens the
+        rules."""
         hit = self._hit(x, y)
         if hit is None:
             return
@@ -581,23 +682,26 @@ class CharacterSelectView(MenuView):
         if kind == "chip":
             self.open_rules()
             return
-        slot = self._slot_of(KEYBOARD_DEVICE)
+        device = self.pointer_device()
+        slot = self._slot_of(device)
         if slot is None:
-            self.act(KEYBOARD_DEVICE, MenuAction.CONFIRM)
-            slot = self._slot_of(KEYBOARD_DEVICE)
+            self.act(device, MenuAction.CONFIRM)
+            slot = self._slot_of(device)
             if slot is None:
                 return
-        index = self.slots.index(slot)
-        self.focus.pop(KEYBOARD_DEVICE, None)
+        index = next(place for place, each in enumerate(self.slots) if each is slot)
+        self.focus.pop(device, None)
         if kind == "ready":
-            self.act(KEYBOARD_DEVICE, MenuAction.CONFIRM)
+            self.act(device, MenuAction.CONFIRM)
+        elif kind == "strip":
+            self.switch_device(index, 1)
         elif slot.ready:
             return
         elif kind == "tile":
             slot.character, slot.row = value, ROSTER_ROW
             self._settle_costume(index)
             self.detail_slot = index
-        elif kind == "swatch" and self._rows() == 1 and value < self._costume_count(slot):
+        elif kind == "swatch" and not self._teams() and value < self._costume_count(slot):
             count = self._costume_count(slot)
             slot.costume = roster_model.free_costume(value, count, self._taken_costumes(index))
 
@@ -639,8 +743,9 @@ class CharacterSelectView(MenuView):
         people = self.people
         if not people or not all(slot.ready for slot in people):
             return
-        self.message = can_start(self.current_setup(), len(self.joined))
-        if self.message:
+        reason = can_start(self.current_setup(), len(self.joined))
+        if reason:
+            self.message = text.start_problem(reason, self.flow.settings, self.active_device)
             for slot in people:
                 slot.ready = False
             return
@@ -653,7 +758,7 @@ class CharacterSelectView(MenuView):
 
     def slot_color(self, index: int) -> theme.Rgb:
         """Return a slot's colour: its team's in a team match, else its player's."""
-        return theme.player_color(self.slots[index].team if self._rows() == 2 else index)
+        return theme.player_color(self.slots[index].team if self._teams() else index)
 
     def refresh(self) -> None:
         """Redraw everything from the slots. A slot whose controller was unplugged is
@@ -677,18 +782,28 @@ class CharacterSelectView(MenuView):
                 slot.device and slot.row == CHIP_ROW and not slot.ready for slot in self.slots
             )
             self.chip.focus(on_chip)
-        self._status.text = self.message
-        if self.message:
-            self.toast.show(
-                ("toast", TOAST.width, TOAST.height),
-                lambda: kit_art.filled(
-                    kit_art.shape_mask(TOAST.width, TOAST.height, theme.SMALL_CORNER),
-                    theme.DANGER_FILL,
-                    theme.DANGER_BORDER,
-                ),
-            )
-        else:
-            self.toast.hide()
+        named = self.active_device if len(self.people) > 1 else ""
+        template, drop = text.footer_template(self._footer_state(), self.setup.training, named)
+        if template != self._footer_template:
+            self.footer(template, drop)
+        self._sync_footer()
+
+    def _footer_state(self) -> str:
+        """Return what the player on the active device is doing (a key of
+        ``select_text.FOOTERS``), which decides what the footer explains."""
+        device = self.active_device
+        slot = self._slot_of(device)
+        if slot is None:
+            return "unjoined"
+        if device in self.focus:
+            return "cpu"
+        if slot.ready:
+            return "ready"
+        if slot.row == CHIP_ROW:
+            return "chip"
+        if slot.row == self.controls_row:
+            return "controls"
+        return "team" if slot.row > ROSTER_ROW else "roster"
 
     def _stepper(self, text: str, focused: bool) -> str:
         return f"{ARROW_LEFT} {text} {ARROW_RIGHT}" if focused else text
@@ -697,7 +812,7 @@ class CharacterSelectView(MenuView):
         """Return the colour ramp a slot's panel is painted in: greys while it is empty."""
         if not self.slots[index].taken:
             return theme.EMPTY_RAMP
-        return theme.player_ramp(self.slots[index].team if self._rows() == 2 else index)
+        return theme.player_ramp(self.slots[index].team if self._teams() else index)
 
     def _refresh_panel(self, index: int, editing: bool) -> None:
         slot, panel = self.slots[index], self.panels[index]
@@ -723,9 +838,9 @@ class CharacterSelectView(MenuView):
         rise = anim.wave(ticks, index, 1, FLOAT_PERIOD, FLOAT_PERIOD // 5)
         isle = panel.isle_rect
         panel.isle.sprite.center_y = isle.bottom + isle.height / 2 + rise
-        teams = self._rows() == 2
+        teams = self._teams()
         tile = self.character_of(slot)
-        labels = device_labels(self.flow.settings, self.active_device)
+        settings = self.flow.settings
         for line in panel.prompt:
             line.text = ""
         plate = panel.plate_rect
@@ -744,13 +859,20 @@ class CharacterSelectView(MenuView):
             panel.shown = None
             for swatch in panel.swatches:
                 swatch.hide()
-            join = hint_text("PRESS {attack}", labels).upper()
-            lines = [join, "TO JOIN"]
-            if not self.setup.training:
-                lines.append(hint_text("{grab}: ADD A CPU", labels))
-            for line, text in zip(panel.prompt, lines, strict=False):
-                line.text = text
-            panel.prompt[0].color = theme.FOCUS if anim.blink(ticks, JOIN_BLINK) else theme.TEXT
+            # The next slot to fill lists how to join on each free device, each in that
+            # device's own keys; the slots after it are just open.
+            first_free = next(place for place, each in enumerate(self.slots) if not each.taken)
+            lines = [OPEN_SLOT]
+            if index == first_free:
+                people = self.people
+                adder = people[0].device if people and not self.setup.training else ""
+                lines = text.join_lines(settings, self.free_devices(), adder) or [OPEN_SLOT]
+            for line, words in zip(panel.prompt, lines, strict=False):
+                line.text = words
+                line.color = theme.TEXT_MUTED if words == OPEN_SLOT else theme.TEXT
+            if lines[0] == text.JOIN_HEADING:
+                blink = anim.blink(ticks, JOIN_BLINK)
+                panel.prompt[0].color = theme.FOCUS if blink else theme.TEXT_MUTED
             return
 
         panel.plate.show(
@@ -766,7 +888,7 @@ class CharacterSelectView(MenuView):
         if slot.cpu:
             panel.tag.text = f"P{index + 1}  CPU {slot.cpu}"
         else:
-            panel.tag.text = f"P{index + 1}  {self.device_name(slot.device)}"
+            panel.tag.text = f"P{index + 1}  {text.device_name(slot.device)}"
         panel.tag.move_to(strip.left + 22, panel.tag.bottom)
         if tile == RANDOM:
             panel.name.text = "RANDOM"
@@ -783,25 +905,36 @@ class CharacterSelectView(MenuView):
                 panel.line2.text = self._stepper(team_text, editing and slot.row == 2)
                 panel.line2.color = theme.FOCUS if editing and slot.row == 2 else color
             else:
-                panel.line2.text = hint_text("{special}: remove", labels) if editing else "CPU"
+                # A CPU's hints are in its owner's keys: attack ends the set-up.
+                panel.line2.text = (
+                    text.panel_line(text.CPU_EDIT_LINE, settings, slot.owner) if editing else "CPU"
+                )
                 panel.line2.color = theme.TEXT_MUTED
             return
-        here = not slot.ready and slot.device not in self.focus
+        # A person's hints are in that person's own keys, whoever acted last.
+        device = slot.device
+        busy = device in self.focus
+        here = not slot.ready and not busy
         if teams:
             panel.line1.text = self._stepper(team_text, here and slot.row == 1)
             panel.line1.color = theme.FOCUS if here and slot.row == 1 else color
         else:
-            panel.line1.text = ""
+            panel.line1.text = text.CONTROLS_HINT if here and slot.row == ROSTER_ROW else ""
+            panel.line1.color = theme.TEXT_DIM
+        panel.line2.color = theme.TEXT_MUTED
         if slot.ready:
-            panel.line2.text = hint_text("{special}: cancel", labels)
-            panel.line2.color = theme.TEXT_MUTED
+            panel.line2.text = text.panel_line(text.CANCEL_LINE, settings, device)
+        elif busy:
+            panel.line2.text = text.OWNER_WAITS
+        elif slot.row == self.controls_row:
+            panel.line2.text = self._stepper(text.device_name(device), True)
+            panel.line2.color = theme.FOCUS
         else:
-            panel.line2.text = hint_text("{attack}: ready", labels)
-            panel.line2.color = theme.TEXT_MUTED
+            panel.line2.text = text.panel_line(text.READY_LINE, settings, device)
 
     def device_name(self, device: str) -> str:
         """Return a device's name as a panel's strip shows it."""
-        return STRIP_NAMES.get(device) or self.hub.name(device).upper()
+        return text.device_name(device)
 
     def _show_art(self, index: int) -> None:
         """Show the slot's character in the costume it will wear: its hero art, or a
@@ -853,7 +986,7 @@ class CharacterSelectView(MenuView):
         slot, panel = self.slots[index], self.panels[index]
         tile = self.character_of(slot)
         bank = None if tile == RANDOM else self._bank(tile)
-        if bank is None or self._rows() == 2:
+        if bank is None or self._teams():
             for swatch in panel.swatches:
                 swatch.hide()
             return
@@ -950,8 +1083,8 @@ class CharacterSelectView(MenuView):
             else:
                 line = candidate
         lines.append(line)
-        for label, text in zip(self.detail_blurb, [*lines, "", ""], strict=False):
-            label.text = text
+        for label, words in zip(self.detail_blurb, [*lines, "", ""], strict=False):
+            label.text = words
         for stat in STAT_NAMES:
             known = stat in entry.stats
             self.gauges[stat].value = entry.stats.get(stat, 0.0)

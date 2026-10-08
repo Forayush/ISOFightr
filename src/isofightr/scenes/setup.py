@@ -264,11 +264,12 @@ MIN_VERSUS_PLAYERS: Final[int] = 2
 
 
 def can_start(setup: MatchSetup, joined: int) -> str:
-    """Return why a match cannot start with ``joined`` players, or "" if it can."""
+    """Return why a match cannot start with ``joined`` players, or "" if it can. The text is
+    a hint template: ``{attack}`` and ``{grab}`` stand for the player's own controls."""
     if setup.training:
-        return "" if joined >= 1 else "press ATTACK to join"
+        return "" if joined >= 1 else "press {attack} to join"
     if joined < MIN_VERSUS_PLAYERS:
-        return "two players are needed: join on another device, or add a CPU with GRAB"
+        return "two players are needed: join on another device or add a CPU with {grab}"
     if setup.team_play and len(set(setup.teams[:joined])) < 2:
         return "everyone is on one team: change a team"
     return ""

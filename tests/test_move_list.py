@@ -115,3 +115,11 @@ def test_the_page_fits_two_columns_without_clipping(character: str) -> None:
         assert left[0] == "GROUND" and "AIR" in left
         assert right[0] == "SPECIALS" and "OTHER" in right
         assert max(len(left), len(right)) <= 18, "MOVES_MAX_ROWS in scenes/battle.py"
+
+
+def test_the_arrow_keys_read_as_arrows_whatever_name_they_were_saved_under() -> None:
+    keys = dict(Settings().keys[KEYBOARD_ARROWS])
+    keys["move_up"], keys["move_right"] = "MOTION_UP", "MOTION_RIGHT"
+    assert keyboard_labels(keys)["stick"] == "arrows"
+    keys["move_up"] = "W"
+    assert keyboard_labels(keys)["stick"] == "W/LEFT/DOWN/RIGHT"

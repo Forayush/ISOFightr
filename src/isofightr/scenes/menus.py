@@ -33,10 +33,11 @@ from isofightr.settings import (
     VOLUME_MAX,
     Settings,
 )
-from isofightr.ui import kit_art, theme
+from isofightr.sim.input_frame import InputFrame
+from isofightr.ui import font, kit_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
-from isofightr.ui.hints import device_labels, hint_text
+from isofightr.ui.hints import device_labels, fit_hint
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
@@ -61,6 +62,8 @@ KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
 MOUSE_LEFT = arcade.MOUSE_BUTTON_LEFT
 MOUSE_RIGHT = arcade.MOUSE_BUTTON_RIGHT
 FADE_TICKS = 10
+NOTICE_TICKS = 180
+"""How long a message stays in the bottom band (about three seconds)."""
 """A scene fades in from black over this many ticks."""
 ON_OFF = ("off", "on")
 LIST_WIDTH = 400
@@ -104,11 +107,60 @@ class MenuView(TickedView):
                 center_y=NATIVE_H / 2,
             )
         )
-        self.active_device = KEYBOARD_DEVICE
-        """The device that acted last: the footer shows its controls."""
+        if not self.hub.connected(flow.active_device):
+            flow.active_device = KEYBOARD_DEVICE
         self._footer_template = ""
-        self._footer_device = ""
+        self._footer_drop: tuple[str, ...] = ()
+        self._footer_shown: tuple[str, str, str] | None = None
         self._footer: TextLabel | None = None
+        self._notice_band: arcade.Sprite | None = None
+        self._notice = ""
+        self._notice_ticks = 0
+        self._notice_warning = True
+
+    @property
+    def active_device(self) -> str:
+        """The device that acted last: the footer shows its controls. It is kept by the
+        flow, so the next screen starts with it (decision D-062)."""
+        return self.flow.active_device
+
+    @active_device.setter
+    def active_device(self, device: str) -> None:
+        self.flow.active_device = device
+
+    def pointer_device(self) -> str:
+        """Return the device Enter, Escape and the mouse act as: the keyboard layout in
+        use (the active device if it is a keyboard, else the first one a player slot
+        remembers, else the WASD keyboard). Scenes with player slots override this."""
+        if self.active_device.startswith(KEYBOARD_PREFIX):
+            return self.active_device
+        for device in self.flow.settings.slot_devices:
+            if device.startswith(KEYBOARD_PREFIX) and self.hub.connected(device):
+                return device
+        return KEYBOARD_DEVICE
+
+    def poll(self) -> dict[str, InputFrame]:
+        """Return this tick's input from every usable device, by device id. Scenes that
+        must ignore some keys (character select) override this."""
+        return self.hub.frames(self._keys.keys())
+
+    def notify(self, text: str, ticks: int = NOTICE_TICKS, warning: bool = True) -> None:
+        """Show a one-line message in the bottom band, in place of the footer, for about
+        three seconds ("" takes it away at once): in the danger colours for a ``warning``,
+        in gold on the footer's own strip for news (a player joined)."""
+        self._notice = font.fit(text.upper(), NATIVE_W - 2 * theme.PAD) if text else ""
+        self._notice_ticks = ticks if text else 0
+        self._notice_warning = warning
+
+    @property
+    def notice_shown(self) -> str:
+        """The message the bottom band is showing ("" for the footer)."""
+        return self._notice if self._notice_ticks > 0 else ""
+
+    @property
+    def notice_rect(self) -> Rect:
+        """The band a message is shown in: the footer's strip."""
+        return Rect(0, 0, NATIVE_W, theme.FOOTER_HEIGHT)
 
     def header(self, text: str, icon: str | None = None) -> None:
         """Add the title bar across the top of a rebuilt screen (decision D-061)."""
@@ -127,11 +179,13 @@ class MenuView(TickedView):
             text, left, text_bottom(bar, TextSize.DISPLAY), TextSize.DISPLAY, theme.HEADING
         )
 
-    def footer(self, template: str) -> None:
+    def footer(self, template: str, drop: tuple[str, ...] = ()) -> None:
         """Set the hint line at the bottom. ``{attack}``, ``{special}``, ``{grab}``,
         ``{stick}`` and the other action names are replaced by the real controls of the
-        device that acted last."""
+        device that acted last. The line is measured: if it is wider than the screen its
+        items named in ``drop`` go first (see :func:`isofightr.ui.hints.fit_hint`)."""
         self._footer_template = template
+        self._footer_drop = drop
         if self._footer is None:
             strip = Rect(0, 0, NATIVE_W, theme.FOOTER_HEIGHT)
             self.ui.picture(
@@ -142,16 +196,40 @@ class MenuView(TickedView):
                 0,
                 0,
             )
+            self._notice_band = self.ui.picture(
+                ("notice-band", NATIVE_W),
+                lambda: kit_art.filled(
+                    kit_art.shape_mask(NATIVE_W, theme.FOOTER_HEIGHT, 0),
+                    theme.DANGER_FILL,
+                    theme.DANGER_BORDER,
+                ),
+                0,
+                0,
+            )
+            self._notice_band.visible = False
             self._footer = self.ui.write_in(strip, "", TextSize.BODY, theme.TEXT_MUTED)
-        self._footer_device = ""
+        self._footer_shown = None
         self._sync_footer()
 
     def _sync_footer(self) -> None:
-        if self._footer is None or self._footer_device == self.active_device:
+        """Show the message if there is one, else the footer in the active device's keys."""
+        if self._footer is None:
             return
-        self._footer_device = self.active_device
+        notice = self.notice_shown
+        warning = bool(notice) and self._notice_warning
+        shown = (self._footer_template, self.active_device, notice + ("!" if warning else ""))
+        if shown == self._footer_shown:
+            return
+        self._footer_shown = shown
+        if self._notice_band is not None:
+            self._notice_band.visible = warning
+        self._footer.color = theme.TEXT if warning else theme.FOCUS if notice else theme.TEXT_MUTED
+        if notice:
+            self._footer.text = notice
+            return
         labels = device_labels(self.flow.settings, self.active_device)
-        self._footer.text = hint_text(self._footer_template, labels)
+        width = NATIVE_W - 2 * theme.PAD
+        self._footer.text = fit_hint(self._footer_template, labels, width, self._footer_drop)
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Track held keys; Enter and Escape confirm and go back."""
@@ -192,7 +270,7 @@ class MenuView(TickedView):
         Scenes whose widgets care where they are clicked (steppers) override this."""
         if self.hover(x, y):
             self.audio.play(MENU_SOUNDS[MenuAction.CONFIRM])
-            self.act(KEYBOARD_DEVICE, MenuAction.CONFIRM)
+            self.act(self.pointer_device(), MenuAction.CONFIRM)
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Stop tracking a released key."""
@@ -208,22 +286,25 @@ class MenuView(TickedView):
 
     def tick(self) -> None:
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""
-        frames = self.hub.frames(self._keys.keys())
+        frames = self.poll()
         self._keys.end_tick()
         devices = list(frames)
         extras = self.hub.menu_extras(devices)
         self.hub.end_tick()
         fired = self.menu_input.update([frames[device] for device in devices], extras)
         self.flow.menu_ticks += 1
+        if self._notice_ticks > 0:
+            self._notice_ticks -= 1
         for action in self._key_actions:
             if self.window.current_view is self:
                 self.audio.play(MENU_SOUNDS[action])
-                self.active_device = KEYBOARD_DEVICE
-                self.act(KEYBOARD_DEVICE, action)
+                device = self.pointer_device()
+                self.active_device = device
+                self.act(device, action)
         self._key_actions = []
         for spot in self._clicks:
             if self.window.current_view is self:
-                self.active_device = KEYBOARD_DEVICE
+                self.active_device = self.pointer_device()
                 self.click(*spot)
         self._clicks = []
         for device, actions in zip(devices, fired, strict=True):

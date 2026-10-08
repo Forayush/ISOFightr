@@ -180,3 +180,65 @@ def test_results_table_gives_a_team_one_place() -> None:
     assert match.result is not None and match.result.winners == (0, 2)
     places = [line.split()[:2] for line in results_table(match)[1:]]
     assert places == [["1st", "P1"], ["1st", "P3"], ["2nd", "P2"], ["2nd", "P4"]]
+
+
+# --- canonical key names (decision D-062) ---------------------------------------------------
+
+USER_ARROWS = {
+    "move_up": "MOTION_UP",
+    "move_down": "DOWN",
+    "move_left": "LEFT",
+    "move_right": "MOTION_RIGHT",
+    "up": "Z",
+    "down": "LCTRL",
+    "attack": "X",
+    "special": "C",
+    "strong": "S",
+    "grab": "V",
+    "jump": "LSHIFT",
+    "shield": "SPACE",
+    "walk": "",
+    "taunt": "NUM_9",
+}
+"""The arrows layout from the user's own settings file, with the two alias names."""
+
+
+def test_every_alias_has_one_canonical_name() -> None:
+    from isofightr.settings import KEY_ALIASES, RESERVED_KEYS, canonical_key
+
+    assert canonical_key("MOTION_UP") == "UP" and canonical_key("MOTION_RIGHT") == "RIGHT"
+    assert canonical_key("MOTION_PREVIOUS_PAGE") == "PAGEUP"
+    assert canonical_key("RETURN") == "ENTER" and canonical_key("QUOTELEFT") == "GRAVE"
+    assert (
+        canonical_key("NUM_NEXT") == "NUM_PAGE_DOWN" and canonical_key("NUM_PRIOR") == "NUM_PAGE_UP"
+    )
+    assert canonical_key("J") == "J" and canonical_key("") == ""
+    assert not set(KEY_ALIASES) & set(KEY_ALIASES.values()), "an alias is never canonical"
+    assert not any(name.startswith("MOTION_") for name in KEY_ALIASES.values())
+    assert {"ENTER", "ESCAPE", "BACKSPACE"} <= RESERVED_KEYS
+    assert all(canonical_key(name) == name for name in RESERVED_KEYS)
+
+
+def test_old_key_names_load_and_are_saved_back_canonical(tmp_path: Path) -> None:
+    loaded = from_data({"keyboard": {"arrows": dict(USER_ARROWS)}})
+    keys = loaded.keys["arrows"]
+    assert (keys["move_up"], keys["move_right"]) == ("UP", "RIGHT")
+    assert keys["attack"] == "X" and keys["grab"] == "V", "the rest is untouched"
+    path = tmp_path / "settings.toml"
+    save_settings(path, loaded)
+    text = path.read_text(encoding="utf-8")
+    assert "MOTION_" not in text and 'move_up = "UP"' in text and 'move_right = "RIGHT"' in text
+    assert load_settings(path) == loaded
+
+
+def test_an_alias_cannot_get_round_the_reserved_keys_or_bind_a_key_twice() -> None:
+    sneaky = from_data(
+        {"keyboard": {"solo": {"attack": "MOTION_BACKSPACE", "special": "RETURN", "grab": "L"}}}
+    )
+    assert sneaky.bound_keys("solo", "attack") == () and sneaky.bound_keys("solo", "special") == ()
+    twice = from_data({"keyboard": {"arrows": {"move_up": "UP", "up": "MOTION_UP"}}})
+    assert twice.keys["arrows"]["move_up"] == "UP" and twice.keys["arrows"]["up"] == ""
+    rebound = Settings().with_key("arrows", "up", "MOTION_UP")
+    assert rebound.keys["arrows"]["up"] == "UP", "stored under its canonical name"
+    assert rebound.keys["arrows"]["move_up"] == "", "and taken away from the action that had it"
+    assert Settings().with_key("solo", "attack", "MOTION_BACKSPACE") == Settings()

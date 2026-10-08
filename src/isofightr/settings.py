@@ -50,8 +50,37 @@ D-061 a layout only fills a pad's binding table; ``[gamepad] preset`` in an old 
 file is still read, to fill the tables the file does not have."""
 QUIT_KEY: Final[str] = "BACKSPACE"
 """Held with attack and special, quits a match whose rules have pausing off."""
-RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "RETURN", "ESCAPE", QUIT_KEY})
-"""Keys that run the menus or quit a match, and so can never be bound to an action."""
+RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "ESCAPE", QUIT_KEY})
+"""Keys that run the menus or quit a match, and so can never be bound to an action
+(canonical names: check :func:`canonical_key` of a name against this)."""
+KEY_ALIASES: Final[Mapping[str, str]] = {
+    "MOTION_UP": "UP",
+    "MOTION_DOWN": "DOWN",
+    "MOTION_LEFT": "LEFT",
+    "MOTION_RIGHT": "RIGHT",
+    "MOTION_PREVIOUS_PAGE": "PAGEUP",
+    "MOTION_NEXT_PAGE": "PAGEDOWN",
+    "MOTION_BACKSPACE": "BACKSPACE",
+    "MOTION_DELETE": "DELETE",
+    "RETURN": "ENTER",
+    "QUOTELEFT": "GRAVE",
+    "POUND": "HASH",
+    "NUM_PRIOR": "NUM_PAGE_UP",
+    "NUM_NEXT": "NUM_PAGE_DOWN",
+    "SCRIPTSWITCH": "MODESWITCH",
+    "LOPTION": "F19",
+    "ROPTION": "F20",
+}
+"""Second names some keys have in ``arcade.key``, and the one name each is stored and shown
+under (decision D-062). Before this the first name in alphabetical order was used, so the
+up arrow was saved as ``MOTION_UP``. Old names still load; they are saved back canonical."""
+
+
+def canonical_key(name: str) -> str:
+    """Return the one name a key is stored under (an alias gives its canonical name)."""
+    return KEY_ALIASES.get(name, name)
+
+
 MAX_KEYS: Final[int] = MAX_CONTROLS
 """An action has at most a primary and a secondary key."""
 ZOOM_STATIC: Final[str] = "static"
@@ -228,6 +257,7 @@ class Settings:
         Backspace (:data:`RESERVED_KEYS`) cannot be bound: asking for one changes nothing."""
         if not key_name:
             return self.without_key(layout, action, slot)
+        key_name = canonical_key(key_name)
         if key_name in RESERVED_KEYS or layout not in self.keys or action not in KEYBOARD_ACTIONS:
             return self
         bound = {
@@ -352,8 +382,9 @@ def rules_from_data(data: object) -> SavedRules:
 def keys_from_data(saved: object, defaults: Mapping[str, str]) -> dict[str, tuple[str, ...]]:
     """Read one ``[keyboard.<layout>]`` table: per action a key name, or a list of up to two.
 
-    An action the table does not mention keeps its default key. Anything that is not a key
-    name is skipped, as are Enter and Escape, a third key, and a key an earlier action
+    An action the table does not mention keeps its default key. Names are made canonical
+    first (``MOTION_UP`` becomes ``UP``: decision D-062). Anything that is not a key name is
+    skipped, as are Enter, Escape and Backspace, a third key, and a key an earlier action
     already has: one key never does two things.
     """
     bound = {
@@ -365,9 +396,9 @@ def keys_from_data(saved: object, defaults: Mapping[str, str]) -> dict[str, tupl
     for action in KEYBOARD_ACTIONS:
         value = saved.get(action)
         if isinstance(value, str):
-            given[action] = (value,)
+            given[action] = (canonical_key(value),)
         elif isinstance(value, list):
-            given[action] = tuple(name for name in value if isinstance(name, str))
+            given[action] = tuple(canonical_key(name) for name in value if isinstance(name, str))
     taken: set[str] = set()
     for action, names in given.items():
         kept = []
@@ -382,6 +413,26 @@ def keys_from_data(saved: object, defaults: Mapping[str, str]) -> dict[str, tupl
             bound[action] = tuple(name for name in bound[action] if name not in taken)
             taken.update(bound[action])
     return bound
+
+
+def shared_keys(settings: Settings, first: str, second: str) -> tuple[str, ...]:
+    """Return the keys two keyboard layouts both bind (primary or secondary, by canonical
+    name), in the order of the first layout's actions: one press of such a key drives both
+    devices (decision D-062). Empty for an unknown layout."""
+    if first not in settings.keys or second not in settings.keys:
+        return ()
+    theirs = {
+        canonical_key(name)
+        for action in KEYBOARD_ACTIONS
+        for name in settings.bound_keys(second, action)
+    }
+    shared: list[str] = []
+    for action in KEYBOARD_ACTIONS:
+        for name in settings.bound_keys(first, action):
+            name = canonical_key(name)
+            if name in theirs and name not in shared:
+                shared.append(name)
+    return tuple(shared)
 
 
 def pad_from_data(saved: object, fallback: PadBindings) -> PadBindings:
