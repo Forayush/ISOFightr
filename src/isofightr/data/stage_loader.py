@@ -16,16 +16,20 @@ from isofightr.config import (
     PLAYER_SPAWN_COUNT,
 )
 from isofightr.data.paths import STAGE_FILE_NAME, STAGES_DIR
+from isofightr.data.tileset_art import TilesetArtError, load_tileset_art
 from isofightr.data.validation import DataError, TableReader
 from isofightr.sim.math3d import Vec2
 from isofightr.sim.stage import (
     DEFAULT_TILE,
     VOID_SYMBOL,
+    Ambient,
     BackgroundLayer,
     Cell,
+    Prop,
     SoftPlatform,
     Stage,
     StageError,
+    Underside,
     build_stage,
 )
 
@@ -42,6 +46,9 @@ _TOP_LEVEL_KEYS = (
     "blast_zone",
     "camera",
     "background",
+    "props",
+    "ambient",
+    "underside",
 )
 _RESPAWN_KEY = "respawn"
 _SPAWN_KEYS = tuple(f"p{index + 1}" for index in range(PLAYER_SPAWN_COUNT))
@@ -104,7 +111,7 @@ def parse_stage(
     )
 
     try:
-        return build_stage(
+        stage = build_stage(
             id=stage_id,
             display_name=root.string("display_name"),
             description=root.optional_string("description") or "",
@@ -126,9 +133,14 @@ def parse_stage(
                 _background(table, source, index)
                 for index, table in enumerate(root.tables("background"))
             ],
+            props=[_prop(table, source, index) for index, table in enumerate(root.tables("props"))],
+            ambient=_ambient(data["ambient"], source) if "ambient" in data else None,
+            underside_art=_underside(data["underside"], source) if "underside" in data else None,
         )
     except StageError as error:
         raise DataError(f"{source}: {error}") from error
+    _check_sprites(stage, source)
+    return stage
 
 
 def _grid_rows(root: TableReader) -> list[str]:
@@ -174,6 +186,74 @@ def _soft_platform(table: object, source: str, index: int) -> SoftPlatform:
 
 def _background(table: object, source: str, index: int) -> BackgroundLayer:
     reader = TableReader(
-        table, source=source, where=f"background[{index}]", allowed=("image", "parallax")
+        table,
+        source=source,
+        where=f"background[{index}]",
+        allowed=("image", "parallax", "scroll", "frames", "frame_ticks"),
     )
-    return BackgroundLayer(image=reader.string("image"), parallax=reader.number("parallax"))
+    return BackgroundLayer(
+        image=reader.string("image"),
+        parallax=reader.number("parallax"),
+        scroll=reader.number("scroll", 0.0),
+        frames=reader.integer("frames") if reader.has("frames") else 1,
+        frame_ticks=reader.integer("frame_ticks") if reader.has("frame_ticks") else 0,
+    )
+
+
+def _prop(table: object, source: str, index: int) -> Prop:
+    reader = TableReader(
+        table,
+        source=source,
+        where=f"props[{index}]",
+        allowed=("sprite", "at", "layer", "period", "phase"),
+    )
+    x, y = reader.numbers("at", 2)
+    return Prop(
+        sprite=reader.string("sprite"),
+        x=x,
+        y=y,
+        layer=reader.optional_string("layer") or "world",
+        period=reader.integer("period") if reader.has("period") else 0,
+        phase=reader.integer("phase") if reader.has("phase") else 0,
+    )
+
+
+def _ambient(table: object, source: str) -> Ambient:
+    reader = TableReader(table, source=source, where="ambient", allowed=("kind", "count", "front"))
+    return Ambient(
+        kind=reader.string("kind"),
+        count=reader.integer("count"),
+        front=reader.integer("front") if reader.has("front") else 0,
+    )
+
+
+def _underside(table: object, source: str) -> Underside:
+    reader = TableReader(table, source=source, where="underside", allowed=("depth", "tile", "hang"))
+    hang = reader.raw("hang") if reader.has("hang") else []
+    if not isinstance(hang, list) or not all(isinstance(name, str) and name for name in hang):
+        raise reader.error("must be a list of prop names", "hang")
+    return Underside(
+        depth=reader.number("depth"),
+        tile=reader.optional_string("tile") or "under",
+        hang=tuple(hang),
+    )
+
+
+def _check_sprites(stage: Stage, source: str) -> None:
+    """Check that every prop the stage names is in its tileset."""
+    names = [prop.sprite for prop in stage.props]
+    if stage.underside_art is not None:
+        names += stage.underside_art.hang
+    if not names:
+        return
+    try:
+        tileset = load_tileset_art(stage.tileset)
+    except TilesetArtError as error:
+        raise DataError(f"{source}: {error}") from error
+    known = () if tileset is None else tileset.prop_names
+    for name in names:
+        if name not in known:
+            listed = ", ".join(known) or "none"
+            raise DataError(
+                f"{source}: tileset {stage.tileset!r} has no prop {name!r} (it has: {listed})"
+            )

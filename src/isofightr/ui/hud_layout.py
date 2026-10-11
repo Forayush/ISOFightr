@@ -255,6 +255,23 @@ def popup_offset(age: int) -> int:
     return round(POPUP_RISE * (1 - (1 - share) ** 2))
 
 
+INTRO_BOTTOM: Final[int] = 288
+"""Where the stage's name sits while the countdown runs: at the top of the play area, clear
+of the countdown's numbers in the middle."""
+INTRO_FADE_IN: Final[int] = 24
+INTRO_FADE_OUT: Final[int] = 30
+
+
+def intro_alpha(age: int, total: int) -> int:
+    """Return the opacity of the stage's name ``age`` ticks into a countdown of ``total``
+    ticks: it fades in, holds, and is gone when the fight starts (decision D-063)."""
+    if total <= 0 or not 0 <= age < total:
+        return 0
+    rising = min(age / INTRO_FADE_IN, 1.0)
+    falling = min((total - age) / INTRO_FADE_OUT, 1.0)
+    return round(255 * min(rising, falling))
+
+
 def popup_alpha(age: int) -> int:
     """Return a popup's opacity: solid, then fading over its last ticks."""
     left = POPUP_TICKS - age

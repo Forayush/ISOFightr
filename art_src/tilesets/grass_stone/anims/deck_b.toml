@@ -1,0 +1,117 @@
+# Deck, variant b: planks the other way up, one split.
+loop = true
+fps = 1
+
+[[parts]]
+name = "beam"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.190]
+material = "wood_dark"
+
+[[parts]]
+name = "plank0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.012, -0.210]
+high = [1.000, 0.238, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "plank1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.262, -0.210]
+high = [1.000, 0.488, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.512, -0.210]
+high = [1.000, 0.738, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank3"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.762, -0.210]
+high = [1.000, 0.988, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "split"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.360, -0.020]
+high = [0.700, 0.385, 0.002]
+material = "wood_dark"
+
+[[parts]]
+name = "nail00"
+joint = "origin"
+shape = "box"
+low = [0.080, 0.110, -0.020]
+high = [0.110, 0.140, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail01"
+joint = "origin"
+shape = "box"
+low = [0.080, 0.360, -0.020]
+high = [0.110, 0.390, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail02"
+joint = "origin"
+shape = "box"
+low = [0.080, 0.610, -0.020]
+high = [0.110, 0.640, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail03"
+joint = "origin"
+shape = "box"
+low = [0.080, 0.860, -0.020]
+high = [0.110, 0.890, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail10"
+joint = "origin"
+shape = "box"
+low = [0.900, 0.110, -0.020]
+high = [0.930, 0.140, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail11"
+joint = "origin"
+shape = "box"
+low = [0.900, 0.360, -0.020]
+high = [0.930, 0.390, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail12"
+joint = "origin"
+shape = "box"
+low = [0.900, 0.610, -0.020]
+high = [0.930, 0.640, 0.004]
+material = "stone_dark"
+
+[[parts]]
+name = "nail13"
+joint = "origin"
+shape = "box"
+low = [0.900, 0.860, -0.020]
+high = [0.930, 0.890, 0.004]
+material = "stone_dark"
+
+[[poses]]

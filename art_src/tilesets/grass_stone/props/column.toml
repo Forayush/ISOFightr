@@ -1,0 +1,67 @@
+# Column: a whole column with its capital.
+loop = true
+fps = 1
+
+[[parts]]
+name = "plinth"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.000]
+high = [0.300, 0.300, 0.160]
+material = "ruin_dark"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.160]
+b = [0.000, 0.000, 2.300]
+r1 = 0.220
+r2 = 0.190
+material = "ruin"
+
+[[parts]]
+name = "ring0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.900]
+b = [0.000, 0.000, 0.970]
+r1 = 0.235
+r2 = 0.235
+material = "ruin_dark"
+
+[[parts]]
+name = "ring1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.600]
+b = [0.000, 0.000, 1.670]
+r1 = 0.220
+r2 = 0.220
+material = "ruin_dark"
+
+[[parts]]
+name = "capital"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 2.300]
+high = [0.300, 0.300, 2.500]
+material = "ruin"
+
+[[parts]]
+name = "ivy0"
+joint = "origin"
+shape = "box"
+low = [0.170, -0.100, 0.500]
+high = [0.240, 0.020, 1.500]
+material = "leaf"
+
+[[parts]]
+name = "ivy1"
+joint = "origin"
+shape = "box"
+low = [0.120, 0.140, 1.200]
+high = [0.200, 0.220, 2.000]
+material = "leaf_dark"
+
+[[poses]]

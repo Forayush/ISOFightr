@@ -13,6 +13,7 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 from typing import Final
 
 from isofightr.config import TILE_H, TILE_W, Z_PX
+from isofightr.render.underside import lowest_point
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import Stage
 
@@ -46,7 +47,7 @@ def stage_screen_centre(stage: Stage) -> tuple[float, float]:
     """Return the middle of everything a stage draws (its ground, its sides down to the
     underside, and its platforms), in world pixels: where to point a camera to frame it."""
     points = []
-    bottom = stage.underside
+    bottom = lowest_point(stage)
     for cy, row in enumerate(stage.cells):
         for cx, cell in enumerate(row):
             if cell is None:

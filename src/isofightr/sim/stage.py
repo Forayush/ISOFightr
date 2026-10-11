@@ -18,11 +18,15 @@ from dataclasses import dataclass
 from typing import Final
 
 from isofightr.config import (
+    AMBIENT_KINDS,
+    AMBIENT_MAX,
     ISLAND_THICKNESS,
     LEDGE_MIN_DROP,
     MIN_PLATFORM_CLEARANCE,
     PLAYER_SPAWN_COUNT,
+    PROP_LAYERS,
     SURFACE_EPSILON,
+    UNDERSIDE_MAX_DEPTH,
 )
 from isofightr.sim.math3d import Box3, Vec2, Vec3
 
@@ -94,6 +98,48 @@ class BackgroundLayer:
 
     image: str
     parallax: float
+    scroll: float = 0.0
+    """Pixels the layer drifts to the left every tick by itself (clouds, smoke)."""
+    frames: int = 1
+    """How many frames the image holds, stacked top to bottom (a short looping animation)."""
+    frame_ticks: int = 0
+    """Ticks each frame shows for (0 = the game's default)."""
+
+
+@dataclass(frozen=True, slots=True)
+class Prop:
+    """A decoration from the stage's tileset. Looks only: it never collides (D-063)."""
+
+    sprite: str
+    x: float
+    y: float
+    layer: str = "world"
+    """``"world"``: standing on the ground here. ``"below"``: hanging under the island."""
+    period: int = 0
+    """Ticks per frame of an animated prop (0 = the game's default)."""
+    phase: int = 0
+    """Ticks this prop's animation runs ahead, so neighbours do not move in step."""
+
+
+@dataclass(frozen=True, slots=True)
+class Ambient:
+    """Slow sprites drifting across the screen (leaves, snow, embers). Looks only."""
+
+    kind: str
+    count: int
+    front: int = 0
+    """How many of them drift in front of the world; the rest are behind it."""
+
+
+@dataclass(frozen=True, slots=True)
+class Underside:
+    """A ragged mass hanging under the island in place of its flat bottom. Looks only."""
+
+    depth: float
+    """How far the deepest part hangs below the island's underside, in units."""
+    tile: str = "under"
+    hang: tuple[str, ...] = ()
+    """Tileset props hung from it here and there (roots, chains, icicles)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,6 +164,9 @@ class Stage:
     backgrounds: tuple[BackgroundLayer, ...]
     description: str = ""
     """One line for the stage select screen (menu text only; empty = made from the data)."""
+    props: tuple[Prop, ...] = ()
+    ambient: Ambient | None = None
+    underside_art: Underside | None = None
 
     @property
     def size_x(self) -> int:
@@ -203,6 +252,9 @@ def build_stage(
     music: str | None = None,
     backgrounds: Sequence[BackgroundLayer] = (),
     description: str = "",
+    props: Sequence[Prop] = (),
+    ambient: Ambient | None = None,
+    underside_art: Underside | None = None,
 ) -> Stage:
     """Validate parsed stage values and derive ledges, bounds, blast zone and camera bounds.
 
@@ -234,9 +286,13 @@ def build_stage(
         camera_bounds=_camera_bounds(bounds, soft_platforms, camera_margin),
         backgrounds=tuple(backgrounds),
         description=description,
+        props=tuple(props),
+        ambient=ambient,
+        underside_art=underside_art,
     )
     _validate_platforms(stage)
     _validate_spawns(stage)
+    _validate_decor(stage)
     if not blast_bottom < bounds.z_min or not blast_top > bounds.z_max:
         raise StageError("blast zone top and bottom must enclose every cell top")
     return stage
@@ -378,3 +434,29 @@ def _validate_spawns(stage: Stage) -> None:
     for name, spawn in [*named, ("respawn", stage.respawn)]:
         if stage.surface_top(spawn.x, spawn.y) is None:
             raise StageError(f"spawn {name} at ({spawn.x}, {spawn.y}) is not on solid ground")
+
+
+def _validate_decor(stage: Stage) -> None:
+    """Check the stage's looks-only data: backdrop animation, props, ambience, underside."""
+    for index, layer in enumerate(stage.backgrounds):
+        if layer.frames < 1 or layer.frame_ticks < 0:
+            raise StageError(f"background {index}: frames must be 1 or more, frame_ticks 0 or more")
+    for index, prop in enumerate(stage.props):
+        where = f"prop {index} ({prop.sprite})"
+        if prop.layer not in PROP_LAYERS:
+            raise StageError(f"{where}: layer must be one of {', '.join(PROP_LAYERS)}")
+        if stage.cell_at(prop.x, prop.y) is None:
+            raise StageError(f"{where}: ({prop.x}, {prop.y}) is not over solid ground")
+        if prop.period < 0 or prop.phase < 0:
+            raise StageError(f"{where}: period and phase must be 0 or more")
+    ambient = stage.ambient
+    if ambient is not None:
+        if ambient.kind not in AMBIENT_KINDS:
+            raise StageError(f"ambient: kind must be one of {', '.join(AMBIENT_KINDS)}")
+        if not 1 <= ambient.count <= AMBIENT_MAX:
+            raise StageError(f"ambient: count must be 1 to {AMBIENT_MAX}")
+        if not 0 <= ambient.front <= ambient.count:
+            raise StageError("ambient: front must be between 0 and count")
+    under = stage.underside_art
+    if under is not None and not 0.0 < under.depth <= UNDERSIDE_MAX_DEPTH:
+        raise StageError(f"underside: depth must be above 0 and at most {UNDERSIDE_MAX_DEPTH}")

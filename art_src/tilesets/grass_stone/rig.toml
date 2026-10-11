@@ -5,3 +5,15 @@
 name = "origin"
 parent = ""
 at = [0.0, 0.0, 0.0]
+
+# Props (decision D-063): a prop stands on, or hangs from, the origin. These two joints let a
+# part of it move: a tree's crown, a pole's flag.
+[[joints]]
+name = "crown"
+parent = "origin"
+at = [0.0, 0.0, 1.25]
+
+[[joints]]
+name = "flag"
+parent = "origin"
+at = [0.0, 0.0, 1.9]

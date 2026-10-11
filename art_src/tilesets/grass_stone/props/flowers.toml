@@ -1,0 +1,89 @@
+# Flowers: stems that nod in the wind (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [-0.220, 0.050, 0.000]
+b = [-0.220, 0.050, 0.340]
+r1 = 0.022
+r2 = 0.018
+material = "leaf_dark"
+
+[[parts]]
+name = "bloom0"
+joint = "origin"
+shape = "ball"
+centre = [-0.220, 0.050, 0.390]
+radius = 0.085
+scale = [1.000, 1.000, 1.000]
+material = "petal"
+
+[[parts]]
+name = "blade0"
+joint = "origin"
+shape = "box"
+low = [-0.290, 0.030, 0.000]
+high = [-0.250, 0.070, 0.200]
+material = "leaf"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.120, 0.000]
+b = [0.000, -0.120, 0.440]
+r1 = 0.022
+r2 = 0.018
+material = "leaf_dark"
+
+[[parts]]
+name = "bloom1"
+joint = "origin"
+shape = "ball"
+centre = [0.000, -0.120, 0.490]
+radius = 0.085
+scale = [1.000, 1.000, 1.000]
+material = "petal_gold"
+
+[[parts]]
+name = "blade1"
+joint = "origin"
+shape = "box"
+low = [-0.070, -0.140, 0.000]
+high = [-0.030, -0.100, 0.200]
+material = "leaf"
+
+[[parts]]
+name = "stem2"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.100, 0.000]
+b = [0.200, 0.100, 0.300]
+r1 = 0.022
+r2 = 0.018
+material = "leaf_dark"
+
+[[parts]]
+name = "bloom2"
+joint = "origin"
+shape = "ball"
+centre = [0.200, 0.100, 0.350]
+radius = 0.085
+scale = [1.000, 1.000, 1.000]
+material = "petal"
+
+[[parts]]
+name = "blade2"
+joint = "origin"
+shape = "box"
+low = [0.130, 0.080, 0.000]
+high = [0.170, 0.120, 0.200]
+material = "leaf"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 7.000, 0.000]

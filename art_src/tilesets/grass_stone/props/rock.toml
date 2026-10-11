@@ -1,0 +1,31 @@
+# Rock: a boulder and a smaller one beside it.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.200]
+radius = 0.300
+scale = [1.100, 0.900, 0.800]
+material = "ruin"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.300, -0.140, 0.100]
+radius = 0.160
+scale = [1.000, 1.000, 0.800]
+material = "ruin_dark"
+
+[[parts]]
+name = "moss"
+joint = "origin"
+shape = "box"
+low = [-0.160, -0.120, 0.360]
+high = [0.100, 0.100, 0.460]
+material = "leaf"
+
+[[poses]]

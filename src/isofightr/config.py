@@ -77,6 +77,28 @@ ISLAND_THICKNESS: Final[float] = 1.0
 fighters can pass under the island below this depth."""
 
 DECK_THICKNESS: Final[float] = 0.25
+AMBIENT_KINDS: Final[tuple[str, ...]] = (
+    "leaves",
+    "petals",
+    "motes",
+    "snow",
+    "embers",
+    "fireflies",
+    "sand",
+    "rain",
+    "sparks",
+)
+"""What a stage's ``[ambient]`` table may drift across the screen (decision D-063)."""
+AMBIENT_MAX: Final[int] = 16
+"""The most ambient sprites a stage may ask for."""
+PROP_LAYERS: Final[tuple[str, ...]] = ("world", "below")
+"""Where a stage prop is: standing on the ground, or hanging under the island."""
+PROP_DEFAULT_PERIOD: Final[int] = 14
+"""Ticks an animated prop shows each of its frames for, unless the stage says otherwise."""
+BACKDROP_FRAME_TICKS: Final[int] = 12
+"""Ticks an animated backdrop layer shows each frame for, unless the stage says otherwise."""
+UNDERSIDE_MAX_DEPTH: Final[float] = 3.0
+"""The deepest a stage's generated underside may hang below the island, in units."""
 """Visual thickness of a soft platform deck, in units (4 px)."""
 
 # --- Camera ---------------------------------------------------------------------------------

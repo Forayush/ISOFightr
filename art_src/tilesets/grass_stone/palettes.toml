@@ -32,6 +32,63 @@ outline = false
 name = "wood_dark"
 outline = false
 
+# Decision D-063: more tile materials (no outline), then the props' (outlined).
+[[materials]]
+name = "grass_light"
+outline = false
+
+[[materials]]
+name = "soil"
+outline = false
+
+[[materials]]
+name = "bloom"
+outline = false
+
+[[materials]]
+name = "bloom_gold"
+outline = false
+
+[[materials]]
+name = "rock"
+outline = false
+
+[[materials]]
+name = "rock_dark"
+outline = false
+
+[[materials]]
+name = "leaf"
+
+[[materials]]
+name = "leaf_dark"
+
+[[materials]]
+name = "bark"
+
+[[materials]]
+name = "root"
+
+[[materials]]
+name = "ruin"
+
+[[materials]]
+name = "ruin_dark"
+
+[[materials]]
+name = "petal"
+
+[[materials]]
+name = "petal_gold"
+
+[[materials]]
+name = "cloth"
+lit = false
+
+[[materials]]
+name = "cloth_dark"
+lit = false
+
 [[costumes]]
 name = "light"
 grass = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
@@ -41,6 +98,22 @@ stone = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
 stone_dark = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
 wood = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
 wood_dark = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+grass_light = ["fbff86", "cddf6c", "91db69", "1ebc73", "239063"]
+soil = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+bloom = ["ffffff", "ffffff", "c7dcd0", "9babb2", "7f708a"]
+bloom_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+rock = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+rock_dark = ["625565", "3e3546", "2e222f", "2e222f", "2e222f"]
+leaf = ["91db69", "1ebc73", "239063", "165a4c", "2e222f"]
+leaf_dark = ["1ebc73", "239063", "165a4c", "374e4a", "2e222f"]
+bark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+root = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+ruin = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+ruin_dark = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+petal = ["ffffff", "fdcbb0", "fca790", "f68181", "753c54"]
+petal_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+cloth = ["e83b3b", "e83b3b", "ae2334", "6e2727", "2e222f"]
+cloth_dark = ["ae2334", "ae2334", "6e2727", "45293f", "2e222f"]
 
 [[costumes]]
 name = "dark"
@@ -50,3 +123,5 @@ stone = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
 stone_dark = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
 wood = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
 wood_dark = ["9e4539", "7a3045", "45293f", "2e222f", "2e222f"]
+grass_light = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+soil = ["966c6c", "694f62", "45293f", "2e222f", "2e222f"]

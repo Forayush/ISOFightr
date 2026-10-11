@@ -66,6 +66,10 @@ class HudExtras:
         self.banner_sprite.visible = False
         ui.text.append(self.banner_sprite)
         self.banner = _BannerText()
+        self.intro = ui.write("", NATIVE_W // 2, layout.INTRO_BOTTOM, TextSize.DISPLAY,
+                              theme.WHITE, "centre")  # fmt: skip
+        """The stage's name, over the countdown."""
+        self.intro.alpha = 0
 
         self.feed_plates: list[Picture] = []
         self.feed_text: list[TextLabel] = []
@@ -98,11 +102,18 @@ class HudExtras:
         banner: str,
         to_screen: ScreenPoint,
         flashing: bool = True,
+        intro: str = "",
+        intro_ticks: int = 0,
     ) -> None:
         """Refresh everything from the HUD state. ``clock_text`` is the clock as text ("" for
         none); ``to_screen`` turns a world point into native screen pixels (for the
-        popups)."""
+        popups). ``intro`` is the stage's name, shown for the first ``intro_ticks`` ticks
+        (the countdown)."""
         self._update_clock(time_left, clock_text, state.tick, flashing)
+        alpha = layout.intro_alpha(state.tick, intro_ticks) if intro else 0
+        if alpha and self.intro.text != intro:
+            self.intro.text = intro
+        self.intro.alpha = alpha
         self._update_banner(state, banner)
         self._update_feed(state)
         self._update_sash(state)

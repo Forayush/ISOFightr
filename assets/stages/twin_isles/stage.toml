@@ -55,6 +55,7 @@ parallax = 0.0
 [[background]]
 image = "bg_1_far_clouds.png"
 parallax = 0.08
+scroll = 0.02
 
 [[background]]
 image = "bg_2_islands.png"
@@ -63,3 +64,47 @@ parallax = 0.18
 [[background]]
 image = "bg_3_near_clouds.png"
 parallax = 0.35
+scroll = 0.06
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 2.5
+hang = ["roots", "vine"]
+
+[ambient]
+kind = "petals"
+count = 12
+front = 4
+
+[[props]]
+sprite = "sapling"
+at = [1.5, 7.5]
+[[props]]
+sprite = "pillar"
+at = [0.6, 6.4]
+[[props]]
+sprite = "column"
+at = [7.5, 0.5]
+[[props]]
+sprite = "pennant"
+at = [11.5, 3.5]
+[[props]]
+sprite = "bush"
+at = [3.5, 11.5]
+[[props]]
+sprite = "rock"
+at = [9.5, 6.6]
+[[props]]
+sprite = "flowers"
+at = [2.5, 9.5]
+[[props]]
+sprite = "flowers"
+at = [8.5, 2.5]
+phase = 7
+[[props]]
+sprite = "tall_grass"
+at = [6.5, 10.6]
+[[props]]
+sprite = "tall_grass"
+at = [11.5, 5.5]
+phase = 5

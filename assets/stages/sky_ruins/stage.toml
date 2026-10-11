@@ -60,6 +60,7 @@ parallax = 0.0
 [[background]]
 image = "bg_1_far_clouds.png"
 parallax = 0.08
+scroll = 0.02               # pixels per tick: the clouds drift by themselves
 
 [[background]]
 image = "bg_2_islands.png"
@@ -68,3 +69,51 @@ parallax = 0.18
 [[background]]
 image = "bg_3_near_clouds.png"
 parallax = 0.35
+scroll = 0.06
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]                  # the rock hanging under the island, and what hangs from it
+depth = 3.0
+hang = ["roots", "vine", "stalactite"]
+
+[ambient]                    # slow sprites drifting across the screen (at most 16)
+kind = "leaves"
+count = 12
+front = 4
+
+[[props]]                    # sprite = a prop of the tileset; at = world x, y
+sprite = "column"
+at = [12.5, 2.6]
+[[props]]
+sprite = "pillar"
+at = [9.5, 8.4]
+[[props]]
+sprite = "pennant"
+at = [12.5, 4.4]
+[[props]]
+sprite = "sapling"
+at = [0.5, 2.6]
+[[props]]
+sprite = "bush"
+at = [0.6, 5.6]
+[[props]]
+sprite = "rock"
+at = [12.4, 6.4]
+[[props]]
+sprite = "flowers"
+at = [4.4, 7.6]
+[[props]]
+sprite = "flowers"
+at = [9.6, 1.2]
+phase = 7
+[[props]]
+sprite = "tall_grass"
+at = [7.5, 8.5]
+[[props]]
+sprite = "tall_grass"
+at = [12.5, 3.4]
+phase = 5
+[[props]]
+sprite = "tall_grass"
+at = [5.6, 0.3]
+phase = 9

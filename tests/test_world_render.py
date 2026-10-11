@@ -10,6 +10,7 @@ that point of the fighter and the camera.
 """
 
 import itertools
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -20,6 +21,8 @@ from isofightr.data.stage_loader import load_stage
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import snap
 from isofightr.render.iso import HALF_TILE_W, project
+from isofightr.render.stage_art import TEETH_DEPTHS
+from isofightr.render.underside import under_depths
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec2, Vec3
 from isofightr.sim.stage import SoftPlatform, Stage, build_stage
@@ -34,6 +37,8 @@ where the sprite's stair-step outline differs from the ideal edge, are skipped."
 LEG_SAMPLE_ABOVE_FEET = 4
 HEAD_SAMPLE_ABOVE_FEET = 34
 FAR_AWAY = Vec3(200.0, 200.0, 0.0)
+UNDER_TEETH = (max(TEETH_DEPTHS) + 1) / Z_PX
+"""How much of an under block's depth its ragged bottom edge may cut away, in units."""
 BODY_HEIGHT_UNITS = art.BODY_HEIGHT / Z_PX
 
 P1_BODY = art.player_color(0)
@@ -66,8 +71,20 @@ def blocks_stage() -> Stage:
     )
 
 
+def geometry_only(stage: Stage) -> Stage:
+    """Return a stage without the decorations the oracle does not model (props, what hangs
+    under the island, ambient sprites); the blocks under the island stay: they are geometry."""
+    under = stage.underside_art
+    return replace(
+        stage,
+        props=(),
+        ambient=None,
+        underside_art=None if under is None else replace(under, hang=()),
+    )
+
+
 STAGES = {
-    "sky_ruins": lambda: load_stage("sky_ruins"),
+    "sky_ruins": lambda: geometry_only(load_stage("sky_ruins")),
     "training_grid": lambda: load_stage("training_grid"),
     "blocks": blocks_stage,
 }
@@ -88,12 +105,15 @@ def _ray_hits_box(
     return enter < leave
 
 
-def hidden_by_stage(stage: Stage, point: Vec3) -> bool:
-    """Whether any stage geometry lies between a world point and the camera."""
+def hidden_by_stage(stage: Stage, point: Vec3, teeth: float = 0.0) -> bool:
+    """Whether any stage geometry lies between a world point and the camera. The blocks
+    hanging under the island (decision D-063) end ``teeth`` units short of their depth."""
     bottom = stage.bounds.z_min - ISLAND_THICKNESS
+    depths = under_depths(stage)
     for cy, row in enumerate(stage.cells):
         for cx, cell in enumerate(row):
-            if cell and _ray_hits_box(point, cx, cx + 1, cy, cy + 1, bottom, cell.top):
+            low = bottom - max(depths.get((cx, cy), 0.0) - teeth, 0.0)
+            if cell and _ray_hits_box(point, cx, cx + 1, cy, cy + 1, low, cell.top):
                 return True
     return any(
         _ray_hits_box(point, p.x0, p.x1, p.y0, p.y1, p.z - DECK_THICKNESS, p.z)
@@ -117,9 +137,12 @@ def stable_verdict(stage: Stage, depth_key: float, screen_x: float, screen_y: fl
         (dx * STABILITY_MARGIN_PX, dy * STABILITY_MARGIN_PX)
         for dx, dy in itertools.product((-1, 1), repeat=2)
     ]
+    # The under blocks' bottom edge is cut into teeth: a pixel there may be either, so it
+    # only counts when the verdict is the same with and without the teeth's depth.
     verdicts = {
-        hidden_by_stage(stage, billboard_point(depth_key, screen_x + dx, screen_y + dy))
+        hidden_by_stage(stage, billboard_point(depth_key, screen_x + dx, screen_y + dy), teeth)
         for dx, dy in offsets
+        for teeth in (0.0, UNDER_TEETH)
     }
     return verdicts.pop() if len(verdicts) == 1 else None
 
@@ -473,18 +496,19 @@ def test_keyboard_presets_do_not_collide(window: Any) -> None:
 def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
     renderer = view.renderer
-    assert [parallax for parallax, _ in renderer._layers] == [0.0, 0.08, 0.18, 0.35]
+    assert [layer.parallax for layer, _, _ in renderer._layers] == [0.0, 0.08, 0.18, 0.35]
+    renderer._tick = 0  # the layers' own drift is tested with the stage decor
     reference = tuple(round(value) for value in renderer._backdrop_reference)
     renderer._place_backdrop(reference)
-    before = [copies[1].center_x for _, copies in renderer._layers]
+    before = [copies[1].center_x for _, _, copies in renderer._layers]
     renderer._place_backdrop((reference[0] + 100, reference[1]))
-    after = [copies[1].center_x for _, copies in renderer._layers]
-    widths = [copies[1].width for _, copies in renderer._layers]
+    after = [copies[1].center_x for _, _, copies in renderer._layers]
+    widths = [copies[1].width for _, _, copies in renderer._layers]
     moved = [
         round(start - end) % width for start, end, width in zip(before, after, widths, strict=True)
     ]
     assert moved == [0, 8, 18, 35], "nearer layers move further, the sky not at all"
     renderer._place_backdrop((reference[0] + 100_000, reference[1]))
-    for _, copies in renderer._layers:
+    for _, _, copies in renderer._layers:
         lefts = [sprite.left for sprite in copies]
         assert min(lefts) <= 0 and max(sprite.right for sprite in copies) >= 640, "it wraps"

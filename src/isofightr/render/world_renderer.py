@@ -18,6 +18,7 @@ from arcade.types import LBWH, LRBT
 from PIL import Image
 
 from isofightr.config import (
+    BACKDROP_FRAME_TICKS,
     INVINCIBLE_BLINK_FRAMES,
     NATIVE_H,
     NATIVE_W,
@@ -28,6 +29,7 @@ from isofightr.config import (
 from isofightr.data.paths import STAGES_DIR
 from isofightr.data.tileset_art import TilesetArtError, load_tileset_art
 from isofightr.render import placeholder_art as art
+from isofightr.render.ambient import build_mote, covers, motes
 from isofightr.render.camera import snap
 from isofightr.render.depth import (
     DepthSorter,
@@ -36,17 +38,19 @@ from isofightr.render.depth import (
     ScreenRect,
     StaticItem,
     StaticKind,
+    dynamic_goes_first,
 )
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.ground_items import GroundItem
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
+from isofightr.render.props import PROP_ITEM_BASE, PlacedProp, placed_props
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
-from isofightr.render.stage_art import StageArt
+from isofightr.render.stage_art import DECK_TILE, Edges, StageArt, cell_edges, tile_variant
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
-from isofightr.sim.stage import Stage
+from isofightr.sim.stage import BackgroundLayer, Stage
 
 LOG = logging.getLogger(__name__)
 HIDDEN_DRAW_RANK = -1
@@ -134,6 +138,10 @@ class WorldRenderer:
             LOG.error("tileset %s not loaded: %s", stage.tileset, error)
             tileset = None
         self.stage_art = None if tileset is None else StageArt(tileset)
+        self.calm = False
+        """The "reduce flashing" setting: ambient sprites then neither blink nor turn."""
+        self._tick = 0
+        """The frame of the last :meth:`sync`: it drives everything that moves by itself."""
         self.sorter = DepthSorter(stage)
         self.sprites: arcade.SpriteList[_RankedSprite] = arcade.SpriteList()
         self.camera = arcade.Camera2D(
@@ -149,6 +157,36 @@ class WorldRenderer:
         """Sprites of ground items (projectile shadows, decals), by item id."""
         self._ground_images: dict[object, Image.Image] = {}
         self._order: list[DrawEntry] | None = None
+
+        # Props (decision D-063): decorations from the tileset, sorted like everything else.
+        self.props: list[PlacedProp] = placed_props(stage, tileset)
+        self._prop_items = [prop.item for prop in self.props]
+        self._prop_frames: list[list[arcade.Texture]] = []
+        self._prop_sprites: list[_RankedSprite] = []
+        for prop in self.props:
+            frames = self._prop_textures(prop)
+            rect = prop.rect
+            sprite = _RankedSprite(
+                frames[0],
+                center_x=(rect.left + rect.right) / 2,
+                center_y=(rect.bottom + rect.top) / 2,
+            )
+            self._prop_frames.append(frames)
+            self._prop_sprites.append(sprite)
+            self.sprites.append(sprite)
+
+        # Ambient sprites: some behind the world (screen space), some in front of it.
+        self._motes_back: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
+        self._motes_front: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
+        self._mote_sprites: list[arcade.Sprite] = []
+        self._body_rects: list[ScreenRect] = []
+        ambient = stage.ambient
+        if ambient is not None:
+            for index in range(ambient.count):
+                sprite = arcade.Sprite(self._mote_texture(0))
+                front = index >= ambient.count - ambient.front
+                (self._motes_front if front else self._motes_back).append(sprite)
+                self._mote_sprites.append(sprite)
 
         # "X-ray" copies of fighters that the stage partly hides, drawn faintly over the
         # finished world. Where the fighter is in plain view the copy changes nothing you can
@@ -188,15 +226,30 @@ class WorldRenderer:
         decals): they are clipped to their surface and sorted with everything else.
         """
         self._drop_missing({entity.entity_id for entity in entities})
+        self._tick = frame
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
         items: list[DynamicItem] = []
+        self._body_rects = []
         for entity in entities:
             look = DEFAULT_LOOK if looks is None else looks.get(entity.entity_id, DEFAULT_LOOK)
             hidden = look.hidden or (entity.invincible and blink_off)
-            items.append(self._sync_body(entity, look, hidden=hidden))
+            body = self._sync_body(entity, look, hidden=hidden)
+            items.append(body)
+            if not hidden:
+                self._body_rects.append(body.rect)
+                if self._behind_a_prop(body):
+                    self._ghost_of[entity.entity_id].visible = True
             for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
                 if item is not None:
                     items.append(item)
+
+        for prop, sprite, frames in zip(
+            self.props, self._prop_sprites, self._prop_frames, strict=True
+        ):
+            texture = frames[prop.frame(frame)]
+            if sprite.texture is not texture:
+                sprite.texture = texture
+        items.extend(self._prop_items)
 
         self._drop_ground({item.item_id for item in ground})
         items.extend(self._sync_ground(item) for item in ground)
@@ -206,8 +259,11 @@ class WorldRenderer:
             self._order = order
             self._apply_order(order)
 
-    def _load_backdrop(self) -> list[tuple[float, list[arcade.Sprite]]]:
-        """Load the stage's parallax layers: each repeats three times across."""
+    def _load_backdrop(
+        self,
+    ) -> list[tuple[BackgroundLayer, list[arcade.Texture], list[arcade.Sprite]]]:
+        """Load the stage's parallax layers: each repeats three times across. A layer with
+        ``frames`` holds that many pictures stacked top to bottom."""
         layers = []
         for layer in self.stage.backgrounds:
             path = STAGES_DIR / self.stage.id / layer.image
@@ -216,19 +272,35 @@ class WorldRenderer:
             except OSError as error:
                 LOG.error("background %s not loaded: %s", path, error)
                 continue
-            texture = arcade.Texture(image, hash=f"backdrop:{self.stage.id}:{layer.image}")
-            copies = [arcade.Sprite(texture) for _ in range(BACKDROP_COPIES)]
+            tall = image.height // layer.frames
+            textures = [
+                arcade.Texture(
+                    image.crop((0, index * tall, image.width, (index + 1) * tall)),
+                    hash=f"backdrop:{self.stage.id}:{layer.image}:{index}",
+                )
+                for index in range(layer.frames)
+            ]
+            copies = [arcade.Sprite(textures[0]) for _ in range(BACKDROP_COPIES)]
             for sprite in copies:
                 self._background.append(sprite)
-            layers.append((layer.parallax, copies))
+            layers.append((layer, textures, copies))
         return layers
 
     def _place_backdrop(self, camera_centre: tuple[int, int]) -> None:
-        """Scroll each layer by its share of how far the camera is from the stage centre."""
+        """Scroll each layer by its share of how far the camera is from the stage centre,
+        plus its own drift, and show its frame for this tick."""
         reference_x, reference_y = self._backdrop_reference
-        for parallax, copies in self._layers:
+        for layer, textures, copies in self._layers:
+            parallax = layer.parallax
+            texture = textures[
+                (self._tick // (layer.frame_ticks or BACKDROP_FRAME_TICKS)) % len(textures)
+            ]
+            for sprite in copies:
+                if sprite.texture is not texture:
+                    sprite.texture = texture
             width = copies[0].texture.width
             shift_x = -round((camera_centre[0] - reference_x) * parallax)
+            shift_x -= round(layer.scroll * self._tick)
             shift_y = -round((camera_centre[1] - reference_y) * parallax)
             # Wrap so one copy always covers the screen, with its neighbours either side.
             centre_x = NATIVE_W / 2 + (shift_x % width) - width / 2
@@ -252,12 +324,17 @@ class WorldRenderer:
         if background:
             self._place_backdrop(camera_centre)
             self._background.draw(pixelated=True)
+        if self._mote_sprites:
+            self._place_motes(camera_centre, zoom)
+            self._motes_back.draw(pixelated=True)
         self.camera.position = camera_centre
         self.camera.zoom = zoom
         with self.camera.activate():
             self.sprites.draw(pixelated=True)
             if OCCLUDED_FIGHTER_ALPHA > 0:
                 self._ghosts.draw(pixelated=True)
+            if self._mote_sprites:
+                self._motes_front.draw(pixelated=True)
             for overlay in overlays:
                 overlay.draw()
 
@@ -270,13 +347,27 @@ class WorldRenderer:
             assert cell is not None
             side_px = snap((cell.top - self.stage.underside) * Z_PX)
             tile = cell.tile
+            variant = self._variant(tile, item.cx, item.cy)
+            edges = cell_edges(self.stage, item.cx, item.cy)
             texture = self._texture(
-                ("tile", tile, light, side_px), lambda: self._tile_image(tile, light, side_px)
+                ("tile", tile, light, side_px, variant, edges),
+                lambda: self._tile_image(tile, light, side_px, variant, edges),
             )
         elif item.kind is StaticKind.DECAL:
             texture = self._texture(("platform_shadow",), art.build_platform_shadow)
+        elif item.kind is StaticKind.UNDER:
+            side_px = snap((item.top - item.bottom) * Z_PX)
+            under = self.stage.underside_art
+            tile = "under" if under is None else under.tile
+            variant = self._variant(tile, item.cx + 1, item.cy + 2)
+            texture = self._texture(
+                ("under", tile, side_px, variant), lambda: self._under_image(tile, side_px, variant)
+            )
         else:
-            texture = self._texture(("deck", light), lambda: self._deck_image(light))
+            variant = self._variant(DECK_TILE, item.cx, item.cy)
+            texture = self._texture(
+                ("deck", light, variant), lambda: self._deck_image(light, variant)
+            )
 
         centre_x, back_y = project(item.cx, item.cy, item.top)
         sprite = _RankedSprite(
@@ -285,13 +376,82 @@ class WorldRenderer:
         self.sprites.append(sprite)
         return sprite
 
-    def _tile_image(self, tile: str, light: bool, side_px: int) -> Image.Image:
-        rendered = None if self.stage_art is None else self.stage_art.tile(tile, light, side_px)
+    def _variant(self, tile: str, cx: int, cy: int) -> int:
+        """Return which of a tile's images a cell shows (0 without a rendered tileset)."""
+        if self.stage_art is None:
+            return 0
+        return tile_variant(self.stage_art.tileset, tile, cx, cy)
+
+    def _tile_image(
+        self, tile: str, light: bool, side_px: int, variant: int, edges: Edges
+    ) -> Image.Image:
+        rendered = None
+        if self.stage_art is not None:
+            rendered = self.stage_art.tile(tile, light, side_px, variant, edges)
         return rendered or art.build_tile(tile, light, side_px)
 
-    def _deck_image(self, light: bool) -> Image.Image:
-        rendered = None if self.stage_art is None else self.stage_art.deck(light)
+    def _under_image(self, tile: str, side_px: int, variant: int) -> Image.Image:
+        rendered = None if self.stage_art is None else self.stage_art.under(tile, side_px, variant)
+        return rendered or art.build_tile(tile, False, side_px)
+
+    def _deck_image(self, light: bool, variant: int = 0) -> Image.Image:
+        rendered = None if self.stage_art is None else self.stage_art.deck(light, variant)
         return rendered or art.build_deck(light)
+
+    # --- props and ambience ----------------------------------------------------------------
+
+    def _prop_textures(self, prop: PlacedProp) -> list[arcade.Texture]:
+        """Return a prop's frames as textures (shared by every prop of that name)."""
+        stage_art = self.stage_art
+        assert stage_art is not None
+        name = prop.art.name
+        return [
+            self._texture(("prop", name, index), lambda index=index: stage_art.prop(name, index))
+            for index in range(prop.art.frames)
+        ]
+
+    def _behind_a_prop(self, body: DynamicItem) -> bool:
+        """Return whether a prop is drawn over part of a fighter (who then gets the same
+        faint copy as one behind the stage, decision D-025)."""
+        return any(
+            item.rect.overlaps(body.rect) and dynamic_goes_first(body, item)
+            for item in self._prop_items
+        )
+
+    def _mote_texture(self, frame: int) -> arcade.Texture:
+        ambient = self.stage.ambient
+        assert ambient is not None
+        kind = ambient.kind
+        return self._texture(("mote", kind, frame), lambda: build_mote(kind, frame))
+
+    def _place_motes(self, camera_centre: tuple[int, int], zoom: int) -> None:
+        """Put every ambient sprite where it is this tick; the ones in front are placed in
+        world pixels (they are drawn with the world) and hidden where they would cover a
+        fighter."""
+        centre_x, centre_y = camera_centre
+        on_screen = [
+            (
+                (rect.left - centre_x) * zoom + NATIVE_W / 2,
+                (rect.bottom - centre_y) * zoom + NATIVE_H / 2,
+                (rect.right - centre_x) * zoom + NATIVE_W / 2,
+                (rect.top - centre_y) * zoom + NATIVE_H / 2,
+            )
+            for rect in self._body_rects
+        ]
+        found = motes(self.stage.ambient, self._tick, camera_centre, self.calm)
+        for mote, sprite in zip(found, self._mote_sprites, strict=True):
+            texture = self._mote_texture(mote.frame)
+            if sprite.texture is not texture:
+                sprite.texture = texture
+            if mote.front:
+                sprite.position = (
+                    centre_x + (mote.x - NATIVE_W / 2) / zoom,
+                    centre_y + (mote.y - NATIVE_H / 2) / zoom,
+                )
+                sprite.visible = mote.visible and not covers(mote, on_screen)
+            else:
+                sprite.position = (mote.x, mote.y)
+                sprite.visible = mote.visible
 
     # --- dynamics --------------------------------------------------------------------------
 
@@ -477,6 +637,8 @@ class WorldRenderer:
         for rank, entry in enumerate(order):
             if entry.is_static:
                 self._static_sprites[entry.index].draw_rank = rank
+            elif entry.index >= PROP_ITEM_BASE:
+                self._prop_sprites[entry.index - PROP_ITEM_BASE].draw_rank = rank
             elif entry.index >= GROUND_ITEM_BASE:
                 self._ground[entry.index - GROUND_ITEM_BASE].draw_rank = rank
             else:

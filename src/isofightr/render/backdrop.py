@@ -11,6 +11,7 @@ Pure Python plus Pillow (no ``arcade``).
 from __future__ import annotations
 
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Final
 
@@ -186,3 +187,23 @@ def islands(
                     pillar = max(4, half // 3) + abs(offset) % 3
                     draw.rectangle((x + offset - 1, cy - pillar, x + offset + 1, cy), fill=ruin)
     return image
+
+
+# --- themes ---------------------------------------------------------------------------------
+
+Painter = Callable[[Mood, int], dict[str, Image.Image]]
+"""Paints a theme's layers, back to front, as ``{file name: image}`` for a mood and a seed."""
+
+
+def paint_sky(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """The open sky: a dithered gradient, far clouds, distant islands and near clouds."""
+    return {
+        "bg_0_sky.png": sky(mood),
+        "bg_1_far_clouds.png": clouds(mood, seed, 8, (250, 300), (10, 16)),
+        "bg_2_islands.png": islands(mood, seed + 1, 6, (50, 150), (9, 18)),
+        "bg_3_near_clouds.png": clouds(mood, seed + 2, 5, (318, 350), (18, 26)),
+    }
+
+
+PAINTERS: Final[dict[str, Painter]] = {"sky": paint_sky}
+"""One backdrop painter per theme (decision D-063); each stage's theme adds its own."""

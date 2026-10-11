@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from isofightr.render.iso import project
+from isofightr.render.underside import lowest_point
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.stage import Stage
 from isofightr.ui.hud_layout import PLAY_AREA
@@ -92,8 +93,9 @@ def islands(stage: Stage) -> list[set[tuple[int, int]]]:
 
 def screen_extent(stage: Stage) -> tuple[float, float]:
     """Return the width and height in pixels of everything the stage draws: its ground down
-    to the underside, and its platforms."""
+    to the underside (or the mass hanging under it), and its platforms."""
     points = []
+    bottom = lowest_point(stage)
     for cy in range(stage.size_y):
         for cx in range(stage.size_x):
             cell = stage.cell(cx, cy)
@@ -101,7 +103,7 @@ def screen_extent(stage: Stage) -> tuple[float, float]:
                 continue
             for x, y in ((cx, cy), (cx + 1, cy), (cx, cy + 1), (cx + 1, cy + 1)):
                 points.append(project(x, y, cell.top))
-                points.append(project(x, y, stage.underside))
+                points.append(project(x, y, bottom))
     for platform in stage.soft_platforms:
         for x, y in (
             (platform.x0, platform.y0),

@@ -1066,6 +1066,7 @@ class BattleView(TickedView):
                     for d in self.effects.decals
                 ],
             )
+        self.renderer.calm = self.settings.reduce_flashing
         self.renderer.sync(fighters, frame, looks, ground)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
         # hitboxes are only drawn by the F1 overlay.
@@ -1104,6 +1105,8 @@ class BattleView(TickedView):
             self.banner_text(),
             self._point_on_screen,
             flashing=not calm,
+            intro=self.match.stage.display_name.upper(),
+            intro_ticks=self.match.rules.countdown_frames,
         )
         if self.player_tags:
             self._place_tags(fighters)

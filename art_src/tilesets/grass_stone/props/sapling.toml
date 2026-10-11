@@ -1,0 +1,64 @@
+# Sapling: a young tree whose crown sways (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "trunk"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.030, 0.000, 1.250]
+r1 = 0.100
+r2 = 0.060
+material = "bark"
+
+[[parts]]
+name = "branch"
+joint = "origin"
+shape = "rod"
+a = [0.020, 0.000, 0.800]
+b = [0.300, 0.060, 1.150]
+r1 = 0.045
+r2 = 0.030
+material = "bark"
+
+[[parts]]
+name = "crown0"
+joint = "crown"
+shape = "ball"
+centre = [0.000, 0.000, 0.420]
+radius = 0.460
+scale = [1.000, 1.000, 0.850]
+material = "leaf"
+
+[[parts]]
+name = "crown1"
+joint = "crown"
+shape = "ball"
+centre = [-0.300, 0.100, 0.160]
+radius = 0.300
+scale = [1.000, 1.000, 1.000]
+material = "leaf_dark"
+
+[[parts]]
+name = "crown2"
+joint = "crown"
+shape = "ball"
+centre = [0.320, -0.080, 0.200]
+radius = 0.320
+scale = [1.000, 1.000, 1.000]
+material = "leaf_dark"
+
+[[parts]]
+name = "crown3"
+joint = "crown"
+shape = "ball"
+centre = [0.060, -0.100, 0.720]
+radius = 0.260
+scale = [1.000, 1.000, 1.000]
+material = "leaf"
+
+[[poses]]
+
+[[poses]]
+crown = [0.000, 4.000, 0.000]

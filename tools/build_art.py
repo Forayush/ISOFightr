@@ -63,11 +63,17 @@ from isofightr.art.portraits import (
     crop_top,
 )
 from isofightr.art.tileset import (
+    PROP_CANVAS,
+    PROP_PIVOT,
+    PROPS_DIR_NAME,
     TILE_CANVAS,
     TILE_FACING,
     TILE_PIVOT,
     cut_tile,
     write_tileset,
+)
+from isofightr.art.tileset import (
+    source_hash as tileset_source_hash,
 )
 from isofightr.data.paths import CHARACTERS_DIR
 from isofightr.data.tileset_art import TILESETS_DIR
@@ -250,8 +256,37 @@ def build_tileset(tileset_id: str, force: bool) -> None:
         stem = job.out / name / f"00_{TILE_FACING}"
         composed = compose(Image.open(f"{stem}_id.png"), Image.open(f"{stem}_light.png"), palettes)
         tiles[name] = cut_tile(composed)
-    write_tileset(TILESETS_DIR / tileset_id, tileset_id, tiles, palettes, blender_version(blender))
-    print(f"tileset {tileset_id}: rendered {len(rendered)}, wrote {len(tiles)} tiles")
+
+    # Props: every pose of props/<name>.toml is one frame of that decoration (D-063).
+    prop_names = sorted(path.stem for path in (source / PROPS_DIR_NAME).glob("*.toml"))
+    prop_job = replace(
+        job,
+        anims={name: source / PROPS_DIR_NAME / f"{name}.toml" for name in prop_names},
+        out=job.out / PROPS_DIR_NAME,
+        canvas=PROP_CANVAS,
+        pivot=PROP_PIVOT,
+    )
+    rendered += render(blender, prop_job, force=force) if prop_names else []
+    props = {}
+    for name in prop_names:
+        frames = []
+        for id_path in sorted((prop_job.out / name).glob(f"*_{TILE_FACING}_id.png")):
+            light_path = id_path.with_name(id_path.name.replace("_id.png", "_light.png"))
+            frames.append(compose(Image.open(id_path), Image.open(light_path), palettes))
+        props[name] = frames
+    write_tileset(
+        TILESETS_DIR / tileset_id,
+        tileset_id,
+        tiles,
+        palettes,
+        blender_version(blender),
+        props,
+        tileset_source_hash(source),
+    )
+    print(
+        f"tileset {tileset_id}: rendered {len(rendered)}, wrote {len(tiles)} tiles "
+        f"and {len(props)} props"
+    )
 
 
 def build_portraits(blender: Path, job: RenderJob, palettes: CharacterPalettes) -> None:

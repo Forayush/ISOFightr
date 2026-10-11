@@ -24,7 +24,7 @@ MASTER = load_master("resurrect64")
 
 def test_the_grass_stone_tileset_is_built() -> None:
     assert GRASS_STONE is not None
-    assert set(GRASS_STONE.tiles) == {"grass", "stone", "deck"}
+    assert {"grass", "stone", "deck"} <= set(GRASS_STONE.tiles)
     assert len(GRASS_STONE.costumes) == 2, "light and dark cells"
     for tile in GRASS_STONE.tiles:
         path = GRASS_STONE.tile_path(tile)

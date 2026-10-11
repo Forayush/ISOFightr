@@ -1,0 +1,69 @@
+# Pillar: the stump of a broken column on a plinth.
+loop = true
+fps = 1
+
+[[parts]]
+name = "plinth"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.000]
+high = [0.300, 0.300, 0.160]
+material = "ruin_dark"
+
+[[parts]]
+name = "drum0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.160]
+b = [0.000, 0.000, 0.720]
+r1 = 0.220
+r2 = 0.210
+material = "ruin"
+
+[[parts]]
+name = "band"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.720]
+b = [0.000, 0.000, 0.800]
+r1 = 0.240
+r2 = 0.240
+material = "ruin_dark"
+
+[[parts]]
+name = "drum1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.800]
+b = [0.000, 0.000, 1.300]
+r1 = 0.210
+r2 = 0.200
+material = "ruin"
+
+[[parts]]
+name = "break"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.300]
+b = [0.060, 0.000, 1.500]
+r1 = 0.200
+r2 = 0.090
+material = "ruin"
+
+[[parts]]
+name = "ivy0"
+joint = "origin"
+shape = "box"
+low = [0.180, -0.080, 0.300]
+high = [0.250, 0.040, 0.900]
+material = "leaf"
+
+[[parts]]
+name = "ivy1"
+joint = "origin"
+shape = "box"
+low = [0.100, 0.170, 0.160]
+high = [0.200, 0.240, 0.550]
+material = "leaf_dark"
+
+[[poses]]

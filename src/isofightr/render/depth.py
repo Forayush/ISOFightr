@@ -36,6 +36,7 @@ from enum import IntEnum
 
 from isofightr.config import DECK_THICKNESS, SURFACE_EPSILON, TILE_H, Z_PX
 from isofightr.render.iso import HALF_TILE_W, project
+from isofightr.render.underside import under_depths
 from isofightr.sim.stage import NO_PLATFORM, Stage
 
 
@@ -64,6 +65,8 @@ class StaticKind(IntEnum):
     COLUMN = 0
     DECAL = 1
     DECK = 2
+    UNDER = 3
+    """A block hanging under the island (decision D-063)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +101,9 @@ class DynamicItem:
     """How far the item extends above its feet, in units (0 for a flat shadow)."""
     rect: ScreenRect
     """Bounds of every pixel the sprite draws."""
+    fixed: bool = False
+    """Whether the item never moves (a stage prop): its place among the stage geometry is
+    then worked out once and remembered."""
 
     @property
     def key(self) -> float:
@@ -207,6 +213,8 @@ class DepthSorter:
 
         self._cached_signature: object = None
         self._cached_order: list[DrawEntry] = []
+        self._fixed_edges: dict[int, tuple[DynamicItem, tuple[tuple[int, bool], ...]]] = {}
+        """For each fixed item, by id: the statics it overlaps and whether each hides it."""
 
     def draw_order(self, items: Sequence[DynamicItem]) -> list[DrawEntry]:
         """Return the full back-to-front draw order of statics and dynamic items."""
@@ -217,8 +225,8 @@ class DepthSorter:
         edges: list[tuple[int, int]] = []
         for offset, item in enumerate(ordered):
             node = static_count + offset
-            for index in self._overlapping_statics(item.rect):
-                if static_hides(self.statics[index], item):
+            for index, hides in self._static_edges(item):
+                if hides:
                     edges.append((node, index))
                 else:
                     edges.append((index, node))
@@ -236,6 +244,20 @@ class DepthSorter:
             self._cached_signature = signature
             self._cached_order = self._sort(ordered, edges)
         return list(self._cached_order)
+
+    def _static_edges(self, item: DynamicItem) -> tuple[tuple[int, bool], ...]:
+        """Return the statics an item's sprite overlaps, each with whether it hides the item."""
+        if item.fixed:
+            known = self._fixed_edges.get(item.item_id)
+            if known is not None and known[0] is item:
+                return known[1]
+        found = tuple(
+            (index, static_hides(self.statics[index], item))
+            for index in self._overlapping_statics(item.rect)
+        )
+        if item.fixed:
+            self._fixed_edges[item.item_id] = (item, found)
+        return found
 
     def is_hidden_by_stage(self, item: DynamicItem) -> bool:
         """Return whether any stage geometry is drawn in front of part of ``item``."""
@@ -326,6 +348,13 @@ def _build_statics(stage: Stage) -> tuple[StaticItem, ...]:
             statics.append(
                 StaticItem(StaticKind.COLUMN, cx, cy, island_bottom, cell.top, NO_PLATFORM, rect)
             )
+
+    for (cx, cy), depth in under_depths(stage).items():
+        bottom = island_bottom - depth
+        rect = cell_block_rect(cx, cy, bottom, island_bottom)
+        statics.append(
+            StaticItem(StaticKind.UNDER, cx, cy, bottom, island_bottom, NO_PLATFORM, rect)
+        )
 
     shadowed: dict[tuple[int, int], int] = {}
     for index, platform in enumerate(stage.soft_platforms):
