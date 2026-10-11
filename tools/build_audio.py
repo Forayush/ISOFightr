@@ -6,8 +6,9 @@ Usage::
     uv run python tools/build_audio.py --force    # rebuild everything
 
 Reads ``art_src/audio/sfx.toml`` and ``art_src/audio/music/*.toml`` and writes
-``assets/audio/sfx/<name>.wav`` (16-bit), ``assets/audio/music/<id>.wav`` (8-bit) and
-``assets/audio/manifest.json`` (names, lengths and the hash of each source, which the tests
+``assets/audio/sfx/<name>.wav`` and ``assets/audio/music/<id>.wav`` (both 16-bit) and
+``assets/audio/manifest.json`` (names, lengths, each song's tempo, key and meter for the sound
+test, and the hash of each source, which the tests
 compare with the sources so stale audio is caught). Plan note "14 - Audio", decision D-055.
 Commit the rendered files with the recipe change.
 """
@@ -72,6 +73,10 @@ def main() -> None:
             "source": digest,
             "title": song.title,
             "seconds": round(song.seconds, 3),
+            "tempo": song.tempo,
+            "key": song.key,
+            "mode": song.mode,
+            "meter": f"{song.meter[0]}/{song.meter[1]}",
         }
     for stale in MUSIC_DIR.glob("*.wav"):
         if stale.stem not in music:

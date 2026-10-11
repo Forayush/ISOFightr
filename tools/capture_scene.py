@@ -23,7 +23,8 @@ edges, the underside and the top; ``--hazards on|off`` switches the stage's mech
     uv run python tools/capture_scene.py --stage-sheet sky_ruins --out sky_ruins.png
 
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
-rules, pool, controls, charselect, stageselect, results, hud, loading, settings, pause, training,
+rules, pool, controls, charselect, stageselect, results, hud, loading, settings, soundtest, pause,
+training,
 kit (the UI kit sheet). The script's keys go to whatever scene is showing; ``--players``
 sets how many fighters a screen with fighters has.
 """

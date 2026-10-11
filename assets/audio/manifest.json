@@ -1,8 +1,8 @@
 {
   "sample_rate": 22050,
-  "synth_version": "1",
+  "synth_version": "2",
   "sfx": {
-    "source": "7b1bb4b2cddfe784",
+    "source": "547f853b4373e99a",
     "sounds": {
       "charge": 0.5,
       "clank": 0.12,
@@ -76,39 +76,76 @@
   },
   "music": {
     "final_plateau": {
-      "source": "272480241e90b197",
+      "source": "09de811c63bf7327",
       "title": "Last Stone Standing",
-      "seconds": 29.268
+      "seconds": 29.268,
+      "tempo": 164.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     },
     "lily_pads": {
-      "source": "0ec9331ab6e76451",
+      "source": "7064aac44c0e7cab",
       "title": "Dusk on the Water",
-      "seconds": 40.678
+      "seconds": 40.678,
+      "tempo": 118.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     },
     "menu": {
-      "source": "82a76c2afcc04881",
+      "source": "5fd3fc080880cbef",
       "title": "Island Call",
-      "seconds": 36.364
+      "seconds": 36.364,
+      "tempo": 132.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     },
     "sky_ruins": {
-      "source": "097f463e90c038ae",
+      "source": "b47953bbe27d4072",
       "title": "Above the Ruins",
-      "seconds": 32.0
+      "seconds": 32.0,
+      "tempo": 150.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
+    },
+    "sound_check": {
+      "source": "01d1b15631280477",
+      "title": "Sound Check",
+      "seconds": 52.8,
+      "tempo": 100.0,
+      "key": "G",
+      "mode": "major",
+      "meter": "4/4"
     },
     "training_grid": {
-      "source": "ff4c69f083f8298f",
+      "source": "292a9e64314034c8",
       "title": "Practice Makes",
-      "seconds": 44.444
+      "seconds": 44.444,
+      "tempo": 108.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     },
     "twin_isles": {
-      "source": "11b867184d4de808",
+      "source": "4557f16b70d15d3d",
       "title": "Hop the Gap",
-      "seconds": 34.286
+      "seconds": 34.286,
+      "tempo": 140.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     },
     "victory": {
-      "source": "f60db8cecb522494",
+      "source": "874a965e988d531b",
       "title": "Winner",
-      "seconds": 6.4
+      "seconds": 6.4,
+      "tempo": 150.0,
+      "key": "",
+      "mode": "",
+      "meter": "4/4"
     }
   }
 }

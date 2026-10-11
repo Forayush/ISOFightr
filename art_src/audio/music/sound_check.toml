@@ -1,0 +1,261 @@
+# Sound Check: the sound test's own tune (decision D-063). Each of the six instrument waves
+# the synth gained plays the same two-bar phrase by itself, in turn: a plucked string, a
+# bell, a reed, a pad, a metal ping and hand drums. Then they play together.
+# Rendered by tools/build_audio.py. Steps: a note, '-' holds it, '.' rests, 'x' hits a drum.
+id = "sound_check"
+title = "Sound Check"
+tempo = 100
+steps_per_beat = 4
+key = "G"
+mode = "major"
+meter = "4/4"
+swing = 0.14
+form = ["pluck", "bell", "reed", "pad", "ping", "drums", "all", "all2", "out"]
+
+[echo]
+beats = 0.75
+feedback = 0.35
+mix = 0.4
+lowpass = 0.5
+
+[sections.pluck]
+kind = "intro"
+play = ["phrase_pluck"]
+
+[sections.bell]
+kind = "intro"
+play = ["phrase_bell"]
+
+[sections.reed]
+kind = "intro"
+play = ["phrase_reed"]
+
+[sections.pad]
+kind = "intro"
+play = ["pad2_root", "pad2_third", "pad2_fifth"]
+
+[sections.ping]
+kind = "intro"
+play = ["phrase_ping"]
+
+[sections.drums]
+kind = "break"
+play = ["low", "high2", "shaker"]
+
+[sections.all]
+kind = "chorus"
+level = 0.8
+to = 1.0
+play = ["tune", "arp", "bass", "pad_root", "pad_third", "pad_fifth", "chime", "low", "high", "shaker"]
+
+[sections.all2]
+kind = "chorus"
+play = ["tune", "arp", "bass", "pad_root", "pad_third", "pad_fifth", "chime", "spark", "low", "high", "shaker"]
+
+[sections.out]
+kind = "outro"
+level = 0.9
+to = 0.55
+play = ["phrase_pluck", "pad2_root", "pad2_third", "pad2_fifth", "shaker*0.6"]
+
+[instruments.pluck]
+wave = "pluck"
+damp = 0.3
+release = 0.25
+volume = 0.55
+send = 0.3
+
+[instruments.bell]
+wave = "bell"
+mod_ratio = 3.5
+mod_index = 3.0
+attack = 0.002
+decay = 0.5
+sustain = 0.25
+release = 0.4
+volume = 0.3
+send = 0.45
+
+[instruments.reed]
+wave = "reed"
+attack = 0.03
+decay = 0.05
+sustain = 0.85
+release = 0.06
+vibrato_depth = 0.15
+vibrato_rate = 5.0
+volume = 0.32
+send = 0.15
+
+[instruments.pad]
+wave = "pad"
+detune = 14
+attack = 0.25
+release = 0.45
+lowpass = 0.3
+volume = 0.2
+
+[instruments.ping]
+wave = "ping"
+attack = 0.001
+release = 0.3
+volume = 0.34
+send = 0.4
+
+[instruments.bass]
+wave = "triangle"
+attack = 0.004
+release = 0.05
+volume = 0.45
+
+[instruments.low]
+wave = "drum"
+freq = 170
+freq_end = 110
+length = 0.2
+noise = 0.2
+release = 0.1
+volume = 0.6
+
+[instruments.high]
+wave = "drum"
+freq = 310
+freq_end = 230
+length = 0.14
+noise = 0.3
+release = 0.07
+volume = 0.42
+
+[instruments.shaker]
+wave = "noise"
+freq = 8000
+length = 0.04
+release = 0.025
+lowpass = 0.8
+volume = 0.1
+
+[patterns.phrase_pluck]
+instrument = "pluck"
+stride = 2
+steps = """
+G4 B4 D5 G5 - D5 B4 D5
+E5 - D5 B4 A4 - G4 -
+"""
+
+[patterns.phrase_bell]
+instrument = "bell"
+stride = 2
+steps = """
+G5 B5 D6 G6 - D6 B5 D6
+E6 - D6 B5 A5 - G5 -
+"""
+
+[patterns.phrase_reed]
+instrument = "reed"
+stride = 2
+steps = """
+G4 B4 D5 G5 - D5 B4 D5
+E5 - D5 B4 A4 - G4 -
+"""
+
+[patterns.phrase_ping]
+instrument = "ping"
+stride = 2
+steps = """
+G5 B5 D6 G6 - D6 B5 D6
+E6 - D6 B5 A5 - G5 -
+"""
+
+[patterns.pad2_root]
+instrument = "pad"
+stride = 16
+steps = "G3 C3"
+
+[patterns.pad2_third]
+instrument = "pad"
+stride = 16
+steps = "B3 E3"
+
+[patterns.pad2_fifth]
+instrument = "pad"
+stride = 16
+steps = "D4 G3"
+
+[patterns.tune]
+instrument = "reed"
+stride = 2
+steps = """
+B4 - D5 - G5 - D5 B4
+E5 - G5 - B5 - G5 E5
+E5 - G5 E5 C5 - E5 -
+F#5 - A5 F#5 D5 - A4 -
+"""
+
+[patterns.arp]
+instrument = "pluck"
+stride = 2
+steps = """
+G3 D4 G4 B4 D4 G4 B4 D4
+E3 B3 E4 G4 B3 E4 G4 B3
+C3 G3 C4 E4 G3 C4 E4 G3
+D3 A3 D4 F#4 A3 D4 F#4 A3
+"""
+
+[patterns.bass]
+instrument = "bass"
+stride = 8
+steps = "G2 G2 E2 E2 C2 C2 D2 D2"
+
+[patterns.pad_root]
+instrument = "pad"
+stride = 16
+steps = "G3 E3 C3 D3"
+
+[patterns.pad_third]
+instrument = "pad"
+stride = 16
+steps = "B3 G3 E3 F#3"
+
+[patterns.pad_fifth]
+instrument = "pad"
+stride = 16
+steps = "D4 B3 G3 A3"
+
+[patterns.chime]
+instrument = "bell"
+stride = 4
+steps = """
+. . D6 .
+. . B5 .
+. . G5 .
+. A5 . D6
+"""
+
+[patterns.spark]
+instrument = "ping"
+stride = 4
+steps = """
+G5 . . .
+. . . .
+E5 . . .
+. . . .
+"""
+
+[patterns.low]
+instrument = "low"
+steps = "x . . . . . x . . . x . . . . ."
+
+[patterns.high]
+instrument = "high"
+steps = ". . . x . . . . x . . . . x . ."
+
+[patterns.high2]
+instrument = "high"
+steps = """
+. . . x . . . . x . . . . x . .
+. . x . . x . . x . x . x x x x
+"""
+
+[patterns.shaker]
+instrument = "shaker"
+steps = "x . x . x . x . x . x . x . x ."

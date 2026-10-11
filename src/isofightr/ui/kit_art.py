@@ -199,6 +199,21 @@ def tag_plate(width: int, height: int, color: Rgb) -> Image.Image:
     return filled(shape_mask(width, height, 1, ALL_CORNERS), theme.PANEL_DEEP, color)
 
 
+def level_bar(
+    width: int, height: int, lit: int, fill: Rgb | Rgba = theme.GAUGE_FILL
+) -> Image.Image:
+    """Return an upright bar lit ``lit`` pixels up from its foot (the sound test's meter)."""
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle(
+        (0, 0, width - 1, height - 1), fill=theme.GAUGE_TRACK, outline=theme.BUTTON_BORDER
+    )
+    lit = min(max(lit, 0), height - 2)
+    if lit > 0:
+        draw.rectangle((1, height - 1 - lit, width - 2, height - 2), fill=_solid(fill))
+    return image
+
+
 def gauge(
     width: int,
     height: int,

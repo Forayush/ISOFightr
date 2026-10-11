@@ -50,6 +50,7 @@ SCREENS: tuple[str, ...] = (
     "hud",
     "loading",
     "settings",
+    "soundtest",
     "pause",
     "training",
     "kit",
@@ -229,6 +230,8 @@ def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 
         flow.show_random_pool()
     elif screen == "settings":
         flow.show_settings()
+    elif screen == "soundtest":
+        flow.show_sound_test()
     elif screen == "controls":
         flow.show_controls()
     elif screen == "controls_pad":

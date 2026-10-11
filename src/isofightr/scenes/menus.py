@@ -519,6 +519,7 @@ class SettingsView(MenuListView):
         "master_volume": "speaker",
         "music_volume": "speaker",
         "sfx_volume": "speaker",
+        "sound_test": "speaker",
         "controls": "controller",
         "camera_zoom": "stage",
         "reduce_flashing": "shield",
@@ -538,6 +539,7 @@ class SettingsView(MenuListView):
         "master_volume": "Everything.",
         "music_volume": "The songs.",
         "sfx_volume": "Hits, swings and menu blips.",
+        "sound_test": "Listen to every song and sound in the game.",
         "controls": "Rebind the keyboards and the gamepads.",
         "camera_zoom": "Stepped: the camera doubles when everyone is close.",
         "reduce_flashing": "No hit flashes, no screen shake, no pulsing clock.",
@@ -569,6 +571,7 @@ class SettingsView(MenuListView):
                 MenuItem("master_volume", "Master volume", volumes, settings.master_volume),
                 MenuItem("music_volume", "Music volume", volumes, settings.music_volume),
                 MenuItem("sfx_volume", "Effects volume", volumes, settings.sfx_volume),
+                MenuItem("sound_test", "Sound test"),
                 MenuItem("controls", "Controls"),
                 _setting(
                     "camera_zoom",
@@ -608,6 +611,8 @@ class SettingsView(MenuListView):
         """Open the controls screen, reset, or leave."""
         if key == "controls":
             self.flow.show_controls(self.flow.show_settings)
+        elif key == "sound_test":
+            self.flow.show_sound_test()
         elif key == "defaults":
             # Video, audio and accessibility only: the controls and the rules have their
             # own DEFAULT buttons.

@@ -30,6 +30,7 @@ from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
 from isofightr.scenes.select_view import CharacterSelectView
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
+from isofightr.scenes.sound_test_view import SoundTestView
 from isofightr.scenes.stage_select_view import StageSelectView
 from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
@@ -151,6 +152,10 @@ class GameFlow:
     def show_settings(self) -> None:
         """Go to the settings."""
         self.window.show_view(SettingsView(self.pixel_buffer, self))
+
+    def show_sound_test(self) -> None:
+        """Go to the sound test (the jukebox, from the settings)."""
+        self.window.show_view(SoundTestView(self.pixel_buffer, self))
 
     def show_controls(
         self, on_back: Callable[[], None] | None = None, tab: int = 0, cursor: str = ""
