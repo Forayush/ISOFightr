@@ -292,30 +292,32 @@ def ring_pixels(
 
 
 def test_ring_surrounds_a_fighter_standing_on_the_ground(window: Any) -> None:
-    view = make_view(window, load_stage("sky_ruins"))
+    # Without the stage's props: a column stands close enough to cover the ring's end.
+    view = make_view(window, geometry_only(load_stage("sky_ruins")))
     pos = Vec3(6.5, 1.5, 0.0)
     left, right = ring_pixels(window, render(view, pos), pos, 0.0)
     assert left == right == P1_BODY
 
 
 def test_shadow_stays_on_the_ground_while_the_fighter_jumps(window: Any) -> None:
-    stage = load_stage("sky_ruins")
+    stage = geometry_only(load_stage("sky_ruins"))
     view = make_view(window, stage)
     pos = Vec3(6.5, 1.5, 3.0)
     centre = render(view, pos)
     left, right = ring_pixels(window, centre, pos, 0.0)
     assert left == right == P1_BODY
-    # The blob darkens the grass at the middle of the ring, well below the airborne body.
+    # The blob darkens the floor at the middle of the ring, well below the airborne body.
     ring_x, ring_y = (snap(value) for value in project(pos.x, pos.y, 0.0))
     under = read_pixel(window, centre, ring_x - 1, ring_y - 1)
-    grass = {art.tile_palette("grass").top_light, art.tile_palette("grass").top_dark}
-    assert under not in grass
-    assert sum(under[:3]) < min(sum(color[:3]) for color in grass)
+    view.match.fighters[0].pos = FAR_AWAY
+    view.on_draw()
+    floor = read_pixel(window, centre, ring_x - 1, ring_y - 1)
+    assert sum(under[:3]) < sum(floor[:3]), "darker than the same floor with nobody above it"
 
 
 def test_shadow_lands_on_a_platform_the_fighter_is_above(window: Any) -> None:
-    # The screen-right low platform (x 8..11, y 0..3, z 2.5).
-    view = make_view(window, load_stage("sky_ruins"))
+    # The screen-right low platform (x 8..11, y 0..3, z 2.5), without the columns under it.
+    view = make_view(window, geometry_only(load_stage("sky_ruins")))
     on_deck = Vec3(9.5, 1.5, 2.5)
     left, right = ring_pixels(window, render(view, on_deck), on_deck, 2.5)
     assert left == right == P1_BODY
@@ -496,7 +498,7 @@ def test_keyboard_presets_do_not_collide(window: Any) -> None:
 def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
     renderer = view.renderer
-    assert [layer.parallax for layer, _, _ in renderer._layers] == [0.0, 0.08, 0.18, 0.35]
+    assert [layer.parallax for layer, _, _ in renderer._layers] == [0.0, 0.06, 0.1, 0.14, 0.2, 0.4]
     renderer._tick = 0  # the layers' own drift is tested with the stage decor
     reference = tuple(round(value) for value in renderer._backdrop_reference)
     renderer._place_backdrop(reference)
@@ -507,7 +509,7 @@ def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
     moved = [
         round(start - end) % width for start, end, width in zip(before, after, widths, strict=True)
     ]
-    assert moved == [0, 8, 18, 35], "nearer layers move further, the sky not at all"
+    assert moved == [0, 6, 10, 14, 20, 40], "nearer layers move further, the sky not at all"
     renderer._place_backdrop((reference[0] + 100_000, reference[1]))
     for _, _, copies in renderer._layers:
         lefts = [sprite.left for sprite in copies]

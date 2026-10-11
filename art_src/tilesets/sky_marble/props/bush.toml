@@ -1,0 +1,41 @@
+# Bush: three round clumps of leaves.
+loop = true
+fps = 1
+
+[[parts]]
+name = "back"
+joint = "origin"
+shape = "ball"
+centre = [0.020, 0.100, 0.260]
+radius = 0.260
+scale = [1.000, 1.000, 0.900]
+material = "leaf_dark"
+
+[[parts]]
+name = "left"
+joint = "origin"
+shape = "ball"
+centre = [-0.200, -0.060, 0.200]
+radius = 0.220
+scale = [1.000, 1.000, 0.900]
+material = "leaf"
+
+[[parts]]
+name = "right"
+joint = "origin"
+shape = "ball"
+centre = [0.200, -0.080, 0.220]
+radius = 0.240
+scale = [1.000, 1.000, 0.900]
+material = "leaf"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "ball"
+centre = [0.020, -0.040, 0.420]
+radius = 0.180
+scale = [1.000, 1.000, 1.000]
+material = "leaf"
+
+[[poses]]

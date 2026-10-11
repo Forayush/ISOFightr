@@ -207,3 +207,122 @@ def paint_sky(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 PAINTERS: Final[dict[str, Painter]] = {"sky": paint_sky}
 """One backdrop painter per theme (decision D-063); each stage's theme adds its own."""
+
+
+# --- the cloud sea (Sky Ruins) -------------------------------------------------------------
+
+SUN_CENTRE: Final[tuple[int, int]] = (506, 62)
+SUN_RADIUS: Final[int] = 13
+SUN_HALO: Final[int] = 34
+SUN_COLOURS: Final[tuple[str, str]] = ("ffffff", "fbff86")
+BIRD_COLOUR: Final[str] = "484a77"
+BIRD_FRAMES: Final[tuple[tuple[str, ...], ...]] = (
+    ("#...#", ".#.#.", "..#.."),
+    (".....", "##.##", "..#.."),
+)
+"""A far-off bird with its wings up, then level (``#`` is a pixel)."""
+BIRDS: Final[int] = 9
+BIRD_BAND: Final[tuple[int, int]] = (58, 150)
+
+
+def sunny_sky(mood: Mood) -> Image.Image:
+    """Return the mood's sky with a small sun and a dithered halo around it."""
+    image = sky(mood)
+    pixels = image.load()
+    assert pixels is not None
+    disc, glow = (hex_rgb(value) for value in SUN_COLOURS)
+    centre_x, centre_y = SUN_CENTRE
+    for y in range(centre_y - SUN_HALO, centre_y + SUN_HALO + 1):
+        for x in range(centre_x - SUN_HALO, centre_x + SUN_HALO + 1):
+            distance = ((x - centre_x) ** 2 + (y - centre_y) ** 2) ** 0.5
+            if distance <= SUN_RADIUS:
+                pixels[x, y] = (*disc, 255)
+            elif distance <= SUN_HALO:
+                strength = 1.0 - (distance - SUN_RADIUS) / (SUN_HALO - SUN_RADIUS)
+                if strength * strength * 16 > BAYER_4[y % 4][x % 4]:
+                    pixels[x, y] = (*glow, 255)
+    return image
+
+
+def cloud_bank(
+    mood: Mood,
+    seed: int,
+    top: int,
+    swell: int,
+    puff: int,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
+) -> Image.Image:
+    """Return a sea of cloud seen from above: an unbroken bank whose billowing top edge is
+    about ``top`` pixels down, lit along its crests and darker with depth. It wraps."""
+    rng = random.Random(seed)
+    light, mid, shadow = (hex_rgb(value) for value in mood.cloud)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    floor = top + swell + puff // 2
+    draw.rectangle((0, floor, width, height), fill=mid)
+    count = max(4, width // puff)
+    puffs = []
+    for index in range(count):
+        x = int((index + rng.uniform(0.2, 0.8)) * width / count)
+        y = top + rng.randint(0, swell) + puff // 2
+        puffs.append((x, y, int(puff * rng.uniform(0.75, 1.2))))
+    for colour, lift, shrink in ((light, 0, 0), (mid, -3, 1)):
+        for x, y, radius in puffs:
+            for shift in (-width, 0, width):
+                rx, ry = int(radius * 1.5) - shrink, radius - shrink
+                draw.ellipse(
+                    (x + shift - rx, y - ry - lift, x + shift + rx, y + ry - lift), fill=colour
+                )
+    # Deeper in, the bank falls into its own shadow: dithered, so no new colour appears.
+    pixels = image.load()
+    assert pixels is not None
+    depth = max(height - floor, 1)
+    for y in range(floor, height):
+        strength = (y - floor) / depth
+        for x in range(width):
+            if strength * 16 > BAYER_4[y % 4][x % 4]:
+                pixels[x, y] = (*shadow, 255)
+    return image
+
+
+def birds(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return a flock of far-off birds as two frames stacked top to bottom (wings up, wings
+    level), for a ``[[background]]`` layer with ``frames = 2``."""
+    rng = random.Random(seed)
+    colour = (*hex_rgb(BIRD_COLOUR), 255)
+    image = Image.new("RGBA", (width, height * len(BIRD_FRAMES)))
+    spots = []
+    lead_x, lead_y = rng.randint(80, width - 80), rng.randint(*BIRD_BAND)
+    for index in range(BIRDS):
+        # Two loose skeins: each bird a little behind and beside the one before.
+        if index == BIRDS // 2:
+            lead_x = (lead_x + width // 2) % width
+            lead_y = rng.randint(*BIRD_BAND)
+        along = index % (BIRDS // 2 + 1)
+        spots.append((lead_x + along * rng.randint(9, 14), lead_y + along * rng.randint(-5, 6)))
+    for frame, rows in enumerate(BIRD_FRAMES):
+        for number, (x, y) in enumerate(spots):
+            # Neighbours beat out of step: every other bird shows the other frame.
+            shape = BIRD_FRAMES[(frame + number) % len(BIRD_FRAMES)] if number % 2 else rows
+            for row, line in enumerate(shape):
+                for column, mark in enumerate(line):
+                    if mark == "#":
+                        image.putpixel(((x + column) % width, frame * height + y + row), colour)
+    return image
+
+
+def paint_cloud_sea(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Sky Ruins: a sunlit sky, far clouds, distant ruined islands and birds, above a sea
+    of cloud in two banks that drift at different speeds."""
+    return {
+        "bg_0_sky.png": sunny_sky(mood),
+        "bg_1_far_clouds.png": clouds(mood, seed, 7, (70, 150), (8, 13)),
+        "bg_2_birds.png": birds(seed + 2),
+        "bg_3_islands.png": islands(mood, seed + 1, 6, (120, 205), (10, 20)),
+        "bg_4_far_bank.png": cloud_bank(mood, seed + 3, 236, 14, 22),
+        "bg_5_near_bank.png": cloud_bank(mood, seed + 4, 286, 18, 34),
+    }
+
+
+PAINTERS["cloud_sea"] = paint_cloud_sea

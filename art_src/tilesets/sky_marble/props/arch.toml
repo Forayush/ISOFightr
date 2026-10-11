@@ -1,0 +1,157 @@
+# Arch: two columns and the beam they still carry.
+loop = true
+fps = 1
+
+[[parts]]
+name = "aplinth"
+joint = "origin"
+shape = "box"
+low = [0.530, -1.070, 0.000]
+high = [1.070, -0.530, 0.140]
+material = "ruin_dark"
+
+[[parts]]
+name = "ashaft"
+joint = "origin"
+shape = "rod"
+a = [0.800, -0.800, 0.140]
+b = [0.800, -0.800, 2.300]
+r1 = 0.200
+r2 = 0.170
+material = "ruin"
+
+[[parts]]
+name = "aring"
+joint = "origin"
+shape = "rod"
+a = [0.800, -0.800, 0.140]
+b = [0.800, -0.800, 0.220]
+r1 = 0.230
+r2 = 0.230
+material = "ruin_dark"
+
+[[parts]]
+name = "aneck"
+joint = "origin"
+shape = "rod"
+a = [0.800, -0.800, 2.220]
+b = [0.800, -0.800, 2.300]
+r1 = 0.200
+r2 = 0.200
+material = "ruin_dark"
+
+[[parts]]
+name = "acap"
+joint = "origin"
+shape = "box"
+low = [0.530, -1.070, 2.300]
+high = [1.070, -0.530, 2.500]
+material = "ruin"
+
+[[parts]]
+name = "aivy0"
+joint = "origin"
+shape = "box"
+low = [0.950, -0.880, 0.300]
+high = [1.020, -0.760, 1.550]
+material = "leaf"
+
+[[parts]]
+name = "aivy1"
+joint = "origin"
+shape = "box"
+low = [0.880, -0.660, 0.140]
+high = [0.970, -0.590, 1.000]
+material = "leaf_dark"
+
+[[parts]]
+name = "bplinth"
+joint = "origin"
+shape = "box"
+low = [-1.070, 0.530, 0.000]
+high = [-0.530, 1.070, 0.140]
+material = "ruin_dark"
+
+[[parts]]
+name = "bshaft"
+joint = "origin"
+shape = "rod"
+a = [-0.800, 0.800, 0.140]
+b = [-0.800, 0.800, 2.300]
+r1 = 0.200
+r2 = 0.170
+material = "ruin"
+
+[[parts]]
+name = "bring"
+joint = "origin"
+shape = "rod"
+a = [-0.800, 0.800, 0.140]
+b = [-0.800, 0.800, 0.220]
+r1 = 0.230
+r2 = 0.230
+material = "ruin_dark"
+
+[[parts]]
+name = "bneck"
+joint = "origin"
+shape = "rod"
+a = [-0.800, 0.800, 2.220]
+b = [-0.800, 0.800, 2.300]
+r1 = 0.200
+r2 = 0.200
+material = "ruin_dark"
+
+[[parts]]
+name = "bcap"
+joint = "origin"
+shape = "box"
+low = [-1.070, 0.530, 2.300]
+high = [-0.530, 1.070, 2.500]
+material = "ruin"
+
+[[parts]]
+name = "beam"
+joint = "origin"
+shape = "rod"
+a = [0.950, -0.950, 2.660]
+b = [-0.950, 0.950, 2.660]
+r1 = 0.170
+r2 = 0.170
+material = "ruin"
+
+[[parts]]
+name = "cornice"
+joint = "origin"
+shape = "rod"
+a = [1.020, -1.020, 2.860]
+b = [-1.020, 1.020, 2.860]
+r1 = 0.100
+r2 = 0.100
+material = "ruin_dark"
+
+[[parts]]
+name = "keystone"
+joint = "origin"
+shape = "box"
+low = [-0.160, -0.160, 2.600]
+high = [0.160, 0.160, 2.960]
+material = "gilt"
+
+[[parts]]
+name = "hang0"
+joint = "origin"
+shape = "box"
+low = [0.300, -0.360, 2.000]
+high = [0.360, -0.300, 2.500]
+material = "leaf"
+
+[[parts]]
+name = "hang1"
+joint = "origin"
+shape = "box"
+low = [-0.500, 0.440, 1.700]
+high = [-0.440, 0.500, 2.500]
+material = "leaf_dark"
+
+[[poses]]

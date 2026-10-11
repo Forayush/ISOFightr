@@ -1,0 +1,67 @@
+# Column: a free-standing column, taller than a fighter.
+loop = true
+fps = 1
+
+[[parts]]
+name = "plinth"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.270, 0.000]
+high = [0.270, 0.270, 0.140]
+material = "ruin_dark"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.140]
+b = [0.000, 0.000, 2.500]
+r1 = 0.200
+r2 = 0.170
+material = "ruin"
+
+[[parts]]
+name = "ring"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.140]
+b = [0.000, 0.000, 0.220]
+r1 = 0.230
+r2 = 0.230
+material = "ruin_dark"
+
+[[parts]]
+name = "neck"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 2.420]
+b = [0.000, 0.000, 2.500]
+r1 = 0.200
+r2 = 0.200
+material = "ruin_dark"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.270, 2.500]
+high = [0.270, 0.270, 2.700]
+material = "ruin"
+
+[[parts]]
+name = "ivy0"
+joint = "origin"
+shape = "box"
+low = [0.150, -0.080, 0.300]
+high = [0.220, 0.040, 1.674]
+material = "leaf"
+
+[[parts]]
+name = "ivy1"
+joint = "origin"
+shape = "box"
+low = [0.080, 0.140, 0.140]
+high = [0.170, 0.210, 1.080]
+material = "leaf_dark"
+
+[[poses]]

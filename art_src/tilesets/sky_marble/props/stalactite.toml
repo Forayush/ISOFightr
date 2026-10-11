@@ -1,0 +1,25 @@
+# Stalactite: a spike of rock under the island.
+loop = true
+fps = 1
+
+[[parts]]
+name = "spike"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.020, 0.000, -0.900]
+r1 = 0.200
+r2 = 0.020
+material = "rock_spike"
+
+[[parts]]
+name = "spike2"
+joint = "origin"
+shape = "rod"
+a = [0.220, -0.080, 0.020]
+b = [0.240, -0.080, -0.500]
+r1 = 0.120
+r2 = 0.020
+material = "rock_spike"
+
+[[poses]]

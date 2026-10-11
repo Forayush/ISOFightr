@@ -1,0 +1,45 @@
+# Cypress: a tall, narrow tree whose tip sways (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "trunk"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.500]
+r1 = 0.070
+r2 = 0.060
+material = "bark"
+
+[[parts]]
+name = "low"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.750]
+radius = 0.300
+scale = [1.000, 1.000, 1.500]
+material = "leaf_dark"
+
+[[parts]]
+name = "mid"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 1.300]
+radius = 0.260
+scale = [1.000, 1.000, 1.600]
+material = "leaf"
+
+[[parts]]
+name = "tip"
+joint = "crown"
+shape = "ball"
+centre = [0.000, 0.000, 0.600]
+radius = 0.170
+scale = [1.000, 1.000, 2.200]
+material = "leaf"
+
+[[poses]]
+
+[[poses]]
+crown = [0.000, 5.000, 0.000]

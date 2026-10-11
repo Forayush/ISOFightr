@@ -1,61 +1,95 @@
-# Above the Ruins: Sky Ruins; A minor, i VI III VII, heroic (decision D-055). Rendered by tools/build_audio.py.
+# Above the Ruins: Sky Ruins (decision D-063). A heroic fanfare in D mixolydian: the flat
+# seventh (C) under a major tune is what makes it sound like banners and open sky. Pulse
+# "brass" carries the tune, a bell answers it, strings (a pad) hold the chords, and timpani
+# mark the bar. Rendered by tools/build_audio.py.
 # Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
 id = "sky_ruins"
 title = "Above the Ruins"
-tempo = 150
+tempo = 144
 steps_per_beat = 4
-# Sections in order; the patterns in one section play together.
-sequence = [
-  ["bass", "kick", "hat"],
-  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
-]
+key = "D"
+mode = "mixolydian"
+meter = "4/4"
+form = ["intro", "verse", "chorus", "bridge", "chorus2"]
 
-[instruments.lead]
+[echo]
+beats = 0.75
+feedback = 0.3
+mix = 0.32
+lowpass = 0.55
+
+[sections.intro]              # 4 bars: the strings swell, the brass calls
+level = 0.55
+to = 1.0
+play = ["call", "str_i_root", "str_i_third", "str_i_fifth", "timp_roll"]
+
+[sections.verse]              # 8 bars: D D C C G G D D
+level = 0.9
+play = ["tune", "answer", "bass_v", "str_v_root", "str_v_third", "str_v_fifth",
+        "timp", "kick", "hat*0.8"]
+
+[sections.chorus]             # 8 bars: G D C D G D C D
+play = ["soar", "peal", "bass_c", "str_c_root", "str_c_third", "str_c_fifth",
+        "timp", "kick", "snare", "hat"]
+
+[sections.bridge]             # 4 bars: C G C Am, quiet, building back
+level = 0.6
+to = 1.0
+play = ["chime", "bass_b", "str_b_root", "str_b_third", "str_b_fifth", "timp_roll*0.8"]
+
+[sections.chorus2]            # the chorus again, the brass doubled an octave down
+kind = "chorus"
+play = ["soar", "soar-12*0.5", "peal", "bass_c", "str_c_root", "str_c_third", "str_c_fifth",
+        "timp", "kick", "snare", "hat"]
+
+[instruments.brass]           # a narrow pulse, softened and slow to speak
 wave = "square"
 duty = 0.25
-attack = 0.004
-decay = 0.07
-sustain = 0.55
-release = 0.04
-volume = 0.28
-vibrato_depth = 0.12
+attack = 0.03
+decay = 0.09
+sustain = 0.7
+release = 0.07
+lowpass = 0.55
+vibrato_depth = 0.18
 vibrato_rate = 5.5
+volume = 0.3
+send = 0.12
 
-[instruments.harmony]
-wave = "square"
-duty = 0.5
-attack = 0.004
-decay = 0.08
-sustain = 0.5
-release = 0.04
-volume = 0.13
+[instruments.bell]
+wave = "bell"
+mod_ratio = 2.0
+mod_index = 2.6
+attack = 0.002
+decay = 0.4
+sustain = 0.2
+release = 0.35
+volume = 0.24
+send = 0.45
+
+[instruments.strings]
+wave = "pad"
+detune = 9
+attack = 0.18
+release = 0.35
+lowpass = 0.5
+volume = 0.2
 
 [instruments.bass]
 wave = "triangle"
-attack = 0.003
-release = 0.03
-volume = 0.5
+attack = 0.004
+release = 0.04
+volume = 0.38
 
-[instruments.chord_major]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 4, 7, 12]
-arpeggio_rate = 18
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.chord_minor]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 3, 7, 12]
-arpeggio_rate = 18
-attack = 0.01
-release = 0.08
-volume = 0.1
+[instruments.timpani]         # tuned: it plays notes, each falling a little as a skin does
+wave = "drum"
+freq = 98
+freq_end = 88
+noise = 0.12
+attack = 0.002
+decay = 0.25
+sustain = 0.3
+release = 0.3
+volume = 0.44
 
 [instruments.kick]
 wave = "sine"
@@ -63,113 +97,220 @@ freq = 150
 freq_end = 45
 length = 0.11
 release = 0.04
-volume = 0.85
+volume = 0.55
 
 [instruments.snare]
 wave = "noise"
-freq = 3600
-length = 0.1
+freq = 3300
+length = 0.11
 decay = 0.07
 sustain = 0.25
-lowpass = 0.7
-release = 0.04
-volume = 0.36
+lowpass = 0.6
+release = 0.05
+volume = 0.26
 
 [instruments.hat]
 wave = "noise"
-freq = 9000
-length = 0.035
+freq = 9500
+length = 0.03
 release = 0.02
-volume = 0.14
+volume = 0.1
 
-[patterns.lead_a]
-instrument = "lead"
+[patterns.call]
+instrument = "brass"
 stride = 2
 steps = """
-A4 - C5 E5 - C5 E5 A5
-A5 - G5 F5 - C5 A4 C5
+A4 - - D5 - - - -
+A4 - - D5 - - F#5 -
+A4 D5 F#5 A5 - - - -
+A5 - F#5 A5 D6 - - -
+"""
+
+[patterns.tune]
+instrument = "brass"
+stride = 2
+steps = """
+D5 - D5 E5 F#5 - A5 -
+A5 - F#5 - D5 - - -
+C5 - C5 D5 E5 - G5 -
+G5 - E5 - C5 - - -
+B4 - B4 D5 G5 - B5 -
+A5 - G5 - D5 - B4 -
+A4 - D5 - F#5 - A5 -
+D5 - - - - - . .
+"""
+
+[patterns.soar]
+instrument = "brass"
+stride = 2
+steps = """
+B5 - A5 G5 - D5 G5 -
+A5 - F#5 D5 - F#5 A5 -
 G5 - E5 C5 - E5 G5 -
-B4 - D5 G5 - F5 E5 D5
+F#5 - E5 D5 - - A4 -
+B5 - A5 G5 - B5 D6 -
+D6 - A5 F#5 - A5 D6 -
+C6 - G5 E5 - G5 C6 -
+D6 - - - A5 - D6 -
 """
 
-[patterns.lead_b]
-instrument = "lead"
+[patterns.answer]
+instrument = "bell"
+stride = 4
+steps = """
+. . . .
+. . A5 D6
+. . . .
+. . G5 C6
+. . . .
+. . D6 B5
+. . . .
+F#5 A5 D6 .
+"""
+
+[patterns.peal]
+instrument = "bell"
+stride = 4
+steps = """
+G5 B5 D6 B5
+F#5 A5 D6 A5
+E5 G5 C6 G5
+F#5 A5 D6 .
+G5 B5 D6 B5
+F#5 A5 D6 A5
+E5 G5 C6 G5
+D6 A5 F#5 D5
+"""
+
+[patterns.chime]
+instrument = "bell"
 stride = 2
 steps = """
-E5 E5 A5 - E5 - C5 -
-F5 F5 A5 - F5 - C5 -
-G5 G5 C6 - G5 - E5 -
-D5 - G5 - B5 - A5 G5
+E5 G5 C6 - G5 - E5 -
+D5 G5 B5 - G5 - D5 -
+E5 G5 C6 - E6 - C6 -
+C6 - A5 - E5 - A5 -
 """
 
-[patterns.echo_a]
-instrument = "harmony"
-stride = 2
-steps = """
-A4 - C5 E5 - C5 E5 A5
-A5 - G5 F5 - C5 A4 C5
-G5 - E5 C5 - E5 G5 -
-B4 - D5 G5 - F5 E5 D5
-"""
-
-[patterns.echo_b]
-instrument = "harmony"
-stride = 2
-steps = """
-E5 E5 A5 - E5 - C5 -
-F5 F5 A5 - F5 - C5 -
-G5 G5 C6 - G5 - E5 -
-D5 - G5 - B5 - A5 G5
-"""
-
-[patterns.bass]
+[patterns.bass_v]
 instrument = "bass"
 stride = 2
 steps = """
-A2 A2 E3 A2 A2 E3 A3 E3
-F2 F2 C3 F2 F2 C3 F3 C3
-C3 C3 G3 C3 C3 G3 C4 G3
-G2 G2 D3 G2 G2 D3 G3 D3
+D2 . D2 D3 . D2 D3 D2
+D2 . D2 D3 . D2 A2 D3
+C2 . C2 C3 . C2 C3 C2
+C2 . C2 C3 . C2 G2 C3
+G2 . G2 G3 . G2 G3 G2
+G2 . G2 G3 . G2 D3 G3
+D2 . D2 D3 . D2 D3 D2
+D2 . D2 D3 . A2 D3 A2
 """
 
-[patterns.major]
-instrument = "chord_major"
+[patterns.bass_c]
+instrument = "bass"
 stride = 2
 steps = """
-. . . . . . . .
-F3 - - - - - - -
-C4 - - - - - - -
-G3 - - - - - - -
+G2 G2 G3 G2 G2 G3 D3 G3
+D2 D2 D3 D2 D2 D3 A2 D3
+C2 C2 C3 C2 C2 C3 G2 C3
+D2 D2 D3 D2 D2 D3 A2 D3
+G2 G2 G3 G2 G2 G3 D3 G3
+D2 D2 D3 D2 D2 D3 A2 D3
+C2 C2 C3 C2 C2 C3 G2 C3
+D2 D2 D3 D2 A2 A2 D3 D3
 """
 
-[patterns.minor]
-instrument = "chord_minor"
+[patterns.bass_b]
+instrument = "bass"
+stride = 8
+steps = "C3 G2 G2 D3 C3 G2 A2 E3"
+
+[patterns.str_i_root]
+instrument = "strings"
+stride = 16
+steps = "D3 D3 D3 D3"
+
+[patterns.str_i_third]
+instrument = "strings"
+stride = 16
+steps = "F#3 F#3 A3 A3"
+
+[patterns.str_i_fifth]
+instrument = "strings"
+stride = 16
+steps = "A3 A3 D4 D4"
+
+[patterns.str_v_root]
+instrument = "strings"
+stride = 16
+steps = "D3 D3 C3 C3 G3 G3 D3 D3"
+
+[patterns.str_v_third]
+instrument = "strings"
+stride = 16
+steps = "F#3 F#3 E3 E3 B3 B3 F#3 F#3"
+
+[patterns.str_v_fifth]
+instrument = "strings"
+stride = 16
+steps = "A3 A3 G3 G3 D4 D4 A3 A3"
+
+[patterns.str_c_root]
+instrument = "strings"
+stride = 16
+steps = "G3 D3 C3 D3 G3 D3 C3 D3"
+
+[patterns.str_c_third]
+instrument = "strings"
+stride = 16
+steps = "B3 F#3 E3 F#3 B3 F#3 E3 F#3"
+
+[patterns.str_c_fifth]
+instrument = "strings"
+stride = 16
+steps = "D4 A3 G3 A3 D4 A3 G3 A3"
+
+[patterns.str_b_root]
+instrument = "strings"
+stride = 16
+steps = "C3 G3 C3 A3"
+
+[patterns.str_b_third]
+instrument = "strings"
+stride = 16
+steps = "E3 B3 E3 C4"
+
+[patterns.str_b_fifth]
+instrument = "strings"
+stride = 16
+steps = "G3 D4 G3 E4"
+
+[patterns.timp]
+instrument = "timpani"
 stride = 2
 steps = """
-A3 - - - - - - -
-. . . . . . . .
-. . . . . . . .
-. . . . . . . .
+D2 . . . A1 . . .
+D2 . . . A1 . A1 D2
+"""
+
+[patterns.timp_roll]
+instrument = "timpani"
+stride = 1
+steps = """
+D2 . . . . . . . . . . . . . . .
+D2 . . . . . . . A1 . . . . . . .
+D2 . . . A1 . . . D2 . . . A1 . . .
+D2 . A1 . D2 . A1 . D2 D2 A1 A1 D2 D2 D2 D2
 """
 
 [patterns.kick]
 instrument = "kick"
-stride = 1
-steps = """
-x . . . . . x . x . . . . . . .
-"""
+steps = "x . . . . . x . x . . . . . . ."
 
 [patterns.snare]
 instrument = "snare"
-stride = 1
-steps = """
-. . . . x . . . . . . . x . . .
-"""
+steps = ". . . . x . . . . . . . x . . ."
 
 [patterns.hat]
 instrument = "hat"
-stride = 1
-steps = """
-x . x . x . x . x . x . x . x x
-"""
-
+steps = "x . x . x . x . x . x . x . x x"

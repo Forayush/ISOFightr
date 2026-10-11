@@ -473,11 +473,15 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
     assert hud_layout.PLAY_AREA.bottom < hud_layout.INTRO_BOTTOM < hud_layout.PLAY_AREA.top - 25
 
 
-def test_the_sky_painter_reproduces_sky_ruins_backdrop() -> None:
+@pytest.mark.parametrize(("stage_id", "theme", "seed"), [("sky_ruins", "cloud_sea", 5)])
+def test_a_painter_reproduces_its_stages_backdrop(stage_id: str, theme: str, seed: int) -> None:
     from isofightr.render.backdrop import MOODS, PAINTERS
 
-    layers = PAINTERS["sky"](MOODS["day"], 11)
-    assert list(layers) == [layer.image for layer in load_stage("sky_ruins").backgrounds]
+    layers = PAINTERS[theme](MOODS["day"], seed)
+    assert list(layers) == [layer.image for layer in load_stage(stage_id).backgrounds]
     for name, image in layers.items():
-        committed = Image.open(Path("assets/stages/sky_ruins") / name).convert("RGBA")
+        committed = Image.open(Path("assets/stages") / stage_id / name).convert("RGBA")
         assert committed.tobytes() == image.convert("RGBA").tobytes(), name
+        assert colours(image) <= MASTER, "every backdrop colour is in the palette"
+    files = {path.name for path in (Path("assets/stages") / stage_id).glob("bg_*.png")}
+    assert files == set(layers), "no layer image is left over from an older backdrop"

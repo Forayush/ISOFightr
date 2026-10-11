@@ -1,0 +1,37 @@
+# Rubble: fallen blocks of the ruin.
+loop = true
+fps = 1
+
+[[parts]]
+name = "a"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.200, 0.000]
+high = [0.100, 0.160, 0.260]
+material = "ruin"
+
+[[parts]]
+name = "b"
+joint = "origin"
+shape = "box"
+low = [0.120, -0.300, 0.000]
+high = [0.420, -0.020, 0.180]
+material = "ruin_dark"
+
+[[parts]]
+name = "c"
+joint = "origin"
+shape = "box"
+low = [-0.120, 0.180, 0.000]
+high = [0.180, 0.400, 0.140]
+material = "ruin_dark"
+
+[[parts]]
+name = "moss"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.160, 0.260]
+high = [-0.020, 0.080, 0.300]
+material = "leaf"
+
+[[poses]]

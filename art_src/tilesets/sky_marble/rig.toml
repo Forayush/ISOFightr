@@ -1,0 +1,19 @@
+# The sky_marble tileset has no rig: each tile's geometry is in its own file ([[parts]]).
+# Blender space, like the fighters: a cell spans x, y in 0..1, its top at z = 0.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]
+
+# Props (decision D-063): a prop stands on, or hangs from, the origin. These two joints let a
+# part of it move: a tree's crown, a pole's flag.
+[[joints]]
+name = "crown"
+parent = "origin"
+at = [0.0, 0.0, 1.25]
+
+[[joints]]
+name = "flag"
+parent = "origin"
+at = [0.0, 0.0, 1.9]

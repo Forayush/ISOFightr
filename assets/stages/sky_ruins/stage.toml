@@ -1,28 +1,33 @@
 # Sky Ruins: the default competitive stage. A rounded 13x9 island with three soft platforms
-# (two low, one high).
+# (two low, one high). Its look (decision D-063): a marble plaza above a sea of cloud, the
+# low platforms carried on columns, ivy and broken arches at the rim.
 # The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "sky_ruins"
 display_name = "Sky Ruins"
-description = "The classic: one island and three soft platforms."
-tileset = "grass_stone"
+description = "A marble plaza above the clouds. The classic layout."
+tileset = "sky_marble"
 music = "sky_ruins"            # a song in assets/audio/music
 
-# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+# Legend: '.' = void; every other symbol is a solid cell. They are all at height 0 (the
+# layout is the classic one, flat): the symbols only choose the tile.
 grid = """
-..000000000..
-.00000000000.
-0000000000000
-0000000000000
-0000000000000
-0000000000000
-0000000000000
-.00000000000.
-..000000000..
+..ggggggggg..
+.gmmmmmmmmmg.
+gmMMMMMMMMMmg
+gmMMMIIIMMMmg
+gmMMMIIIMMMmg
+gmMMMIIIMMMmg
+gmMMMMMMMMMmg
+.gmmmmmmmmmg.
+..ggggggggg..
 """
 
 [legend]
-"0" = { height = 0, tile = "grass" }
+"g" = { height = 0, tile = "grass" }     # the rim
+"m" = { height = 0, tile = "mossy" }     # marble the grass is taking back
+"M" = { height = 0, tile = "marble" }    # the plaza
+"I" = { height = 0, tile = "inlay" }     # the mosaic in its middle
 
 # The platforms sit along the screen-horizontal diagonal (constant x + y), so on screen they
 # read as low-left, high-centre, low-right. In this top-down grid that looks diagonal.
@@ -51,69 +56,105 @@ bottom = -8.0
 [camera]
 bounds_margin = 4.0
 
-# Parallax backdrop (tools/build_backdrop.py sky_ruins): 0 = fixed to the screen, 1 = moves
-# with the stage. `music` arrives with M11 audio.
+# Parallax backdrop (tools/build_backdrop.py sky_ruins --theme cloud_sea --seed 5): 0 = fixed
+# to the screen, 1 = moves with the stage. `scroll` is pixels per tick the layer drifts by
+# itself; `frames` pictures are stacked in the one image.
 [[background]]
 image = "bg_0_sky.png"
 parallax = 0.0
 
 [[background]]
 image = "bg_1_far_clouds.png"
-parallax = 0.08
-scroll = 0.02               # pixels per tick: the clouds drift by themselves
+parallax = 0.06
+scroll = 0.015
 
 [[background]]
-image = "bg_2_islands.png"
-parallax = 0.18
+image = "bg_2_birds.png"
+parallax = 0.1
+scroll = 0.11
+frames = 2
+frame_ticks = 13
 
 [[background]]
-image = "bg_3_near_clouds.png"
-parallax = 0.35
-scroll = 0.06
+image = "bg_3_islands.png"
+parallax = 0.14
+
+[[background]]
+image = "bg_4_far_bank.png"
+parallax = 0.2
+scroll = 0.03
+
+[[background]]
+image = "bg_5_near_bank.png"
+parallax = 0.4
+scroll = 0.07
 
 # Looks only (decision D-063): none of this collides or changes how the stage plays.
 [underside]                  # the rock hanging under the island, and what hangs from it
 depth = 3.0
-hang = ["roots", "vine", "stalactite"]
+hang = ["vine", "roots", "vine", "stalactite"]
 
 [ambient]                    # slow sprites drifting across the screen (at most 16)
 kind = "leaves"
 count = 12
 front = 4
 
-[[props]]                    # sprite = a prop of the tileset; at = world x, y
-sprite = "column"
-at = [12.5, 2.6]
+# The two low platforms stand on columns (2.25 units: a deck's underside), at every corner
+# but the one nearest the camera.
 [[props]]
-sprite = "pillar"
-at = [9.5, 8.4]
+sprite = "support"
+at = [2.35, 6.35]
 [[props]]
-sprite = "pennant"
-at = [12.5, 4.4]
+sprite = "support"
+at = [4.65, 6.35]
 [[props]]
-sprite = "sapling"
-at = [0.5, 2.6]
+sprite = "support"
+at = [2.35, 8.65]
+[[props]]
+sprite = "support"
+at = [8.35, 0.35]
+[[props]]
+sprite = "support"
+at = [10.65, 0.35]
+[[props]]
+sprite = "support"
+at = [8.35, 2.65]
+
+# The rim. An arch stands across the screen, so its two legs share a depth.
+[[props]]
+sprite = "arch"
+at = [0.9, 3.5]
+[[props]]
+sprite = "arch_broken_r"
+at = [12.4, 3.5]
+[[props]]
+sprite = "cypress"
+at = [12.5, 5.5]
+phase = 9
+[[props]]
+sprite = "banner"
+at = [1.4, 1.4]
+[[props]]
+sprite = "banner"
+at = [11.6, 1.4]
+phase = 6
+[[props]]
+sprite = "urn"
+at = [3.5, 2.5]
+[[props]]
+sprite = "rubble"
+at = [8.5, 6.6]
 [[props]]
 sprite = "bush"
-at = [0.6, 5.6]
-[[props]]
-sprite = "rock"
-at = [12.4, 6.4]
+at = [0.5, 6.4]
 [[props]]
 sprite = "flowers"
-at = [4.4, 7.6]
+at = [5.5, 8.5]
 [[props]]
 sprite = "flowers"
-at = [9.6, 1.2]
+at = [9.5, 0.5]
 phase = 7
 [[props]]
-sprite = "tall_grass"
-at = [7.5, 8.5]
-[[props]]
-sprite = "tall_grass"
-at = [12.5, 3.4]
-phase = 5
-[[props]]
-sprite = "tall_grass"
-at = [5.6, 0.3]
-phase = 9
+sprite = "flowers"
+at = [11.5, 6.5]
+phase = 3

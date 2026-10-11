@@ -1,0 +1,45 @@
+# Deck: a marble slab with a gilded edge (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "edge"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.170]
+material = "gold"
+
+[[parts]]
+name = "under"
+joint = "origin"
+shape = "box"
+low = [0.020, 0.020, -0.250]
+high = [0.980, 0.980, -0.200]
+material = "wall_dark"
+
+[[parts]]
+name = "top0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.170]
+high = [1.000, 0.490, 0.000]
+material = "marble_dark"
+
+[[parts]]
+name = "top1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.510, -0.170]
+high = [1.000, 1.000, 0.000]
+material = "marble"
+
+[[parts]]
+name = "line"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.490, -0.170]
+high = [1.000, 0.510, -0.010]
+material = "vein"
+
+[[poses]]

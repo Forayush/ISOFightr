@@ -36,28 +36,28 @@ def test_props_are_sprites_in_the_sorted_world_and_animate(window: Any) -> None:
     view = make_view(window)
     renderer = view.renderer
     names = [prop.art.name for prop in renderer.props]
-    assert names[:4] == ["column", "pillar", "pennant", "sapling"]
+    assert names[:6] == ["support"] * 6 and {"arch", "arch_broken_r", "banner"} <= set(names)
     assert any(prop.below for prop in renderer.props), "something hangs under the island"
     view.on_draw()
     for sprite in renderer._prop_sprites:
         assert sprite in renderer.sprites and sprite.draw_rank >= 0, "it has a place in the order"
-    pennant = renderer._prop_sprites[names.index("pennant")]
-    column = renderer._prop_sprites[names.index("column")]
+    pennant = renderer._prop_sprites[names.index("banner")]
+    column = renderer._prop_sprites[names.index("support")]
     still = column.texture
     seen = set()
     for _ in range(60):
         view.on_update(TICK_SECONDS)
         view.on_draw()
         seen.add(id(pennant.texture))
-    assert len(seen) == 3, "the pennant's three frames all showed"
+    assert len(seen) == 3, "the banner's three frames all showed"
     assert column.texture is still
 
 
 def test_a_fighter_behind_a_prop_shows_through_it(window: Any) -> None:
     view = make_view(window)
     renderer = view.renderer
-    # The rock stands in the open at the island's right corner: nothing else is near it.
-    column = next(prop for prop in renderer.props if prop.art.name == "rock")
+    # These flowers stand in the open at the island's front edge: nothing else is near.
+    column = next(prop for prop in renderer.props if prop.art.name == "flowers")
     fighter, other = view.match.fighters
     other.pos = FAR_AWAY
     fighter.pos = Vec3(column.x - 0.3, column.y - 0.2, 0.0)
@@ -66,7 +66,7 @@ def test_a_fighter_behind_a_prop_shows_through_it(window: Any) -> None:
     body = renderer._parts[(fighter.entity_id, BODY_PART)]
     prop_sprite = renderer._prop_sprites[column.index]
     order = list(renderer.sprites)
-    assert order.index(body) < order.index(prop_sprite), "the rock is drawn over the fighter"
+    assert order.index(body) < order.index(prop_sprite), "the flowers are drawn over the fighter"
     fighter.pos = Vec3(column.x + 0.4, column.y + 0.4, 0.0)
     view.on_draw()
     order = list(renderer.sprites)
@@ -85,7 +85,9 @@ def test_cloud_layers_drift_by_themselves(window: Any) -> None:
     start, later = centres(0), centres(500)
     widths = [copies[1].width for _, _, copies in renderer._layers]
     moved = [round(a - b) % width for a, b, width in zip(start, later, widths, strict=True)]
-    assert moved == [0, 10, 0, 30], "the two cloud layers drift left; sky and islands do not"
+    assert moved == [0, 8, 55, 0, 15, 35], (
+        "clouds, birds and the two cloud banks drift left; the sky and the islands do not"
+    )
 
 
 def test_a_backdrop_layer_with_frames_plays_them(

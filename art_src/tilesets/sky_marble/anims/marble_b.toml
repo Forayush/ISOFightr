@@ -1,0 +1,437 @@
+# Marble, variant b: one great slab with a long vein.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.100]
+material = "earth"
+
+[[parts]]
+name = "slab0"
+joint = "origin"
+shape = "box"
+low = [0.015, 0.015, -0.100]
+high = [0.985, 0.985, 0.000]
+material = "marble"
+
+[[parts]]
+name = "vein0"
+joint = "origin"
+shape = "box"
+low = [0.120, 0.300, -0.020]
+high = [0.500, 0.330, 0.003]
+material = "vein"
+
+[[parts]]
+name = "vein1"
+joint = "origin"
+shape = "box"
+low = [0.470, 0.330, -0.020]
+high = [0.500, 0.620, 0.003]
+material = "vein"
+
+[[parts]]
+name = "vein2"
+joint = "origin"
+shape = "box"
+low = [0.500, 0.600, -0.020]
+high = [0.860, 0.630, 0.003]
+material = "vein"
+
+[[parts]]
+name = "vein3"
+joint = "origin"
+shape = "box"
+low = [0.200, 0.750, -0.020]
+high = [0.400, 0.780, 0.003]
+material = "vein"
+
+[[parts]]
+name = "ivy0"
+joint = "origin"
+shape = "box"
+low = [0.440, 0.990, -0.562]
+high = [0.510, 1.026, -0.020]
+material = "grass"
+
+[[parts]]
+name = "ivyl0"
+joint = "origin"
+shape = "box"
+low = [0.510, 0.990, -0.337]
+high = [0.560, 1.026, -0.100]
+material = "grass_dark"
+
+[[parts]]
+name = "block0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -0.430]
+high = [1.012, 0.525, -0.120]
+material = "wall_dark"
+
+[[parts]]
+name = "block1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.555, -0.430]
+high = [1.012, 0.838, -0.120]
+material = "wall"
+
+[[parts]]
+name = "block2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.868, -0.430]
+high = [1.012, 0.983, -0.120]
+material = "wall"
+
+[[parts]]
+name = "block3"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -0.430]
+high = [0.533, 1.012, -0.120]
+material = "wall"
+
+[[parts]]
+name = "block4"
+joint = "origin"
+shape = "box"
+low = [0.563, 0.950, -0.430]
+high = [0.983, 1.012, -0.120]
+material = "wall"
+
+[[parts]]
+name = "block5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -0.770]
+high = [1.012, 0.347, -0.460]
+material = "wall"
+
+[[parts]]
+name = "block6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.377, -0.770]
+high = [1.012, 0.713, -0.460]
+material = "wall"
+
+[[parts]]
+name = "block7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.743, -0.770]
+high = [1.012, 0.983, -0.460]
+material = "wall"
+
+[[parts]]
+name = "block8"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -0.770]
+high = [0.323, 1.012, -0.460]
+material = "wall"
+
+[[parts]]
+name = "block9"
+joint = "origin"
+shape = "box"
+low = [0.353, 0.950, -0.770]
+high = [0.748, 1.012, -0.460]
+material = "wall"
+
+[[parts]]
+name = "block10"
+joint = "origin"
+shape = "box"
+low = [0.778, 0.950, -0.770]
+high = [0.983, 1.012, -0.460]
+material = "wall_dark"
+
+[[parts]]
+name = "block11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.110]
+high = [1.012, 0.319, -0.800]
+material = "wall"
+
+[[parts]]
+name = "block12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.349, -1.110]
+high = [1.012, 0.802, -0.800]
+material = "wall_dark"
+
+[[parts]]
+name = "block13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.832, -1.110]
+high = [1.012, 0.983, -0.800]
+material = "wall"
+
+[[parts]]
+name = "block14"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.110]
+high = [0.336, 1.012, -0.800]
+material = "wall"
+
+[[parts]]
+name = "block15"
+joint = "origin"
+shape = "box"
+low = [0.366, 0.950, -1.110]
+high = [0.692, 1.012, -0.800]
+material = "wall"
+
+[[parts]]
+name = "block16"
+joint = "origin"
+shape = "box"
+low = [0.722, 0.950, -1.110]
+high = [0.983, 1.012, -0.800]
+material = "wall_dark"
+
+[[parts]]
+name = "block17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.450]
+high = [1.012, 0.535, -1.140]
+material = "wall_dark"
+
+[[parts]]
+name = "block18"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.565, -1.450]
+high = [1.012, 0.983, -1.140]
+material = "wall"
+
+[[parts]]
+name = "block19"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.450]
+high = [0.434, 1.012, -1.140]
+material = "wall"
+
+[[parts]]
+name = "block20"
+joint = "origin"
+shape = "box"
+low = [0.464, 0.950, -1.450]
+high = [0.983, 1.012, -1.140]
+material = "wall"
+
+[[parts]]
+name = "block21"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.790]
+high = [1.012, 0.429, -1.480]
+material = "wall_dark"
+
+[[parts]]
+name = "block22"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.459, -1.790]
+high = [1.012, 0.983, -1.480]
+material = "wall"
+
+[[parts]]
+name = "block23"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.790]
+high = [0.630, 1.012, -1.480]
+material = "wall"
+
+[[parts]]
+name = "block24"
+joint = "origin"
+shape = "box"
+low = [0.660, 0.950, -1.790]
+high = [0.983, 1.012, -1.480]
+material = "wall"
+
+[[parts]]
+name = "block25"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.130]
+high = [1.012, 0.533, -1.820]
+material = "wall"
+
+[[parts]]
+name = "block26"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.563, -2.130]
+high = [1.012, 0.983, -1.820]
+material = "wall_dark"
+
+[[parts]]
+name = "block27"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.130]
+high = [0.422, 1.012, -1.820]
+material = "wall"
+
+[[parts]]
+name = "block28"
+joint = "origin"
+shape = "box"
+low = [0.452, 0.950, -2.130]
+high = [0.983, 1.012, -1.820]
+material = "wall"
+
+[[parts]]
+name = "block29"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.470]
+high = [1.012, 0.308, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block30"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.338, -2.470]
+high = [1.012, 0.764, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block31"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.794, -2.470]
+high = [1.012, 0.983, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block32"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.470]
+high = [0.430, 1.012, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block33"
+joint = "origin"
+shape = "box"
+low = [0.460, 0.950, -2.470]
+high = [0.775, 1.012, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block34"
+joint = "origin"
+shape = "box"
+low = [0.805, 0.950, -2.470]
+high = [0.983, 1.012, -2.160]
+material = "wall"
+
+[[parts]]
+name = "block35"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.810]
+high = [1.012, 0.311, -2.500]
+material = "wall_dark"
+
+[[parts]]
+name = "block36"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.341, -2.810]
+high = [1.012, 0.738, -2.500]
+material = "wall"
+
+[[parts]]
+name = "block37"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.768, -2.810]
+high = [1.012, 0.983, -2.500]
+material = "wall"
+
+[[parts]]
+name = "block38"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.810]
+high = [0.369, 1.012, -2.500]
+material = "wall_dark"
+
+[[parts]]
+name = "block39"
+joint = "origin"
+shape = "box"
+low = [0.399, 0.950, -2.810]
+high = [0.841, 1.012, -2.500]
+material = "wall"
+
+[[parts]]
+name = "block40"
+joint = "origin"
+shape = "box"
+low = [0.871, 0.950, -2.810]
+high = [0.983, 1.012, -2.500]
+material = "wall"
+
+[[parts]]
+name = "block41"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.982]
+high = [1.012, 0.355, -2.840]
+material = "wall"
+
+[[parts]]
+name = "block42"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.385, -2.982]
+high = [1.012, 0.789, -2.840]
+material = "wall_dark"
+
+[[parts]]
+name = "block43"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.819, -2.982]
+high = [1.012, 0.983, -2.840]
+material = "wall"
+
+[[parts]]
+name = "block44"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.982]
+high = [0.300, 1.012, -2.840]
+material = "wall_dark"
+
+[[parts]]
+name = "block45"
+joint = "origin"
+shape = "box"
+low = [0.330, 0.950, -2.982]
+high = [0.983, 1.012, -2.840]
+material = "wall"
+
+[[poses]]

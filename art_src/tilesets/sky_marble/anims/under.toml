@@ -1,0 +1,269 @@
+# Under: the rock hanging below the island.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, 0.000]
+material = "rock_dark"
+
+[[parts]]
+name = "block0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -0.440]
+high = [1.012, 0.302, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "block1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.332, -0.440]
+high = [1.012, 0.746, -0.020]
+material = "rock"
+
+[[parts]]
+name = "block2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.776, -0.440]
+high = [1.012, 0.983, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "block3"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -0.440]
+high = [0.377, 1.012, -0.020]
+material = "rock"
+
+[[parts]]
+name = "block4"
+joint = "origin"
+shape = "box"
+low = [0.407, 0.950, -0.440]
+high = [0.737, 1.012, -0.020]
+material = "rock"
+
+[[parts]]
+name = "block5"
+joint = "origin"
+shape = "box"
+low = [0.767, 0.950, -0.440]
+high = [0.983, 1.012, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "block6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -0.890]
+high = [1.012, 0.480, -0.470]
+material = "rock_dark"
+
+[[parts]]
+name = "block7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.510, -0.890]
+high = [1.012, 0.983, -0.470]
+material = "rock"
+
+[[parts]]
+name = "block8"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -0.890]
+high = [0.330, 1.012, -0.470]
+material = "rock_dark"
+
+[[parts]]
+name = "block9"
+joint = "origin"
+shape = "box"
+low = [0.360, 0.950, -0.890]
+high = [0.983, 1.012, -0.470]
+material = "rock_dark"
+
+[[parts]]
+name = "block10"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.340]
+high = [1.012, 0.365, -0.920]
+material = "rock_dark"
+
+[[parts]]
+name = "block11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.395, -1.340]
+high = [1.012, 0.800, -0.920]
+material = "rock"
+
+[[parts]]
+name = "block12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.830, -1.340]
+high = [1.012, 0.983, -0.920]
+material = "rock_dark"
+
+[[parts]]
+name = "block13"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.340]
+high = [0.497, 1.012, -0.920]
+material = "rock_dark"
+
+[[parts]]
+name = "block14"
+joint = "origin"
+shape = "box"
+low = [0.527, 0.950, -1.340]
+high = [0.983, 1.012, -0.920]
+material = "rock"
+
+[[parts]]
+name = "block15"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.790]
+high = [1.012, 0.419, -1.370]
+material = "rock_dark"
+
+[[parts]]
+name = "block16"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.449, -1.790]
+high = [1.012, 0.983, -1.370]
+material = "rock"
+
+[[parts]]
+name = "block17"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.790]
+high = [0.308, 1.012, -1.370]
+material = "rock"
+
+[[parts]]
+name = "block18"
+joint = "origin"
+shape = "box"
+low = [0.338, 0.950, -1.790]
+high = [0.983, 1.012, -1.370]
+material = "rock"
+
+[[parts]]
+name = "block19"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.240]
+high = [1.012, 0.372, -1.820]
+material = "rock"
+
+[[parts]]
+name = "block20"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.402, -2.240]
+high = [1.012, 0.983, -1.820]
+material = "rock_dark"
+
+[[parts]]
+name = "block21"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.240]
+high = [0.516, 1.012, -1.820]
+material = "rock_dark"
+
+[[parts]]
+name = "block22"
+joint = "origin"
+shape = "box"
+low = [0.546, 0.950, -2.240]
+high = [0.840, 1.012, -1.820]
+material = "rock_dark"
+
+[[parts]]
+name = "block23"
+joint = "origin"
+shape = "box"
+low = [0.870, 0.950, -2.240]
+high = [0.983, 1.012, -1.820]
+material = "rock_dark"
+
+[[parts]]
+name = "block24"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.690]
+high = [1.012, 0.518, -2.270]
+material = "rock"
+
+[[parts]]
+name = "block25"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.548, -2.690]
+high = [1.012, 0.983, -2.270]
+material = "rock"
+
+[[parts]]
+name = "block26"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.690]
+high = [0.636, 1.012, -2.270]
+material = "rock"
+
+[[parts]]
+name = "block27"
+joint = "origin"
+shape = "box"
+low = [0.666, 0.950, -2.690]
+high = [0.983, 1.012, -2.270]
+material = "rock_dark"
+
+[[parts]]
+name = "block28"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.982]
+high = [1.012, 0.510, -2.720]
+material = "rock_dark"
+
+[[parts]]
+name = "block29"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.540, -2.982]
+high = [1.012, 0.983, -2.720]
+material = "rock_dark"
+
+[[parts]]
+name = "block30"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.982]
+high = [0.364, 1.012, -2.720]
+material = "rock"
+
+[[parts]]
+name = "block31"
+joint = "origin"
+shape = "box"
+low = [0.394, 0.950, -2.982]
+high = [0.983, 1.012, -2.720]
+material = "rock"
+
+[[poses]]

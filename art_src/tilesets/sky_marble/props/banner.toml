@@ -1,0 +1,63 @@
+# Banner: a pole whose azure pennant flaps (3 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "pole"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 2.000]
+r1 = 0.035
+r2 = 0.030
+material = "bark"
+
+[[parts]]
+name = "knob"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 2.040]
+radius = 0.060
+scale = [1.000, 1.000, 1.000]
+material = "gilt"
+
+[[parts]]
+name = "flag0"
+joint = "flag"
+shape = "box"
+low = [0.000, -0.020, -0.460]
+high = [0.400, 0.020, 0.000]
+material = "cloth"
+
+[[parts]]
+name = "flag1"
+joint = "flag"
+shape = "box"
+low = [0.400, -0.020, -0.380]
+high = [0.700, 0.020, -0.080]
+material = "cloth_dark"
+
+[[parts]]
+name = "flag2"
+joint = "flag"
+shape = "box"
+low = [0.700, -0.020, -0.300]
+high = [0.920, 0.020, -0.160]
+material = "cloth"
+
+[[parts]]
+name = "stripe"
+joint = "flag"
+shape = "box"
+low = [0.000, -0.025, -0.260]
+high = [0.700, 0.025, -0.200]
+material = "gilt"
+
+[[poses]]
+flag = [0.000, 0.000, 20.000]
+
+[[poses]]
+flag = [0.000, 8.000, 40.000]
+
+[[poses]]
+flag = [0.000, -6.000, 5.000]

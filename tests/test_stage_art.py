@@ -109,4 +109,4 @@ def test_every_background_image_exists_in_palette(stage_id: str) -> None:
 def test_sky_ruins_has_a_parallax_backdrop() -> None:
     layers = load_stage("sky_ruins").backgrounds
     assert [layer.parallax for layer in layers] == sorted(layer.parallax for layer in layers)
-    assert len(layers) == 4 and layers[0].parallax == 0.0
+    assert len(layers) == 6 and layers[0].parallax == 0.0

@@ -1,0 +1,42 @@
+# Urn: a clay jar on a little base.
+loop = true
+fps = 1
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "box"
+low = [-0.160, -0.160, 0.000]
+high = [0.160, 0.160, 0.080]
+material = "ruin_dark"
+
+[[parts]]
+name = "belly"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.340]
+radius = 0.240
+scale = [1.000, 1.000, 1.150]
+material = "clay"
+
+[[parts]]
+name = "neck"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.550]
+b = [0.000, 0.000, 0.720]
+r1 = 0.120
+r2 = 0.150
+material = "clay"
+
+[[parts]]
+name = "lip"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.720]
+b = [0.000, 0.000, 0.760]
+r1 = 0.170
+r2 = 0.170
+material = "gilt"
+
+[[poses]]

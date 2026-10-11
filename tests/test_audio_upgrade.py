@@ -44,7 +44,6 @@ LEGACY = {
     "final_plateau",
     "lily_pads",
     "menu",
-    "sky_ruins",
     "training_grid",
     "twin_isles",
     "victory",

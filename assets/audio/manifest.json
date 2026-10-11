@@ -103,12 +103,12 @@
       "meter": "4/4"
     },
     "sky_ruins": {
-      "source": "b47953bbe27d4072",
+      "source": "41ea2884faea2f4f",
       "title": "Above the Ruins",
-      "seconds": 32.0,
-      "tempo": 150.0,
-      "key": "",
-      "mode": "",
+      "seconds": 53.333,
+      "tempo": 144.0,
+      "key": "D",
+      "mode": "mixolydian",
       "meter": "4/4"
     },
     "sound_check": {
