@@ -13,15 +13,16 @@ Imports ``arcade`` (through the app), so it needs a display.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 
 import arcade
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from isofightr.app import GameWindow
 from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
+from isofightr.render.iso import project
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
 from isofightr.scenes.results_view import ResultsView
@@ -30,7 +31,9 @@ from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
 from isofightr.settings import SavedRules, Settings
 from isofightr.sim.input_frame import facing_from_move
+from isofightr.sim.match import MatchRules
 from isofightr.sim.math3d import Vec3
+from isofightr.sim.stage import Stage
 
 PRESS, RELEASE = "@", "!"
 SCREENS: tuple[str, ...] = (
@@ -62,6 +65,19 @@ OUT_OF_BOUNDS = Vec3(5.0, 5.0, -90.0)
 RESULTS_TICK_LIMIT = 6000
 RESULTS_FIGHT_TICKS = 420
 """How long the CPUs fight before the results capture ends the match."""
+STAGE_SHEET_TICKS: tuple[int, ...] = (1, 45, 90)
+"""The default ticks of a stage sheet: far enough apart for animation and ambience to show."""
+CLOSE_UP: tuple[int, int] = (160, 90)
+"""Native pixels a stage sheet's close-up shows; it is drawn at twice that."""
+CLOSE_UP_SCALE = 2
+CLOSE_UP_COLUMNS = 4
+SPAWN_LOOK_HEIGHT = 1.25
+"""A spawn's close-up looks this many units above the ground: a fighter's middle."""
+EDGE_INSET = 40
+"""An edge's close-up looks this many pixels in from the stage's outermost corner."""
+UNDERSIDE_INSET = 20
+LABEL_COLOUR = (255, 255, 255, 255)
+LABEL_SHADE = (0, 0, 0, 255)
 
 
 @dataclass(frozen=True, slots=True)
@@ -292,3 +308,128 @@ def capture_screen(
     flow = GameFlow(window, window.pixel_buffer, seed=seed, settings=settings)
     open_screen(window, flow, screen, players)
     return _run(window, script, ticks, crop, scale)
+
+
+def stage_views(stage: Stage) -> list[tuple[str, tuple[float, float]]]:
+    """Return what a stage sheet looks at closely, as (name, world pixel) pairs: the four
+    spawns, the stage's left and right edges, its underside and its highest surface."""
+    views = []
+    for player in range(4):
+        spot = stage.spawn_point(player)
+        views.append((f"p{player + 1} spawn", project(spot.x, spot.y, spot.z + SPAWN_LOOK_HEIGHT)))
+    bottom = stage.underside
+    sides: list[tuple[float, float]] = []
+    tops: list[tuple[float, tuple[float, float]]] = []
+    unders: list[tuple[float, float]] = []
+    for cy, row in enumerate(stage.cells):
+        for cx, cell in enumerate(row):
+            if cell is None:
+                continue
+            for x, y in ((cx, cy), (cx + 1, cy), (cx, cy + 1), (cx + 1, cy + 1)):
+                sides.append(project(x, y, (cell.top + bottom) / 2))
+                unders.append(project(x, y, bottom))
+            tops.append((cell.top, project(cx + 0.5, cy + 0.5, cell.top)))
+    for platform in stage.soft_platforms:
+        middle_x, middle_y = (platform.x0 + platform.x1) / 2, (platform.y0 + platform.y1) / 2
+        tops.append((platform.z, project(middle_x, middle_y, platform.z)))
+    # Each is framed with the stage filling most of the picture, not half of it.
+    left, right = min(sides), max(sides)
+    under = min(unders, key=lambda point: point[1])
+    views.append(("left edge", (left[0] + EDGE_INSET, left[1])))
+    views.append(("right edge", (right[0] - EDGE_INSET, right[1])))
+    views.append(("underside", (under[0], under[1] + UNDERSIDE_INSET)))
+    views.append(("top", max(tops, key=lambda top: (top[0], top[1][1]))[1]))
+    return views
+
+
+def _label(image: Image.Image, text: str) -> None:
+    """Write a small caption in the image's top left corner."""
+    draw = ImageDraw.Draw(image)
+    draw.text((5, 4), text, fill=LABEL_SHADE)
+    draw.text((4, 3), text, fill=LABEL_COLOUR)
+
+
+def _hazard_rules(hazards: bool) -> MatchRules | None:
+    """Return the rules for a stage sheet. Stage hazards are a rule from M14 group 4 on;
+    before that every stage is plain ground and the switch changes nothing."""
+    if "stage_hazards" not in {field.name for field in fields(MatchRules)}:
+        return None
+    return replace(MatchRules(), **{"stage_hazards": hazards})
+
+
+def capture_stage_sheet(
+    window: GameWindow,
+    stage_id: str,
+    ticks: Sequence[int] = STAGE_SHEET_TICKS,
+    hazards: bool = True,
+    characters: Sequence[str] = ROSTER,
+    seed: int = 0,
+    scale: int = 1,
+) -> Image.Image:
+    """Return a stage's review sheet (decision D-063): one row per tick, each the whole
+    screen as a match shows it (four idle fighters on the spawns, the HUD in place) followed
+    by close-ups, at twice the size and without the HUD, of each of :func:`stage_views`.
+
+    The close-ups move only the camera, between two ticks, and put it back.
+
+    Args:
+        window: a (hidden) game window.
+        stage_id: the stage to show.
+        ticks: which ticks to capture, in increasing order.
+        hazards: whether the stage's hazards and mechanics are on.
+        characters: who stands on the spawns.
+        seed: the match seed.
+        scale: integer upscale of the whole sheet.
+    """
+    window.switch_to()
+    stage = load_stage(stage_id)
+    view = BattleView(
+        window.pixel_buffer,
+        stage,
+        [load_character(name) for name in characters],
+        seed=seed,
+        rules=_hazard_rules(hazards),
+    )
+    view.show_help = False
+    window.show_view(view)
+    views = stage_views(stage)
+    wide, tall = CLOSE_UP[0] * CLOSE_UP_SCALE, CLOSE_UP[1] * CLOSE_UP_SCALE
+    rows_of_close_ups = -(-len(views) // CLOSE_UP_COLUMNS)
+    row_height = max(NATIVE_H, rows_of_close_ups * tall)
+    wanted = sorted(set(ticks))
+    if not wanted:
+        raise ValueError("no ticks to capture")
+    sheet = Image.new(
+        "RGBA", (NATIVE_W + CLOSE_UP_COLUMNS * wide, row_height * len(wanted)), LABEL_SHADE
+    )
+    camera = view.camera
+    for tick in range(1, wanted[-1] + 1):
+        view.on_update(TICK_SECONDS)
+        if tick not in wanted:
+            continue
+        top = wanted.index(tick) * row_height
+        view.on_draw()
+        overview = read_frame(window)
+        state = "on" if hazards else "off"
+        _label(overview, f"{stage_id}  tick {tick}  hazards {state}")
+        sheet.paste(overview, (0, top))
+        kept = (camera.x, camera.y, camera.clamped, view.hud_display)
+        camera.clamped, view.hud_display = False, False
+        for index, (name, (world_x, world_y)) in enumerate(views):
+            camera.x, camera.y = world_x, world_y
+            centre_x, centre_y = view.view_centre()
+            # Where the point lands in the frame (rows count down), whatever the lift is.
+            at_x = NATIVE_W // 2 + round(world_x - centre_x)
+            at_y = NATIVE_H // 2 - round(world_y - centre_y)
+            view.on_draw()
+            left = min(max(at_x - CLOSE_UP[0] // 2, 0), NATIVE_W - CLOSE_UP[0])
+            upper = min(max(at_y - CLOSE_UP[1] // 2, 0), NATIVE_H - CLOSE_UP[1])
+            close = read_frame(window).crop((left, upper, left + CLOSE_UP[0], upper + CLOSE_UP[1]))
+            close = close.resize((wide, tall), Image.Resampling.NEAREST)
+            _label(close, name)
+            column, row = index % CLOSE_UP_COLUMNS, index // CLOSE_UP_COLUMNS
+            sheet.paste(close, (NATIVE_W + column * wide, top + row * tall))
+        camera.x, camera.y, camera.clamped, view.hud_display = kept
+    if scale > 1:
+        sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
+    return sheet

@@ -16,6 +16,12 @@ Player 1's default keys: ``K`` special, ``J`` attack, ``U`` smash, ``L`` grab, `
 ``COMMA`` down, ``SPACE`` jump, ``LSHIFT`` shield, ``W/A/S/D`` move. ``KEY@tick`` presses and
 ``KEY!tick`` releases. See :mod:`isofightr.capture`. Needs a display (the window is hidden).
 
+``--stage-sheet ID`` makes a stage's review sheet instead (decision D-063): one row per tick
+(``--ticks``, default 1,45,90) with the whole screen and close-ups of the four spawns, both
+edges, the underside and the top; ``--hazards on|off`` switches the stage's mechanics::
+
+    uv run python tools/capture_scene.py --stage-sheet sky_ruins --out sky_ruins.png
+
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
 rules, pool, controls, charselect, stageselect, results, hud, loading, settings, pause, training,
 kit (the UI kit sheet). The script's keys go to whatever scene is showing; ``--players``
@@ -27,7 +33,14 @@ from dataclasses import replace
 from pathlib import Path
 
 from isofightr.app import GameWindow
-from isofightr.capture import SCREENS, capture, capture_screen, parse_script
+from isofightr.capture import (
+    SCREENS,
+    STAGE_SHEET_TICKS,
+    capture,
+    capture_screen,
+    capture_stage_sheet,
+    parse_script,
+)
 from isofightr.settings import Settings, rules_from_data
 
 
@@ -53,6 +66,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--screen", choices=SCREENS, help="capture a screen, not a battle")
     parser.add_argument("--players", type=int, default=2, help="fighters on a --screen")
+    parser.add_argument("--stage-sheet", default="", metavar="ID", help="a stage's review sheet")
+    parser.add_argument(
+        "--hazards", choices=("on", "off"), default="on", help="stage mechanics on a --stage-sheet"
+    )
     parser.add_argument(
         "--rules",
         default="",
@@ -62,7 +79,7 @@ def main() -> None:
     parser.add_argument("--p2", default="rook")
     parser.add_argument("--stage", default="training_grid")
     parser.add_argument("--script", default="", help='key events, e.g. "K@2,K!3"')
-    parser.add_argument("--ticks", default="30", help="ticks to capture, e.g. 10,20,30")
+    parser.add_argument("--ticks", default="", help="ticks to capture, e.g. 10,20,30")
     parser.add_argument("--p1-at", default=None, help="x,y,z for player 1")
     parser.add_argument("--p2-at", default=None, help="x,y,z for player 2")
     parser.add_argument("--damage", default="", help="starting damage per player, e.g. 0,80")
@@ -84,8 +101,17 @@ def main() -> None:
         left, top, width, height = (int(value) for value in _numbers(args.crop))
         crop = (left, top, width, height)
     window = GameWindow(visible=False, sound=False)
-    ticks = [int(value) for value in _numbers(args.ticks)]
-    if args.screen:
+    ticks = [int(value) for value in _numbers(args.ticks)] if args.ticks else [30]
+    if args.stage_sheet:
+        sheet = capture_stage_sheet(
+            window,
+            args.stage_sheet,
+            ticks if args.ticks else STAGE_SHEET_TICKS,
+            hazards=args.hazards == "on",
+            seed=args.seed,
+            scale=args.scale,
+        )
+    elif args.screen:
         sheet = capture_screen(
             window,
             args.screen,
