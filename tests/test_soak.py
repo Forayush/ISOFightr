@@ -57,7 +57,14 @@ def test_four_player_free_for_all_is_stable_for_thirty_minutes() -> None:
 
 CPU_SOAK_MATCHES = int(os.environ.get("ISOFIGHTR_SOAK_MATCHES", "10"))
 """CPU-vs-CPU matches in the soak (the nightly CI run raises it)."""
-CPU_SOAK_STAGES = ("sky_ruins", "final_plateau", "training_grid", "twin_isles", "lily_pads")
+CPU_SOAK_STAGES = (
+    "sky_ruins",
+    "final_plateau",
+    "training_grid",
+    "twin_isles",
+    "lily_pads",
+    "ember_forge",
+)
 CPU_SOAK_MAX_TICKS = 10 * 60 * TICK_RATE
 
 

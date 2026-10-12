@@ -80,6 +80,15 @@
     }
   },
   "music": {
+    "ember_forge": {
+      "source": "a47f0590ba096d05",
+      "title": "Hammer and Flame",
+      "seconds": 53.333,
+      "tempo": 126.0,
+      "key": "C",
+      "mode": "phrygian",
+      "meter": "4/4"
+    },
     "final_plateau": {
       "source": "a6613bb60dddec5c",
       "title": "Last Stone Standing",

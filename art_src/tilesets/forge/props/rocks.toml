@@ -1,0 +1,23 @@
+# Rocks: lumps of slag.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.140]
+radius = 0.240
+scale = [1.100, 0.900, 0.750]
+material = "slag"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.260, -0.140, 0.080]
+radius = 0.130
+scale = [1.000, 1.000, 0.800]
+material = "slag"
+
+[[poses]]

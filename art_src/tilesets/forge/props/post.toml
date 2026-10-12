@@ -1,0 +1,41 @@
+# Post: an iron pillar holding up a grate (2.25 units tall).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.200, 0.000]
+high = [0.200, 0.200, 0.120]
+material = "iron"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.120]
+b = [0.000, 0.000, 2.100]
+r1 = 0.100
+r2 = 0.100
+material = "iron"
+
+[[parts]]
+name = "ring"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.100]
+b = [0.000, 0.000, 1.200]
+r1 = 0.130
+r2 = 0.130
+material = "iron_light"
+
+[[parts]]
+name = "head"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.200, 2.100]
+high = [0.200, 0.200, 2.250]
+material = "iron_light"
+
+[[poses]]

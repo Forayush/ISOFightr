@@ -90,6 +90,14 @@ VOID: Final[Mood] = Mood(
     ruin="4d65b4",
 )
 """No sky at all: the dark of a room with the lights off (Training Grid)."""
+EMBER: Final[Mood] = Mood(
+    sky=("2e222f", "45293f", "6e2727", "b33831", "f57d4a"),
+    cloud=("6e2727", "45293f", "2e222f"),
+    island_top="45293f",
+    island_side=("6e2727", "2e222f"),
+    ruin="f57d4a",
+)
+"""Smoke lit from below: black overhead, red and orange toward the ground (Ember Forge)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -97,6 +105,7 @@ MOODS: Final[dict[str, Mood]] = {
     "dusk": DUSK,
     "night": NIGHT,
     "void": VOID,
+    "ember": EMBER,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -809,3 +818,165 @@ def paint_holo(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["holo"] = paint_holo
+
+
+# --- the volcano (Ember Forge) -------------------------------------------------------------
+
+CONE_COLOURS: Final[tuple[str, str, str]] = ("6e2727", "45293f", "2e222f")
+"""The volcano: the side its crater lights, its flank, its far side."""
+LAVA_COLOURS: Final[tuple[str, str, str]] = ("fbff86", "f79617", "ea4f36")
+"""Molten rock: white-hot, flowing, cooling."""
+RIDGE_COLOURS: Final[tuple[str, str]] = ("45293f", "2e222f")
+LAVA_FRAMES: Final[int] = 2
+CRATER: Final[tuple[int, int]] = (184, 96)
+"""Where the crater's lip is on the volcano's layer."""
+
+
+def ember_sky(mood: Mood) -> Image.Image:
+    """Return the mood's sky with the crater's glow thrown up into the smoke above where the
+    volcano stands (a sky and a layer with no parallax are drawn the same distance off, so
+    the crater's own x is the glow's)."""
+    image = sky(mood)
+    pixels = image.load()
+    assert pixels is not None
+    glow = hex_rgb(LAVA_COLOURS[2])
+    centre_x, centre_y = CRATER[0], CRATER[1] - 14
+    reach_x, reach_y = 120, 64
+    for y in range(max(centre_y - reach_y, 0), centre_y + reach_y):
+        for x in range(centre_x - reach_x, centre_x + reach_x):
+            distance = (((x - centre_x) / reach_x) ** 2 + ((y - centre_y) / reach_y) ** 2) ** 0.5
+            if distance < 1.0 and (1.0 - distance) ** 2 * 16 > BAYER_4[y % 4][x % 4]:
+                pixels[x % NATIVE_W, y] = (*glow, 255)
+    return image
+
+
+def volcano(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the volcano as ``LAVA_FRAMES`` frames stacked top to bottom: a broad cone with
+    a broken crater, lava running down it in three streams whose bright beads move from one
+    frame to the next, and lower cones either side. It wraps."""
+    rng = random.Random(seed)
+    lit, flank, far = (hex_rgb(value) for value in CONE_COLOURS)
+    hot, flow, cool = (hex_rgb(value) for value in LAVA_COLOURS)
+    image = Image.new("RGBA", (width, height * LAVA_FRAMES))
+    draw = ImageDraw.Draw(image)
+    crater_x, crater_y = CRATER
+    foot = 300
+    cones = [(crater_x, crater_y, 330, True)]
+    for _ in range(4):
+        cones.append((rng.randrange(width), rng.randint(190, 240), rng.randint(110, 190), False))
+    streams = [(-26, 0.62), (4, 0.9), (30, 0.5)]
+    for frame in range(LAVA_FRAMES):
+        top = frame * height
+        for x, y, half, main in sorted(cones, key=lambda cone: cone[3]):
+            for shift in (-width, 0, width):
+                at = x + shift
+                lip = 34 if main else 12
+                draw.polygon(
+                    (
+                        (at - half, top + foot),
+                        (at - lip, top + y),
+                        (at + lip, top + y),
+                        (at + half, top + foot),
+                    ),
+                    fill=far,
+                )
+                draw.polygon(
+                    (
+                        (at - half, top + foot),
+                        (at - lip, top + y),
+                        (at + lip // 3, top + y),
+                        (at - half // 6, top + foot),
+                    ),
+                    fill=flank,
+                )
+                if main:
+                    draw.polygon(
+                        (
+                            (at - lip, top + y),
+                            (at + lip, top + y),
+                            (at + lip - 8, top + y + 7),
+                            (at - lip + 10, top + y + 5),
+                        ),
+                        fill=flow,
+                    )
+                    draw.line(((at - lip, top + y), (at + lip, top + y)), fill=hot, width=2)
+                    draw.polygon(
+                        (
+                            (at - lip, top + y),
+                            (at - lip - 22, top + y + 40),
+                            (at - lip + 6, top + y + 34),
+                            (at - lip + 12, top + y + 5),
+                        ),
+                        fill=lit,
+                    )
+        draw.rectangle((0, top + foot, width, top + height), fill=far)
+        # The streams: each wanders down the cone, hot beads sliding along it.
+        for number, (start, share) in enumerate(streams):
+            walk = random.Random(seed * 31 + number)
+            x, y = crater_x + start, crater_y + 4
+            step = 0
+            while y < crater_y + (foot - crater_y) * share:
+                x += walk.choice((-1, 0, 0, 1)) + (1 if start > 0 else -1 if start < -10 else 0)
+                y += 2
+                bead = (step + frame * 3) % 6 == 0
+                colour = hot if bead else flow if step % 5 else cool
+                for shift in (-width, 0, width):
+                    draw.rectangle((x + shift, top + y, x + shift + 2, top + y + 1), fill=colour)
+                step += 1
+    return image
+
+
+def lava_plain(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the ground near the viewer as ``LAVA_FRAMES`` frames stacked top to bottom: a
+    jagged ridge of black rock with a river of lava beyond it, whose glints move. It wraps."""
+    rng = random.Random(seed)
+    rock, shade = (hex_rgb(value) for value in RIDGE_COLOURS)
+    hot, flow, cool = (hex_rgb(value) for value in LAVA_COLOURS)
+    image = Image.new("RGBA", (width, height * LAVA_FRAMES))
+    draw = ImageDraw.Draw(image)
+    river = 296
+    teeth = []
+    x = 0
+    while x < width:
+        wide = rng.randint(14, 44)
+        teeth.append((x, wide, rng.randint(8, 34)))
+        x += wide - 4
+    glints = [
+        (rng.randrange(width), river + rng.randint(3, 20), rng.randint(4, 12)) for _ in range(60)
+    ]
+    for frame in range(LAVA_FRAMES):
+        top = frame * height
+        draw.rectangle((0, top + river, width, top + river + 26), fill=flow)
+        draw.line(((0, top + river), (width, top + river)), fill=cool, width=2)
+        for number, (gx, gy, long) in enumerate(glints):
+            colour = hot if (number + frame) % 2 else cool
+            at = (gx + frame * 3) % width
+            draw.line(((at, top + gy), (at + long, top + gy)), fill=colour)
+        draw.rectangle((0, top + river + 24, width, top + height), fill=shade)
+        for tx, wide, tall in teeth:
+            for shift in (-width, 0, width):
+                at = tx + shift
+                base = top + river + 26
+                draw.polygon(
+                    ((at, base), (at + wide // 2, base - tall), (at + wide, base)), fill=shade
+                )
+                draw.polygon(
+                    ((at, base), (at + wide // 2, base - tall), (at + wide // 2 + 2, base)),
+                    fill=rock,
+                )
+    return image
+
+
+def paint_volcano(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Ember Forge: a sky of smoke lit from below, drifting smoke, a volcano running with
+    lava, and a river of it beyond a ridge of black rock."""
+    return {
+        "bg_0_sky.png": ember_sky(mood),
+        "bg_1_smoke.png": clouds(mood, seed, 7, (40, 130), (12, 20)),
+        "bg_2_volcano.png": volcano(seed + 1),
+        "bg_3_near_smoke.png": clouds(mood, seed + 2, 4, (150, 230), (16, 24)),
+        "bg_4_plain.png": lava_plain(seed + 3),
+    }
+
+
+PAINTERS["volcano"] = paint_volcano

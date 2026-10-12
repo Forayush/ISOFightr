@@ -1,0 +1,267 @@
+# Hammer and Flame: Ember Forge (decision D-063). A forge's march in C phrygian: the
+# flat second (Db) is the heat in it. Hammers ring on an anvil on the second and fourth
+# beats, a reed drone holds the root and fifth, a narrow pulse "horn" carries the tune, and
+# the drums are big and slow. Rendered by tools/build_audio.py; written with
+# build/scratch/m14_song_forge.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
+id = "ember_forge"
+title = "Hammer and Flame"
+tempo = 126
+steps_per_beat = 4
+key = "C"
+mode = "phrygian"
+meter = "4/4"
+form = ["intro", "verse", "chorus", "verse2"]
+
+[echo]
+beats = 0.5
+feedback = 0.25
+mix = 0.22
+lowpass = 0.5
+
+[sections.intro]              # 4 bars: Cm Cm Db Cm; the drone, the anvil, a horn far off
+level = 0.6
+to = 1.0
+play = ["call", "drone_i_root", "drone_i_fifth", "anvil", "boom*0.8"]
+
+[sections.verse]              # 8 bars: Cm Cm Db Cm, Cm Cm Bbm Cm
+level = 0.9
+play = ["verse", "drone_v_root", "drone_v_fifth", "bass_v", "anvil", "boom", "snare"]
+
+[sections.chorus]             # 8 bars: Fm Db Cm Cm, Fm Db Bbm Cm
+play = ["chorus", "chorus-12*0.5", "drone_c_root", "drone_c_fifth", "bass_c", "anvil",
+        "anvil_more", "boom", "snare", "toms"]
+
+[sections.verse2]             # the verse again with everything
+kind = "verse"
+play = ["verse", "verse-12*0.45", "drone_v_root", "drone_v_fifth", "bass_v", "anvil",
+        "anvil_more*0.7", "boom", "snare", "toms*0.8"]
+
+[instruments.horn]            # a very narrow pulse: nasal, like a war horn
+wave = "square"
+duty = 0.125
+attack = 0.02
+decay = 0.08
+sustain = 0.75
+release = 0.06
+lowpass = 0.6
+vibrato_depth = 0.1
+vibrato_rate = 5.0
+volume = 0.15
+send = 0.2
+
+[instruments.drone]           # reeds, low
+wave = "reed"
+attack = 0.06
+release = 0.2
+lowpass = 0.5
+volume = 0.16
+
+[instruments.bass]
+wave = "saw"
+attack = 0.004
+decay = 0.08
+sustain = 0.6
+release = 0.04
+lowpass = 0.2
+volume = 0.34
+
+[instruments.anvil]           # hammer on iron: a clangorous bell, short
+wave = "bell"
+freq = 1480
+mod_ratio = 3.53
+mod_index = 3.2
+release = 0.16
+length = 0.22
+volume = 0.28
+send = 0.35
+
+[instruments.boom]            # a great drum
+wave = "drum"
+freq = 84
+freq_end = 36
+length = 0.26
+noise = 0.15
+release = 0.1
+volume = 0.36
+
+[instruments.tom]
+wave = "drum"
+freq = 150
+freq_end = 90
+length = 0.16
+noise = 0.1
+release = 0.08
+volume = 0.3
+
+[instruments.snare]
+wave = "noise"
+freq = 1900
+length = 0.16
+release = 0.09
+lowpass = 0.6
+volume = 0.2
+
+[patterns.call]
+instrument = "horn"
+steps = """
+C5 - - - - - - - - - - - G4 - - -
+C5 - - - - - - - - - - - . . . .
+Db5 - - - - - - - - - - - Ab4 - - -
+C5 - - - - - - - - - - - . . . .
+"""
+
+[patterns.verse]
+instrument = "horn"
+steps = """
+C5 - - - G4 - C5 - Eb5 - - - Db5 - C5 -
+G4 - - - - - - - C5 - - - . . . .
+Db5 - - - Ab4 - Db5 - F5 - - - Eb5 - Db5 -
+C5 - - - - - - - G4 - - - . . . .
+C5 - - - G4 - C5 - Eb5 - - - F5 - G5 -
+G5 - - - - - Eb5 - C5 - - - . . . .
+F5 - - - Db5 - Bb4 - Db5 - - - F5 - - -
+Eb5 - Db5 - C5 - - - - - - - . . . .
+"""
+
+[patterns.chorus]
+instrument = "horn"
+steps = """
+Ab5 - - - - - G5 - F5 - - - C5 - - -
+F5 - - - - - Eb5 - Db5 - - - Ab4 - - -
+G5 - - - Eb5 - C5 - G4 - - - C5 - Eb5 -
+G5 - - - - - - - - - - - . . . .
+Ab5 - - - - - G5 - F5 - - - Ab5 - - -
+Bb5 - - - - - Ab5 - F5 - - - Db5 - - -
+F5 - - - Db5 - F5 - Bb5 - - - Ab5 - F5 -
+G5 - - - - - Eb5 - C5 - - - . . . .
+"""
+
+[patterns.drone_i_root]
+instrument = "drone"
+steps = """
+C3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+Db3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.drone_i_fifth]
+instrument = "drone"
+steps = """
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+Ab3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.drone_v_root]
+instrument = "drone"
+steps = """
+C3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+Db3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+Bb2 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.drone_v_fifth]
+instrument = "drone"
+steps = """
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+Ab3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.drone_c_root]
+instrument = "drone"
+steps = """
+F3 - - - - - - - - - - - - - - -
+Db3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+F3 - - - - - - - - - - - - - - -
+Db3 - - - - - - - - - - - - - - -
+Bb2 - - - - - - - - - - - - - - -
+C3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.drone_c_fifth]
+instrument = "drone"
+steps = """
+C4 - - - - - - - - - - - - - - -
+Ab3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+Ab3 - - - - - - - - - - - - - - -
+F3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.bass_v]
+instrument = "bass"
+steps = """
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+Db2 - . . Db2 - . Db2 Db2 - . . Db2 - Db2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+Bb1 - . . Bb1 - . Bb1 Bb1 - . . Bb1 - Bb1 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+"""
+
+[patterns.bass_c]
+instrument = "bass"
+steps = """
+F2 - . . F2 - . F2 F2 - . . F2 - F2 .
+Db2 - . . Db2 - . Db2 Db2 - . . Db2 - Db2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+F2 - . . F2 - . F2 F2 - . . F2 - F2 .
+Db2 - . . Db2 - . Db2 Db2 - . . Db2 - Db2 .
+Bb1 - . . Bb1 - . Bb1 Bb1 - . . Bb1 - Bb1 .
+C2 - . . C2 - . C2 C2 - . . C2 - C2 .
+"""
+
+[patterns.anvil]
+instrument = "anvil"
+steps = """
+. . . . x . . . . . . . x . . .
+"""
+
+[patterns.anvil_more]
+instrument = "anvil"
+steps = """
+. . . . . . x . . . . . . . x .
+"""
+
+[patterns.boom]
+instrument = "boom"
+steps = """
+x . . . . . . x x . . . . . . .
+"""
+
+[patterns.snare]
+instrument = "snare"
+steps = """
+. . . . x . . . . . . . x . . .
+"""
+
+[patterns.toms]
+instrument = "tom"
+steps = """
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . x . x . x x x x
+"""

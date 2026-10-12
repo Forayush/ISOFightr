@@ -1,0 +1,34 @@
+# Stalactite: hot rock hanging under the forge, its tip glowing.
+loop = true
+fps = 1
+
+[[parts]]
+name = "spike0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.700]
+r1 = 0.170
+r2 = 0.020
+material = "slag"
+
+[[parts]]
+name = "spike1"
+joint = "origin"
+shape = "rod"
+a = [0.180, -0.080, 0.020]
+b = [0.200, -0.100, -0.380]
+r1 = 0.100
+r2 = 0.015
+material = "slag"
+
+[[parts]]
+name = "tip"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, -0.700]
+radius = 0.035
+scale = [1.000, 1.000, 1.000]
+material = "ember_mid"
+
+[[poses]]

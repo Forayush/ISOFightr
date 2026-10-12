@@ -1,0 +1,73 @@
+# Vent: the mouth of a geyser, its fire rising and sinking (4 frames, flat).
+loop = true
+fps = 1
+
+[[parts]]
+name = "ring"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.003]
+r1 = 0.620
+r2 = 0.600
+material = "vent"
+
+[[smears]]
+name = "v_ember_hi_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.200, 0.004]
+high = [0.360, 0.200, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "v_ember_hi_1"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.360, 0.004]
+high = [0.200, 0.360, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "v_ember_lo_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.200, 0.004]
+high = [0.360, 0.200, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "v_ember_lo_1"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.360, 0.004]
+high = [0.200, 0.360, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "v_ember_mid_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.200, 0.004]
+high = [0.360, 0.200, 0.016]
+material = "ember_mid"
+
+[[smears]]
+name = "v_ember_mid_1"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.360, 0.004]
+high = [0.200, 0.360, 0.016]
+material = "ember_mid"
+
+[[poses]]
+show = ["v_ember_mid_0", "v_ember_mid_1"]
+
+[[poses]]
+show = ["v_ember_hi_0", "v_ember_hi_1"]
+
+[[poses]]
+show = ["v_ember_mid_0", "v_ember_mid_1"]
+
+[[poses]]
+show = ["v_ember_lo_0", "v_ember_lo_1"]

@@ -1,0 +1,453 @@
+# Lava: a channel of molten rock cut across the floor.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.020]
+high = [1.000, 1.000, 0.000]
+material = "basalt"
+
+[[parts]]
+name = "plate0"
+joint = "origin"
+shape = "box"
+low = [0.613, 0.607, -0.010]
+high = [0.858, 0.761, 0.004]
+material = "basalt_dark"
+
+[[parts]]
+name = "plate1"
+joint = "origin"
+shape = "box"
+low = [0.606, 0.173, -0.010]
+high = [0.854, 0.331, 0.004]
+material = "basalt_dark"
+
+[[parts]]
+name = "plate2"
+joint = "origin"
+shape = "box"
+low = [0.449, 0.171, -0.010]
+high = [0.641, 0.288, 0.004]
+material = "basalt_dark"
+
+[[parts]]
+name = "bank0"
+joint = "origin"
+shape = "box"
+low = [0.240, 0.000, -0.010]
+high = [0.300, 1.000, 0.008]
+material = "basalt_dark"
+
+[[parts]]
+name = "bank1"
+joint = "origin"
+shape = "box"
+low = [0.700, 0.000, -0.010]
+high = [0.760, 1.000, 0.008]
+material = "basalt_dark"
+
+[[parts]]
+name = "lava"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.000, -0.010]
+high = [0.700, 1.000, 0.004]
+material = "ember_mid"
+
+[[parts]]
+name = "hot0"
+joint = "origin"
+shape = "box"
+low = [0.449, 0.673, -0.010]
+high = [0.549, 0.873, 0.006]
+material = "ember_hi"
+
+[[parts]]
+name = "hot1"
+joint = "origin"
+shape = "box"
+low = [0.472, 0.467, -0.010]
+high = [0.572, 0.667, 0.006]
+material = "ember_hi"
+
+[[parts]]
+name = "hot2"
+joint = "origin"
+shape = "box"
+low = [0.415, 0.367, -0.010]
+high = [0.515, 0.567, 0.006]
+material = "ember_hi"
+
+[[parts]]
+name = "crust"
+joint = "origin"
+shape = "box"
+low = [0.503, 0.555, -0.010]
+high = [0.603, 0.675, 0.006]
+material = "ember_lo"
+
+[[parts]]
+name = "mouth"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.990, -0.140]
+high = [0.700, 1.016, 0.000]
+material = "ember_mid"
+
+[[parts]]
+name = "col0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.185]
+high = [1.012, 0.240, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "col1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.714]
+high = [1.012, 0.240, -1.185]
+material = "rock"
+
+[[parts]]
+name = "col2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.694]
+high = [1.012, 0.240, -1.714]
+material = "rock"
+
+[[parts]]
+name = "col3"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.012, 0.240, -2.694]
+material = "rock"
+
+[[parts]]
+name = "seam4"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.205, -0.907]
+high = [1.016, 0.240, -0.444]
+material = "ember_mid"
+
+[[parts]]
+name = "col4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.240, -0.588]
+high = [1.012, 0.380, -0.020]
+material = "rock"
+
+[[parts]]
+name = "col5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.240, -1.413]
+high = [1.012, 0.380, -0.588]
+material = "rock"
+
+[[parts]]
+name = "col6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.240, -2.659]
+high = [1.012, 0.380, -1.413]
+material = "rock_dark"
+
+[[parts]]
+name = "col7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.240, -2.982]
+high = [1.012, 0.380, -2.659]
+material = "rock"
+
+[[parts]]
+name = "col8"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.380, -0.971]
+high = [1.012, 0.525, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "col9"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.380, -1.557]
+high = [1.012, 0.525, -0.971]
+material = "rock_dark"
+
+[[parts]]
+name = "col10"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.380, -2.110]
+high = [1.012, 0.525, -1.557]
+material = "rock_dark"
+
+[[parts]]
+name = "col11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.380, -2.982]
+high = [1.012, 0.525, -2.110]
+material = "rock_dark"
+
+[[parts]]
+name = "col12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.525, -0.820]
+high = [1.012, 0.674, -0.020]
+material = "rock"
+
+[[parts]]
+name = "col13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.525, -1.656]
+high = [1.012, 0.674, -0.820]
+material = "rock"
+
+[[parts]]
+name = "col14"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.525, -2.315]
+high = [1.012, 0.674, -1.656]
+material = "rock"
+
+[[parts]]
+name = "col15"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.525, -2.982]
+high = [1.012, 0.674, -2.315]
+material = "rock_dark"
+
+[[parts]]
+name = "seam16"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.639, -1.722]
+high = [1.016, 0.674, -1.135]
+material = "ember_mid"
+
+[[parts]]
+name = "col16"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.674, -1.086]
+high = [1.012, 0.835, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "col17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.674, -1.958]
+high = [1.012, 0.835, -1.086]
+material = "rock"
+
+[[parts]]
+name = "col18"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.674, -2.982]
+high = [1.012, 0.835, -1.958]
+material = "rock_dark"
+
+[[parts]]
+name = "col19"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.835, -1.136]
+high = [1.012, 1.000, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "col20"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.835, -1.943]
+high = [1.012, 1.000, -1.136]
+material = "rock_dark"
+
+[[parts]]
+name = "col21"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.835, -2.982]
+high = [1.012, 1.000, -1.943]
+material = "rock_dark"
+
+[[parts]]
+name = "col22"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.994]
+high = [0.296, 1.012, -0.020]
+material = "rock"
+
+[[parts]]
+name = "col23"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.510]
+high = [0.296, 1.012, -0.994]
+material = "rock_dark"
+
+[[parts]]
+name = "col24"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.807]
+high = [0.296, 1.012, -1.510]
+material = "rock"
+
+[[parts]]
+name = "col25"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.982]
+high = [0.296, 1.012, -2.807]
+material = "rock_dark"
+
+[[parts]]
+name = "seam26"
+joint = "origin"
+shape = "box"
+low = [0.261, 0.990, -0.740]
+high = [0.296, 1.016, -0.131]
+material = "ember_mid"
+
+[[parts]]
+name = "col26"
+joint = "origin"
+shape = "box"
+low = [0.296, 0.950, -1.184]
+high = [0.534, 1.012, -0.020]
+material = "rock_dark"
+
+[[parts]]
+name = "col27"
+joint = "origin"
+shape = "box"
+low = [0.296, 0.950, -1.744]
+high = [0.534, 1.012, -1.184]
+material = "rock_dark"
+
+[[parts]]
+name = "col28"
+joint = "origin"
+shape = "box"
+low = [0.296, 0.950, -2.753]
+high = [0.534, 1.012, -1.744]
+material = "rock_dark"
+
+[[parts]]
+name = "col29"
+joint = "origin"
+shape = "box"
+low = [0.296, 0.950, -2.982]
+high = [0.534, 1.012, -2.753]
+material = "rock"
+
+[[parts]]
+name = "seam30"
+joint = "origin"
+shape = "box"
+low = [0.499, 0.990, -1.747]
+high = [0.534, 1.016, -1.036]
+material = "ember_mid"
+
+[[parts]]
+name = "col30"
+joint = "origin"
+shape = "box"
+low = [0.534, 0.950, -0.829]
+high = [0.695, 1.012, -0.020]
+material = "rock"
+
+[[parts]]
+name = "col31"
+joint = "origin"
+shape = "box"
+low = [0.534, 0.950, -1.578]
+high = [0.695, 1.012, -0.829]
+material = "rock_dark"
+
+[[parts]]
+name = "col32"
+joint = "origin"
+shape = "box"
+low = [0.534, 0.950, -2.566]
+high = [0.695, 1.012, -1.578]
+material = "rock"
+
+[[parts]]
+name = "col33"
+joint = "origin"
+shape = "box"
+low = [0.534, 0.950, -2.982]
+high = [0.695, 1.012, -2.566]
+material = "rock"
+
+[[parts]]
+name = "col34"
+joint = "origin"
+shape = "box"
+low = [0.695, 0.950, -0.831]
+high = [1.000, 1.012, -0.020]
+material = "rock"
+
+[[parts]]
+name = "col35"
+joint = "origin"
+shape = "box"
+low = [0.695, 0.950, -1.393]
+high = [1.000, 1.012, -0.831]
+material = "rock_dark"
+
+[[parts]]
+name = "col36"
+joint = "origin"
+shape = "box"
+low = [0.695, 0.950, -1.981]
+high = [1.000, 1.012, -1.393]
+material = "rock"
+
+[[parts]]
+name = "col37"
+joint = "origin"
+shape = "box"
+low = [0.695, 0.950, -2.685]
+high = [1.000, 1.012, -1.981]
+material = "rock"
+
+[[parts]]
+name = "col38"
+joint = "origin"
+shape = "box"
+low = [0.695, 0.950, -2.982]
+high = [1.000, 1.012, -2.685]
+material = "rock_dark"
+
+[[poses]]

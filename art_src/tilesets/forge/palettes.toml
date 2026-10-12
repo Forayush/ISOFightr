@@ -1,0 +1,113 @@
+# forge tileset materials (Ember Forge; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "basalt"
+outline = false
+
+[[materials]]
+name = "basalt_dark"
+outline = false
+
+[[materials]]
+name = "ash"
+outline = false
+
+[[materials]]
+name = "rock"
+outline = false
+
+[[materials]]
+name = "rock_dark"
+outline = false
+
+[[materials]]
+name = "steel"
+outline = false
+
+[[materials]]
+name = "steel_dark"
+outline = false
+
+[[materials]]
+name = "steel_light"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "ember_hi"
+outline = false
+lit = false
+
+[[materials]]
+name = "ember_mid"
+outline = false
+lit = false
+
+[[materials]]
+name = "ember_lo"
+outline = false
+lit = false
+
+[[materials]]
+name = "vent"
+outline = false
+
+[[materials]]
+name = "brick"
+
+[[materials]]
+name = "brick_dark"
+
+[[materials]]
+name = "iron"
+
+[[materials]]
+name = "iron_light"
+
+[[materials]]
+name = "wood"
+
+[[materials]]
+name = "slag"
+
+[[costumes]]
+name = "light"
+basalt = ["ab947a", "7f708a", "625565", "3e3546", "2e222f"]
+basalt_dark = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+ash = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+rock = ["694f62", "45293f", "3e3546", "2e222f", "2e222f"]
+rock_dark = ["45293f", "3e3546", "2e222f", "2e222f", "2e222f"]
+steel = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+steel_dark = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+steel_light = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+deep = ["6e2727", "45293f", "2e222f", "2e222f", "2e222f"]
+deep_dark = ["45293f", "2e222f", "2e222f", "2e222f", "2e222f"]
+ember_hi = ["fbff86", "fbff86", "f9c22b", "f79617", "fb6b1d"]
+ember_mid = ["f79617", "f79617", "fb6b1d", "ea4f36", "b33831"]
+ember_lo = ["ea4f36", "ea4f36", "b33831", "6e2727", "2e222f"]
+vent = ["45293f", "2e222f", "2e222f", "2e222f", "2e222f"]
+brick = ["f57d4a", "ea4f36", "b33831", "6e2727", "2e222f"]
+brick_dark = ["b33831", "6e2727", "45293f", "2e222f", "2e222f"]
+iron = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+iron_light = ["ffffff", "c7dcd0", "9babb2", "7f708a", "2e222f"]
+wood = ["e6904e", "cd683d", "9e4539", "7a3045", "2e222f"]
+slag = ["966c6c", "694f62", "45293f", "3e3546", "2e222f"]
+
+[[costumes]]
+name = "dark"
+basalt = ["966c6c", "694f62", "45293f", "3e3546", "2e222f"]
+basalt_dark = ["694f62", "45293f", "3e3546", "2e222f", "2e222f"]
+steel = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]

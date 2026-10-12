@@ -1,0 +1,61 @@
+# Deck: an iron grate (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "frame"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.080]
+material = "steel_dark"
+
+[[parts]]
+name = "plate"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.080]
+high = [1.000, 1.000, 0.000]
+material = "steel"
+
+[[parts]]
+name = "slot0"
+joint = "origin"
+shape = "box"
+low = [0.100, 0.100, -0.010]
+high = [0.190, 0.900, 0.004]
+material = "steel_dark"
+
+[[parts]]
+name = "slot1"
+joint = "origin"
+shape = "box"
+low = [0.330, 0.100, -0.010]
+high = [0.420, 0.900, 0.004]
+material = "steel_dark"
+
+[[parts]]
+name = "slot2"
+joint = "origin"
+shape = "box"
+low = [0.560, 0.100, -0.010]
+high = [0.650, 0.900, 0.004]
+material = "steel_dark"
+
+[[parts]]
+name = "slot3"
+joint = "origin"
+shape = "box"
+low = [0.790, 0.100, -0.010]
+high = [0.880, 0.900, 0.004]
+material = "steel_dark"
+
+[[parts]]
+name = "glow"
+joint = "origin"
+shape = "box"
+low = [-0.010, -0.010, -0.250]
+high = [1.012, 1.012, -0.200]
+material = "ember_lo"
+
+[[poses]]

@@ -1,0 +1,189 @@
+# Ember Forge: a smithy on black volcanic rock (decision D-063, the first stage new in M14).
+# One wide island with the great anvil block in the middle (one unit high) and an iron grate
+# on posts at either end. A channel of lava runs along the front and pours off the corner.
+# Mechanic: two geysers of fire in the floor, left and right of the anvil, erupt in turn.
+# Each one's vent glows and rumbles for a second and a half first, then throws whoever
+# stands on it into the air. With the "stage hazards" rule off they never go off.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "ember_forge"
+display_name = "Ember Forge"
+description = "A smithy on black rock. Two vents of fire erupt in turn."
+tileset = "forge"
+music = "ember_forge"            # a song in assets/audio/music
+
+# Legend: '.' = void. 'b' basalt, 'A' the anvil block (one unit up), 'P' the lava spring and
+# 'l' its channel (both plain floor: the lava here is only a picture).
+grid = """
+bbbbbbbbbbbbb
+bbbbbbbbbbbbb
+bbbbbbbbbbbbb
+bbbbbAAAbbbbb
+bbbbbAAAbbbbb
+bbbbbbbbbbbbb
+bbbbbbbbbbbbb
+bbbbbbPllllll
+"""
+
+[legend]
+"b" = { height = 0, tile = "basalt" }
+"A" = { height = 1, tile = "iron" }
+"P" = { height = 0, tile = "pool" }
+"l" = { height = 0, tile = "lava" }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [0, 5, 3, 7]          # the left grate
+z = 2.5
+[[soft_platforms]]
+rect = [10, 1, 13, 3]        # the right grate
+z = 2.5
+
+[[hazards]]                  # the left vent
+kind = "geyser"
+at = [3.0, 3.8]
+radius = 1.1
+rest = 480                   # 8 seconds quiet,
+warn = 90                    # 1.5 glowing and rumbling,
+active = 40                  # then fire
+damage = 12.0
+bkb = 70.0
+kbg = 75.0
+[[hazards]]                  # the right vent, half a round later
+kind = "geyser"
+at = [10.0, 4.2]
+radius = 1.1
+rest = 480
+warn = 90
+active = 40
+phase = 305
+damage = 12.0
+bkb = 70.0
+kbg = 75.0
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [4.5, 6.5]
+p2 = [8.5, 1.5]
+p3 = [4.5, 1.6]
+p4 = [11.5, 6.0]
+respawn = [6.5, 5.5]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py ember_forge --theme volcano --mood ember --seed 3).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_smoke.png"
+parallax = 0.04
+scroll = 0.03
+
+[[background]]
+image = "bg_2_volcano.png"   # two frames: beads of lava slide down the cone
+parallax = 0.0
+frames = 2
+frame_ticks = 18
+
+[[background]]
+image = "bg_3_near_smoke.png"
+parallax = 0.1
+scroll = 0.05
+
+[[background]]
+image = "bg_4_plain.png"     # two frames: the river's glints move
+parallax = 0.25
+frames = 2
+frame_ticks = 14
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 2.0
+hang = ["chain", "stalactite"]
+
+[ambient]
+kind = "embers"
+count = 14
+front = 4
+
+[[props]]                    # flat on the floor: the two vents, and cracks with fire in them
+sprite = "vent"
+at = [3.0, 3.8]
+layer = "ground"
+period = 16
+[[props]]
+sprite = "vent"
+at = [10.0, 4.2]
+layer = "ground"
+period = 16
+phase = 32
+[[props]]
+sprite = "cracks"
+at = [6.5, 1.5]
+layer = "ground"
+period = 22
+[[props]]
+sprite = "cracks"
+at = [1.5, 4.0]
+layer = "ground"
+period = 22
+phase = 40
+[[props]]
+sprite = "cracks"
+at = [8.5, 5.6]
+layer = "ground"
+period = 22
+phase = 20
+[[props]]
+sprite = "cracks"
+at = [11.6, 4.4]
+layer = "ground"
+period = 22
+phase = 60
+
+[[props]]                    # along the far edges: the tall things
+sprite = "furnace"
+at = [0.9, 0.9]
+period = 26
+[[props]]
+sprite = "rack"
+at = [2.8, 0.5]
+[[props]]
+sprite = "crucible"
+at = [6.5, 0.5]
+period = 30
+[[props]]
+sprite = "ingots"
+at = [0.5, 3.4]
+[[props]]
+sprite = "anvil"             # on the far side of the anvil block
+at = [6.5, 3.4]
+
+[[props]]                    # the grates' posts
+sprite = "post"
+at = [0.5, 5.5]
+[[props]]
+sprite = "post"
+at = [2.5, 6.5]
+[[props]]
+sprite = "post"
+at = [10.5, 1.5]
+[[props]]
+sprite = "post"
+at = [12.5, 2.5]
+
+[[props]]
+sprite = "lavafall"          # the channel pours off the front corner
+at = [12.95, 7.5]
+period = 7
+[[props]]
+sprite = "rocks"
+at = [12.5, 0.5]
+[[props]]
+sprite = "rocks"
+at = [0.5, 7.5]

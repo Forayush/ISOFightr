@@ -1,0 +1,98 @@
+# Chain: hangs under the forge with a hook, swaying (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "link0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.100]
+r1 = 0.030
+r2 = 0.030
+material = "iron"
+
+[[parts]]
+name = "link1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.140]
+b = [0.000, 0.000, -0.260]
+r1 = 0.045
+r2 = 0.045
+material = "iron"
+
+[[parts]]
+name = "link2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.300]
+b = [0.000, 0.000, -0.420]
+r1 = 0.030
+r2 = 0.030
+material = "iron"
+
+[[parts]]
+name = "link3"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.460]
+b = [0.000, 0.000, -0.580]
+r1 = 0.045
+r2 = 0.045
+material = "iron"
+
+[[parts]]
+name = "link4"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.620]
+b = [0.000, 0.000, -0.740]
+r1 = 0.030
+r2 = 0.030
+material = "iron"
+
+[[parts]]
+name = "link5"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.780]
+b = [0.000, 0.000, -0.900]
+r1 = 0.045
+r2 = 0.045
+material = "iron"
+
+[[parts]]
+name = "link6"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.940]
+b = [0.000, 0.000, -1.060]
+r1 = 0.030
+r2 = 0.030
+material = "iron"
+
+[[parts]]
+name = "hook0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.080]
+b = [0.000, 0.000, -1.280]
+r1 = 0.030
+r2 = 0.030
+material = "iron_light"
+
+[[parts]]
+name = "hook1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.280]
+b = [0.120, -0.120, -1.200]
+r1 = 0.030
+r2 = 0.015
+material = "iron_light"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 6.000, 0.000]

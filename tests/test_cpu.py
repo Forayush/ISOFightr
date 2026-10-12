@@ -29,7 +29,14 @@ from isofightr.sim.replay import Recorder, play_back
 from isofightr.sim.states.base import change_state
 
 CHARACTERS = ("rook", "bramble", "zephyr", "mote")
-STAGES = ("sky_ruins", "final_plateau", "training_grid", "twin_isles", "lily_pads")
+STAGES = (
+    "sky_ruins",
+    "final_plateau",
+    "training_grid",
+    "twin_isles",
+    "lily_pads",
+    "ember_forge",
+)
 
 
 def cpu_match(
@@ -147,7 +154,7 @@ def test_cpus_are_deterministic_for_a_seed() -> None:
 
 @pytest.mark.parametrize(
     ("stage", "character"),
-    list(zip(STAGES, ("rook", "bramble", "zephyr", "mote", "rook"), strict=True)),
+    list(zip(STAGES, ("rook", "bramble", "zephyr", "mote", "rook", "bramble"), strict=True)),
 )
 def test_a_level_9_cpu_reaches_and_hits_a_standing_opponent(stage: str, character: str) -> None:
     match, cpus = cpu_match(stage, (character, "rook"), (9, 0))

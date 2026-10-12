@@ -1,0 +1,111 @@
+# Cracks: fire showing through the floor, pulsing (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "c_ember_hi_0"
+joint = "origin"
+shape = "box"
+low = [-0.400, -0.040, 0.004]
+high = [0.000, 0.040, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "c_ember_hi_1"
+joint = "origin"
+shape = "box"
+low = [-0.040, -0.040, 0.004]
+high = [0.040, 0.340, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "c_ember_hi_2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.260, 0.004]
+high = [0.360, 0.340, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "c_ember_hi_3"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.004]
+high = [-0.220, -0.040, 0.016]
+material = "ember_hi"
+
+[[smears]]
+name = "c_ember_lo_0"
+joint = "origin"
+shape = "box"
+low = [-0.400, -0.040, 0.004]
+high = [0.000, 0.040, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "c_ember_lo_1"
+joint = "origin"
+shape = "box"
+low = [-0.040, -0.040, 0.004]
+high = [0.040, 0.340, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "c_ember_lo_2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.260, 0.004]
+high = [0.360, 0.340, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "c_ember_lo_3"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.004]
+high = [-0.220, -0.040, 0.016]
+material = "ember_lo"
+
+[[smears]]
+name = "c_ember_mid_0"
+joint = "origin"
+shape = "box"
+low = [-0.400, -0.040, 0.004]
+high = [0.000, 0.040, 0.016]
+material = "ember_mid"
+
+[[smears]]
+name = "c_ember_mid_1"
+joint = "origin"
+shape = "box"
+low = [-0.040, -0.040, 0.004]
+high = [0.040, 0.340, 0.016]
+material = "ember_mid"
+
+[[smears]]
+name = "c_ember_mid_2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.260, 0.004]
+high = [0.360, 0.340, 0.016]
+material = "ember_mid"
+
+[[smears]]
+name = "c_ember_mid_3"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.004]
+high = [-0.220, -0.040, 0.016]
+material = "ember_mid"
+
+[[poses]]
+show = ["c_ember_mid_0", "c_ember_mid_1", "c_ember_mid_2", "c_ember_mid_3"]
+
+[[poses]]
+show = ["c_ember_hi_0", "c_ember_hi_1", "c_ember_hi_2", "c_ember_hi_3"]
+
+[[poses]]
+show = ["c_ember_mid_0", "c_ember_mid_1", "c_ember_mid_2", "c_ember_mid_3"]
+
+[[poses]]
+show = ["c_ember_lo_0", "c_ember_lo_1", "c_ember_lo_2", "c_ember_lo_3"]

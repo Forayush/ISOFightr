@@ -222,6 +222,7 @@ def test_goldens_exist() -> None:
     assert sorted(path.stem for path in GOLDENS_DIR.glob("*.json")) == [
         "combat_sky_ruins",
         "combat_training_grid",
+        "mechanics_ember_forge",
         "mechanics_twin_isles",
         "movement_sky_ruins",
         "movement_training_grid",

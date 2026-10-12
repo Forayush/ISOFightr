@@ -1,0 +1,45 @@
+# Ingots: a stack of iron bars.
+loop = true
+fps = 1
+
+[[parts]]
+name = "bar0"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.120, 0.000]
+high = [0.000, 0.080, 0.100]
+material = "iron"
+
+[[parts]]
+name = "bar1"
+joint = "origin"
+shape = "box"
+low = [0.020, -0.120, 0.000]
+high = [0.220, 0.080, 0.100]
+material = "iron"
+
+[[parts]]
+name = "bar2"
+joint = "origin"
+shape = "box"
+low = [-0.200, 0.100, 0.000]
+high = [0.000, 0.300, 0.100]
+material = "iron"
+
+[[parts]]
+name = "bar3"
+joint = "origin"
+shape = "box"
+low = [0.020, 0.100, 0.000]
+high = [0.220, 0.300, 0.100]
+material = "iron"
+
+[[parts]]
+name = "bar4"
+joint = "origin"
+shape = "box"
+low = [-0.090, -0.020, 0.100]
+high = [0.110, 0.180, 0.200]
+material = "iron_light"
+
+[[poses]]

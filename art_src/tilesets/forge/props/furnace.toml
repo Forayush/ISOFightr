@@ -1,0 +1,102 @@
+# Furnace: a brick kiln with a chimney; its mouth glows and dims (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "box"
+low = [-0.700, -0.700, 0.000]
+high = [0.700, 0.700, 0.900]
+material = "brick"
+
+[[parts]]
+name = "band"
+joint = "origin"
+shape = "box"
+low = [-0.740, -0.740, 0.900]
+high = [0.740, 0.740, 1.020]
+material = "iron"
+
+[[parts]]
+name = "dome"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 1.000]
+radius = 0.700
+scale = [1.000, 1.000, 0.750]
+material = "brick"
+
+[[parts]]
+name = "stack"
+joint = "origin"
+shape = "rod"
+a = [-0.200, -0.200, 1.300]
+b = [-0.200, -0.200, 2.500]
+r1 = 0.240
+r2 = 0.180
+material = "brick_dark"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "rod"
+a = [-0.200, -0.200, 2.500]
+b = [-0.200, -0.200, 2.600]
+r1 = 0.240
+r2 = 0.240
+material = "iron"
+
+[[parts]]
+name = "arch_x"
+joint = "origin"
+shape = "box"
+low = [0.680, -0.360, 0.060]
+high = [0.720, 0.360, 0.700]
+material = "iron"
+
+[[smears]]
+name = "fire_hi_x"
+joint = "origin"
+shape = "box"
+low = [0.700, -0.300, 0.120]
+high = [0.732, 0.300, 0.620]
+material = "ember_hi"
+
+[[smears]]
+name = "fire_mid_x"
+joint = "origin"
+shape = "box"
+low = [0.700, -0.300, 0.120]
+high = [0.732, 0.300, 0.620]
+material = "ember_mid"
+
+[[parts]]
+name = "arch_y"
+joint = "origin"
+shape = "box"
+low = [-0.360, 0.680, 0.060]
+high = [0.360, 0.720, 0.700]
+material = "iron"
+
+[[smears]]
+name = "fire_hi_y"
+joint = "origin"
+shape = "box"
+low = [-0.300, 0.700, 0.120]
+high = [0.300, 0.732, 0.620]
+material = "ember_hi"
+
+[[smears]]
+name = "fire_mid_y"
+joint = "origin"
+shape = "box"
+low = [-0.300, 0.700, 0.120]
+high = [0.300, 0.732, 0.620]
+material = "ember_mid"
+
+[[poses]]
+show = ["fire_hi_x", "fire_hi_y"]
+
+[[poses]]
+show = ["fire_mid_x", "fire_mid_y"]

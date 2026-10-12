@@ -1,0 +1,333 @@
+# Under: the hot rock hanging below the forge.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, 0.000]
+material = "deep"
+
+[[parts]]
+name = "col0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.691]
+high = [1.012, 0.152, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "col1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.911]
+high = [1.012, 0.152, -0.691]
+material = "deep"
+
+[[parts]]
+name = "col2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.012, 0.152, -1.911]
+material = "deep_dark"
+
+[[parts]]
+name = "col3"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.152, -0.938]
+high = [1.012, 0.427, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.152, -2.144]
+high = [1.012, 0.427, -0.938]
+material = "deep_dark"
+
+[[parts]]
+name = "col5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.152, -2.644]
+high = [1.012, 0.427, -2.144]
+material = "deep"
+
+[[parts]]
+name = "col6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.152, -2.982]
+high = [1.012, 0.427, -2.644]
+material = "deep_dark"
+
+[[parts]]
+name = "col7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.427, -1.189]
+high = [1.012, 0.702, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col8"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.427, -1.851]
+high = [1.012, 0.702, -1.189]
+material = "deep_dark"
+
+[[parts]]
+name = "col9"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.427, -2.447]
+high = [1.012, 0.702, -1.851]
+material = "deep"
+
+[[parts]]
+name = "col10"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.427, -2.982]
+high = [1.012, 0.702, -2.447]
+material = "deep_dark"
+
+[[parts]]
+name = "seam11"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.667, -0.497]
+high = [1.016, 0.702, -0.162]
+material = "ember_mid"
+
+[[parts]]
+name = "col11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.702, -0.651]
+high = [1.012, 0.899, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "col12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.702, -1.894]
+high = [1.012, 0.899, -0.651]
+material = "deep_dark"
+
+[[parts]]
+name = "col13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.702, -2.982]
+high = [1.012, 0.899, -1.894]
+material = "deep"
+
+[[parts]]
+name = "col14"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.899, -1.136]
+high = [1.012, 1.000, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col15"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.899, -1.820]
+high = [1.012, 1.000, -1.136]
+material = "deep_dark"
+
+[[parts]]
+name = "col16"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.899, -2.515]
+high = [1.012, 1.000, -1.820]
+material = "deep_dark"
+
+[[parts]]
+name = "col17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.899, -2.982]
+high = [1.012, 1.000, -2.515]
+material = "deep_dark"
+
+[[parts]]
+name = "seam18"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.965, -1.648]
+high = [1.016, 1.000, -1.014]
+material = "ember_mid"
+
+[[parts]]
+name = "col18"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.082]
+high = [0.211, 1.012, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "col19"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.632]
+high = [0.211, 1.012, -1.082]
+material = "deep"
+
+[[parts]]
+name = "col20"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.170]
+high = [0.211, 1.012, -1.632]
+material = "deep_dark"
+
+[[parts]]
+name = "col21"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.978]
+high = [0.211, 1.012, -2.170]
+material = "deep_dark"
+
+[[parts]]
+name = "seam22"
+joint = "origin"
+shape = "box"
+low = [0.176, 0.990, -1.472]
+high = [0.211, 1.016, -1.167]
+material = "ember_mid"
+
+[[parts]]
+name = "col22"
+joint = "origin"
+shape = "box"
+low = [0.211, 0.950, -1.281]
+high = [0.461, 1.012, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col23"
+joint = "origin"
+shape = "box"
+low = [0.211, 0.950, -2.545]
+high = [0.461, 1.012, -1.281]
+material = "deep"
+
+[[parts]]
+name = "col24"
+joint = "origin"
+shape = "box"
+low = [0.211, 0.950, -2.982]
+high = [0.461, 1.012, -2.545]
+material = "deep"
+
+[[parts]]
+name = "col25"
+joint = "origin"
+shape = "box"
+low = [0.461, 0.950, -0.821]
+high = [0.638, 1.012, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col26"
+joint = "origin"
+shape = "box"
+low = [0.461, 0.950, -1.477]
+high = [0.638, 1.012, -0.821]
+material = "deep"
+
+[[parts]]
+name = "col27"
+joint = "origin"
+shape = "box"
+low = [0.461, 0.950, -2.385]
+high = [0.638, 1.012, -1.477]
+material = "deep"
+
+[[parts]]
+name = "col28"
+joint = "origin"
+shape = "box"
+low = [0.461, 0.950, -2.982]
+high = [0.638, 1.012, -2.385]
+material = "deep"
+
+[[parts]]
+name = "seam29"
+joint = "origin"
+shape = "box"
+low = [0.603, 0.990, -0.595]
+high = [0.638, 1.016, -0.121]
+material = "ember_mid"
+
+[[parts]]
+name = "col29"
+joint = "origin"
+shape = "box"
+low = [0.638, 0.950, -1.281]
+high = [0.782, 1.012, -0.020]
+material = "deep"
+
+[[parts]]
+name = "col30"
+joint = "origin"
+shape = "box"
+low = [0.638, 0.950, -2.556]
+high = [0.782, 1.012, -1.281]
+material = "deep"
+
+[[parts]]
+name = "col31"
+joint = "origin"
+shape = "box"
+low = [0.638, 0.950, -2.982]
+high = [0.782, 1.012, -2.556]
+material = "deep"
+
+[[parts]]
+name = "col32"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -0.587]
+high = [1.000, 1.012, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "col33"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -1.220]
+high = [1.000, 1.012, -0.587]
+material = "deep_dark"
+
+[[parts]]
+name = "col34"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -1.786]
+high = [1.000, 1.012, -1.220]
+material = "deep"
+
+[[parts]]
+name = "col35"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -2.982]
+high = [1.000, 1.012, -1.786]
+material = "deep_dark"
+
+[[poses]]

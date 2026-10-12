@@ -1,0 +1,89 @@
+# Rack: hammers and tongs hung on a rail.
+loop = true
+fps = 1
+
+[[parts]]
+name = "post0"
+joint = "origin"
+shape = "rod"
+a = [-0.400, 0.400, 0.000]
+b = [-0.400, 0.400, 0.900]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "post1"
+joint = "origin"
+shape = "rod"
+a = [0.400, -0.400, 0.000]
+b = [0.400, -0.400, 0.900]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rail"
+joint = "origin"
+shape = "rod"
+a = [-0.400, 0.400, 0.860]
+b = [0.400, -0.400, 0.860]
+r1 = 0.035
+r2 = 0.035
+material = "wood"
+
+[[parts]]
+name = "haft0"
+joint = "origin"
+shape = "rod"
+a = [-0.220, 0.220, 0.860]
+b = [-0.220, 0.220, 0.360]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "head0"
+joint = "origin"
+shape = "box"
+low = [-0.290, 0.150, 0.260]
+high = [-0.150, 0.290, 0.380]
+material = "iron_light"
+
+[[parts]]
+name = "haft1"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.000, 0.860]
+b = [0.000, -0.000, 0.360]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "head1"
+joint = "origin"
+shape = "box"
+low = [-0.070, -0.070, 0.260]
+high = [0.070, 0.070, 0.380]
+material = "iron"
+
+[[parts]]
+name = "haft2"
+joint = "origin"
+shape = "rod"
+a = [0.220, -0.220, 0.860]
+b = [0.220, -0.220, 0.360]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "head2"
+joint = "origin"
+shape = "box"
+low = [0.150, -0.290, 0.260]
+high = [0.290, -0.150, 0.380]
+material = "iron_light"
+
+[[poses]]

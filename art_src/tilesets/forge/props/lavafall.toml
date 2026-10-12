@@ -1,0 +1,158 @@
+# Lavafall: the channel pours off a +x edge of the island (3 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "sheet"
+joint = "origin"
+shape = "box"
+low = [-0.200, 0.020, -3.400]
+high = [0.200, 0.060, -0.060]
+material = "ember_mid"
+
+[[parts]]
+name = "glow0"
+joint = "origin"
+shape = "ball"
+centre = [-0.100, 0.100, -3.400]
+radius = 0.200
+scale = [1.000, 1.000, 1.000]
+material = "ember_lo"
+
+[[parts]]
+name = "glow1"
+joint = "origin"
+shape = "ball"
+centre = [0.140, 0.080, -3.500]
+radius = 0.160
+scale = [1.000, 1.000, 1.000]
+material = "ember_lo"
+
+[[smears]]
+name = "streak00"
+joint = "origin"
+shape = "box"
+low = [-0.130, 0.050, -0.580]
+high = [-0.080, 0.075, -0.300]
+material = "ember_hi"
+
+[[smears]]
+name = "streak01"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.200]
+high = [0.100, 0.075, -0.920]
+material = "ember_hi"
+
+[[smears]]
+name = "streak02"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.050, -1.820]
+high = [0.030, 0.075, -1.540]
+material = "ember_hi"
+
+[[smears]]
+name = "streak03"
+joint = "origin"
+shape = "box"
+low = [0.120, 0.050, -2.440]
+high = [0.170, 0.075, -2.160]
+material = "ember_hi"
+
+[[smears]]
+name = "streak04"
+joint = "origin"
+shape = "box"
+low = [-0.080, 0.050, -3.060]
+high = [-0.030, 0.075, -2.780]
+material = "ember_hi"
+
+[[smears]]
+name = "streak10"
+joint = "origin"
+shape = "box"
+low = [-0.130, 0.050, -0.780]
+high = [-0.080, 0.075, -0.500]
+material = "ember_hi"
+
+[[smears]]
+name = "streak11"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.400]
+high = [0.100, 0.075, -1.120]
+material = "ember_hi"
+
+[[smears]]
+name = "streak12"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.050, -2.020]
+high = [0.030, 0.075, -1.740]
+material = "ember_hi"
+
+[[smears]]
+name = "streak13"
+joint = "origin"
+shape = "box"
+low = [0.120, 0.050, -2.640]
+high = [0.170, 0.075, -2.360]
+material = "ember_hi"
+
+[[smears]]
+name = "streak14"
+joint = "origin"
+shape = "box"
+low = [-0.080, 0.050, -3.260]
+high = [-0.030, 0.075, -2.980]
+material = "ember_hi"
+
+[[smears]]
+name = "streak20"
+joint = "origin"
+shape = "box"
+low = [-0.130, 0.050, -0.980]
+high = [-0.080, 0.075, -0.700]
+material = "ember_hi"
+
+[[smears]]
+name = "streak21"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.600]
+high = [0.100, 0.075, -1.320]
+material = "ember_hi"
+
+[[smears]]
+name = "streak22"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.050, -2.220]
+high = [0.030, 0.075, -1.940]
+material = "ember_hi"
+
+[[smears]]
+name = "streak23"
+joint = "origin"
+shape = "box"
+low = [0.120, 0.050, -2.840]
+high = [0.170, 0.075, -2.560]
+material = "ember_hi"
+
+[[smears]]
+name = "streak24"
+joint = "origin"
+shape = "box"
+low = [-0.080, 0.050, -3.460]
+high = [-0.030, 0.075, -3.180]
+material = "ember_hi"
+
+[[poses]]
+show = ["streak00", "streak01", "streak02", "streak03", "streak04"]
+
+[[poses]]
+show = ["streak10", "streak11", "streak12", "streak13", "streak14"]
+
+[[poses]]
+show = ["streak20", "streak21", "streak22", "streak23", "streak24"]

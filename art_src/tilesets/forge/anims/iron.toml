@@ -1,0 +1,157 @@
+# Iron: the great anvil block, plates of dark steel riveted together.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.020]
+material = "steel_dark"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.020]
+high = [1.000, 1.000, 0.000]
+material = "steel"
+
+[[parts]]
+name = "seam0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.480, -0.010]
+high = [1.000, 0.520, 0.004]
+material = "steel_dark"
+
+[[parts]]
+name = "rivet0"
+joint = "origin"
+shape = "box"
+low = [0.100, 0.100, -0.010]
+high = [0.160, 0.160, 0.010]
+material = "steel_light"
+
+[[parts]]
+name = "rivet1"
+joint = "origin"
+shape = "box"
+low = [0.840, 0.100, -0.010]
+high = [0.900, 0.160, 0.010]
+material = "steel_light"
+
+[[parts]]
+name = "rivet2"
+joint = "origin"
+shape = "box"
+low = [0.100, 0.840, -0.010]
+high = [0.160, 0.900, 0.010]
+material = "steel_light"
+
+[[parts]]
+name = "rivet3"
+joint = "origin"
+shape = "box"
+low = [0.840, 0.840, -0.010]
+high = [0.900, 0.900, 0.010]
+material = "steel_light"
+
+[[parts]]
+name = "lip_x"
+joint = "origin"
+shape = "box"
+low = [0.970, 0.000, -0.160]
+high = [1.016, 1.000, 0.000]
+material = "steel_light"
+
+[[parts]]
+name = "lip_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.970, -0.160]
+high = [1.000, 1.016, 0.000]
+material = "steel_light"
+
+[[parts]]
+name = "face_x"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -3.000]
+high = [1.012, 1.000, -0.160]
+material = "steel"
+
+[[parts]]
+name = "face_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -3.000]
+high = [1.000, 1.012, -0.160]
+material = "steel_dark"
+
+[[parts]]
+name = "slit_x"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.200, -0.620]
+high = [1.016, 0.800, -0.500]
+material = "ember_mid"
+
+[[parts]]
+name = "slit_y"
+joint = "origin"
+shape = "box"
+low = [0.200, 0.990, -0.620]
+high = [0.800, 1.016, -0.500]
+material = "ember_lo"
+
+[[parts]]
+name = "rx0"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.140, -0.340]
+high = [1.020, 0.200, -0.280]
+material = "steel_light"
+
+[[parts]]
+name = "ry0"
+joint = "origin"
+shape = "box"
+low = [0.140, 0.990, -0.340]
+high = [0.200, 1.020, -0.280]
+material = "steel_light"
+
+[[parts]]
+name = "rx1"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.480, -0.340]
+high = [1.020, 0.540, -0.280]
+material = "steel_light"
+
+[[parts]]
+name = "ry1"
+joint = "origin"
+shape = "box"
+low = [0.480, 0.990, -0.340]
+high = [0.540, 1.020, -0.280]
+material = "steel_light"
+
+[[parts]]
+name = "rx2"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.820, -0.340]
+high = [1.020, 0.880, -0.280]
+material = "steel_light"
+
+[[parts]]
+name = "ry2"
+joint = "origin"
+shape = "box"
+low = [0.820, 0.990, -0.340]
+high = [0.880, 1.020, -0.280]
+material = "steel_light"
+
+[[poses]]
