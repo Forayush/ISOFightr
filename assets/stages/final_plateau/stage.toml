@@ -1,10 +1,12 @@
 # Final Plateau: a flat 14x10 island with no platforms. The plain, no-excuses stage.
+# Its look (decision D-063): a slab of rune-cut flagstone under an aurora, at night. It has
+# no mechanic: the "stage hazards" rule changes nothing here.
 # The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "final_plateau"
 display_name = "Final Plateau"
-description = "A flat stone plateau. No platforms, no excuses."
-tileset = "grass_stone"
+description = "A flat slab of runestone. No platforms, no excuses."
+tileset = "runestone"
 music = "final_plateau"            # a song in assets/audio/music
 
 # Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
@@ -22,7 +24,7 @@ grid = """
 """
 
 [legend]
-"0" = { height = 0, tile = "stone" }
+"0" = { height = 0, tile = "flag" }
 
 [spawns]                     # world (x, y); z = surface height
 p1 = [3.5, 5.0]
@@ -38,3 +40,136 @@ bottom = -8.0
 
 [camera]
 bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py final_plateau --theme aurora --mood night --seed 9).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_stars.png"     # two frames: some stars twinkle
+parallax = 0.01
+frames = 2
+frame_ticks = 40
+
+[[background]]
+image = "bg_2_aurora_far.png"   # three frames: the curtain shimmers
+parallax = 0.03
+scroll = 0.01
+frames = 3
+frame_ticks = 22
+
+[[background]]
+image = "bg_3_aurora.png"
+parallax = 0.05
+scroll = 0.02
+frames = 3
+frame_ticks = 16
+
+[[background]]
+image = "bg_4_peaks.png"
+parallax = 0.1
+
+[[background]]
+image = "bg_5_bank.png"
+parallax = 0.3
+scroll = 0.03
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 2.5
+hang = ["shard", "stalactite"]
+
+[ambient]
+kind = "motes"
+count = 12
+front = 3
+
+[[props]]                    # flat on the ground: the great seal and the runes, pulsing
+sprite = "sigil"
+at = [7.0, 5.0]
+layer = "ground"
+period = 30
+[[props]]
+sprite = "rune_a"
+at = [2.5, 2.5]
+layer = "ground"
+period = 24
+[[props]]
+sprite = "rune_b"
+at = [11.5, 2.5]
+layer = "ground"
+period = 24
+phase = 30
+[[props]]
+sprite = "rune_c"
+at = [2.5, 7.5]
+layer = "ground"
+period = 24
+phase = 60
+[[props]]
+sprite = "rune_d"
+at = [11.5, 7.5]
+layer = "ground"
+period = 24
+phase = 12
+[[props]]
+sprite = "rune_d"
+at = [7.0, 1.2]
+layer = "ground"
+period = 24
+phase = 48
+[[props]]
+sprite = "rune_a"
+at = [7.0, 8.8]
+layer = "ground"
+period = 24
+phase = 72
+[[props]]
+sprite = "rune_b"
+at = [1.2, 5.0]
+layer = "ground"
+period = 24
+phase = 84
+[[props]]
+sprite = "rune_c"
+at = [12.8, 5.0]
+layer = "ground"
+period = 24
+phase = 36
+
+[[props]]                    # along the two far edges: the tall things
+sprite = "obelisk"
+at = [3.5, 0.45]
+period = 45
+[[props]]
+sprite = "obelisk"
+at = [0.45, 3.5]
+period = 45
+phase = 45
+[[props]]
+sprite = "brazier"
+at = [0.5, 0.5]
+period = 8
+[[props]]
+sprite = "brazier"
+at = [13.5, 0.5]
+period = 8
+phase = 5
+[[props]]
+sprite = "brazier"
+at = [0.5, 9.5]
+period = 8
+phase = 11
+[[props]]
+sprite = "crystal"
+at = [9.5, 0.4]
+period = 50
+[[props]]
+sprite = "crystal"
+at = [0.4, 7.5]
+period = 50
+phase = 25
+[[props]]
+sprite = "rubble"
+at = [12.5, 0.5]

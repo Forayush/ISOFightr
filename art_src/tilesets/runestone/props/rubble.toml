@@ -1,0 +1,30 @@
+# Rubble: broken pieces of a fallen stone.
+loop = true
+fps = 1
+
+[[parts]]
+name = "a"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.100, 0.000]
+high = [0.020, 0.160, 0.200]
+material = "pillar"
+
+[[parts]]
+name = "b"
+joint = "origin"
+shape = "box"
+low = [0.060, -0.200, 0.000]
+high = [0.300, 0.020, 0.130]
+material = "pillar"
+
+[[parts]]
+name = "c"
+joint = "origin"
+shape = "ball"
+centre = [0.200, 0.180, 0.060]
+radius = 0.090
+scale = [1.000, 1.000, 0.800]
+material = "pillar"
+
+[[poses]]

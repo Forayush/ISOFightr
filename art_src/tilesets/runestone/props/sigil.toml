@@ -1,0 +1,1935 @@
+# Sigil: the great seal at the plateau's heart, pulsing (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "s_rune_hi_0"
+joint = "origin"
+shape = "rod"
+a = [1.550, 0.000, 0.012]
+b = [1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_1"
+joint = "origin"
+shape = "rod"
+a = [1.497, 0.401, 0.012]
+b = [1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_2"
+joint = "origin"
+shape = "rod"
+a = [1.342, 0.775, 0.012]
+b = [1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_3"
+joint = "origin"
+shape = "rod"
+a = [1.096, 1.096, 0.012]
+b = [0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_4"
+joint = "origin"
+shape = "rod"
+a = [0.775, 1.342, 0.012]
+b = [0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_5"
+joint = "origin"
+shape = "rod"
+a = [0.401, 1.497, 0.012]
+b = [0.000, 1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_6"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.550, 0.012]
+b = [-0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_7"
+joint = "origin"
+shape = "rod"
+a = [-0.401, 1.497, 0.012]
+b = [-0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_8"
+joint = "origin"
+shape = "rod"
+a = [-0.775, 1.342, 0.012]
+b = [-1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_9"
+joint = "origin"
+shape = "rod"
+a = [-1.096, 1.096, 0.012]
+b = [-1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_10"
+joint = "origin"
+shape = "rod"
+a = [-1.342, 0.775, 0.012]
+b = [-1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_11"
+joint = "origin"
+shape = "rod"
+a = [-1.497, 0.401, 0.012]
+b = [-1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_12"
+joint = "origin"
+shape = "rod"
+a = [-1.550, 0.000, 0.012]
+b = [-1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_13"
+joint = "origin"
+shape = "rod"
+a = [-1.497, -0.401, 0.012]
+b = [-1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_14"
+joint = "origin"
+shape = "rod"
+a = [-1.342, -0.775, 0.012]
+b = [-1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_15"
+joint = "origin"
+shape = "rod"
+a = [-1.096, -1.096, 0.012]
+b = [-0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_16"
+joint = "origin"
+shape = "rod"
+a = [-0.775, -1.342, 0.012]
+b = [-0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_17"
+joint = "origin"
+shape = "rod"
+a = [-0.401, -1.497, 0.012]
+b = [-0.000, -1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_18"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.550, 0.012]
+b = [0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_19"
+joint = "origin"
+shape = "rod"
+a = [0.401, -1.497, 0.012]
+b = [0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_20"
+joint = "origin"
+shape = "rod"
+a = [0.775, -1.342, 0.012]
+b = [1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_21"
+joint = "origin"
+shape = "rod"
+a = [1.096, -1.096, 0.012]
+b = [1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_22"
+joint = "origin"
+shape = "rod"
+a = [1.342, -0.775, 0.012]
+b = [1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_23"
+joint = "origin"
+shape = "rod"
+a = [1.497, -0.401, 0.012]
+b = [1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_24"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_25"
+joint = "origin"
+shape = "rod"
+a = [1.207, 0.324, 0.012]
+b = [1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_26"
+joint = "origin"
+shape = "rod"
+a = [1.083, 0.625, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_27"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_28"
+joint = "origin"
+shape = "rod"
+a = [0.625, 1.083, 0.012]
+b = [0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_29"
+joint = "origin"
+shape = "rod"
+a = [0.324, 1.207, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_30"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_31"
+joint = "origin"
+shape = "rod"
+a = [-0.324, 1.207, 0.012]
+b = [-0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_32"
+joint = "origin"
+shape = "rod"
+a = [-0.625, 1.083, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_33"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_34"
+joint = "origin"
+shape = "rod"
+a = [-1.083, 0.625, 0.012]
+b = [-1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_35"
+joint = "origin"
+shape = "rod"
+a = [-1.207, 0.324, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_36"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_37"
+joint = "origin"
+shape = "rod"
+a = [-1.207, -0.324, 0.012]
+b = [-1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_38"
+joint = "origin"
+shape = "rod"
+a = [-1.083, -0.625, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_39"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [-0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_40"
+joint = "origin"
+shape = "rod"
+a = [-0.625, -1.083, 0.012]
+b = [-0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_41"
+joint = "origin"
+shape = "rod"
+a = [-0.324, -1.207, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_42"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_43"
+joint = "origin"
+shape = "rod"
+a = [0.324, -1.207, 0.012]
+b = [0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_44"
+joint = "origin"
+shape = "rod"
+a = [0.625, -1.083, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_45"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_46"
+joint = "origin"
+shape = "rod"
+a = [1.083, -0.625, 0.012]
+b = [1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_47"
+joint = "origin"
+shape = "rod"
+a = [1.207, -0.324, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_48"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_49"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_50"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_51"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_52"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_53"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_54"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_55"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_56"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_57"
+joint = "origin"
+shape = "rod"
+a = [0.297, 0.297, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_58"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_59"
+joint = "origin"
+shape = "rod"
+a = [-0.297, 0.297, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_60"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_61"
+joint = "origin"
+shape = "rod"
+a = [-0.297, -0.297, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_62"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_hi_63"
+joint = "origin"
+shape = "rod"
+a = [0.297, -0.297, 0.012]
+b = [0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_hi"
+
+[[smears]]
+name = "s_rune_lo_0"
+joint = "origin"
+shape = "rod"
+a = [1.550, 0.000, 0.012]
+b = [1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_1"
+joint = "origin"
+shape = "rod"
+a = [1.497, 0.401, 0.012]
+b = [1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_2"
+joint = "origin"
+shape = "rod"
+a = [1.342, 0.775, 0.012]
+b = [1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_3"
+joint = "origin"
+shape = "rod"
+a = [1.096, 1.096, 0.012]
+b = [0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_4"
+joint = "origin"
+shape = "rod"
+a = [0.775, 1.342, 0.012]
+b = [0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_5"
+joint = "origin"
+shape = "rod"
+a = [0.401, 1.497, 0.012]
+b = [0.000, 1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_6"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.550, 0.012]
+b = [-0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_7"
+joint = "origin"
+shape = "rod"
+a = [-0.401, 1.497, 0.012]
+b = [-0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_8"
+joint = "origin"
+shape = "rod"
+a = [-0.775, 1.342, 0.012]
+b = [-1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_9"
+joint = "origin"
+shape = "rod"
+a = [-1.096, 1.096, 0.012]
+b = [-1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_10"
+joint = "origin"
+shape = "rod"
+a = [-1.342, 0.775, 0.012]
+b = [-1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_11"
+joint = "origin"
+shape = "rod"
+a = [-1.497, 0.401, 0.012]
+b = [-1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_12"
+joint = "origin"
+shape = "rod"
+a = [-1.550, 0.000, 0.012]
+b = [-1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_13"
+joint = "origin"
+shape = "rod"
+a = [-1.497, -0.401, 0.012]
+b = [-1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_14"
+joint = "origin"
+shape = "rod"
+a = [-1.342, -0.775, 0.012]
+b = [-1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_15"
+joint = "origin"
+shape = "rod"
+a = [-1.096, -1.096, 0.012]
+b = [-0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_16"
+joint = "origin"
+shape = "rod"
+a = [-0.775, -1.342, 0.012]
+b = [-0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_17"
+joint = "origin"
+shape = "rod"
+a = [-0.401, -1.497, 0.012]
+b = [-0.000, -1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_18"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.550, 0.012]
+b = [0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_19"
+joint = "origin"
+shape = "rod"
+a = [0.401, -1.497, 0.012]
+b = [0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_20"
+joint = "origin"
+shape = "rod"
+a = [0.775, -1.342, 0.012]
+b = [1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_21"
+joint = "origin"
+shape = "rod"
+a = [1.096, -1.096, 0.012]
+b = [1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_22"
+joint = "origin"
+shape = "rod"
+a = [1.342, -0.775, 0.012]
+b = [1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_23"
+joint = "origin"
+shape = "rod"
+a = [1.497, -0.401, 0.012]
+b = [1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_24"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_25"
+joint = "origin"
+shape = "rod"
+a = [1.207, 0.324, 0.012]
+b = [1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_26"
+joint = "origin"
+shape = "rod"
+a = [1.083, 0.625, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_27"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_28"
+joint = "origin"
+shape = "rod"
+a = [0.625, 1.083, 0.012]
+b = [0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_29"
+joint = "origin"
+shape = "rod"
+a = [0.324, 1.207, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_30"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_31"
+joint = "origin"
+shape = "rod"
+a = [-0.324, 1.207, 0.012]
+b = [-0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_32"
+joint = "origin"
+shape = "rod"
+a = [-0.625, 1.083, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_33"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_34"
+joint = "origin"
+shape = "rod"
+a = [-1.083, 0.625, 0.012]
+b = [-1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_35"
+joint = "origin"
+shape = "rod"
+a = [-1.207, 0.324, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_36"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_37"
+joint = "origin"
+shape = "rod"
+a = [-1.207, -0.324, 0.012]
+b = [-1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_38"
+joint = "origin"
+shape = "rod"
+a = [-1.083, -0.625, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_39"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [-0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_40"
+joint = "origin"
+shape = "rod"
+a = [-0.625, -1.083, 0.012]
+b = [-0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_41"
+joint = "origin"
+shape = "rod"
+a = [-0.324, -1.207, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_42"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_43"
+joint = "origin"
+shape = "rod"
+a = [0.324, -1.207, 0.012]
+b = [0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_44"
+joint = "origin"
+shape = "rod"
+a = [0.625, -1.083, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_45"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_46"
+joint = "origin"
+shape = "rod"
+a = [1.083, -0.625, 0.012]
+b = [1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_47"
+joint = "origin"
+shape = "rod"
+a = [1.207, -0.324, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_48"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_49"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_50"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_51"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_52"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_53"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_54"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_55"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_56"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_57"
+joint = "origin"
+shape = "rod"
+a = [0.297, 0.297, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_58"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_59"
+joint = "origin"
+shape = "rod"
+a = [-0.297, 0.297, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_60"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_61"
+joint = "origin"
+shape = "rod"
+a = [-0.297, -0.297, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_62"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_lo_63"
+joint = "origin"
+shape = "rod"
+a = [0.297, -0.297, 0.012]
+b = [0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_lo"
+
+[[smears]]
+name = "s_rune_mid_0"
+joint = "origin"
+shape = "rod"
+a = [1.550, 0.000, 0.012]
+b = [1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_1"
+joint = "origin"
+shape = "rod"
+a = [1.497, 0.401, 0.012]
+b = [1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_2"
+joint = "origin"
+shape = "rod"
+a = [1.342, 0.775, 0.012]
+b = [1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_3"
+joint = "origin"
+shape = "rod"
+a = [1.096, 1.096, 0.012]
+b = [0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_4"
+joint = "origin"
+shape = "rod"
+a = [0.775, 1.342, 0.012]
+b = [0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_5"
+joint = "origin"
+shape = "rod"
+a = [0.401, 1.497, 0.012]
+b = [0.000, 1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_6"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.550, 0.012]
+b = [-0.401, 1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_7"
+joint = "origin"
+shape = "rod"
+a = [-0.401, 1.497, 0.012]
+b = [-0.775, 1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_8"
+joint = "origin"
+shape = "rod"
+a = [-0.775, 1.342, 0.012]
+b = [-1.096, 1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_9"
+joint = "origin"
+shape = "rod"
+a = [-1.096, 1.096, 0.012]
+b = [-1.342, 0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_10"
+joint = "origin"
+shape = "rod"
+a = [-1.342, 0.775, 0.012]
+b = [-1.497, 0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_11"
+joint = "origin"
+shape = "rod"
+a = [-1.497, 0.401, 0.012]
+b = [-1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_12"
+joint = "origin"
+shape = "rod"
+a = [-1.550, 0.000, 0.012]
+b = [-1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_13"
+joint = "origin"
+shape = "rod"
+a = [-1.497, -0.401, 0.012]
+b = [-1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_14"
+joint = "origin"
+shape = "rod"
+a = [-1.342, -0.775, 0.012]
+b = [-1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_15"
+joint = "origin"
+shape = "rod"
+a = [-1.096, -1.096, 0.012]
+b = [-0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_16"
+joint = "origin"
+shape = "rod"
+a = [-0.775, -1.342, 0.012]
+b = [-0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_17"
+joint = "origin"
+shape = "rod"
+a = [-0.401, -1.497, 0.012]
+b = [-0.000, -1.550, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_18"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.550, 0.012]
+b = [0.401, -1.497, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_19"
+joint = "origin"
+shape = "rod"
+a = [0.401, -1.497, 0.012]
+b = [0.775, -1.342, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_20"
+joint = "origin"
+shape = "rod"
+a = [0.775, -1.342, 0.012]
+b = [1.096, -1.096, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_21"
+joint = "origin"
+shape = "rod"
+a = [1.096, -1.096, 0.012]
+b = [1.342, -0.775, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_22"
+joint = "origin"
+shape = "rod"
+a = [1.342, -0.775, 0.012]
+b = [1.497, -0.401, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_23"
+joint = "origin"
+shape = "rod"
+a = [1.497, -0.401, 0.012]
+b = [1.550, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_24"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_25"
+joint = "origin"
+shape = "rod"
+a = [1.207, 0.324, 0.012]
+b = [1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_26"
+joint = "origin"
+shape = "rod"
+a = [1.083, 0.625, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_27"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_28"
+joint = "origin"
+shape = "rod"
+a = [0.625, 1.083, 0.012]
+b = [0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_29"
+joint = "origin"
+shape = "rod"
+a = [0.324, 1.207, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_30"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-0.324, 1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_31"
+joint = "origin"
+shape = "rod"
+a = [-0.324, 1.207, 0.012]
+b = [-0.625, 1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_32"
+joint = "origin"
+shape = "rod"
+a = [-0.625, 1.083, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_33"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-1.083, 0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_34"
+joint = "origin"
+shape = "rod"
+a = [-1.083, 0.625, 0.012]
+b = [-1.207, 0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_35"
+joint = "origin"
+shape = "rod"
+a = [-1.207, 0.324, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_36"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_37"
+joint = "origin"
+shape = "rod"
+a = [-1.207, -0.324, 0.012]
+b = [-1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_38"
+joint = "origin"
+shape = "rod"
+a = [-1.083, -0.625, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_39"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [-0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_40"
+joint = "origin"
+shape = "rod"
+a = [-0.625, -1.083, 0.012]
+b = [-0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_41"
+joint = "origin"
+shape = "rod"
+a = [-0.324, -1.207, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_42"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [0.324, -1.207, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_43"
+joint = "origin"
+shape = "rod"
+a = [0.324, -1.207, 0.012]
+b = [0.625, -1.083, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_44"
+joint = "origin"
+shape = "rod"
+a = [0.625, -1.083, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_45"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [1.083, -0.625, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_46"
+joint = "origin"
+shape = "rod"
+a = [1.083, -0.625, 0.012]
+b = [1.207, -0.324, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_47"
+joint = "origin"
+shape = "rod"
+a = [1.207, -0.324, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_48"
+joint = "origin"
+shape = "rod"
+a = [1.250, 0.000, 0.012]
+b = [0.000, 1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_49"
+joint = "origin"
+shape = "rod"
+a = [0.000, 1.250, 0.012]
+b = [-1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_50"
+joint = "origin"
+shape = "rod"
+a = [-1.250, 0.000, 0.012]
+b = [-0.000, -1.250, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_51"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -1.250, 0.012]
+b = [1.250, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_52"
+joint = "origin"
+shape = "rod"
+a = [0.884, 0.884, 0.012]
+b = [-0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_53"
+joint = "origin"
+shape = "rod"
+a = [-0.884, 0.884, 0.012]
+b = [-0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_54"
+joint = "origin"
+shape = "rod"
+a = [-0.884, -0.884, 0.012]
+b = [0.884, -0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_55"
+joint = "origin"
+shape = "rod"
+a = [0.884, -0.884, 0.012]
+b = [0.884, 0.884, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_56"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_57"
+joint = "origin"
+shape = "rod"
+a = [0.297, 0.297, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_58"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.297, 0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_59"
+joint = "origin"
+shape = "rod"
+a = [-0.297, 0.297, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_60"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_61"
+joint = "origin"
+shape = "rod"
+a = [-0.297, -0.297, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_62"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.297, -0.297, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[smears]]
+name = "s_rune_mid_63"
+joint = "origin"
+shape = "rod"
+a = [0.297, -0.297, 0.012]
+b = [0.420, 0.000, 0.012]
+r1 = 0.040
+r2 = 0.040
+material = "rune_mid"
+
+[[poses]]
+show = ["s_rune_mid_0", "s_rune_mid_1", "s_rune_mid_2", "s_rune_mid_3", "s_rune_mid_4", "s_rune_mid_5", "s_rune_mid_6", "s_rune_mid_7", "s_rune_mid_8", "s_rune_mid_9", "s_rune_mid_10", "s_rune_mid_11", "s_rune_mid_12", "s_rune_mid_13", "s_rune_mid_14", "s_rune_mid_15", "s_rune_mid_16", "s_rune_mid_17", "s_rune_mid_18", "s_rune_mid_19", "s_rune_mid_20", "s_rune_mid_21", "s_rune_mid_22", "s_rune_mid_23", "s_rune_mid_24", "s_rune_mid_25", "s_rune_mid_26", "s_rune_mid_27", "s_rune_mid_28", "s_rune_mid_29", "s_rune_mid_30", "s_rune_mid_31", "s_rune_mid_32", "s_rune_mid_33", "s_rune_mid_34", "s_rune_mid_35", "s_rune_mid_36", "s_rune_mid_37", "s_rune_mid_38", "s_rune_mid_39", "s_rune_mid_40", "s_rune_mid_41", "s_rune_mid_42", "s_rune_mid_43", "s_rune_mid_44", "s_rune_mid_45", "s_rune_mid_46", "s_rune_mid_47", "s_rune_mid_48", "s_rune_mid_49", "s_rune_mid_50", "s_rune_mid_51", "s_rune_mid_52", "s_rune_mid_53", "s_rune_mid_54", "s_rune_mid_55", "s_rune_mid_56", "s_rune_mid_57", "s_rune_mid_58", "s_rune_mid_59", "s_rune_mid_60", "s_rune_mid_61", "s_rune_mid_62", "s_rune_mid_63"]
+
+[[poses]]
+show = ["s_rune_hi_0", "s_rune_hi_1", "s_rune_hi_2", "s_rune_hi_3", "s_rune_hi_4", "s_rune_hi_5", "s_rune_hi_6", "s_rune_hi_7", "s_rune_hi_8", "s_rune_hi_9", "s_rune_hi_10", "s_rune_hi_11", "s_rune_hi_12", "s_rune_hi_13", "s_rune_hi_14", "s_rune_hi_15", "s_rune_hi_16", "s_rune_hi_17", "s_rune_hi_18", "s_rune_hi_19", "s_rune_hi_20", "s_rune_hi_21", "s_rune_hi_22", "s_rune_hi_23", "s_rune_hi_24", "s_rune_hi_25", "s_rune_hi_26", "s_rune_hi_27", "s_rune_hi_28", "s_rune_hi_29", "s_rune_hi_30", "s_rune_hi_31", "s_rune_hi_32", "s_rune_hi_33", "s_rune_hi_34", "s_rune_hi_35", "s_rune_hi_36", "s_rune_hi_37", "s_rune_hi_38", "s_rune_hi_39", "s_rune_hi_40", "s_rune_hi_41", "s_rune_hi_42", "s_rune_hi_43", "s_rune_hi_44", "s_rune_hi_45", "s_rune_hi_46", "s_rune_hi_47", "s_rune_hi_48", "s_rune_hi_49", "s_rune_hi_50", "s_rune_hi_51", "s_rune_hi_52", "s_rune_hi_53", "s_rune_hi_54", "s_rune_hi_55", "s_rune_hi_56", "s_rune_hi_57", "s_rune_hi_58", "s_rune_hi_59", "s_rune_hi_60", "s_rune_hi_61", "s_rune_hi_62", "s_rune_hi_63"]
+
+[[poses]]
+show = ["s_rune_mid_0", "s_rune_mid_1", "s_rune_mid_2", "s_rune_mid_3", "s_rune_mid_4", "s_rune_mid_5", "s_rune_mid_6", "s_rune_mid_7", "s_rune_mid_8", "s_rune_mid_9", "s_rune_mid_10", "s_rune_mid_11", "s_rune_mid_12", "s_rune_mid_13", "s_rune_mid_14", "s_rune_mid_15", "s_rune_mid_16", "s_rune_mid_17", "s_rune_mid_18", "s_rune_mid_19", "s_rune_mid_20", "s_rune_mid_21", "s_rune_mid_22", "s_rune_mid_23", "s_rune_mid_24", "s_rune_mid_25", "s_rune_mid_26", "s_rune_mid_27", "s_rune_mid_28", "s_rune_mid_29", "s_rune_mid_30", "s_rune_mid_31", "s_rune_mid_32", "s_rune_mid_33", "s_rune_mid_34", "s_rune_mid_35", "s_rune_mid_36", "s_rune_mid_37", "s_rune_mid_38", "s_rune_mid_39", "s_rune_mid_40", "s_rune_mid_41", "s_rune_mid_42", "s_rune_mid_43", "s_rune_mid_44", "s_rune_mid_45", "s_rune_mid_46", "s_rune_mid_47", "s_rune_mid_48", "s_rune_mid_49", "s_rune_mid_50", "s_rune_mid_51", "s_rune_mid_52", "s_rune_mid_53", "s_rune_mid_54", "s_rune_mid_55", "s_rune_mid_56", "s_rune_mid_57", "s_rune_mid_58", "s_rune_mid_59", "s_rune_mid_60", "s_rune_mid_61", "s_rune_mid_62", "s_rune_mid_63"]
+
+[[poses]]
+show = ["s_rune_lo_0", "s_rune_lo_1", "s_rune_lo_2", "s_rune_lo_3", "s_rune_lo_4", "s_rune_lo_5", "s_rune_lo_6", "s_rune_lo_7", "s_rune_lo_8", "s_rune_lo_9", "s_rune_lo_10", "s_rune_lo_11", "s_rune_lo_12", "s_rune_lo_13", "s_rune_lo_14", "s_rune_lo_15", "s_rune_lo_16", "s_rune_lo_17", "s_rune_lo_18", "s_rune_lo_19", "s_rune_lo_20", "s_rune_lo_21", "s_rune_lo_22", "s_rune_lo_23", "s_rune_lo_24", "s_rune_lo_25", "s_rune_lo_26", "s_rune_lo_27", "s_rune_lo_28", "s_rune_lo_29", "s_rune_lo_30", "s_rune_lo_31", "s_rune_lo_32", "s_rune_lo_33", "s_rune_lo_34", "s_rune_lo_35", "s_rune_lo_36", "s_rune_lo_37", "s_rune_lo_38", "s_rune_lo_39", "s_rune_lo_40", "s_rune_lo_41", "s_rune_lo_42", "s_rune_lo_43", "s_rune_lo_44", "s_rune_lo_45", "s_rune_lo_46", "s_rune_lo_47", "s_rune_lo_48", "s_rune_lo_49", "s_rune_lo_50", "s_rune_lo_51", "s_rune_lo_52", "s_rune_lo_53", "s_rune_lo_54", "s_rune_lo_55", "s_rune_lo_56", "s_rune_lo_57", "s_rune_lo_58", "s_rune_lo_59", "s_rune_lo_60", "s_rune_lo_61", "s_rune_lo_62", "s_rune_lo_63"]

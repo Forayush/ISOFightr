@@ -18,7 +18,7 @@ from isofightr.data.validation import DataError
 from isofightr.render import ambient
 from isofightr.render import placeholder_art as art
 from isofightr.render.depth import DepthSorter, DynamicItem, StaticKind
-from isofightr.render.props import PROP_ITEM_BASE, placed_props
+from isofightr.render.props import PROP_ITEM_BASE, ground_props, placed_props
 from isofightr.render.stage_art import (
     EDGE_FOOT,
     EDGE_NONE,
@@ -446,7 +446,8 @@ def test_every_stages_decor_is_in_bounds(stage_id: str) -> None:
     stage = load_stage(stage_id)
     tileset = load_tileset_art(stage.tileset)
     placed = placed_props(stage, tileset)
-    assert len(placed) == len(stage.props) + len(hanging(stage))
+    flat = ground_props(stage, tileset)
+    assert len(placed) + len(flat) == len(stage.props) + len(hanging(stage))
     assert len(placed) <= 40, "a few decorations, not a forest (the sorter's budget)"
     for spawn in stage.spawns:
         for prop in stage.props:
@@ -479,6 +480,7 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
         ("sky_ruins", "cloud_sea", "day", 5),
         ("twin_isles", "meadow", "golden", 4),
         ("lily_pads", "pond", "dusk", 6),
+        ("final_plateau", "aurora", "night", 9),
     ],
 )
 def test_a_painter_reproduces_its_stages_backdrop(
@@ -494,3 +496,57 @@ def test_a_painter_reproduces_its_stages_backdrop(
         assert colours(image) <= MASTER, "every backdrop colour is in the palette"
     files = {path.name for path in (Path("assets/stages") / stage_id).glob("bg_*.png")}
     assert files == set(layers), "no layer image is left over from an older backdrop"
+
+
+# --- flat props: decals on the ground -------------------------------------------------------
+
+RUNESTONE = load_tileset_art("runestone")
+
+
+def test_a_ground_prop_is_a_decal_not_a_standing_thing() -> None:
+    from isofightr.render.ground_items import DECAL_RANK
+    from isofightr.render.props import GROUND_PROP_BASE, centred, ground_items
+
+    assert RUNESTONE is not None
+    stage = build(
+        tileset="runestone",
+        props=[
+            {"sprite": "rune_a", "at": [3.5, 3.5], "layer": "ground", "period": 10},
+            {"sprite": "obelisk", "at": [1.5, 0.5]},
+        ],
+    )
+    assert [prop.art.name for prop in placed_props(stage, RUNESTONE)] == ["obelisk"]
+    (rune,) = ground_props(stage, RUNESTONE)
+    assert rune.art.name == "rune_a" and rune.z == 0.0 and rune.art.frames == 4
+    assert ground_props(stage, None) == []
+
+    asked = []
+
+    def frame_image(name: str, frame: int) -> Image.Image:
+        asked.append((name, frame))
+        return Image.new("RGBA", (rune.art.width, rune.art.height), (1, 2, 3, 255))
+
+    (item,) = ground_items([rune], 0, frame_image)
+    assert item.item_id == GROUND_PROP_BASE and item.rank == DECAL_RANK
+    assert (item.x, item.y, item.surface) == (3.5, 3.5, 0.0)
+    keys = [ground_items([rune], tick, frame_image)[0].key for tick in (0, 10, 20, 30, 40)]
+    assert len(set(keys)) == 4 and keys[0] == keys[4], "four frames, then round again"
+    calm = [ground_items([rune], tick, frame_image, calm=True)[0].key for tick in (0, 10, 20)]
+    assert len(set(calm)) == 1, "with reduce flashing it holds one frame"
+
+    # The picture is padded so that the prop's pivot is its middle, where a decal is anchored.
+    picture = item.build()
+    assert asked == [("rune_a", 0)]
+    art = rune.art
+    assert picture.width == 2 * max(art.pivot_x, art.width - art.pivot_x)
+    assert picture.height == 2 * max(art.pivot_y, art.height - art.pivot_y)
+    left, top = picture.width // 2 - art.pivot_x, picture.height // 2 - art.pivot_y
+    assert picture.getpixel((left, top)) == (1, 2, 3, 255)
+    assert centred(picture, art).size >= picture.size
+
+
+def test_a_stage_may_put_a_ground_prop_on_a_spawn() -> None:
+    stage = load_stage("final_plateau")
+    flat = [prop for prop in stage.props if prop.layer == "ground"]
+    assert len(flat) == 9 and flat[0].sprite == "sigil"
+    assert (flat[0].x, flat[0].y) == (stage.respawn.x, stage.respawn.y)

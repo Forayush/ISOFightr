@@ -1,175 +1,410 @@
-# Last Stone Standing: Final Plateau; E minor, i VI III VII, fast and driving (decision D-055). Rendered by tools/build_audio.py.
+# Last Stone Standing: Final Plateau (decision D-063). A finale in E minor at 160: a bass
+# that never stops running in sixteenths, a heavy kick on every beat, a choir of detuned
+# saws holding the chords, a saw lead, and strings that climb through the chorus while a
+# bell tolls the bar. Rendered by tools/build_audio.py; written with
+# build/scratch/m14_song_final.py.
 # Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
 id = "final_plateau"
 title = "Last Stone Standing"
-tempo = 164
+tempo = 160
 steps_per_beat = 4
-# Sections in order; the patterns in one section play together.
-sequence = [
-  ["bass", "kick", "hat"],
-  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
-]
+key = "E"
+mode = "minor"
+meter = "4/4"
+form = ["intro", "verse", "chorus", "bridge", "chorus2"]
 
-[instruments.lead]
-wave = "square"
-duty = 0.25
-attack = 0.004
-decay = 0.07
-sustain = 0.55
-release = 0.04
-volume = 0.28
-vibrato_depth = 0.12
-vibrato_rate = 5.5
+[echo]
+beats = 0.75
+feedback = 0.28
+mix = 0.26
+lowpass = 0.5
 
-[instruments.harmony]
-wave = "square"
-duty = 0.5
-attack = 0.004
+[sections.intro]              # 4 bars: Em Em C D; the bass starts running, the choir swells
+level = 0.55
+to = 1.0
+play = ["call", "run_i", "choir_i_root", "choir_i_third", "choir_i_fifth", "kick", "hat*0.6"]
+
+[sections.verse]              # 8 bars: Em C G D, twice
+level = 0.9
+play = ["verse", "run_v", "choir_v_root", "choir_v_third", "choir_v_fifth", "kick", "snare",
+        "hat"]
+
+[sections.chorus]             # 8 bars: C D Em G, C D Bm Em; the strings climb
+play = ["chorus", "rise_c", "toll", "run_c", "choir_c_root", "choir_c_third", "choir_c_fifth",
+        "kick", "snare", "hat", "crash"]
+
+[sections.bridge]             # 4 bars: Am C D D; quiet, building back
+level = 0.55
+to = 1.0
+play = ["rise_b", "run_b", "choir_b_root", "choir_b_third", "choir_b_fifth", "kick*0.8",
+        "roll"]
+
+[sections.chorus2]            # the chorus again, the lead doubled an octave down
+kind = "chorus"
+play = ["chorus", "chorus-12*0.5", "rise_c", "toll", "run_c", "choir_c_root", "choir_c_third",
+        "choir_c_fifth", "kick", "snare", "hat", "crash"]
+
+[instruments.lead]            # a saw, bright, with a little vibrato
+wave = "saw"
+attack = 0.006
 decay = 0.08
+sustain = 0.7
+release = 0.07
+lowpass = 0.8
+vibrato_depth = 0.25
+vibrato_rate = 6.0
+volume = 0.28
+send = 0.25
+
+[instruments.choir]           # five saws far out of tune with each other
+wave = "pad"
+detune = 22
+attack = 0.08
+release = 0.25
+lowpass = 0.5
+volume = 0.2
+send = 0.15
+
+[instruments.strings]         # slow to speak, climbing
+wave = "pad"
+detune = 7
+attack = 0.3
+release = 0.3
+lowpass = 0.7
+volume = 0.26
+send = 0.3
+
+[instruments.run]             # the bass that never stops
+wave = "saw"
+attack = 0.002
+decay = 0.05
 sustain = 0.5
-release = 0.04
-volume = 0.13
+release = 0.02
+lowpass = 0.3
+volume = 0.3
 
-[instruments.bass]
-wave = "triangle"
-attack = 0.003
-release = 0.03
-volume = 0.5
+[instruments.bell]            # a great bell, out of tune with itself
+wave = "bell"
+mod_ratio = 1.41
+mod_index = 2.6
+release = 1.2
+volume = 0.16
+send = 0.4
 
-[instruments.chord_major]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 4, 7, 12]
-arpeggio_rate = 24
-attack = 0.01
+[instruments.kick]            # heavy
+wave = "drum"
+freq = 96
+freq_end = 38
+length = 0.2
+noise = 0.1
 release = 0.08
-volume = 0.1
-
-[instruments.chord_minor]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 3, 7, 12]
-arpeggio_rate = 24
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.kick]
-wave = "sine"
-freq = 150
-freq_end = 45
-length = 0.11
-release = 0.04
-volume = 0.85
+volume = 0.45
 
 [instruments.snare]
 wave = "noise"
-freq = 3600
-length = 0.1
-decay = 0.07
-sustain = 0.25
-lowpass = 0.7
-release = 0.04
-volume = 0.36
+freq = 2400
+length = 0.14
+release = 0.08
+lowpass = 0.75
+volume = 0.2
 
 [instruments.hat]
 wave = "noise"
-freq = 9000
-length = 0.035
+freq = 8200
+length = 0.03
 release = 0.02
-volume = 0.14
+volume = 0.1
 
-[patterns.lead_a]
+[instruments.crash]           # a long wash on the first bar
+wave = "noise"
+freq = 5200
+length = 0.9
+release = 0.5
+lowpass = 0.9
+volume = 0.16
+
+[patterns.call]
 instrument = "lead"
-stride = 2
 steps = """
-E5 - B4 E5 G5 - F#5 E5
-E5 - C5 E5 G5 - E5 C5
-D5 - B4 D5 G5 - B5 A5
-A5 - F#5 D5 - F#5 A5 -
+E5 - - - - - - - B4 - - - - - - -
+E5 - - - - - - - G5 - - - - - - -
+E5 - - - G5 - - - C6 - - - - - - -
+D6 - - - - - - - F#5 - - - A5 - - -
 """
 
-[patterns.lead_b]
+[patterns.verse]
 instrument = "lead"
-stride = 2
 steps = """
-B5 - - A5 G5 - E5 -
-C6 - - B5 G5 - E5 -
-D6 - - B5 G5 - D5 -
-F#5 - A5 - D6 - A5 F#5
+E5 - - - B4 - E5 - G5 - - - F#5 - E5 -
+G5 - - - E5 - - - C5 - E5 - G5 - - -
+B5 - - - A5 - G5 - D5 - - - G5 - A5 -
+A5 - - - F#5 - - - D5 - - - . . . .
+E5 - - - B4 - E5 - G5 - - - A5 - B5 -
+C6 - - - B5 - G5 - E5 - - - G5 - - -
+B5 - - - D6 - B5 - G5 - - - A5 - B5 -
+A5 - - - - - F#5 - D5 - F#5 - A5 - - -
 """
 
-[patterns.echo_a]
-instrument = "harmony"
-stride = 2
+[patterns.chorus]
+instrument = "lead"
 steps = """
-E5 - B4 E5 G5 - F#5 E5
-E5 - C5 E5 G5 - E5 C5
-D5 - B4 D5 G5 - B5 A5
-A5 - F#5 D5 - F#5 A5 -
+E6 - - - - - D6 - C6 - - - G5 - - -
+F#5 - A5 - D6 - - - - - C6 - B5 - A5 -
+B5 - - - - - G5 - E5 - - - G5 - B5 -
+D6 - - - - - B5 - G5 - - - - - . .
+E6 - - - - - D6 - C6 - - - E6 - - -
+F#6 - - - - - E6 - D6 - - - A5 - - -
+B5 - D6 - F#6 - - - - - E6 - D6 - B5 -
+E6 - - - - - - - - - - - . . . .
 """
 
-[patterns.echo_b]
-instrument = "harmony"
-stride = 2
+[patterns.rise_c]
+instrument = "strings"
 steps = """
-B5 - - A5 G5 - E5 -
-C6 - - B5 G5 - E5 -
-D6 - - B5 G5 - D5 -
-F#5 - A5 - D6 - A5 F#5
+G4 - - - - - - - - - - - - - - -
+A4 - - - - - - - - - - - - - - -
+B4 - - - - - - - - - - - - - - -
+D5 - - - - - - - - - - - - - - -
+E5 - - - - - - - - - - - - - - -
+F#5 - - - - - - - - - - - - - - -
+F#5 - - - - - - - - - - - - - - -
+G5 - - - - - - - - - - - - - - -
 """
 
-[patterns.bass]
-instrument = "bass"
-stride = 2
+[patterns.rise_b]
+instrument = "strings"
 steps = """
-E2 E2 E3 E2 E2 E2 E3 E2
-C3 C3 C4 C3 C3 C3 C4 C3
-G2 G2 G3 G2 G2 G2 G3 G2
-D3 D3 D4 D3 D3 D3 D4 D3
+A4 - - - - - - - - - - - - - - -
+C5 - - - - - - - - - - - - - - -
+D5 - - - - - - - - - - - - - - -
+F#5 - - - - - - - - - - - - - - -
 """
 
-[patterns.major]
-instrument = "chord_major"
-stride = 2
+[patterns.toll]
+instrument = "bell"
 steps = """
-. . . . . . . .
-C4 - - - - - - -
-G3 - - - - - - -
-D4 - - - - - - -
+E4 - - - - - - - - - - - - - - -
+. . . . . . . . . . . . . . . .
+E4 - - - - - - - - - - - - - - -
+. . . . . . . . . . . . . . . .
+E4 - - - - - - - - - - - - - - -
+. . . . . . . . . . . . . . . .
+E4 - - - - - - - - - - - - - - -
+. . . . . . . . . . . . . . . .
 """
 
-[patterns.minor]
-instrument = "chord_minor"
-stride = 2
+[patterns.choir_i_root]
+instrument = "choir"
 steps = """
-E3 - - - - - - -
-. . . . . . . .
-. . . . . . . .
-. . . . . . . .
+E3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_i_third]
+instrument = "choir"
+steps = """
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_i_fifth]
+instrument = "choir"
+steps = """
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.run_i]
+instrument = "run"
+steps = """
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+"""
+
+[patterns.choir_v_root]
+instrument = "choir"
+steps = """
+E3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_v_third]
+instrument = "choir"
+steps = """
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_v_fifth]
+instrument = "choir"
+steps = """
+B3 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.run_v]
+instrument = "run"
+steps = """
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G3 G2 G3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G3 G2 G3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+"""
+
+[patterns.choir_c_root]
+instrument = "choir"
+steps = """
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_c_third]
+instrument = "choir"
+steps = """
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_c_fifth]
+instrument = "choir"
+steps = """
+C4 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.run_c]
+instrument = "run"
+steps = """
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G2 G3 G2 G3 G2 G3
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+B2 B2 B3 B2 B2 B3 B2 B2 B3 B2 B2 B3 B2 B3 B2 B3
+E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E2 E3 E2 E3 E2 E3
+"""
+
+[patterns.choir_b_root]
+instrument = "choir"
+steps = """
+E3 - - - - - - - - - - - - - - -
+E3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+D3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_b_third]
+instrument = "choir"
+steps = """
+A3 - - - - - - - - - - - - - - -
+G3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+F#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.choir_b_fifth]
+instrument = "choir"
+steps = """
+C4 - - - - - - - - - - - - - - -
+C4 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.run_b]
+instrument = "run"
+steps = """
+A2 A2 A3 A2 A2 A3 A2 A2 A3 A2 A2 A3 A2 A3 A2 A3
+C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C2 C3 C2 C3 C2 C3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
+D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D2 D3 D2 D3 D2 D3
 """
 
 [patterns.kick]
 instrument = "kick"
-stride = 1
 steps = """
-x . . . x . . . x . . . x . x .
+x . . . x . . . x . . . x . . .
 """
 
 [patterns.snare]
 instrument = "snare"
-stride = 1
 steps = """
 . . . . x . . . . . . . x . . x
 """
 
 [patterns.hat]
 instrument = "hat"
-stride = 1
 steps = """
-x x x . x x x . x x x . x x x x
+x . x x x . x x x . x x x . x x
 """
 
+[patterns.roll]
+instrument = "snare"
+steps = """
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . x . . .
+. . . . x . . . . . . . x . x .
+x . x . x . x . x x x x x x x x
+"""
+
+[patterns.crash]
+instrument = "crash"
+steps = """
+x . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+"""

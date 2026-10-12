@@ -1,0 +1,413 @@
+# Flag, variant c: four slabs.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.040]
+material = "stone_dark"
+
+[[parts]]
+name = "bed"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.040]
+high = [1.000, 1.000, -0.012]
+material = "seam"
+
+[[parts]]
+name = "slab0"
+joint = "origin"
+shape = "box"
+low = [0.030, 0.030, -0.030]
+high = [0.580, 0.400, 0.000]
+material = "slate"
+
+[[parts]]
+name = "slab1"
+joint = "origin"
+shape = "box"
+low = [0.640, 0.030, -0.030]
+high = [0.970, 0.400, 0.000]
+material = "slate_dark"
+
+[[parts]]
+name = "slab2"
+joint = "origin"
+shape = "box"
+low = [0.030, 0.460, -0.030]
+high = [0.360, 0.970, 0.000]
+material = "slate_dark"
+
+[[parts]]
+name = "slab3"
+joint = "origin"
+shape = "box"
+low = [0.420, 0.460, -0.030]
+high = [0.970, 0.970, 0.000]
+material = "slate"
+
+[[parts]]
+name = "lip_x"
+joint = "origin"
+shape = "box"
+low = [0.970, 0.000, -0.300]
+high = [1.016, 1.000, -0.020]
+material = "slate"
+
+[[parts]]
+name = "lip_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.970, -0.300]
+high = [1.000, 1.016, -0.020]
+material = "slate"
+
+[[parts]]
+name = "line_x"
+joint = "origin"
+shape = "box"
+low = [0.970, 0.000, -0.400]
+high = [1.014, 1.000, -0.320]
+material = "glow"
+
+[[parts]]
+name = "line_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.970, -0.400]
+high = [1.000, 1.014, -0.320]
+material = "glow"
+
+[[parts]]
+name = "stone0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -0.770]
+high = [1.012, 0.228, -0.440]
+material = "stone"
+
+[[parts]]
+name = "stone1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.263, -0.770]
+high = [1.012, 0.524, -0.440]
+material = "stone"
+
+[[parts]]
+name = "stone2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.559, -0.770]
+high = [1.012, 0.983, -0.440]
+material = "stone_dark"
+
+[[parts]]
+name = "stone3"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -0.770]
+high = [0.143, 1.012, -0.440]
+material = "stone"
+
+[[parts]]
+name = "stone4"
+joint = "origin"
+shape = "box"
+low = [0.178, 0.950, -0.770]
+high = [0.397, 1.012, -0.440]
+material = "stone_dark"
+
+[[parts]]
+name = "stone5"
+joint = "origin"
+shape = "box"
+low = [0.432, 0.950, -0.770]
+high = [0.983, 1.012, -0.440]
+material = "stone"
+
+[[parts]]
+name = "stone6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.135]
+high = [1.012, 0.456, -0.805]
+material = "stone"
+
+[[parts]]
+name = "stone7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.491, -1.135]
+high = [1.012, 0.854, -0.805]
+material = "stone_dark"
+
+[[parts]]
+name = "stone8"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.889, -1.135]
+high = [1.012, 0.983, -0.805]
+material = "stone"
+
+[[parts]]
+name = "stone9"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.135]
+high = [0.337, 1.012, -0.805]
+material = "stone"
+
+[[parts]]
+name = "stone10"
+joint = "origin"
+shape = "box"
+low = [0.372, 0.950, -1.135]
+high = [0.747, 1.012, -0.805]
+material = "stone_dark"
+
+[[parts]]
+name = "stone11"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -1.135]
+high = [0.983, 1.012, -0.805]
+material = "stone"
+
+[[parts]]
+name = "stone12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.500]
+high = [1.012, 0.252, -1.170]
+material = "stone_dark"
+
+[[parts]]
+name = "stone13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.287, -1.500]
+high = [1.012, 0.736, -1.170]
+material = "stone"
+
+[[parts]]
+name = "stone14"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.771, -1.500]
+high = [1.012, 0.983, -1.170]
+material = "stone"
+
+[[parts]]
+name = "stone15"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.500]
+high = [0.409, 1.012, -1.170]
+material = "stone"
+
+[[parts]]
+name = "stone16"
+joint = "origin"
+shape = "box"
+low = [0.444, 0.950, -1.500]
+high = [0.714, 1.012, -1.170]
+material = "stone"
+
+[[parts]]
+name = "stone17"
+joint = "origin"
+shape = "box"
+low = [0.749, 0.950, -1.500]
+high = [0.983, 1.012, -1.170]
+material = "stone"
+
+[[parts]]
+name = "stone18"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -1.865]
+high = [1.012, 0.472, -1.535]
+material = "stone_dark"
+
+[[parts]]
+name = "stone19"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.507, -1.865]
+high = [1.012, 0.679, -1.535]
+material = "stone_dark"
+
+[[parts]]
+name = "stone20"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.714, -1.865]
+high = [1.012, 0.983, -1.535]
+material = "stone"
+
+[[parts]]
+name = "stone21"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -1.865]
+high = [0.376, 1.012, -1.535]
+material = "stone_dark"
+
+[[parts]]
+name = "stone22"
+joint = "origin"
+shape = "box"
+low = [0.411, 0.950, -1.865]
+high = [0.724, 1.012, -1.535]
+material = "stone_dark"
+
+[[parts]]
+name = "stone23"
+joint = "origin"
+shape = "box"
+low = [0.759, 0.950, -1.865]
+high = [0.983, 1.012, -1.535]
+material = "stone"
+
+[[parts]]
+name = "stone24"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.230]
+high = [1.012, 0.360, -1.900]
+material = "stone"
+
+[[parts]]
+name = "stone25"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.395, -2.230]
+high = [1.012, 0.774, -1.900]
+material = "stone"
+
+[[parts]]
+name = "stone26"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.809, -2.230]
+high = [1.012, 0.983, -1.900]
+material = "stone"
+
+[[parts]]
+name = "stone27"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.230]
+high = [0.393, 1.012, -1.900]
+material = "stone_dark"
+
+[[parts]]
+name = "stone28"
+joint = "origin"
+shape = "box"
+low = [0.428, 0.950, -2.230]
+high = [0.875, 1.012, -1.900]
+material = "stone"
+
+[[parts]]
+name = "stone29"
+joint = "origin"
+shape = "box"
+low = [0.910, 0.950, -2.230]
+high = [0.983, 1.012, -1.900]
+material = "stone"
+
+[[parts]]
+name = "stone30"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.595]
+high = [1.012, 0.409, -2.265]
+material = "stone_dark"
+
+[[parts]]
+name = "stone31"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.444, -2.595]
+high = [1.012, 0.880, -2.265]
+material = "stone"
+
+[[parts]]
+name = "stone32"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.915, -2.595]
+high = [1.012, 0.983, -2.265]
+material = "stone_dark"
+
+[[parts]]
+name = "stone33"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.595]
+high = [0.462, 1.012, -2.265]
+material = "stone"
+
+[[parts]]
+name = "stone34"
+joint = "origin"
+shape = "box"
+low = [0.497, 0.950, -2.595]
+high = [0.651, 1.012, -2.265]
+material = "stone"
+
+[[parts]]
+name = "stone35"
+joint = "origin"
+shape = "box"
+low = [0.686, 0.950, -2.595]
+high = [0.983, 1.012, -2.265]
+material = "stone_dark"
+
+[[parts]]
+name = "stone36"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.018, -2.960]
+high = [1.012, 0.250, -2.630]
+material = "stone"
+
+[[parts]]
+name = "stone37"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.285, -2.960]
+high = [1.012, 0.736, -2.630]
+material = "stone_dark"
+
+[[parts]]
+name = "stone38"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.771, -2.960]
+high = [1.012, 0.983, -2.630]
+material = "stone_dark"
+
+[[parts]]
+name = "stone39"
+joint = "origin"
+shape = "box"
+low = [0.018, 0.950, -2.960]
+high = [0.411, 1.012, -2.630]
+material = "stone_dark"
+
+[[parts]]
+name = "stone40"
+joint = "origin"
+shape = "box"
+low = [0.446, 0.950, -2.960]
+high = [0.983, 1.012, -2.630]
+material = "stone"
+
+[[poses]]

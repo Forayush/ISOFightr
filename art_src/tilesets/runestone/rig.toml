@@ -1,0 +1,8 @@
+# The runestone tileset has no rig: each tile's geometry is in its own file ([[parts]]).
+# Blender space, like the fighters: a cell spans x, y in 0..1, its top at z = 0.
+# Props (decision D-063) stand on, hang from, or lie flat around the origin.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]

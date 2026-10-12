@@ -74,7 +74,21 @@ DUSK: Final[Mood] = Mood(
     ruin="fca790",
 )
 """Dusk: indigo overhead, the last orange along the horizon (Lily Pads)."""
-MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET, "golden": GOLDEN, "dusk": DUSK}
+NIGHT: Final[Mood] = Mood(
+    sky=("2e222f", "323353", "323353", "484a77"),
+    cloud=("625565", "3e3546", "2e222f"),
+    island_top="484a77",
+    island_side=("3e3546", "2e222f"),
+    ruin="7f708a",
+)
+"""Night: near black overhead, a deep blue toward the horizon (Final Plateau)."""
+MOODS: Final[dict[str, Mood]] = {
+    "day": DAY,
+    "sunset": SUNSET,
+    "golden": GOLDEN,
+    "dusk": DUSK,
+    "night": NIGHT,
+}
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
     (12, 4, 14, 6),
@@ -586,3 +600,133 @@ def paint_pond(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["pond"] = paint_pond
+
+
+# --- aurora over the peaks (Final Plateau) -------------------------------------------------
+
+NIGHT_STARS: Final[int] = 170
+TWINKLE_FRAMES: Final[int] = 2
+AURORA_FRAMES: Final[int] = 3
+AURORA_GREEN: Final[tuple[str, str, str]] = ("8ff8e2", "30e1b9", "0b8a8f")
+AURORA_VIOLET: Final[tuple[str, str, str]] = ("eaaded", "a884f3", "6b3e75")
+"""A curtain of the aurora: its bright lower hem, its body, its fading top."""
+PEAK_COLOURS: Final[tuple[str, str, str]] = ("9babb2", "484a77", "323353")
+"""The far mountains: snow on the side the aurora lights, rock, rock in shadow."""
+
+
+def starfield(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the stars as ``TWINKLE_FRAMES`` frames stacked top to bottom: most are steady,
+    one in four is dimmer on the second frame, and a few big ones have a cross of rays."""
+    rng = random.Random(seed)
+    bright, dim = (hex_rgb(value) for value in STAR_COLOURS)
+    faint = hex_rgb("7f708a")
+    image = Image.new("RGBA", (width, height * TWINKLE_FRAMES))
+    for number in range(NIGHT_STARS):
+        x, y = rng.randrange(width), rng.randrange(height * 3 // 4)
+        big = number % 17 == 0
+        for frame in range(TWINKLE_FRAMES):
+            twinkles = number % 4 == 0 and frame == 1
+            colour = faint if twinkles else bright if number % 3 else dim
+            image.putpixel((x, frame * height + y), (*colour, 255))
+            if big and not twinkles:
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    if 0 <= y + dy < height:
+                        image.putpixel(((x + dx) % width, frame * height + y + dy), (*dim, 255))
+    return image
+
+
+def aurora(
+    colours: tuple[str, str, str],
+    seed: int,
+    hem: int,
+    reach: int,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
+) -> Image.Image:
+    """Return a curtain of the aurora as ``AURORA_FRAMES`` frames stacked top to bottom. Its
+    lower hem waves about ``hem`` pixels down the picture; rays rise from it up to ``reach``
+    pixels, thinning as they go. From frame to frame the rays change length a little, which
+    reads as a shimmer. Whole waves fit the width, so the layer wraps."""
+    rng = random.Random(seed)
+    edge, body, top = (hex_rgb(value) for value in colours)
+    waves = [
+        (rng.randint(1, 2), rng.uniform(0.0, 6.28), 1.0),
+        (rng.randint(3, 5), rng.uniform(0.0, 6.28), 0.45),
+    ]
+    rays = [rng.uniform(0.35, 1.0) for _ in range(width // 3 + 1)]
+    gaps = [(rng.randint(2, 3), rng.uniform(0.0, 6.28))]
+    image = Image.new("RGBA", (width, height * AURORA_FRAMES))
+    pixels = image.load()
+    assert pixels is not None
+    for frame in range(AURORA_FRAMES):
+        for x in range(width):
+            turn = 2.0 * math.pi * x / width
+            wave = sum(math.sin(turn * count + shift) * weight for count, shift, weight in waves)
+            low = hem + round(wave * 16)
+            # The curtain is brightest where it folds toward the viewer and breaks between.
+            strength = 0.55 + 0.45 * math.sin(turn * gaps[0][0] + gaps[0][1])
+            if strength < 0.25:
+                continue
+            ray = rays[(x // 3 + frame * 7) % len(rays)] * 0.35 + rays[x // 3] * 0.65
+            tall = max(6, round(reach * ray * strength))
+            for step in range(tall):
+                y = low - step
+                if not 0 <= y < height:
+                    continue
+                fade = 1.0 - step / tall
+                if fade * strength * 16 <= BAYER_4[y % 4][x % 4] + 1:
+                    continue
+                colour = edge if step < 2 else body if fade > 0.5 else top
+                pixels[x, frame * height + y] = (*colour, 255)
+    return image
+
+
+def peaks(
+    seed: int, crest: int, tall: int, width: int = LAYER_WIDTH, height: int = NATIVE_H
+) -> Image.Image:
+    """Return a range of sharp mountains along the bottom of the picture: their summits about
+    ``crest`` pixels down and up to ``tall`` pixels high, snow on their left flanks. It
+    wraps."""
+    rng = random.Random(seed)
+    snow, rock, shade = (hex_rgb(value) for value in PEAK_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    count = 11
+    foot = crest + tall
+    draw.rectangle((0, foot - 6, width, height), fill=shade)
+    for index in range(count):
+        x = int((index + rng.uniform(0.2, 0.8)) * width / count)
+        rise = int(tall * rng.uniform(0.45, 1.0))
+        half = int(rise * rng.uniform(1.0, 1.5))
+        summit = foot - rise
+        for shift in (-width, 0, width):
+            at = x + shift
+            draw.polygon(((at - half, foot), (at, summit), (at + half, foot)), fill=shade)
+            draw.polygon(((at - half, foot), (at, summit), (at + half // 5, foot)), fill=rock)
+            cap = rise // 3
+            draw.polygon(
+                (
+                    (at - cap, summit + cap),
+                    (at, summit),
+                    (at + cap // 5, summit + cap),
+                    (at - cap // 3, summit + cap - 3),
+                ),
+                fill=snow,
+            )
+    return image
+
+
+def paint_aurora(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Final Plateau: a night sky full of stars, two curtains of aurora, far snowy peaks and
+    a sea of dark cloud below."""
+    return {
+        "bg_0_sky.png": sky(mood),
+        "bg_1_stars.png": starfield(seed),
+        "bg_2_aurora_far.png": aurora(AURORA_VIOLET, seed + 1, 118, 70),
+        "bg_3_aurora.png": aurora(AURORA_GREEN, seed + 2, 176, 120),
+        "bg_4_peaks.png": peaks(seed + 3, 214, 60),
+        "bg_5_bank.png": cloud_bank(mood, seed + 4, 300, 14, 30),
+    }
+
+
+PAINTERS["aurora"] = paint_aurora

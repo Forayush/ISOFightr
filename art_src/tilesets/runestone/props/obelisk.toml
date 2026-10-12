@@ -1,0 +1,203 @@
+# Obelisk: a standing stone whose glyphs glow and fade (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "box"
+low = [-0.320, -0.320, 0.000]
+high = [0.320, 0.320, 0.180]
+material = "pillar"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "box"
+low = [-0.220, -0.220, 0.180]
+high = [0.220, 0.220, 1.700]
+material = "pillar"
+
+[[parts]]
+name = "neck"
+joint = "origin"
+shape = "box"
+low = [-0.170, -0.170, 1.700]
+high = [0.170, 0.170, 1.860]
+material = "pillar"
+
+[[parts]]
+name = "point"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.860]
+b = [0.000, 0.000, 2.200]
+r1 = 0.200
+r2 = 0.020
+material = "pillar"
+
+[[smears]]
+name = "gx_rune_hi_0"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.100, 0.400]
+high = [0.235, 0.100, 0.620]
+material = "rune_hi"
+
+[[smears]]
+name = "gy_rune_hi_0"
+joint = "origin"
+shape = "box"
+low = [-0.100, 0.215, 0.400]
+high = [0.100, 0.235, 0.620]
+material = "rune_hi"
+
+[[smears]]
+name = "gx_rune_hi_1"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.120, 0.720]
+high = [0.235, 0.120, 0.800]
+material = "rune_hi"
+
+[[smears]]
+name = "gy_rune_hi_1"
+joint = "origin"
+shape = "box"
+low = [-0.120, 0.215, 0.720]
+high = [0.120, 0.235, 0.800]
+material = "rune_hi"
+
+[[smears]]
+name = "gx_rune_hi_2"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.030, 0.900]
+high = [0.235, 0.030, 1.200]
+material = "rune_hi"
+
+[[smears]]
+name = "gy_rune_hi_2"
+joint = "origin"
+shape = "box"
+low = [-0.030, 0.215, 0.900]
+high = [0.030, 0.235, 1.200]
+material = "rune_hi"
+
+[[smears]]
+name = "gx_rune_hi_3"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.120, 1.300]
+high = [0.235, 0.120, 1.380]
+material = "rune_hi"
+
+[[smears]]
+name = "gy_rune_hi_3"
+joint = "origin"
+shape = "box"
+low = [-0.120, 0.215, 1.300]
+high = [0.120, 0.235, 1.380]
+material = "rune_hi"
+
+[[smears]]
+name = "gx_rune_hi_4"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.060, 1.460]
+high = [0.235, 0.060, 1.580]
+material = "rune_hi"
+
+[[smears]]
+name = "gy_rune_hi_4"
+joint = "origin"
+shape = "box"
+low = [-0.060, 0.215, 1.460]
+high = [0.060, 0.235, 1.580]
+material = "rune_hi"
+
+[[smears]]
+name = "gx_rune_lo_0"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.100, 0.400]
+high = [0.235, 0.100, 0.620]
+material = "rune_lo"
+
+[[smears]]
+name = "gy_rune_lo_0"
+joint = "origin"
+shape = "box"
+low = [-0.100, 0.215, 0.400]
+high = [0.100, 0.235, 0.620]
+material = "rune_lo"
+
+[[smears]]
+name = "gx_rune_lo_1"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.120, 0.720]
+high = [0.235, 0.120, 0.800]
+material = "rune_lo"
+
+[[smears]]
+name = "gy_rune_lo_1"
+joint = "origin"
+shape = "box"
+low = [-0.120, 0.215, 0.720]
+high = [0.120, 0.235, 0.800]
+material = "rune_lo"
+
+[[smears]]
+name = "gx_rune_lo_2"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.030, 0.900]
+high = [0.235, 0.030, 1.200]
+material = "rune_lo"
+
+[[smears]]
+name = "gy_rune_lo_2"
+joint = "origin"
+shape = "box"
+low = [-0.030, 0.215, 0.900]
+high = [0.030, 0.235, 1.200]
+material = "rune_lo"
+
+[[smears]]
+name = "gx_rune_lo_3"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.120, 1.300]
+high = [0.235, 0.120, 1.380]
+material = "rune_lo"
+
+[[smears]]
+name = "gy_rune_lo_3"
+joint = "origin"
+shape = "box"
+low = [-0.120, 0.215, 1.300]
+high = [0.120, 0.235, 1.380]
+material = "rune_lo"
+
+[[smears]]
+name = "gx_rune_lo_4"
+joint = "origin"
+shape = "box"
+low = [0.215, -0.060, 1.460]
+high = [0.235, 0.060, 1.580]
+material = "rune_lo"
+
+[[smears]]
+name = "gy_rune_lo_4"
+joint = "origin"
+shape = "box"
+low = [-0.060, 0.215, 1.460]
+high = [0.060, 0.235, 1.580]
+material = "rune_lo"
+
+[[poses]]
+show = ["gx_rune_hi_0", "gx_rune_hi_1", "gx_rune_hi_2", "gx_rune_hi_3", "gx_rune_hi_4", "gy_rune_hi_0", "gy_rune_hi_1", "gy_rune_hi_2", "gy_rune_hi_3", "gy_rune_hi_4"]
+
+[[poses]]
+show = ["gx_rune_lo_0", "gx_rune_lo_1", "gx_rune_lo_2", "gx_rune_lo_3", "gx_rune_lo_4", "gy_rune_lo_0", "gy_rune_lo_1", "gy_rune_lo_2", "gy_rune_lo_3", "gy_rune_lo_4"]

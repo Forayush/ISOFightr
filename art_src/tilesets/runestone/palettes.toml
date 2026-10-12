@@ -1,0 +1,103 @@
+# runestone tileset materials (Final Plateau; decisions D-045 and D-063). Tile
+# materials have no outline (tiles tessellate); the props' have. Costume 0 colours the
+# light cells of the board's checker pattern, costume 1 the dark ones. New materials go
+# at the END, and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "slate"
+outline = false
+
+[[materials]]
+name = "slate_dark"
+outline = false
+
+[[materials]]
+name = "seam"
+outline = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "stone_dark"
+outline = false
+
+[[materials]]
+name = "glow"
+outline = false
+lit = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "rune_hi"
+outline = false
+lit = false
+
+[[materials]]
+name = "rune_mid"
+outline = false
+lit = false
+
+[[materials]]
+name = "rune_lo"
+outline = false
+lit = false
+
+[[materials]]
+name = "pillar"
+
+[[materials]]
+name = "pillar_dark"
+
+[[materials]]
+name = "flame"
+lit = false
+
+[[materials]]
+name = "flame_core"
+outline = false
+lit = false
+
+[[materials]]
+name = "crystal"
+
+[[materials]]
+name = "spark"
+outline = false
+lit = false
+
+[[costumes]]
+name = "light"
+slate = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+slate_dark = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+seam = ["3e3546", "3e3546", "2e222f", "2e222f", "2e222f"]
+stone = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+stone_dark = ["625565", "3e3546", "2e222f", "2e222f", "2e222f"]
+glow = ["30e1b9", "30e1b9", "30e1b9", "0eaf9b", "0b8a8f"]
+deep = ["484a77", "3e3546", "323353", "2e222f", "2e222f"]
+deep_dark = ["3e3546", "323353", "2e222f", "2e222f", "2e222f"]
+rune_hi = ["8ff8e2", "8ff8e2", "8ff8e2", "8ff8e2", "8ff8e2"]
+rune_mid = ["30e1b9", "30e1b9", "30e1b9", "30e1b9", "30e1b9"]
+rune_lo = ["0b8a8f", "0b8a8f", "0b8a8f", "0b8a8f", "0b8a8f"]
+pillar = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+pillar_dark = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+flame = ["30e1b9", "30e1b9", "0eaf9b", "0b8a8f", "0b5e65"]
+flame_core = ["ffffff", "ffffff", "8ff8e2", "30e1b9", "0eaf9b"]
+crystal = ["ffffff", "8ff8e2", "30e1b9", "0eaf9b", "0b5e65"]
+spark = ["ffffff", "ffffff", "ffffff", "ffffff", "ffffff"]
+
+[[costumes]]
+name = "dark"
+slate = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+slate_dark = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]

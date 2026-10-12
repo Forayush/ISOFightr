@@ -1,0 +1,47 @@
+# Crystal: three shards growing from the stone; one glints (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "shard0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.020, 0.000, 0.620]
+r1 = 0.110
+r2 = 0.015
+material = "crystal"
+
+[[parts]]
+name = "shard1"
+joint = "origin"
+shape = "rod"
+a = [-0.140, 0.080, 0.000]
+b = [-0.260, 0.140, 0.360]
+r1 = 0.080
+r2 = 0.012
+material = "crystal"
+
+[[parts]]
+name = "shard2"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.060, 0.000]
+b = [0.260, -0.120, 0.420]
+r1 = 0.080
+r2 = 0.012
+material = "crystal"
+
+[[smears]]
+name = "glint"
+joint = "origin"
+shape = "ball"
+centre = [0.060, 0.060, 0.500]
+radius = 0.045
+scale = [1.000, 1.000, 1.000]
+material = "spark"
+
+[[poses]]
+
+[[poses]]
+show = ["glint"]

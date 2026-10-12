@@ -81,12 +81,12 @@
   },
   "music": {
     "final_plateau": {
-      "source": "09de811c63bf7327",
+      "source": "a6613bb60dddec5c",
       "title": "Last Stone Standing",
-      "seconds": 29.268,
-      "tempo": 164.0,
-      "key": "",
-      "mode": "",
+      "seconds": 48.0,
+      "tempo": 160.0,
+      "key": "E",
+      "mode": "minor",
       "meter": "4/4"
     },
     "lily_pads": {

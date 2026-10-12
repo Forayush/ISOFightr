@@ -1,0 +1,29 @@
+# Deck: a thin slab of slate.
+loop = true
+fps = 1
+
+[[parts]]
+name = "under"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.100]
+material = "stone_dark"
+
+[[parts]]
+name = "line"
+joint = "origin"
+shape = "box"
+low = [-0.010, -0.010, -0.130]
+high = [1.012, 1.012, -0.090]
+material = "glow"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.090]
+high = [1.000, 1.000, 0.000]
+material = "slate"
+
+[[poses]]

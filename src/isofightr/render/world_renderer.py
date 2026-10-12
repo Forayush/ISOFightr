@@ -46,7 +46,13 @@ from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.ground_items import GroundItem
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
-from isofightr.render.props import PROP_ITEM_BASE, PlacedProp, placed_props
+from isofightr.render.props import (
+    PROP_ITEM_BASE,
+    PlacedProp,
+    ground_items,
+    ground_props,
+    placed_props,
+)
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
 from isofightr.render.stage_art import DECK_TILE, Edges, StageArt, cell_edges, tile_variant
@@ -163,6 +169,7 @@ class WorldRenderer:
         # Props (decision D-063): decorations from the tileset, sorted like everything else.
         self.props: list[PlacedProp] = placed_props(stage, tileset)
         self._prop_items = [prop.item for prop in self.props]
+        self._ground_props = ground_props(stage, tileset)
         self._prop_frames: list[list[arcade.Texture]] = []
         self._prop_sprites: list[_RankedSprite] = []
         for prop in self.props:
@@ -278,6 +285,10 @@ class WorldRenderer:
             )
             items.append(block)
 
+        if self._ground_props and self.stage_art is not None:
+            # The stage's own decals (glowing runes, markings) lie under everything else.
+            flat = ground_items(self._ground_props, frame, self.stage_art.prop, self.calm)
+            ground = [*flat, *ground]
         self._drop_ground({item.item_id for item in ground})
         items.extend(self._sync_ground(item) for item in ground)
 

@@ -1,0 +1,25 @@
+# Stalactite: rock hanging under the plateau.
+loop = true
+fps = 1
+
+[[parts]]
+name = "spike0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.700]
+r1 = 0.160
+r2 = 0.015
+material = "pillar_dark"
+
+[[parts]]
+name = "spike1"
+joint = "origin"
+shape = "rod"
+a = [0.180, -0.080, 0.020]
+b = [0.200, -0.100, -0.380]
+r1 = 0.100
+r2 = 0.012
+material = "pillar_dark"
+
+[[poses]]

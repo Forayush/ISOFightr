@@ -1,0 +1,113 @@
+# Brazier: a bowl of cold fire on a stand (3 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stand"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.500]
+r1 = 0.120
+r2 = 0.050
+material = "pillar"
+
+[[parts]]
+name = "bowl"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.500]
+b = [0.000, 0.000, 0.680]
+r1 = 0.100
+r2 = 0.240
+material = "pillar"
+
+[[smears]]
+name = "flame00"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.840]
+radius = 0.170
+scale = [1.000, 1.000, 1.300]
+material = "flame"
+
+[[smears]]
+name = "flame01"
+joint = "origin"
+shape = "ball"
+centre = [0.050, -0.040, 1.080]
+radius = 0.090
+scale = [1.000, 1.000, 1.500]
+material = "flame"
+
+[[smears]]
+name = "core0"
+joint = "origin"
+shape = "ball"
+centre = [0.040, 0.040, 0.820]
+radius = 0.080
+scale = [1.000, 1.000, 1.000]
+material = "flame_core"
+
+[[smears]]
+name = "flame10"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.860]
+radius = 0.160
+scale = [1.000, 1.000, 1.500]
+material = "flame"
+
+[[smears]]
+name = "flame11"
+joint = "origin"
+shape = "ball"
+centre = [-0.050, 0.040, 1.140]
+radius = 0.080
+scale = [1.000, 1.000, 1.600]
+material = "flame"
+
+[[smears]]
+name = "core1"
+joint = "origin"
+shape = "ball"
+centre = [0.040, 0.040, 0.820]
+radius = 0.080
+scale = [1.000, 1.000, 1.000]
+material = "flame_core"
+
+[[smears]]
+name = "flame20"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.820]
+radius = 0.180
+scale = [1.000, 1.000, 1.200]
+material = "flame"
+
+[[smears]]
+name = "flame21"
+joint = "origin"
+shape = "ball"
+centre = [0.020, 0.020, 1.040]
+radius = 0.100
+scale = [1.000, 1.000, 1.400]
+material = "flame"
+
+[[smears]]
+name = "core2"
+joint = "origin"
+shape = "ball"
+centre = [0.040, 0.040, 0.820]
+radius = 0.080
+scale = [1.000, 1.000, 1.000]
+material = "flame_core"
+
+[[poses]]
+show = ["flame00", "flame01", "core0"]
+
+[[poses]]
+show = ["flame10", "flame11", "core1"]
+
+[[poses]]
+show = ["flame20", "flame21", "core2"]

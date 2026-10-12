@@ -41,7 +41,6 @@ from isofightr.data.paths import AUDIO_MANIFEST, AUDIO_SRC, MUSIC_DIR
 SONGS = sorted((AUDIO_SRC / "music").glob("*.toml"))
 LOADED = {path.stem: load_song(path) for path in SONGS}
 LEGACY = {
-    "final_plateau",
     "menu",
     "training_grid",
     "victory",

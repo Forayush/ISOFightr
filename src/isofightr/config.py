@@ -91,8 +91,9 @@ AMBIENT_KINDS: Final[tuple[str, ...]] = (
 """What a stage's ``[ambient]`` table may drift across the screen (decision D-063)."""
 AMBIENT_MAX: Final[int] = 16
 """The most ambient sprites a stage may ask for."""
-PROP_LAYERS: Final[tuple[str, ...]] = ("world", "below")
-"""Where a stage prop is: standing on the ground, or hanging under the island."""
+PROP_LAYERS: Final[tuple[str, ...]] = ("world", "below", "ground")
+"""Where a stage prop is: standing on the ground, hanging under the island, or lying flat
+on the ground (a decal: fighters stand on it)."""
 PROP_DEFAULT_PERIOD: Final[int] = 14
 """Ticks an animated prop shows each of its frames for, unless the stage says otherwise."""
 BACKDROP_FRAME_TICKS: Final[int] = 12

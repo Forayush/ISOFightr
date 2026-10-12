@@ -169,3 +169,33 @@ def test_the_stage_name_shows_over_the_countdown_only(window: Any) -> None:
         sandbox.on_update(TICK_SECONDS)
     sandbox.on_draw()
     assert sandbox.extras.intro.alpha == 0, "no countdown, no intro"
+
+
+def test_ground_props_lie_under_the_fighters_and_pulse(window: Any) -> None:
+    from isofightr.render.props import GROUND_PROP_BASE
+
+    view = make_view(window, "final_plateau")
+    renderer = view.renderer
+    view.on_draw()
+    flat = [renderer._ground[GROUND_PROP_BASE + index] for index in range(9)]
+    sigil = flat[0]
+    assert all(sprite in renderer.sprites for sprite in flat)
+    # A fighter standing on the seal is drawn after it, wherever on it they stand.
+    for x, y in ((7.0, 5.0), (6.0, 4.0), (8.2, 6.1), (6.0, 6.0)):
+        view.match.fighters[0].pos = Vec3(x, y, 0.0)
+        view.on_draw()
+        body = renderer._parts[(0, BODY_PART)]
+        assert body.draw_rank > sigil.draw_rank, f"standing at {x}, {y}"
+    seen = set()
+    for _ in range(130):
+        view.on_update(TICK_SECONDS)
+        view.on_draw()
+        seen.add(id(sigil.texture))
+    assert len(seen) == 4, "all four frames of its pulse showed"
+    view.settings = replace(view.settings, reduce_flashing=True)
+    held = set()
+    for _ in range(70):
+        view.on_update(TICK_SECONDS)
+        view.on_draw()
+        held.add(id(sigil.texture))
+    assert len(held) == 1, "reduce flashing: the runes hold still"

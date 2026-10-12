@@ -1,0 +1,105 @@
+# rune_b: a rune cut into the flagstones, pulsing (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "r_rune_hi_0"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, -0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_hi"
+
+[[smears]]
+name = "r_rune_hi_1"
+joint = "origin"
+shape = "rod"
+a = [-0.300, 0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_hi"
+
+[[smears]]
+name = "r_rune_hi_2"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_hi"
+
+[[smears]]
+name = "r_rune_lo_0"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, -0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_lo"
+
+[[smears]]
+name = "r_rune_lo_1"
+joint = "origin"
+shape = "rod"
+a = [-0.300, 0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_lo"
+
+[[smears]]
+name = "r_rune_lo_2"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_lo"
+
+[[smears]]
+name = "r_rune_mid_0"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, -0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_mid"
+
+[[smears]]
+name = "r_rune_mid_1"
+joint = "origin"
+shape = "rod"
+a = [-0.300, 0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_mid"
+
+[[smears]]
+name = "r_rune_mid_2"
+joint = "origin"
+shape = "rod"
+a = [-0.300, -0.200, 0.012]
+b = [0.300, 0.200, 0.012]
+r1 = 0.035
+r2 = 0.035
+material = "rune_mid"
+
+[[poses]]
+show = ["r_rune_mid_0", "r_rune_mid_1", "r_rune_mid_2"]
+
+[[poses]]
+show = ["r_rune_hi_0", "r_rune_hi_1", "r_rune_hi_2"]
+
+[[poses]]
+show = ["r_rune_mid_0", "r_rune_mid_1", "r_rune_mid_2"]
+
+[[poses]]
+show = ["r_rune_lo_0", "r_rune_lo_1", "r_rune_lo_2"]
