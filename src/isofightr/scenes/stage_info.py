@@ -3,7 +3,7 @@
 Plan note "13 - Game Modes UI and Flow" ("Stage select", decision D-061): the stage's name
 "in a banner with a one-line description (generated from the stage data if no text is
 given)", plus the song it plays and the shape of the ground. Also the grid of stage tiles
-and the cursor's moves over it.
+and the cursor's moves over it; the grid shows a few rows and scrolls.
 
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
@@ -23,8 +23,10 @@ from isofightr.ui.menu import MenuAction
 NUMBER_WORDS: Final[tuple[str, ...]] = (
     "no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
 )  # fmt: skip
-STAGE_COLUMNS: Final[int] = 2
+STAGE_COLUMNS: Final[int] = 3
 """The stage grid is this many tiles across."""
+STAGE_ROWS: Final[int] = 4
+"""It shows this many rows at a time and scrolls by rows beyond that (decision D-063)."""
 
 
 def _count(number: int, thing: str) -> str:
@@ -115,6 +117,23 @@ def grid_rects(count: int, left: int, top: int, width: int, height: int, gap: in
             Rect(left + column * (width + gap), top - (row + 1) * height - row * gap, width, height)
         )
     return rects
+
+
+def row_count(count: int) -> int:
+    """Return how many rows ``count`` tiles make."""
+    return -(-count // STAGE_COLUMNS)
+
+
+def first_row(cursor: int, first: int, count: int, rows: int = STAGE_ROWS) -> int:
+    """Return the top row the grid should show so that the cursor's row is in view:
+    ``first`` if it already is, else the nearest row that brings it in. The grid never
+    scrolls past its last row."""
+    row = cursor // STAGE_COLUMNS
+    if row < first:
+        first = row
+    elif row >= first + rows:
+        first = row - rows + 1
+    return max(0, min(first, row_count(count) - rows))
 
 
 def move_in_grid(index: int, action: MenuAction, count: int) -> int:

@@ -1745,6 +1745,51 @@ def open_stage_select(window: Any, **setup_options: Any) -> tuple[Any, Any]:
     return flow, window.current_view
 
 
+def test_stage_select_scrolls_by_rows_and_only_shown_tiles_take_the_mouse(
+    window: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from isofightr.config import NATIVE_H
+    from isofightr.scenes import stage_info
+
+    # Two rows on screen, so that today's stages already need scrolling.
+    monkeypatch.setattr(stage_info, "STAGE_ROWS", 2)
+    from isofightr.data.stage_loader import list_stage_ids
+
+    _, sss = open_stage_select(window, stage=list_stage_ids()[0])
+    count = len(sss.stage_ids)
+    assert count > 2 * stage_info.STAGE_COLUMNS, "enough tiles to scroll"
+    assert sss.cursor == 0 and sss.first_row == 0
+    assert sss.more_above.text == "" and sss.more_below.text == "↓"
+    top = sss.tile_rects[0]
+    hidden = sss.tile_rects[2 * stage_info.STAGE_COLUMNS]
+    assert hidden.top < 0, "a row out of view is off the screen"
+    assert not sss.hover(hidden.left + 4, max(hidden.bottom + 4, 0))
+
+    go_to_stage(window, sss, sss.stage_ids[-1])
+    last_row = (count - 1) // stage_info.STAGE_COLUMNS
+    assert sss.first_row == last_row - 1 and sss.more_above.text == "↑"
+    assert sss.more_below.text == ""
+    shown = sss.tile_rects[sss.cursor]
+    assert shown.bottom > 0 and shown.top <= NATIVE_H, "the cursor's tile is on screen"
+    assert shown.bottom == top.bottom - (top.height + 5), "in the grid's second row"
+    assert sss.tile_rects[0].top < 0, "and the first row has gone"
+    back = sss.tile_backs[sss.cursor].sprite
+    assert back.center_y == shown.bottom + shown.height / 2, "the tile's art moved with it"
+    assert sss.hover(shown.left + 4, shown.bottom + 4) and sss.selected == "random"
+
+    # The pool boxes moved with their tiles: a click on one still toggles that stage.
+    index = (last_row - 1) * stage_info.STAGE_COLUMNS
+    box = sss.box_rects[index]
+    assert box is not None and 0 < box.bottom < NATIVE_H
+    stage_id = sss.stage_ids[index]
+    assert stage_id in sss.pool
+    sss.click(box.left + 2, box.bottom + 2)
+    assert stage_id not in sss.pool
+
+    go_to_stage(window, sss, sss.stage_ids[0])
+    assert sss.first_row == 0 and sss.tile_rects[0] == top
+
+
 def test_stage_select_shows_the_stage_under_the_cursor(window: Any) -> None:
     from isofightr.data.stage_loader import list_stage_ids
 

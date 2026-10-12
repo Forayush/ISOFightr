@@ -4,7 +4,8 @@ Plan note "13 - Game Modes UI and Flow" ("Stage select", decision D-061, wirefra
 ``m13_wf_stageselect.png``): a large preview of the stage under the cursor, drawn by the
 battle's own renderer from its backdrop and its real tiles with the spawns marked
 (:mod:`isofightr.render.stage_preview`); its name on a banner with a one-line description,
-its song and its size; a grid of stage tiles, each with a box that says whether Random may
+its song and its size; a grid of stage tiles, three across, which scrolls by rows when
+there are more than four rows (decision D-063), each with a box that says whether Random may
 pick it (grab toggles it, and the Rules screen shows the same pool); and the rules of the
 match as a row of chips. Random is the last tile; it is resolved when the match starts.
 """
@@ -34,6 +35,7 @@ from isofightr.ui.widgets import (
     Checkbox,
     FocusFrame,
     Picture,
+    SlideGroup,
     add_panel,
     icon_image,
     text_bottom,
@@ -53,11 +55,15 @@ DESCRIPTION_BOTTOM = 80
 INFO_BOTTOM = 62
 GRID_LEFT = 432
 GRID_TOP = 330
-STAGE_TILE = (94, 68)
-TILE_GAP = 6
-THUMB = (86, 45)
+STAGE_TILE = (62, 52)
+TILE_GAP = 5
+THUMB = (56, 30)
 NAME_STRIP = 12
-CHECK_SIZE = 11
+CHECK_SIZE = 9
+ARROW_LEFT = GRID_LEFT - 9
+"""Where the marks stand that say more rows are above or below."""
+HIDDEN_SHIFT = -2000
+"""A row scrolled out of view is parked this far down, off the screen."""
 CHIP_BOTTOM = 26
 CHIP_HEIGHT = 18
 CHIP_GAP = 6
@@ -93,6 +99,10 @@ class StageSelectView(MenuView):
         }
         self._shown_cursor = -1
         self._changed_tick = 0
+        self.rows = stage_info.STAGE_ROWS
+        """Rows of tiles on screen at once."""
+        self.first_row = 0
+        """The row at the top of the grid."""
 
         self.header("TRAINING: STAGE" if setup.training else "STAGE SELECT", "stage")
         ui = self.ui
@@ -117,21 +127,29 @@ class StageSelectView(MenuView):
             "", PREVIEW.left + 246, INFO_BOTTOM, TextSize.BODY, theme.TEXT_MUTED
         )
 
-        self.tile_rects = stage_info.grid_rects(
+        self.home_rects = stage_info.grid_rects(
             len(self.stage_ids), GRID_LEFT, GRID_TOP, *STAGE_TILE, TILE_GAP
         )
+        """Where each tile is with the grid scrolled to the top."""
+        self.tile_rects = list(self.home_rects)
+        """Where each tile is now (a tile scrolled out of view is off the screen)."""
+        self.row_groups: list[SlideGroup] = []
         self.tile_backs: list[Picture] = []
         self.checkboxes: list[Checkbox | None] = []
         self.tile_names = []
-        for stage_id, rect in zip(self.stage_ids, self.tile_rects, strict=True):
+        for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.home_rects, strict=True)):
+            if index % stage_info.STAGE_COLUMNS == 0:
+                group = SlideGroup(ui)
+                group.__enter__()
+                self.row_groups.append(group)
             self.tile_backs.append(Picture(ui, rect))
             thumb_left = rect.left + (rect.width - THUMB[0]) // 2
-            thumb_bottom = rect.top - 4 - THUMB[1]
+            thumb_bottom = rect.top - 3 - THUMB[1]
             if stage_id == RANDOM_STAGE:
                 ui.write(
                     "?",
                     rect.left + rect.width // 2,
-                    thumb_bottom + 12,
+                    thumb_bottom + 5,
                     TextSize.DISPLAY,
                     theme.TEXT_MUTED,
                     "centre",
@@ -160,9 +178,19 @@ class StageSelectView(MenuView):
             box = None
             if stage_id != RANDOM_STAGE and not setup.training:
                 box = Checkbox(
-                    ui, rect.right - CHECK_SIZE - 5, rect.top - CHECK_SIZE - 5, CHECK_SIZE
+                    ui, rect.right - CHECK_SIZE - 4, rect.top - CHECK_SIZE - 4, CHECK_SIZE
                 )
             self.checkboxes.append(box)
+            last_in_row = (index + 1) % stage_info.STAGE_COLUMNS == 0
+            if last_in_row or index == len(self.stage_ids) - 1:
+                group.__exit__()
+        self.box_rects: list[Rect | None] = [
+            None if box is None else box.rect for box in self.checkboxes
+        ]
+        """Where each tile's pool box is now."""
+        self.more_above = ui.write("", ARROW_LEFT, GRID_TOP - 10, TextSize.SMALL, theme.FOCUS)
+        grid_bottom = GRID_TOP - self.rows * (STAGE_TILE[1] + TILE_GAP) + TILE_GAP
+        self.more_below = ui.write("", ARROW_LEFT, grid_bottom + 2, TextSize.SMALL, theme.FOCUS)
         self.focus = FocusFrame(ui)
         self.pool_label = ui.write("", GRID_LEFT, POOL_BOTTOM, TextSize.BODY, theme.TEXT)
         self.pool_hint = ui.write("", GRID_LEFT, POOL_HINT_BOTTOM, TextSize.BODY, theme.TEXT_MUTED)
@@ -248,8 +276,8 @@ class StageSelectView(MenuView):
 
     def click(self, x: int, y: int) -> None:
         """A click on a tile's box toggles it in the pool; on a tile, fights there."""
-        for index, box in enumerate(self.checkboxes):
-            if box is not None and box.rect.inset(-2).contains(x, y):
+        for index, box in enumerate(self.box_rects):
+            if box is not None and box.inset(-2).contains(x, y):
                 self.cursor = index
                 self.toggle_pool(self.stage_ids[index])
                 return
@@ -269,8 +297,9 @@ class StageSelectView(MenuView):
         self.preview.sprite.alpha = round(
             255 * anim.progress(ticks, self._changed_tick, SLIDE_TICKS)
         )
+        self._scroll()
         pool = self.pool
-        for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.tile_rects, strict=True)):
+        for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.home_rects, strict=True)):
             focused = index == self.cursor
             ramp = FOCUS_RAMP if focused else None
             self.tile_backs[index].show(
@@ -288,6 +317,31 @@ class StageSelectView(MenuView):
             self.pool_hint.text = hint_text(
                 "{grab}: in / out", device_labels(self.flow.settings, self.active_device)
             )
+
+    def _scroll(self) -> None:
+        """Bring the cursor's row into view: slide the rows that show to their places and
+        park the others off the screen."""
+        count = len(self.stage_ids)
+        self.first_row = stage_info.first_row(self.cursor, self.first_row, count, self.rows)
+        pitch = STAGE_TILE[1] + TILE_GAP
+        for row, group in enumerate(self.row_groups):
+            shown = self.first_row <= row < self.first_row + self.rows
+            shift = self.first_row * pitch if shown else HIDDEN_SHIFT
+            group.offset(0, shift)
+            start = row * stage_info.STAGE_COLUMNS
+            for index in range(start, min(start + stage_info.STAGE_COLUMNS, count)):
+                home = self.home_rects[index]
+                self.tile_rects[index] = Rect(
+                    home.left, home.bottom + shift, home.width, home.height
+                )
+                box = self.checkboxes[index]
+                if box is not None:
+                    self.box_rects[index] = Rect(
+                        box.rect.left, box.rect.bottom + shift, box.rect.width, box.rect.height
+                    )
+        self.more_above.text = "↑" if self.first_row > 0 else ""
+        below = self.first_row + self.rows < stage_info.row_count(count)
+        self.more_below.text = "↓" if below else ""
 
     def _show_stage(self) -> None:
         """Put the picture, name and facts of the stage under the cursor on screen."""

@@ -110,19 +110,35 @@ def test_the_preview_frames_the_whole_stage() -> None:
     assert x == pytest.approx((left + right) / 2)
 
 
-def test_the_cursor_walks_a_two_column_grid() -> None:
-    assert STAGE_COLUMNS == 2
-    # Six tiles: three rows of two.
-    assert move_in_grid(0, RIGHT, 6) == 1 and move_in_grid(1, RIGHT, 6) == 0
-    assert move_in_grid(0, LEFT, 6) == 1
-    assert move_in_grid(0, DOWN, 6) == 2 and move_in_grid(4, DOWN, 6) == 4, "stops at the end"
-    assert move_in_grid(3, UP, 6) == 1 and move_in_grid(1, UP, 6) == 1
-    # Five tiles: the last row has one.
-    assert move_in_grid(3, DOWN, 5) == 4, "onto the lone tile below"
-    assert move_in_grid(4, RIGHT, 5) == 4
-    assert move_in_grid(2, MenuAction.CONFIRM, 5) == 2
-    rects = stage_info.grid_rects(5, 10, 300, 90, 60, 6)
-    assert rects[1].left == 106 and rects[2].top == rects[0].bottom - 6
+def test_the_cursor_walks_a_three_column_grid() -> None:
+    assert STAGE_COLUMNS == 3
+    # Nine tiles: three rows of three.
+    assert move_in_grid(0, RIGHT, 9) == 1 and move_in_grid(2, RIGHT, 9) == 0
+    assert move_in_grid(0, LEFT, 9) == 2
+    assert move_in_grid(0, DOWN, 9) == 3 and move_in_grid(7, DOWN, 9) == 7, "stops at the end"
+    assert move_in_grid(5, UP, 9) == 2 and move_in_grid(1, UP, 9) == 1
+    # Seven tiles: the last row has one.
+    assert move_in_grid(5, DOWN, 7) == 6, "onto the lone tile below"
+    assert move_in_grid(6, RIGHT, 7) == 6
+    assert move_in_grid(2, MenuAction.CONFIRM, 7) == 2
+    rects = stage_info.grid_rects(7, 10, 300, 90, 60, 6)
+    assert rects[1].left == 106 and rects[3].top == rects[0].bottom - 6
+
+
+def test_the_grid_scrolls_by_rows_to_keep_the_cursor_in_view() -> None:
+    first_row, row_count = stage_info.first_row, stage_info.row_count
+    assert stage_info.STAGE_ROWS == 4
+    assert [row_count(count) for count in (0, 1, 3, 4, 12, 13)] == [0, 1, 1, 2, 4, 5]
+    # Twelve tiles are four rows: everything shows, nothing ever scrolls.
+    assert all(first_row(cursor, 0, 12) == 0 for cursor in range(12))
+    # Twenty tiles are seven rows, four on screen.
+    assert first_row(11, 0, 20) == 0, "row 3 is the last one showing"
+    assert first_row(12, 0, 20) == 1, "one row down brings row 4 in"
+    assert first_row(19, 0, 20) == 3, "the last row: the grid stops at its end"
+    assert first_row(9, 3, 20) == 3, "still in view: it stays put"
+    assert first_row(6, 3, 20) == 2 and first_row(0, 3, 20) == 0, "and back up"
+    assert first_row(4, 0, 7, rows=1) == 1 and first_row(6, 1, 7, rows=1) == 2
+    assert first_row(0, 5, 3) == 0, "a first row left over from a longer list is pulled back"
 
 
 def test_pool_text() -> None:
