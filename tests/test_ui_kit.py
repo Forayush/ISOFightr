@@ -176,6 +176,7 @@ REQUIRED_ICONS = (
     "arrow_down",
     "check",
     "gear",
+    "bolt",
     "controller",
     "keyboard",
     "stock",

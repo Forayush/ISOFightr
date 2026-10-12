@@ -777,7 +777,7 @@ class CharacterSelectView(MenuView):
         self._refresh_cursors(editing)
         self._refresh_detail()
         if self.chip is not None:
-            self.chip.label.text = "  ".join(rule_chips(self.setup))
+            self.chip.label.text = "  ".join(rule_chips(self.setup, hazards=False))
             on_chip = any(
                 slot.device and slot.row == CHIP_ROW and not slot.ready for slot in self.slots
             )

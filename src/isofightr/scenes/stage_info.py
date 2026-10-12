@@ -107,6 +107,14 @@ def size_line(stage: Stage) -> str:
     return f"{stage.size_x} x {stage.size_y}   {platforms} PLATFORM{'' if platforms == 1 else 'S'}"
 
 
+def badge(stage: Stage, hazards: bool) -> str:
+    """Return what a stage's tile says about its mechanics: ``""`` for a stage with none,
+    else ``"on"`` or ``"off"`` by the "stage hazards" rule (decision D-063)."""
+    if not stage.has_mechanics:
+        return ""
+    return "on" if hazards else "off"
+
+
 def grid_rects(count: int, left: int, top: int, width: int, height: int, gap: int) -> list[Rect]:
     """Return where ``count`` stage tiles go: :data:`STAGE_COLUMNS` across, hanging down
     from ``top``."""

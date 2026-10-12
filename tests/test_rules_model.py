@@ -224,9 +224,11 @@ def test_the_random_pool_keeps_at_least_one_stage() -> None:
 
 
 def test_rule_chips_sum_the_rules_up() -> None:
-    assert rule_chips(MatchSetup()) == ["STOCK 3", "1.0x", "TEAMS OFF"]
+    assert rule_chips(MatchSetup()) == ["STOCK 3", "1.0x", "TEAMS OFF", "HAZARDS ON"]
     busy = MatchSetup(time_on=True, minutes=5, start_damage=50, team_play=True, launch_rate=1.5)
-    assert rule_chips(busy) == ["STOCK 3", "TIME 5:00", "1.5x", "START 50%", "TEAMS ON"]
+    assert rule_chips(busy)[:-1] == ["STOCK 3", "TIME 5:00", "1.5x", "START 50%", "TEAMS ON"]
+    assert rule_chips(MatchSetup(stage_hazards=False))[-1] == "HAZARDS OFF"
+    assert rule_chips(MatchSetup(), hazards=False) == ["STOCK 3", "1.0x", "TEAMS OFF"]
     assert rule_chips(MatchSetup(stock_on=False, time_on=True))[0] == "TIME 3:00"
 
 

@@ -71,7 +71,13 @@ POOL_BOTTOM = 80
 POOL_HINT_BOTTOM = 62
 SLIDE_TICKS = 8
 SLIDE_PIXELS = 10
-CHIP_ICONS = {"STOCK": "stock", "TIME": "clock", "TEAMS": "team", "START": "percent"}
+CHIP_ICONS = {
+    "STOCK": "stock",
+    "TIME": "clock",
+    "TEAMS": "team",
+    "START": "percent",
+    "HAZARDS": "bolt",
+}
 """Which icon a rules chip carries, by its first word (the launch rate gets ``burst``)."""
 MOSAIC_COLUMNS = 3
 DICE_SCALE = 4
@@ -137,6 +143,8 @@ class StageSelectView(MenuView):
         self.tile_backs: list[Picture] = []
         self.checkboxes: list[Checkbox | None] = []
         self.tile_names = []
+        self.badges: list[str] = []
+        """What each tile says about its stage's mechanics: "", "on" or "off"."""
         for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.home_rects, strict=True)):
             if index % stage_info.STAGE_COLUMNS == 0:
                 group = SlideGroup(ui)
@@ -181,6 +189,18 @@ class StageSelectView(MenuView):
                     ui, rect.right - CHECK_SIZE - 4, rect.top - CHECK_SIZE - 4, CHECK_SIZE
                 )
             self.checkboxes.append(box)
+            mark = (
+                ""
+                if stage_id == RANDOM_STAGE
+                else stage_info.badge(self.stages[stage_id], setup.stage_hazards)
+            )
+            self.badges.append(mark)
+            if mark:
+                spot = Rect(rect.left + 4, rect.top - CHECK_SIZE - 4, CHECK_SIZE, CHECK_SIZE)
+                Picture(ui, spot).show(
+                    ("stage-badge", CHECK_SIZE, mark),
+                    lambda mark=mark: kit_art.mechanic_badge(CHECK_SIZE, mark == "on"),
+                )
             last_in_row = (index + 1) % stage_info.STAGE_COLUMNS == 0
             if last_in_row or index == len(self.stage_ids) - 1:
                 group.__exit__()

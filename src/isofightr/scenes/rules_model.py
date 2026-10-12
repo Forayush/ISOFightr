@@ -220,8 +220,10 @@ def toggle_pool(setup: MatchSetup, stage: str, stages: Sequence[str]) -> MatchSe
     return replace(setup, random_pool=() if len(kept) == len(stages) else kept)
 
 
-def rule_chips(setup: MatchSetup) -> list[str]:
-    """Return the rules in a few words, for the chips on character and stage select."""
+def rule_chips(setup: MatchSetup, hazards: bool = True) -> list[str]:
+    """Return the rules in a few words, for the chips on character and stage select. The
+    stage hazards rule is left out with ``hazards=False`` (character select's one chip has
+    no room for it; stage select, where it matters, shows it)."""
     chips = []
     if setup.stock_on:
         chips.append(f"STOCK {setup.stocks}")
@@ -231,4 +233,6 @@ def rule_chips(setup: MatchSetup) -> list[str]:
     if setup.start_damage:
         chips.append(f"START {setup.start_damage}%")
     chips.append("TEAMS ON" if setup.team_play else "TEAMS OFF")
+    if hazards:
+        chips.append("HAZARDS ON" if setup.stage_hazards else "HAZARDS OFF")
     return chips

@@ -250,6 +250,20 @@ def checkbox(size: int, checked: bool, focused: bool = False) -> Image.Image:
     return image
 
 
+def mechanic_badge(size: int, on: bool) -> Image.Image:
+    """Return the mark on a stage tile whose stage has a mechanic: a bolt in a box, gold
+    while the "stage hazards" rule is on and grey while it is off (decision D-063)."""
+    image = Image.new("RGBA", (size, size), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    color = theme.FOCUS if on else theme.TEXT_MUTED
+    draw.rectangle((0, 0, size - 1, size - 1), fill=theme.GAUGE_TRACK, outline=color)
+    middle = size // 2
+    draw.line((middle + 1, 2, middle - 1, middle), fill=color, width=1)
+    draw.line((middle - 1, middle, middle + 1, middle), fill=color, width=1)
+    draw.line((middle + 1, middle, middle - 1, size - 3), fill=color, width=1)
+    return image
+
+
 def swatch(size: int, color: Rgb, selected: bool = False) -> Image.Image:
     """Return a colour swatch (costumes, teams), ringed when it is the chosen one."""
     image = Image.new("RGBA", (size, size), TRANSPARENT)

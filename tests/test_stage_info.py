@@ -144,3 +144,12 @@ def test_the_grid_scrolls_by_rows_to_keep_the_cursor_in_view() -> None:
 def test_pool_text() -> None:
     assert stage_info.pool_text(["a", "c"], ["a", "b", "c"]) == "2 / 3"
     assert stage_info.pool_text(["a", "x"], ["a", "b"]) == "1 / 2"
+
+
+def test_a_tile_badge_marks_stages_with_a_mechanic_and_dims_with_the_rule_off() -> None:
+    plain, moving = load_stage("final_plateau"), load_stage("twin_isles")
+    assert stage_info.badge(plain, True) == stage_info.badge(plain, False) == ""
+    assert stage_info.badge(moving, True) == "on"
+    assert stage_info.badge(moving, False) == "off"
+    with_one = [name for name in list_stage_ids() if load_stage(name).has_mechanics]
+    assert len(with_one) == 8, "the six new stages, Twin Isles and Lily Pads"

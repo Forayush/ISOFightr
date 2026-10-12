@@ -1854,6 +1854,17 @@ def test_clicking_a_box_toggles_the_pool_and_a_tile_fights_there(window: Any) ->
     assert name(window) == "BattleView" and window.current_view.stage.id == "twin_isles"
 
 
+def test_stage_tiles_carry_a_mechanic_badge_that_dims_with_hazards_off(window: Any) -> None:
+    _, sss = open_stage_select(window)
+    marks = dict(zip(sss.stage_ids, sss.badges, strict=True))
+    assert marks["storm_galleon"] == marks["twin_isles"] == "on"
+    assert marks["final_plateau"] == marks["sky_ruins"] == marks["random"] == ""
+    _, off = open_stage_select(window, stage_hazards=False)
+    marks = dict(zip(off.stage_ids, off.badges, strict=True))
+    assert marks["storm_galleon"] == "off" and marks["final_plateau"] == ""
+    assert len(off.chips) == len(sss.chips) and len(sss.chips) >= 4
+
+
 def test_training_stage_select_has_no_pool_boxes(window: Any) -> None:
     from isofightr.scenes.setup import training_setup
 
