@@ -1,0 +1,48 @@
+# Crate: a crate of melons with a folded cloth.
+loop = true
+fps = 1
+
+[[parts]]
+name = "box"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.220, 0.000]
+high = [0.260, 0.220, 0.300]
+material = "pole"
+
+[[parts]]
+name = "slat"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.230, 0.120]
+high = [0.270, 0.230, 0.180]
+material = "wicker"
+
+[[parts]]
+name = "melon0"
+joint = "origin"
+shape = "ball"
+centre = [-0.120, -0.060, 0.320]
+radius = 0.100
+scale = [1.000, 1.000, 1.000]
+material = "spice_green"
+
+[[parts]]
+name = "melon1"
+joint = "origin"
+shape = "ball"
+centre = [0.100, 0.040, 0.320]
+radius = 0.100
+scale = [1.000, 1.000, 1.000]
+material = "spice_green"
+
+[[parts]]
+name = "melon2"
+joint = "origin"
+shape = "ball"
+centre = [-0.020, 0.100, 0.320]
+radius = 0.100
+scale = [1.000, 1.000, 1.000]
+material = "spice_green"
+
+[[poses]]

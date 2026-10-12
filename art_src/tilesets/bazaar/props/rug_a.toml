@@ -1,0 +1,69 @@
+# rug_a: a woven rug laid on the paving (flat).
+loop = true
+fps = 1
+
+[[parts]]
+name = "edge"
+joint = "origin"
+shape = "box"
+low = [-0.420, -0.720, 0.004]
+high = [0.420, 0.720, 0.012]
+material = "rug_gold"
+
+[[parts]]
+name = "field"
+joint = "origin"
+shape = "box"
+low = [-0.340, -0.640, 0.004]
+high = [0.340, 0.640, 0.016]
+material = "rug_red"
+
+[[parts]]
+name = "mark0"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.500, 0.004]
+high = [0.140, -0.300, 0.020]
+material = "rug_blue"
+
+[[parts]]
+name = "eye0"
+joint = "origin"
+shape = "box"
+low = [-0.050, -0.440, 0.004]
+high = [0.050, -0.360, 0.024]
+material = "rug_gold"
+
+[[parts]]
+name = "mark1"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.100, 0.004]
+high = [0.140, 0.100, 0.020]
+material = "rug_blue"
+
+[[parts]]
+name = "eye1"
+joint = "origin"
+shape = "box"
+low = [-0.050, -0.040, 0.004]
+high = [0.050, 0.040, 0.024]
+material = "rug_gold"
+
+[[parts]]
+name = "mark2"
+joint = "origin"
+shape = "box"
+low = [-0.140, 0.300, 0.004]
+high = [0.140, 0.500, 0.020]
+material = "rug_blue"
+
+[[parts]]
+name = "eye2"
+joint = "origin"
+shape = "box"
+low = [-0.050, 0.360, 0.004]
+high = [0.050, 0.440, 0.024]
+material = "rug_gold"
+
+[[poses]]

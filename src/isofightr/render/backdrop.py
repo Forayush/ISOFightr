@@ -114,6 +114,14 @@ GLOW: Final[Mood] = Mood(
     ruin="f04f78",
 )
 """A city's night: dark overhead, the streets' light staining the horizon (Neon Circuit)."""
+HAZE: Final[Mood] = Mood(
+    sky=("4d9be6", "8fd3ff", "c7dcd0", "fdcbb0", "fca790"),
+    cloud=("ffffff", "fdcbb0", "fca790"),
+    island_top="fdcbb0",
+    island_side=("fbb954", "e6904e"),
+    ruin="ffffff",
+)
+"""A hot afternoon: blue overhead, bleached and dusty toward the ground (Dune Bazaar)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -124,6 +132,7 @@ MOODS: Final[dict[str, Mood]] = {
     "ember": EMBER,
     "dawn": DAWN,
     "glow": GLOW,
+    "haze": HAZE,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -1108,3 +1117,82 @@ def paint_city(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["city"] = paint_city
+
+
+# --- dunes and a far city (Dune Bazaar) ----------------------------------------------------
+
+HIGH_SUN: Final[tuple[int, int]] = (470, 58)
+FAR_DUNES: Final[tuple[str, str]] = ("fdcbb0", "fbb954")
+NEAR_DUNES: Final[tuple[str, str]] = ("fbb954", "e6904e")
+"""A line of dunes: the colour of its sunlit crest, then of its slopes."""
+CITY_COLOURS: Final[tuple[str, str]] = ("fca790", "f68181")
+"""The far city in the haze: its sunlit walls, its shaded ones."""
+
+
+def far_city(seed: int, base: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return a city far off in the haze, standing on a line ``base`` pixels down: flat-roofed
+    houses, domes and thin towers, in clusters with desert between. It wraps."""
+    rng = random.Random(seed)
+    lit, shade = (hex_rgb(value) for value in CITY_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    for cluster in range(4):
+        x = int((cluster + rng.uniform(0.15, 0.6)) * width / 4)
+        end = x + rng.randint(120, 190)
+        while x < end:
+            wide = rng.randint(10, 26)
+            tall = rng.randint(8, 26)
+            kind = rng.random()
+            for shift in (-width, 0, width):
+                left = x + shift
+                if kind < 0.2:  # a thin tower with a cap
+                    draw.rectangle((left, base - tall - 22, left + 4, base), fill=lit)
+                    draw.rectangle((left + 3, base - tall - 22, left + 4, base), fill=shade)
+                    draw.polygon(
+                        (
+                            (left - 1, base - tall - 22),
+                            (left + 2, base - tall - 29),
+                            (left + 5, base - tall - 22),
+                        ),
+                        fill=shade,
+                    )
+                else:
+                    draw.rectangle((left, base - tall, left + wide, base), fill=lit)
+                    draw.rectangle(
+                        (left + wide * 2 // 3, base - tall, left + wide, base), fill=shade
+                    )
+                    if kind > 0.65:  # a dome on its roof
+                        radius = wide // 3
+                        middle = left + wide // 2
+                        draw.pieslice(
+                            (
+                                middle - radius,
+                                base - tall - radius,
+                                middle + radius,
+                                base - tall + radius,
+                            ),
+                            180,
+                            360,
+                            fill=lit,
+                        )
+                        draw.line(
+                            ((middle, base - tall - radius - 4), (middle, base - tall - radius)),
+                            fill=shade,
+                        )
+            x += (5 if kind < 0.2 else wide) + rng.randint(0, 3)
+    return image
+
+
+def paint_dunes(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Dune Bazaar: a high sun in a hot, hazy sky, thin clouds, a city far off, and two lines
+    of dunes."""
+    return {
+        "bg_0_sky.png": sunny_sky(mood, HIGH_SUN),
+        "bg_1_far_clouds.png": clouds(mood, seed, 4, (40, 110), (9, 13)),
+        "bg_2_city.png": far_city(seed + 1, 250),
+        "bg_3_far_dunes.png": hills(FAR_DUNES, seed + 2, 258, 12),
+        "bg_4_near_dunes.png": hills(NEAR_DUNES, seed + 3, 304, 18),
+    }
+
+
+PAINTERS["dunes"] = paint_dunes

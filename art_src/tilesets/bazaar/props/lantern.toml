@@ -1,0 +1,67 @@
+# Lantern: a brass lamp on a pole; its flame wavers (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "pole"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 1.300]
+r1 = 0.035
+r2 = 0.030
+material = "pole"
+
+[[parts]]
+name = "arm"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.260]
+b = [0.220, -0.220, 1.320]
+r1 = 0.020
+r2 = 0.020
+material = "pole"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "rod"
+a = [0.220, -0.220, 1.220]
+b = [0.220, -0.220, 1.280]
+r1 = 0.040
+r2 = 0.090
+material = "brass"
+
+[[smears]]
+name = "glass_hi"
+joint = "origin"
+shape = "ball"
+centre = [0.220, -0.220, 1.100]
+radius = 0.110
+scale = [1.000, 1.000, 1.200]
+material = "flame"
+
+[[smears]]
+name = "glass_lo"
+joint = "origin"
+shape = "ball"
+centre = [0.220, -0.220, 1.100]
+radius = 0.110
+scale = [1.000, 1.000, 1.200]
+material = "brass"
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "rod"
+a = [0.220, -0.220, 0.940]
+b = [0.220, -0.220, 0.990]
+r1 = 0.080
+r2 = 0.060
+material = "brass"
+
+[[poses]]
+show = ["glass_hi"]
+
+[[poses]]
+show = ["glass_lo"]

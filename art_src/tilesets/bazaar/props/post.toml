@@ -1,0 +1,33 @@
+# Post: a pole holding up an awning (2.25 units tall).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.140, 0.000]
+high = [0.140, 0.140, 0.100]
+material = "block"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.100]
+b = [0.000, 0.000, 2.200]
+r1 = 0.050
+r2 = 0.045
+material = "pole"
+
+[[parts]]
+name = "tie"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.900]
+b = [0.000, 0.000, 1.980]
+r1 = 0.070
+r2 = 0.070
+material = "brass"
+
+[[poses]]

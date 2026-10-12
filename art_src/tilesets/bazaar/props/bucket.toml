@@ -1,0 +1,38 @@
+# Bucket: a bucket on a rope under the market, swinging (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "rope"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.900]
+r1 = 0.012
+r2 = 0.012
+material = "pole"
+
+[[parts]]
+name = "bucket"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.100]
+b = [0.000, 0.000, -0.900]
+r1 = 0.090
+r2 = 0.120
+material = "pole"
+
+[[parts]]
+name = "hoop"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.000]
+b = [0.000, 0.000, -0.960]
+r1 = 0.115
+r2 = 0.115
+material = "brass"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 6.000, 0.000]

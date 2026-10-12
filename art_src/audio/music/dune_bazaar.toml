@@ -1,0 +1,275 @@
+# Seven Coins: Dune Bazaar (decision D-063). A market dance in seven: each bar is counted
+# 2 + 2 + 3. D phrygian dominant, the scale with a flat second (Eb) under a major third
+# (F#). A lute carries the tune, a flute doubles it the last time, reeds hold a drone, and a
+# hand drum plays the low "dum" at the start of each group and the high "tek" between,
+# with finger cymbals on the bar. Rendered by tools/build_audio.py; written with
+# build/scratch/m14_song_bazaar.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar of seven.
+id = "dune_bazaar"
+title = "Seven Coins"
+tempo = 108
+steps_per_beat = 2
+key = "D"
+mode = "phrygian_dominant"
+meter = "7/8"
+form = ["intro", "tune", "turn", "tune2"]
+
+[echo]
+beats = 1.0
+feedback = 0.25
+mix = 0.22
+lowpass = 0.6
+
+[sections.intro]              # 4 bars on D: the drone and the drum, then the lute calls
+level = 0.65
+to = 1.0
+play = ["call", "drone_i_root", "drone_i_fifth", "dum", "tek*0.7"]
+
+[sections.tune]               # 8 bars: D D Eb D, D D Cm D
+kind = "verse"
+level = 0.9
+play = ["tune_a", "drone_a_root", "drone_a_fifth", "bass_a", "dum", "tek", "zill"]
+
+[sections.turn]               # 8 bars: Gm Gm D D, Eb Eb Cm D
+kind = "chorus"
+play = ["tune_b", "drone_b_root", "drone_b_fifth", "bass_b", "dum", "tek", "zill", "shake"]
+
+[sections.tune2]              # the tune again, a flute an octave above the lute
+kind = "verse"
+play = ["tune_a", "flute_a+12*0.8", "drone_a_root", "drone_a_fifth", "bass_a", "dum", "tek",
+        "zill", "shake"]
+
+[instruments.lute]            # a plucked string, bright and dry
+wave = "pluck"
+damp = 0.2
+release = 0.15
+volume = 0.62
+send = 0.2
+
+[instruments.flute]           # breathy, with a deep vibrato
+wave = "sine"
+attack = 0.04
+decay = 0.05
+sustain = 0.85
+release = 0.08
+vibrato_depth = 0.4
+vibrato_rate = 6.5
+volume = 0.2
+send = 0.35
+
+[instruments.drone]           # reeds, open and nasal
+wave = "reed"
+attack = 0.05
+release = 0.15
+lowpass = 0.8
+vibrato_depth = 0.1
+vibrato_rate = 5.0
+volume = 0.1
+
+[instruments.bass]
+wave = "triangle"
+attack = 0.004
+release = 0.05
+volume = 0.22
+
+[instruments.dum]             # the hand drum's low stroke
+wave = "drum"
+freq = 96
+freq_end = 60
+length = 0.18
+noise = 0.1
+release = 0.08
+volume = 0.38
+
+[instruments.tek]             # and its high one, on the rim
+wave = "drum"
+freq = 310
+freq_end = 260
+length = 0.06
+noise = 0.4
+release = 0.03
+volume = 0.3
+
+[instruments.zill]            # finger cymbals
+wave = "ping"
+freq = 3300
+length = 0.3
+release = 0.2
+volume = 0.16
+send = 0.3
+
+[instruments.shake]           # a shaker of seeds
+wave = "noise"
+freq = 5200
+length = 0.04
+release = 0.02
+lowpass = 0.8
+volume = 0.09
+
+[patterns.call]
+instrument = "lute"
+steps = """
+. . . . . . .
+. . . . . . .
+D5 - - - Eb5 - -
+F#5 - - - - - .
+"""
+
+[patterns.tune_a]
+instrument = "lute"
+steps = """
+D5 - F#5 - G5 A5 -
+A5 - G5 - F#5 Eb5 D5
+Eb5 - G5 - Bb5 A5 G5
+F#5 - Eb5 - D5 - .
+D5 - F#5 - A5 Bb5 -
+C6 - Bb5 - A5 G5 F#5
+G5 - Eb5 - C5 Eb5 G5
+F#5 - - - D5 - .
+"""
+
+[patterns.tune_b]
+instrument = "lute"
+steps = """
+G5 - Bb5 - D6 - C6
+Bb5 - A5 - G5 - .
+A5 - F#5 - D5 F#5 A5
+D6 - - - A5 - .
+Bb5 - G5 - Eb5 G5 Bb5
+Eb6 - D6 - Bb5 - G5
+C6 - Bb5 - G5 Eb5 C5
+D5 - - - - - .
+"""
+
+[patterns.flute_a]
+instrument = "flute"
+steps = """
+D5 - F#5 - G5 A5 -
+A5 - G5 - F#5 Eb5 D5
+Eb5 - G5 - Bb5 A5 G5
+F#5 - Eb5 - D5 - .
+D5 - F#5 - A5 Bb5 -
+C6 - Bb5 - A5 G5 F#5
+G5 - Eb5 - C5 Eb5 G5
+F#5 - - - D5 - .
+"""
+
+[patterns.drone_i_root]
+instrument = "drone"
+steps = """
+D3 - - - - - -
+D3 - - - - - -
+D3 - - - - - -
+D3 - - - - - -
+"""
+
+[patterns.drone_i_fifth]
+instrument = "drone"
+steps = """
+A3 - - - - - -
+A3 - - - - - -
+A3 - - - - - -
+A3 - - - - - -
+"""
+
+[patterns.drone_a_root]
+instrument = "drone"
+steps = """
+D3 - - - - - -
+D3 - - - - - -
+Eb3 - - - - - -
+D3 - - - - - -
+D3 - - - - - -
+D3 - - - - - -
+C3 - - - - - -
+D3 - - - - - -
+"""
+
+[patterns.drone_a_fifth]
+instrument = "drone"
+steps = """
+A3 - - - - - -
+A3 - - - - - -
+Bb3 - - - - - -
+A3 - - - - - -
+A3 - - - - - -
+A3 - - - - - -
+G3 - - - - - -
+A3 - - - - - -
+"""
+
+[patterns.drone_b_root]
+instrument = "drone"
+steps = """
+G3 - - - - - -
+G3 - - - - - -
+D3 - - - - - -
+D3 - - - - - -
+Eb3 - - - - - -
+Eb3 - - - - - -
+C3 - - - - - -
+D3 - - - - - -
+"""
+
+[patterns.drone_b_fifth]
+instrument = "drone"
+steps = """
+D4 - - - - - -
+D4 - - - - - -
+A3 - - - - - -
+A3 - - - - - -
+Bb3 - - - - - -
+Bb3 - - - - - -
+G3 - - - - - -
+A3 - - - - - -
+"""
+
+[patterns.bass_a]
+instrument = "bass"
+steps = """
+D2 - D2 - D2 - .
+D2 - D2 - D2 - .
+Eb2 - Eb2 - Eb2 - .
+D2 - D2 - D2 - .
+D2 - D2 - D2 - .
+D2 - D2 - D2 - .
+C3 - C3 - C3 - .
+D2 - D2 - D2 - .
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+G2 - G2 - G2 - .
+G2 - G2 - G2 - .
+D2 - D2 - D2 - .
+D2 - D2 - D2 - .
+Eb2 - Eb2 - Eb2 - .
+Eb2 - Eb2 - Eb2 - .
+C3 - C3 - C3 - .
+D2 - D2 - D2 - .
+"""
+
+[patterns.dum]
+instrument = "dum"
+steps = """
+x . x . x . .
+"""
+
+[patterns.tek]
+instrument = "tek"
+steps = """
+. x . x . x x
+"""
+
+[patterns.zill]
+instrument = "zill"
+steps = """
+x . . . x . .
+"""
+
+[patterns.shake]
+instrument = "shake"
+steps = """
+x x x x x x x
+"""

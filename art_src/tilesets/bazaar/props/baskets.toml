@@ -1,0 +1,62 @@
+# Baskets: three baskets of spice.
+loop = true
+fps = 1
+
+[[parts]]
+name = "basket0"
+joint = "origin"
+shape = "rod"
+a = [-0.240, 0.100, 0.000]
+b = [-0.240, 0.100, 0.200]
+r1 = 0.130
+r2 = 0.170
+material = "wicker"
+
+[[parts]]
+name = "heap0"
+joint = "origin"
+shape = "ball"
+centre = [-0.240, 0.100, 0.200]
+radius = 0.150
+scale = [1.000, 1.000, 0.700]
+material = "spice_red"
+
+[[parts]]
+name = "basket1"
+joint = "origin"
+shape = "rod"
+a = [0.040, -0.100, 0.000]
+b = [0.040, -0.100, 0.200]
+r1 = 0.130
+r2 = 0.170
+material = "wicker"
+
+[[parts]]
+name = "heap1"
+joint = "origin"
+shape = "ball"
+centre = [0.040, -0.100, 0.200]
+radius = 0.150
+scale = [1.000, 1.000, 0.700]
+material = "spice_gold"
+
+[[parts]]
+name = "basket2"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.120, 0.000]
+b = [0.300, 0.120, 0.200]
+r1 = 0.130
+r2 = 0.170
+material = "wicker"
+
+[[parts]]
+name = "heap2"
+joint = "origin"
+shape = "ball"
+centre = [0.300, 0.120, 0.200]
+radius = 0.150
+scale = [1.000, 1.000, 0.700]
+material = "spice_green"
+
+[[poses]]

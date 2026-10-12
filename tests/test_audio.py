@@ -130,9 +130,9 @@ def test_bad_recipes_are_rejected(tmp_path: Path) -> None:
 @pytest.mark.parametrize("path", SONGS, ids=lambda path: path.stem)
 def test_songs_load_and_fill_whole_bars(path: Path) -> None:
     song = load_song(path)
-    steps_per_bar = song.steps_per_beat * 4
+    # A bar's length follows the song's meter (4/4 unless it says otherwise: 7/8 has 7 eighths).
     for section in song.sequence:
-        assert song.section_steps(section) % steps_per_bar == 0, "sections are whole bars"
+        assert song.section_steps(section) % song.bar_steps == 0, "sections are whole bars"
     assert 5.0 < song.seconds < 90.0
     assert (MUSIC_DIR / f"{song.id}.wav").exists(), "run tools/build_audio.py"
 

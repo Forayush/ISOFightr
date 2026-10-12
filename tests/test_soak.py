@@ -66,6 +66,7 @@ CPU_SOAK_STAGES = (
     "ember_forge",
     "frostpeak",
     "neon_circuit",
+    "dune_bazaar",
 )
 CPU_SOAK_MAX_TICKS = 10 * 60 * TICK_RATE
 

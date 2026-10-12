@@ -1,0 +1,169 @@
+# Dune Bazaar: a desert market on sandstone (decision D-063, new in M14). A paved square
+# with two striped awnings on poles over it and, at one end, a terrace of glazed tiles in
+# two steps (one unit up, then two).
+# Mechanic: a sandstorm. Every so often streaks of sand gather for a second and a half, and
+# then a gust blows across the whole market for two and a half seconds: first toward the screen's
+# left, the next time toward its right, and so on. With the "stage hazards" rule off no wind
+# blows. A gust carries someone standing still about two units: no spawn is that close
+# to an edge the wind blows toward.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "dune_bazaar"
+display_name = "Dune Bazaar"
+description = "A desert market. A sandstorm gusts left, then right."
+tileset = "bazaar"
+music = "dune_bazaar"            # a song in assets/audio/music
+
+# Legend: '.' = void. 's' paving, '1' and '2' the terrace's two steps.
+grid = """
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+ssssssssss1122
+"""
+
+[legend]
+"s" = { height = 0, tile = "paving" }
+"1" = { height = 1, tile = "mosaic" }
+"2" = { height = 2, tile = "mosaic" }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [1, 4, 4, 6]          # the near awning
+z = 2.5
+[[soft_platforms]]
+rect = [6, 1, 9, 3]          # the far awning
+z = 2.5
+
+[[hazards]]                  # the gust toward the screen's left
+kind = "wind"
+at = [7.0, 4.0]
+radius = 11.0
+z = -3.0
+height = 12.0
+rest = 780                   # 13 seconds of calm,
+warn = 90                    # 1.5 of streaks gathering,
+active = 150                 # 2.5 of wind
+push = [-0.01, 0.01, 0.0]
+[[hazards]]                  # and half a round later, the one toward its right
+kind = "wind"
+at = [7.0, 4.0]
+radius = 11.0
+z = -3.0
+height = 12.0
+rest = 780
+warn = 90
+active = 150
+phase = 510
+push = [0.01, -0.01, 0.0]
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [2.5, 2.0]
+p2 = [8.6, 5.6]
+p3 = [4.5, 5.8]
+p4 = [11.2, 2.4]
+respawn = [5.0, 3.5]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py dune_bazaar --theme dunes --mood haze --seed 7).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.03
+scroll = 0.01
+
+[[background]]
+image = "bg_2_city.png"
+parallax = 0.06
+
+[[background]]
+image = "bg_3_far_dunes.png"
+parallax = 0.1
+
+[[background]]
+image = "bg_4_near_dunes.png"
+parallax = 0.26
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 1.5
+hang = ["spur", "bucket"]
+
+[ambient]
+kind = "sand"
+count = 12
+front = 4
+
+[[props]]                    # flat on the paving: rugs
+sprite = "rug_a"
+at = [5.0, 3.5]
+layer = "ground"
+[[props]]
+sprite = "rug_b"
+at = [8.5, 6.0]
+layer = "ground"
+[[props]]
+sprite = "rug_b"
+at = [2.5, 2.0]
+layer = "ground"
+
+[[props]]                    # along the far edges: the tall things
+sprite = "palm"
+at = [0.5, 0.5]
+[[props]]
+sprite = "well"
+at = [3.5, 0.7]
+[[props]]
+sprite = "lantern"
+at = [5.5, 0.4]
+period = 20
+[[props]]
+sprite = "palm"
+at = [13.5, 0.5]
+phase = 7
+[[props]]
+sprite = "pots"
+at = [12.5, 0.5]
+[[props]]
+sprite = "baskets"
+at = [0.5, 3.0]
+[[props]]
+sprite = "crate"
+at = [9.5, 0.5]
+
+[[props]]                    # the awnings' poles
+sprite = "post"
+at = [1.5, 4.5]
+[[props]]
+sprite = "post"
+at = [3.5, 5.5]
+[[props]]
+sprite = "post"
+at = [6.5, 1.5]
+[[props]]
+sprite = "post"
+at = [8.5, 2.5]
+
+[[props]]                    # the near side
+sprite = "pots"
+at = [0.5, 7.5]
+[[props]]
+sprite = "baskets"
+at = [13.4, 6.5]
+[[props]]
+sprite = "lantern"
+at = [10.4, 7.5]
+period = 20
+phase = 10

@@ -1,0 +1,207 @@
+# Palm: a date palm whose fronds sway (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "trunk0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.060, 0.000, 0.700]
+r1 = 0.100
+r2 = 0.090
+material = "bark"
+
+[[parts]]
+name = "trunk1"
+joint = "origin"
+shape = "rod"
+a = [0.060, 0.000, 0.700]
+b = [0.000, 0.000, 1.400]
+r1 = 0.085
+r2 = 0.075
+material = "bark"
+
+[[parts]]
+name = "trunk2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.400]
+b = [0.050, 0.000, 2.000]
+r1 = 0.070
+r2 = 0.060
+material = "bark"
+
+[[parts]]
+name = "frond0a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.500, 0.000, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond0b"
+joint = "crown"
+shape = "rod"
+a = [0.500, 0.000, 0.160]
+b = [0.900, 0.000, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond"
+
+[[parts]]
+name = "frond1a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.350, 0.350, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond1b"
+joint = "crown"
+shape = "rod"
+a = [0.350, 0.350, 0.160]
+b = [0.630, 0.630, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond_dark"
+
+[[parts]]
+name = "frond2a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.500, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond2b"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.500, 0.160]
+b = [0.000, 0.900, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond"
+
+[[parts]]
+name = "frond3a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.350, 0.350, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond3b"
+joint = "crown"
+shape = "rod"
+a = [-0.350, 0.350, 0.160]
+b = [-0.630, 0.630, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond_dark"
+
+[[parts]]
+name = "frond4a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.500, 0.000, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond4b"
+joint = "crown"
+shape = "rod"
+a = [-0.500, 0.000, 0.160]
+b = [-0.900, 0.000, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond"
+
+[[parts]]
+name = "frond5a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.350, -0.350, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond5b"
+joint = "crown"
+shape = "rod"
+a = [-0.350, -0.350, 0.160]
+b = [-0.630, -0.630, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond_dark"
+
+[[parts]]
+name = "frond6a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, -0.500, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond6b"
+joint = "crown"
+shape = "rod"
+a = [0.000, -0.500, 0.160]
+b = [0.000, -0.900, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond"
+
+[[parts]]
+name = "frond7a"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.350, -0.350, 0.160]
+r1 = 0.060
+r2 = 0.050
+material = "frond"
+
+[[parts]]
+name = "frond7b"
+joint = "crown"
+shape = "rod"
+a = [0.350, -0.350, 0.160]
+b = [0.630, -0.630, -0.200]
+r1 = 0.050
+r2 = 0.015
+material = "frond_dark"
+
+[[parts]]
+name = "dates"
+joint = "crown"
+shape = "ball"
+centre = [0.080, 0.080, -0.120]
+radius = 0.100
+scale = [1.000, 1.000, 1.000]
+material = "clay"
+
+[[poses]]
+
+[[poses]]
+crown = [0.000, 5.000, 0.000]

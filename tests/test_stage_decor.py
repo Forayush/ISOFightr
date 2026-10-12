@@ -485,6 +485,7 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
         ("ember_forge", "volcano", "ember", 3),
         ("frostpeak", "peaks", "dawn", 5),
         ("neon_circuit", "city", "glow", 8),
+        ("dune_bazaar", "dunes", "haze", 7),
     ],
 )
 def test_a_painter_reproduces_its_stages_backdrop(

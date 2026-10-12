@@ -1,0 +1,52 @@
+# Pots: clay jars, one of them glazed.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.260]
+radius = 0.240
+scale = [1.000, 1.000, 1.150]
+material = "clay"
+
+[[parts]]
+name = "neck"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.500]
+b = [0.000, 0.000, 0.620]
+r1 = 0.100
+r2 = 0.130
+material = "clay"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.300, -0.160, 0.160]
+radius = 0.150
+scale = [1.000, 1.000, 1.100]
+material = "glaze_pot"
+
+[[parts]]
+name = "neck2"
+joint = "origin"
+shape = "rod"
+a = [0.300, -0.160, 0.300]
+b = [0.300, -0.160, 0.380]
+r1 = 0.060
+r2 = 0.080
+material = "glaze_pot"
+
+[[parts]]
+name = "lid"
+joint = "origin"
+shape = "ball"
+centre = [-0.260, 0.200, 0.100]
+radius = 0.120
+scale = [1.000, 1.000, 0.800]
+material = "clay"
+
+[[poses]]

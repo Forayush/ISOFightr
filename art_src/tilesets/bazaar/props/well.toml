@@ -1,0 +1,85 @@
+# Well: a stone well with a little roof and a bucket.
+loop = true
+fps = 1
+
+[[parts]]
+name = "ring"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.400]
+r1 = 0.400
+r2 = 0.400
+material = "block"
+
+[[parts]]
+name = "water"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.360]
+b = [0.000, 0.000, 0.410]
+r1 = 0.300
+r2 = 0.300
+material = "glaze_pot"
+
+[[parts]]
+name = "post0"
+joint = "origin"
+shape = "rod"
+a = [-0.340, 0.340, 0.000]
+b = [-0.340, 0.340, 1.200]
+r1 = 0.040
+r2 = 0.040
+material = "pole"
+
+[[parts]]
+name = "post1"
+joint = "origin"
+shape = "rod"
+a = [0.340, -0.340, 0.000]
+b = [0.340, -0.340, 1.200]
+r1 = 0.040
+r2 = 0.040
+material = "pole"
+
+[[parts]]
+name = "beam"
+joint = "origin"
+shape = "rod"
+a = [-0.340, 0.340, 1.100]
+b = [0.340, -0.340, 1.100]
+r1 = 0.035
+r2 = 0.035
+material = "pole"
+
+[[parts]]
+name = "roof"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.200]
+b = [0.000, 0.000, 1.550]
+r1 = 0.560
+r2 = 0.040
+material = "awning"
+
+[[parts]]
+name = "rope"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.100]
+b = [0.000, 0.000, 0.700]
+r1 = 0.012
+r2 = 0.012
+material = "pole"
+
+[[parts]]
+name = "bucket"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.560]
+b = [0.000, 0.000, 0.720]
+r1 = 0.070
+r2 = 0.090
+material = "pole"
+
+[[poses]]

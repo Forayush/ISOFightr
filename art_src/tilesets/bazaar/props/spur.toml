@@ -1,0 +1,25 @@
+# Spur: a spur of sandstone hanging under the market.
+loop = true
+fps = 1
+
+[[parts]]
+name = "spike0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.600]
+r1 = 0.180
+r2 = 0.030
+material = "block"
+
+[[parts]]
+name = "spike1"
+joint = "origin"
+shape = "rod"
+a = [0.180, -0.080, 0.020]
+b = [0.200, -0.100, -0.340]
+r1 = 0.100
+r2 = 0.020
+material = "block"
+
+[[poses]]

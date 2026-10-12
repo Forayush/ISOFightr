@@ -140,4 +140,6 @@ def test_the_mouse_picks_rows_and_tabs(window: Any) -> None:
     view.tab = model.MUSIC
     step(window, 1)
     rect = view.row_rects[empty]
-    assert not view.hover(rect.left + 10, rect.bottom + 5), "no row there in the short list"
+    # The last row on screen holds a song only once the list is long enough to fill the page.
+    filled = len(view.listed) >= model.VISIBLE_ROWS
+    assert view.hover(rect.left + 10, rect.bottom + 5) == filled

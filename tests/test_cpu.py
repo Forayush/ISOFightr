@@ -38,6 +38,7 @@ STAGES = (
     "ember_forge",
     "frostpeak",
     "neon_circuit",
+    "dune_bazaar",
 )
 
 
@@ -159,7 +160,7 @@ def test_cpus_are_deterministic_for_a_seed() -> None:
     list(
         zip(
             STAGES,
-            ("rook", "bramble", "zephyr", "mote", "rook", "bramble", "zephyr", "mote"),
+            (*CHARACTERS, *CHARACTERS, *CHARACTERS)[: len(STAGES)],
             strict=True,
         )
     ),

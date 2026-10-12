@@ -1,0 +1,156 @@
+# bazaar tileset materials (Dune Bazaar; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. There may be 31 at most, and
+# this tileset uses all of them.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "paving"
+outline = false
+
+[[materials]]
+name = "paving_dark"
+outline = false
+
+[[materials]]
+name = "sand"
+outline = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "stone_dark"
+outline = false
+
+[[materials]]
+name = "trim"
+outline = false
+
+[[materials]]
+name = "glaze"
+outline = false
+
+[[materials]]
+name = "glaze_light"
+outline = false
+
+[[materials]]
+name = "glaze_dark"
+outline = false
+
+[[materials]]
+name = "cloth_red"
+outline = false
+
+[[materials]]
+name = "cloth_white"
+outline = false
+
+[[materials]]
+name = "wood_tile"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "rug_red"
+outline = false
+
+[[materials]]
+name = "rug_gold"
+outline = false
+
+[[materials]]
+name = "rug_blue"
+outline = false
+
+[[materials]]
+name = "bark"
+
+[[materials]]
+name = "frond"
+
+[[materials]]
+name = "frond_dark"
+
+[[materials]]
+name = "clay"
+
+[[materials]]
+name = "glaze_pot"
+
+[[materials]]
+name = "wicker"
+
+[[materials]]
+name = "spice_red"
+
+[[materials]]
+name = "spice_gold"
+
+[[materials]]
+name = "spice_green"
+
+[[materials]]
+name = "block"
+
+[[materials]]
+name = "pole"
+
+[[materials]]
+name = "awning"
+
+[[materials]]
+name = "brass"
+
+[[materials]]
+name = "flame"
+lit = false
+
+[[costumes]]
+name = "light"
+paving = ["ffffff", "fdcbb0", "ab947a", "966c6c", "694f62"]
+paving_dark = ["fdcbb0", "ab947a", "966c6c", "694f62", "45293f"]
+sand = ["fbff86", "fbb954", "e6904e", "cd683d", "9e4539"]
+stone = ["fbb954", "e6904e", "cd683d", "9e4539", "7a3045"]
+stone_dark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+trim = ["fdcbb0", "fbb954", "e6904e", "cd683d", "9e4539"]
+glaze = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+glaze_light = ["ffffff", "ffffff", "c7dcd0", "8fd3ff", "4d9be6"]
+glaze_dark = ["4d9be6", "4d65b4", "484a77", "323353", "2e222f"]
+cloth_red = ["f68181", "e83b3b", "ae2334", "6e2727", "45293f"]
+cloth_white = ["ffffff", "ffffff", "fdcbb0", "ab947a", "966c6c"]
+wood_tile = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+deep = ["9e4539", "7a3045", "45293f", "2e222f", "2e222f"]
+deep_dark = ["7a3045", "45293f", "2e222f", "2e222f", "2e222f"]
+rug_red = ["e83b3b", "e83b3b", "ae2334", "6e2727", "45293f"]
+rug_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+rug_blue = ["4d9be6", "4d65b4", "484a77", "323353", "2e222f"]
+bark = ["e6904e", "cd683d", "9e4539", "7a3045", "2e222f"]
+frond = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+frond_dark = ["91db69", "1ebc73", "239063", "165a4c", "2e222f"]
+clay = ["fbb954", "e6904e", "cd683d", "9e4539", "45293f"]
+glaze_pot = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "2e222f"]
+wicker = ["fbb954", "cd683d", "9e4539", "7a3045", "2e222f"]
+spice_red = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+spice_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "2e222f"]
+spice_green = ["cddf6c", "91db69", "1ebc73", "239063", "2e222f"]
+block = ["fdcbb0", "fbb954", "e6904e", "cd683d", "45293f"]
+pole = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+awning = ["4d9be6", "4d65b4", "484a77", "323353", "2e222f"]
+brass = ["fbff86", "f9c22b", "f79617", "cd683d", "45293f"]
+flame = ["fbff86", "fbff86", "f9c22b", "f79617", "7a3045"]
+
+[[costumes]]
+name = "dark"
+paving = ["fdcbb0", "fdcbb0", "ab947a", "966c6c", "694f62"]
