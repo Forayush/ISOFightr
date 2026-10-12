@@ -90,13 +90,13 @@
       "meter": "4/4"
     },
     "lily_pads": {
-      "source": "7064aac44c0e7cab",
+      "source": "5ce7ddf74896de37",
       "title": "Dusk on the Water",
-      "seconds": 40.678,
-      "tempo": 118.0,
-      "key": "",
-      "mode": "",
-      "meter": "4/4"
+      "seconds": 54.783,
+      "tempo": 92.0,
+      "key": "G",
+      "mode": "dorian",
+      "meter": "3/4"
     },
     "menu": {
       "source": "5fd3fc080880cbef",

@@ -1,0 +1,140 @@
+# Lotus: a water lily in bloom.
+loop = true
+fps = 1
+
+[[parts]]
+name = "petal00"
+joint = "origin"
+shape = "ball"
+centre = [0.240, 0.000, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal01"
+joint = "origin"
+shape = "ball"
+centre = [0.170, 0.170, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal02"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.240, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal03"
+joint = "origin"
+shape = "ball"
+centre = [-0.170, 0.170, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal04"
+joint = "origin"
+shape = "ball"
+centre = [-0.240, 0.000, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal05"
+joint = "origin"
+shape = "ball"
+centre = [-0.170, -0.170, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal06"
+joint = "origin"
+shape = "ball"
+centre = [-0.000, -0.240, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal07"
+joint = "origin"
+shape = "ball"
+centre = [0.170, -0.170, 0.070]
+radius = 0.110
+scale = [1.000, 1.000, 0.700]
+material = "petal_dark"
+
+[[parts]]
+name = "petal10"
+joint = "origin"
+shape = "ball"
+centre = [0.113, 0.065, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "petal11"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.130, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "petal12"
+joint = "origin"
+shape = "ball"
+centre = [-0.113, 0.065, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "petal13"
+joint = "origin"
+shape = "ball"
+centre = [-0.113, -0.065, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "petal14"
+joint = "origin"
+shape = "ball"
+centre = [-0.000, -0.130, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "petal15"
+joint = "origin"
+shape = "ball"
+centre = [0.113, -0.065, 0.170]
+radius = 0.100
+scale = [1.000, 1.000, 0.700]
+material = "petal"
+
+[[parts]]
+name = "heart"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.250]
+radius = 0.080
+scale = [1.000, 1.000, 1.000]
+material = "frog"
+
+[[poses]]

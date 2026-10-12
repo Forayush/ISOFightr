@@ -1,50 +1,59 @@
 # Lily Pads: a chaotic party stage. Five small round islands at three heights, with soft
-# platforms between them (plan note "11 - Stages").
+# platforms between them (plan note "11 - Stages"). Its look and mechanics (decision D-063):
+# giant lily pads over a pond at dusk, with reeds, lanterns, frogs and fireflies; the two
+# floating leaves bob up and down. With the "stage hazards" rule off the leaves rest where
+# they always were.
+# The far and the near pad sit one cell closer to the middle than they did before M14, so
+# the stage, its underside and its bobbing leaves fit between the HUD's two bands.
 id = "lily_pads"
 display_name = "Lily Pads"
-description = "Five little isles at three heights. A party stage."
-tileset = "grass_stone"
+description = "Five lily pads at three heights, and two leaves that bob."
+tileset = "pond"
 music = "lily_pads"            # a song in assets/audio/music
 
-# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+# Legend: '.' = void, a digit = solid cell with that top height in units (0 = main floor).
+# The high pad is a mossy pond stone.
 grid = """
 ..................
 ..................
-...22........11...
-..2222......1111..
-..2222......1111..
-...22........11...
-........00........
+..................
+....22.......11...
+...2222.....1111..
+...2222.....1111..
+....22..00...11...
 .......0000.......
 ......000000......
 ......000000......
 .......0000.......
-........00........
-...11........00...
-..1111......0000..
-..1111......0000..
-...11........00...
+........00..00....
+...11......0000...
+..1111.....0000...
+..1111......00....
+...11.............
 ..................
 ..................
 """
 
 [legend]
-"0" = { height = 0, tile = "grass" }
-"1" = { height = 1, tile = "grass" }
-"2" = { height = 2, tile = "stone" }
+"0" = { height = 0, tile = "pad" }
+"1" = { height = 1, tile = "pad" }
+"2" = { height = 2, tile = "rock" }
 
 [[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
-rect = [6, 10, 8, 12]        # between the centre and the left pad
+rect = [6, 10, 8, 12]        # a leaf between the centre and the left pad
 z = 3.0
+# It rises half a unit and sinks back, every 5 seconds.
+motion = { kind = "bob", amplitude = 0.5, period = 300 }
 [[soft_platforms]]
-rect = [10, 6, 12, 8]        # between the centre and the right pad
+rect = [10, 6, 12, 8]        # a leaf between the centre and the right pad
 z = 3.0
+motion = { kind = "bob", amplitude = 0.5, period = 300, phase = 150 }   # out of step
 
 [spawns]                     # world (x, y); z = surface height
 p1 = [4.5, 13.5]
 p2 = [13.5, 4.5]
 p3 = [9.0, 9.0]
-p4 = [13.5, 13.5]
+p4 = [13.0, 13.0]
 respawn = [9.0, 9.0]
 
 [blast_zone]                 # margins from the stage's solid bounding box
@@ -55,19 +64,117 @@ bottom = -8.0
 [camera]
 bounds_margin = 4.0
 
-# Parallax backdrop (tools/build_backdrop.py lily_pads --mood sunset).
+# Parallax backdrop (tools/build_backdrop.py lily_pads --theme pond --mood dusk --seed 6).
 [[background]]
 image = "bg_0_sky.png"
 parallax = 0.0
 
 [[background]]
 image = "bg_1_far_clouds.png"
-parallax = 0.08
+parallax = 0.03
+scroll = 0.012
 
 [[background]]
-image = "bg_2_islands.png"
-parallax = 0.18
+image = "bg_2_treeline.png"
+parallax = 0.03
 
 [[background]]
-image = "bg_3_near_clouds.png"
-parallax = 0.35
+image = "bg_3_glints.png"    # the light on the ripples: three frames
+parallax = 0.0
+frames = 3
+frame_ticks = 16
+
+[[background]]
+image = "bg_4_pads.png"
+parallax = 0.12
+
+[[background]]
+image = "bg_5_reeds.png"
+parallax = 0.3
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 1.5
+hang = ["roots", "stalk"]
+
+[ambient]
+kind = "fireflies"
+count = 14
+front = 4
+
+[[props]]                    # behind the fighting ground: the tall things
+sprite = "reeds"
+at = [4.4, 3.4]
+[[props]]
+sprite = "lantern"
+at = [3.4, 4.5]
+period = 40
+[[props]]
+sprite = "reeds"
+at = [13.5, 3.3]
+phase = 6
+[[props]]
+sprite = "reeds"
+at = [8.5, 6.4]
+phase = 11
+[[props]]
+sprite = "lantern"
+at = [2.4, 13.4]
+period = 40
+phase = 20
+[[props]]
+sprite = "reeds"
+at = [12.4, 11.5]
+phase = 3
+
+[[props]]                    # the far stone
+sprite = "mushrooms"
+at = [6.5, 4.5]
+[[props]]
+sprite = "frog"
+at = [4.5, 6.5]
+period = 50
+
+[[props]]                    # the right pad
+sprite = "rushes"
+at = [15.5, 5.4]
+[[props]]
+sprite = "bud"
+at = [12.5, 5.5]
+phase = 4
+
+[[props]]                    # the centre pad
+sprite = "lotus"
+at = [7.5, 7.5]
+[[props]]
+sprite = "sprout"
+at = [6.5, 9.5]
+[[props]]
+sprite = "frog"
+at = [7.5, 10.4]
+period = 50
+phase = 30
+[[props]]
+sprite = "bud"
+at = [11.4, 8.5]
+
+[[props]]                    # the left pad
+sprite = "rushes"
+at = [2.5, 14.5]
+phase = 7
+[[props]]
+sprite = "lotus"
+at = [4.5, 15.4]
+
+[[props]]                    # the near pad
+sprite = "stone"
+at = [14.5, 12.5]
+[[props]]
+sprite = "rushes"
+at = [12.5, 14.5]
+phase = 2
+[[props]]
+sprite = "frog"
+at = [11.5, 13.5]
+period = 50
+phase = 12

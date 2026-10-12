@@ -66,7 +66,15 @@ GOLDEN: Final[Mood] = Mood(
     ruin="ffffff",
 )
 """Golden hour: a blue sky warming to peach and gold at the horizon (Twin Isles)."""
-MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET, "golden": GOLDEN}
+DUSK: Final[Mood] = Mood(
+    sky=("323353", "484a77", "6b3e75", "a24b6f", "f68181", "fbb954"),
+    cloud=("f68181", "a24b6f", "6b3e75"),
+    island_top="484a77",
+    island_side=("6b3e75", "323353"),
+    ruin="fca790",
+)
+"""Dusk: indigo overhead, the last orange along the horizon (Lily Pads)."""
+MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET, "golden": GOLDEN, "dusk": DUSK}
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
     (12, 4, 14, 6),
@@ -392,3 +400,189 @@ def paint_meadow(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["meadow"] = paint_meadow
+
+
+# --- the pond at dusk (Lily Pads) ----------------------------------------------------------
+
+HORIZON: Final[int] = 232
+"""Pixels down the picture to the pond's far shore."""
+MOON_CENTRE: Final[tuple[int, int]] = (176, 64)
+MOON_RADIUS: Final[int] = 15
+MOON_HALO: Final[int] = 40
+MOON_COLOURS: Final[tuple[str, str, str]] = ("ffffff", "fdcbb0", "eaaded")
+"""The moon's face, its seas, and its halo."""
+STAR_COLOURS: Final[tuple[str, str]] = ("ffffff", "eaaded")
+STARS: Final[int] = 46
+TREE_COLOURS: Final[tuple[str, str]] = ("484a77", "323353")
+"""The far shore's trees: their tops against the sky, then the dark under them."""
+PAD_COLOURS: Final[tuple[str, str, str]] = ("239063", "165a4c", "0b5e65")
+"""A far lily pad: its lit rim, its leaf, its shadow on the water."""
+FLOWER_COLOURS: Final[tuple[str, str]] = ("ffffff", "ed8099")
+REED_COLOURS: Final[tuple[str, str]] = ("2e222f", "3e3546")
+GLINT_COLOURS: Final[tuple[str, str]] = ("fdcbb0", "fca790")
+GLINT_FRAMES: Final[int] = 3
+GLINTS: Final[int] = 90
+
+
+def dusk_pond(mood: Mood, seed: int) -> Image.Image:
+    """Return the sky and the still water under it: stars, a moon with a halo, and below the
+    horizon the same sky upside down, with the moon's light broken into a path of streaks."""
+    rng = random.Random(seed)
+    image = Image.new("RGBA", (NATIVE_W, NATIVE_H))
+    above = sky(mood, NATIVE_W, HORIZON)
+    image.paste(above, (0, 0))
+    pixels = image.load()
+    assert pixels is not None
+    for _ in range(STARS):
+        x, y = rng.randrange(NATIVE_W), rng.randrange(HORIZON // 2)
+        pixels[x, y] = (*hex_rgb(STAR_COLOURS[0 if y < HORIZON // 4 else 1]), 255)
+    face, seas, halo = (hex_rgb(value) for value in MOON_COLOURS)
+    centre_x, centre_y = MOON_CENTRE
+    for y in range(centre_y - MOON_HALO, centre_y + MOON_HALO + 1):
+        for x in range(centre_x - MOON_HALO, centre_x + MOON_HALO + 1):
+            distance = ((x - centre_x) ** 2 + (y - centre_y) ** 2) ** 0.5
+            if distance <= MOON_RADIUS:
+                pixels[x, y] = (*face, 255)
+            elif distance <= MOON_HALO:
+                strength = 1.0 - (distance - MOON_RADIUS) / (MOON_HALO - MOON_RADIUS)
+                if strength * strength * 12 > BAYER_4[y % 4][x % 4]:
+                    pixels[x, y] = (*halo, 255)
+    for dx, dy, radius in ((-5, -4, 4), (4, 3, 5), (5, -7, 2), (-6, 6, 2)):
+        for y in range(centre_y + dy - radius, centre_y + dy + radius + 1):
+            for x in range(centre_x + dx - radius, centre_x + dx + radius + 1):
+                if (x - centre_x - dx) ** 2 + (y - centre_y - dy) ** 2 <= radius * radius:
+                    pixels[x, y] = (*seas, 255)
+    # The water mirrors the sky, squeezed into what is left of the picture.
+    depth = NATIVE_H - HORIZON
+    for y in range(HORIZON, NATIVE_H):
+        source = HORIZON - 1 - (y - HORIZON) * (HORIZON - 1) // depth
+        for x in range(NATIVE_W):
+            pixels[x, y] = above.getpixel((x, source))
+    # The moon's path: streaks that widen toward the viewer.
+    for y in range(HORIZON + 3, NATIVE_H, 3):
+        reach = 3 + (y - HORIZON) * 16 // depth
+        for _ in range(2):
+            start = centre_x + rng.randint(-reach, reach)
+            for x in range(start - rng.randint(1, reach), start + rng.randint(1, reach)):
+                pixels[x % NATIVE_W, y] = (*(face if rng.random() < 0.4 else seas), 255)
+    return image
+
+
+def treeline(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the far shore: a dark line of round treetops along the horizon, and its
+    reflection, fading, in the water under it. It wraps."""
+    rng = random.Random(seed)
+    top, under = (hex_rgb(value) for value in TREE_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    count = width // 14
+    for index in range(count):
+        x = int((index + rng.uniform(0.0, 1.0)) * width / count)
+        radius = rng.randint(7, 17)
+        tall = int(radius * rng.uniform(0.9, 1.5))
+        for shift in (-width, 0, width):
+            draw.ellipse(
+                (x + shift - radius, HORIZON - tall - 4, x + shift + radius, HORIZON + 2), fill=top
+            )
+            draw.ellipse(
+                (x + shift - radius + 3, HORIZON - tall + 3, x + shift + radius, HORIZON + 4),
+                fill=under,
+            )
+    draw.rectangle((0, HORIZON - 5, width, HORIZON + 5), fill=under)
+    draw.rectangle((0, HORIZON + 6, width, height), fill=(0, 0, 0, 0))
+    pixels = image.load()
+    assert pixels is not None
+    # The reflection: a dithered band that thins out with distance from the shore.
+    for y in range(HORIZON + 6, HORIZON + 22):
+        strength = 1.0 - (y - HORIZON - 6) / 16
+        for x in range(width):
+            if strength * 16 > BAYER_4[y % 4][x % 4] + 2:
+                pixels[x, y] = (*under, 255)
+    return image
+
+
+def far_pads(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return lily pads lying on the water, small near the far shore and large near the
+    viewer, a few of them in flower. It wraps."""
+    rng = random.Random(seed)
+    rim, leaf, shade = (hex_rgb(value) for value in PAD_COLOURS)
+    petal, heart = (hex_rgb(value) for value in FLOWER_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    rows = 9
+    for row in range(rows):
+        y = HORIZON + 22 + row * (height - HORIZON - 24) // rows
+        size = 7 + row * 3
+        for _ in range(max(3, 9 - row)):
+            x = rng.randrange(width)
+            wide = int(size * rng.uniform(0.8, 1.3))
+            tall = max(2, wide * 3 // 8)
+            for shift in (-width, 0, width):
+                at = x + shift
+                draw.ellipse((at - wide, y - tall + 2, at + wide, y + tall + 2), fill=shade)
+                draw.ellipse((at - wide, y - tall, at + wide, y + tall), fill=rim)
+                draw.ellipse((at - wide + 1, y - tall + 1, at + wide - 1, y + tall), fill=leaf)
+                # The notch every lily pad has, as a wedge of shadow.
+                draw.polygon(((at, y), (at + wide, y - 1), (at + wide, y + 2)), fill=shade)
+                if wide > 12 and (x + row) % 3 == 0:
+                    draw.ellipse((at - wide // 2 - 3, y - 4, at - wide // 2 + 3, y), fill=heart)
+                    draw.ellipse((at - wide // 2 - 1, y - 3, at - wide // 2 + 1, y - 2), fill=petal)
+    return image
+
+
+def near_reeds(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return clumps of reeds and cattails standing up from the bottom of the picture, dark
+    against the water. It wraps."""
+    rng = random.Random(seed)
+    dark, soft = (hex_rgb(value) for value in REED_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    clumps = 9
+    for clump in range(clumps):
+        centre = int((clump + rng.uniform(0.15, 0.85)) * width / clumps)
+        for _ in range(rng.randint(7, 12)):
+            foot = centre + rng.randint(-34, 34)
+            tall = rng.randint(34, 92)
+            lean = rng.randint(-9, 9)
+            colour = dark if rng.random() < 0.7 else soft
+            for shift in (-width, 0, width):
+                tip = (foot + shift + lean, height - tall)
+                draw.line(((foot + shift, height), tip), fill=colour, width=2)
+                if tall > 60 and lean % 2 == 0:
+                    draw.rectangle((tip[0] - 1, tip[1] + 4, tip[0] + 2, tip[1] + 14), fill=dark)
+    return image
+
+
+def glints(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the light on the ripples as ``GLINT_FRAMES`` frames stacked top to bottom: each
+    short streak shows on two frames in three, a pixel further along each time."""
+    rng = random.Random(seed)
+    bright, soft = (hex_rgb(value) for value in GLINT_COLOURS)
+    image = Image.new("RGBA", (width, height * GLINT_FRAMES))
+    for number in range(GLINTS):
+        x = rng.randrange(width)
+        y = rng.randrange(HORIZON + 8, height - 2)
+        long = 2 + (y - HORIZON) * 7 // (height - HORIZON) + rng.randint(0, 2)
+        colour = bright if rng.random() < 0.35 else soft
+        for frame in range(GLINT_FRAMES):
+            if (frame + number) % GLINT_FRAMES == 0:
+                continue
+            for step in range(long):
+                image.putpixel(((x + step + frame) % width, frame * height + y), (*colour, 255))
+    return image
+
+
+def paint_pond(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Lily Pads: a moon over still water at dusk, thin clouds, the far shore's trees, lily
+    pads lying on the pond, glints on its ripples, and reeds close by."""
+    return {
+        "bg_0_sky.png": dusk_pond(mood, seed),
+        "bg_1_far_clouds.png": clouds(mood, seed + 1, 6, (70, 170), (9, 14)),
+        "bg_2_treeline.png": treeline(seed + 2),
+        "bg_3_glints.png": glints(seed + 3),
+        "bg_4_pads.png": far_pads(seed + 4),
+        "bg_5_reeds.png": near_reeds(seed + 5),
+    }
+
+
+PAINTERS["pond"] = paint_pond

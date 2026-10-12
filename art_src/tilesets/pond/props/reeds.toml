@@ -1,0 +1,128 @@
+# Reeds: tall blades and two cattails that sway (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "blade0"
+joint = "origin"
+shape = "rod"
+a = [-0.147, 0.014, 0.000]
+b = [-0.122, -0.011, 1.059]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "blade1"
+joint = "origin"
+shape = "rod"
+a = [0.070, -0.139, 0.000]
+b = [0.151, -0.220, 0.809]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "blade2"
+joint = "origin"
+shape = "rod"
+a = [-0.135, -0.085, 0.000]
+b = [-0.142, -0.078, 1.497]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "blade3"
+joint = "origin"
+shape = "rod"
+a = [0.188, -0.008, 0.000]
+b = [0.105, 0.076, 1.247]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "blade4"
+joint = "origin"
+shape = "rod"
+a = [0.076, 0.118, 0.000]
+b = [0.133, 0.060, 1.166]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "blade5"
+joint = "origin"
+shape = "rod"
+a = [0.096, -0.140, 0.000]
+b = [0.118, -0.161, 1.331]
+r1 = 0.040
+r2 = 0.010
+material = "reed"
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.060, 0.000]
+b = [-0.100, 0.060, 1.250]
+r1 = 0.020
+r2 = 0.018
+material = "reed_dark"
+
+[[parts]]
+name = "head0"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.060, 1.250]
+b = [-0.100, 0.060, 1.550]
+r1 = 0.055
+r2 = 0.055
+material = "cattail"
+
+[[parts]]
+name = "tip0"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.060, 1.550]
+b = [-0.100, 0.060, 1.670]
+r1 = 0.014
+r2 = 0.008
+material = "reed_dark"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.160, -0.080, 0.000]
+b = [0.160, -0.080, 1.000]
+r1 = 0.020
+r2 = 0.018
+material = "reed_dark"
+
+[[parts]]
+name = "head1"
+joint = "origin"
+shape = "rod"
+a = [0.160, -0.080, 1.000]
+b = [0.160, -0.080, 1.300]
+r1 = 0.055
+r2 = 0.055
+material = "cattail"
+
+[[parts]]
+name = "tip1"
+joint = "origin"
+shape = "rod"
+a = [0.160, -0.080, 1.300]
+b = [0.160, -0.080, 1.420]
+r1 = 0.014
+r2 = 0.008
+material = "reed_dark"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 5.000, 0.000]

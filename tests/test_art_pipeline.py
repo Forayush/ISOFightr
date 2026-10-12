@@ -79,6 +79,8 @@ def test_palettes_reject_mistakes() -> None:
         parse_palettes(_palettes(colour="red"))
     with pytest.raises(PaletteError, match="brightest first"):
         parse_palettes(_palettes(bands=[0.2, 0.5, 0.8]))
+    with pytest.raises(PaletteError, match="can tell 31 apart"):
+        parse_palettes(_palettes(materials=[{"name": f"m{index}"} for index in range(32)]))
     with pytest.raises(PaletteError, match="first costume needs"):
         parse_palettes(_palettes(costumes=[{"name": "A"}]))
 

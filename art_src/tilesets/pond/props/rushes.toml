@@ -1,0 +1,78 @@
+# Rushes: a low clump of blades that sways (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "blade0"
+joint = "origin"
+shape = "rod"
+a = [-0.018, -0.035, 0.000]
+b = [0.034, -0.035, 0.285]
+r1 = 0.040
+r2 = 0.012
+material = "reed_dark"
+
+[[parts]]
+name = "blade1"
+joint = "origin"
+shape = "rod"
+a = [-0.237, 0.001, 0.000]
+b = [-0.296, 0.001, 0.475]
+r1 = 0.040
+r2 = 0.012
+material = "reed"
+
+[[parts]]
+name = "blade2"
+joint = "origin"
+shape = "rod"
+a = [0.026, 0.033, 0.000]
+b = [0.009, 0.033, 0.260]
+r1 = 0.040
+r2 = 0.012
+material = "reed"
+
+[[parts]]
+name = "blade3"
+joint = "origin"
+shape = "rod"
+a = [0.098, -0.013, 0.000]
+b = [0.050, -0.013, 0.431]
+r1 = 0.040
+r2 = 0.012
+material = "reed_dark"
+
+[[parts]]
+name = "blade4"
+joint = "origin"
+shape = "rod"
+a = [-0.126, -0.109, 0.000]
+b = [-0.066, -0.109, 0.377]
+r1 = 0.040
+r2 = 0.012
+material = "reed"
+
+[[parts]]
+name = "blade5"
+joint = "origin"
+shape = "rod"
+a = [0.043, 0.077, 0.000]
+b = [0.078, 0.077, 0.346]
+r1 = 0.040
+r2 = 0.012
+material = "reed"
+
+[[parts]]
+name = "blade6"
+joint = "origin"
+shape = "rod"
+a = [-0.191, -0.058, 0.000]
+b = [-0.160, -0.058, 0.419]
+r1 = 0.040
+r2 = 0.012
+material = "reed_dark"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 9.000, 0.000]

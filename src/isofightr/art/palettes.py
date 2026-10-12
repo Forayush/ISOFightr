@@ -27,6 +27,8 @@ RAMP_LENGTH: Final[int] = 5
 BANDS: Final[int] = 4
 OUTLINE_SLOT: Final[int] = 4
 TRANSPARENT_INDEX: Final[int] = 0
+MAX_MATERIALS: Final[int] = 31
+"""The id pass writes a material as ``id * 8`` in one colour channel, ids from 1: 31 fit."""
 
 Rgb = tuple[int, int, int]
 
@@ -126,6 +128,8 @@ def parse_palettes(data: dict[str, Any], root: Path = ART_SRC) -> CharacterPalet
     names = [material.name for material in materials]
     if len(set(names)) != len(names):
         raise PaletteError("material names repeat")
+    if len(names) > MAX_MATERIALS:
+        raise PaletteError(f"{len(names)} materials: the id pass can tell {MAX_MATERIALS} apart")
     bands = tuple(float(value) for value in data["bands"])
     if len(bands) != BANDS - 1 or list(bands) != sorted(bands, reverse=True):
         raise PaletteError(f"bands must be {BANDS - 1} thresholds, brightest first")

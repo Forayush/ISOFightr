@@ -42,7 +42,6 @@ SONGS = sorted((AUDIO_SRC / "music").glob("*.toml"))
 LOADED = {path.stem: load_song(path) for path in SONGS}
 LEGACY = {
     "final_plateau",
-    "lily_pads",
     "menu",
     "training_grid",
     "victory",

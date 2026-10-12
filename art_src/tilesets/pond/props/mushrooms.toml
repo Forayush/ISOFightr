@@ -1,0 +1,62 @@
+# Mushrooms: three pale caps that glow a little.
+loop = true
+fps = 1
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [-0.120, 0.040, 0.000]
+b = [-0.120, 0.040, 0.200]
+r1 = 0.030
+r2 = 0.025
+material = "frog_belly"
+
+[[parts]]
+name = "cap0"
+joint = "origin"
+shape = "ball"
+centre = [-0.120, 0.040, 0.220]
+radius = 0.110
+scale = [1.000, 1.000, 0.600]
+material = "dew"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.060, 0.000]
+b = [0.100, -0.060, 0.300]
+r1 = 0.030
+r2 = 0.025
+material = "frog_belly"
+
+[[parts]]
+name = "cap1"
+joint = "origin"
+shape = "ball"
+centre = [0.100, -0.060, 0.320]
+radius = 0.130
+scale = [1.000, 1.000, 0.600]
+material = "dew"
+
+[[parts]]
+name = "stem2"
+joint = "origin"
+shape = "rod"
+a = [0.220, 0.100, 0.000]
+b = [0.220, 0.100, 0.140]
+r1 = 0.030
+r2 = 0.025
+material = "frog_belly"
+
+[[parts]]
+name = "cap2"
+joint = "origin"
+shape = "ball"
+centre = [0.220, 0.100, 0.160]
+radius = 0.080
+scale = [1.000, 1.000, 0.600]
+material = "dew"
+
+[[poses]]

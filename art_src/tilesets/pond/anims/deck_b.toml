@@ -1,0 +1,53 @@
+# Deck: a floating leaf, pale above and red beneath (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "under"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.100]
+material = "leaf_under"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.100]
+high = [1.000, 1.000, 0.000]
+material = "vein"
+
+[[parts]]
+name = "rib0"
+joint = "origin"
+shape = "box"
+low = [0.470, 0.000, -0.020]
+high = [0.530, 1.000, 0.006]
+material = "leaf_vein"
+
+[[parts]]
+name = "rib1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.470, -0.020]
+high = [1.000, 0.530, 0.006]
+material = "leaf_vein"
+
+[[parts]]
+name = "rib2"
+joint = "origin"
+shape = "box"
+low = [0.200, 0.200, -0.020]
+high = [0.260, 0.470, 0.006]
+material = "leaf_vein"
+
+[[parts]]
+name = "rib3"
+joint = "origin"
+shape = "box"
+low = [0.740, 0.530, -0.020]
+high = [0.800, 0.800, 0.006]
+material = "leaf_vein"
+
+[[poses]]

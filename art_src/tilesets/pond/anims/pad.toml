@@ -1,0 +1,357 @@
+# Pad: the top of a giant lily pad over dark pond mud.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.160]
+material = "mud_dark"
+
+[[parts]]
+name = "leaf"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.160]
+high = [1.000, 1.000, 0.000]
+material = "pad"
+
+[[parts]]
+name = "lip_x"
+joint = "origin"
+shape = "box"
+low = [0.985, 0.000, -0.160]
+high = [1.020, 1.000, -0.020]
+material = "vein"
+
+[[parts]]
+name = "lip_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.985, -0.160]
+high = [1.000, 1.020, -0.020]
+material = "vein"
+
+[[parts]]
+name = "under_x"
+joint = "origin"
+shape = "box"
+low = [0.970, 0.000, -0.260]
+high = [1.015, 1.000, -0.160]
+material = "leaf_under"
+
+[[parts]]
+name = "under_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.970, -0.260]
+high = [1.000, 1.015, -0.160]
+material = "leaf_under"
+
+[[parts]]
+name = "vein0"
+joint = "origin"
+shape = "box"
+low = [0.207, 0.339, -0.020]
+high = [0.267, 0.830, 0.004]
+material = "vein"
+
+[[parts]]
+name = "vein1"
+joint = "origin"
+shape = "box"
+low = [0.198, 0.304, -0.020]
+high = [0.611, 0.364, 0.004]
+material = "vein"
+
+[[parts]]
+name = "vein2"
+joint = "origin"
+shape = "box"
+low = [0.621, 0.315, -0.020]
+high = [0.681, 0.639, 0.004]
+material = "vein"
+
+[[parts]]
+name = "peat0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.605]
+high = [1.012, 0.634, -0.260]
+material = "mud_dark"
+
+[[parts]]
+name = "peat1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.634, -0.605]
+high = [1.012, 1.000, -0.260]
+material = "mud_dark"
+
+[[parts]]
+name = "peat2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.605]
+high = [0.478, 1.012, -0.260]
+material = "mud"
+
+[[parts]]
+name = "peat3"
+joint = "origin"
+shape = "box"
+low = [0.478, 0.950, -0.605]
+high = [1.000, 1.012, -0.260]
+material = "mud"
+
+[[parts]]
+name = "peat4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.089]
+high = [1.012, 0.312, -0.605]
+material = "mud_dark"
+
+[[parts]]
+name = "peat5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.312, -1.089]
+high = [1.012, 0.829, -0.605]
+material = "mud"
+
+[[parts]]
+name = "peat6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.829, -1.089]
+high = [1.012, 1.000, -0.605]
+material = "mud_dark"
+
+[[parts]]
+name = "peat7"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.089]
+high = [0.469, 1.012, -0.605]
+material = "mud_dark"
+
+[[parts]]
+name = "peat8"
+joint = "origin"
+shape = "box"
+low = [0.469, 0.950, -1.089]
+high = [0.858, 1.012, -0.605]
+material = "mud_dark"
+
+[[parts]]
+name = "peat9"
+joint = "origin"
+shape = "box"
+low = [0.858, 0.950, -1.089]
+high = [1.000, 1.012, -0.605]
+material = "mud_dark"
+
+[[parts]]
+name = "peat10"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.466]
+high = [1.012, 0.388, -1.089]
+material = "mud"
+
+[[parts]]
+name = "peat11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.388, -1.466]
+high = [1.012, 0.803, -1.089]
+material = "mud_dark"
+
+[[parts]]
+name = "peat12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.803, -1.466]
+high = [1.012, 1.000, -1.089]
+material = "mud"
+
+[[parts]]
+name = "peat13"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.466]
+high = [0.557, 1.012, -1.089]
+material = "mud_dark"
+
+[[parts]]
+name = "peat14"
+joint = "origin"
+shape = "box"
+low = [0.557, 0.950, -1.466]
+high = [1.000, 1.012, -1.089]
+material = "mud"
+
+[[parts]]
+name = "peat15"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.825]
+high = [1.012, 0.433, -1.466]
+material = "mud"
+
+[[parts]]
+name = "peat16"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.433, -1.825]
+high = [1.012, 1.000, -1.466]
+material = "mud"
+
+[[parts]]
+name = "peat17"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.825]
+high = [0.469, 1.012, -1.466]
+material = "mud"
+
+[[parts]]
+name = "peat18"
+joint = "origin"
+shape = "box"
+low = [0.469, 0.950, -1.825]
+high = [1.000, 1.012, -1.466]
+material = "mud_dark"
+
+[[parts]]
+name = "peat19"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.259]
+high = [1.012, 0.653, -1.825]
+material = "mud"
+
+[[parts]]
+name = "peat20"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.653, -2.259]
+high = [1.012, 1.000, -1.825]
+material = "mud"
+
+[[parts]]
+name = "peat21"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.259]
+high = [0.314, 1.012, -1.825]
+material = "mud_dark"
+
+[[parts]]
+name = "peat22"
+joint = "origin"
+shape = "box"
+low = [0.314, 0.950, -2.259]
+high = [1.000, 1.012, -1.825]
+material = "mud_dark"
+
+[[parts]]
+name = "peat23"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.627]
+high = [1.012, 0.520, -2.259]
+material = "mud"
+
+[[parts]]
+name = "peat24"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.520, -2.627]
+high = [1.012, 1.000, -2.259]
+material = "mud_dark"
+
+[[parts]]
+name = "peat25"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.627]
+high = [0.476, 1.012, -2.259]
+material = "mud"
+
+[[parts]]
+name = "peat26"
+joint = "origin"
+shape = "box"
+low = [0.476, 0.950, -2.627]
+high = [1.000, 1.012, -2.259]
+material = "mud"
+
+[[parts]]
+name = "peat27"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.012, 0.496, -2.627]
+material = "mud_dark"
+
+[[parts]]
+name = "peat28"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.496, -2.982]
+high = [1.012, 0.813, -2.627]
+material = "mud"
+
+[[parts]]
+name = "peat29"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.813, -2.982]
+high = [1.012, 1.000, -2.627]
+material = "mud"
+
+[[parts]]
+name = "peat30"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.982]
+high = [0.457, 1.012, -2.627]
+material = "mud_dark"
+
+[[parts]]
+name = "peat31"
+joint = "origin"
+shape = "box"
+low = [0.457, 0.950, -2.982]
+high = [1.000, 1.012, -2.627]
+material = "mud"
+
+[[parts]]
+name = "stalk0"
+joint = "origin"
+shape = "box"
+low = [0.492, 0.995, -1.620]
+high = [0.552, 1.030, -0.260]
+material = "stalk"
+
+[[parts]]
+name = "stalk1"
+joint = "origin"
+shape = "box"
+low = [0.995, 0.246, -1.274]
+high = [1.030, 0.306, -0.260]
+material = "stalk"
+
+[[parts]]
+name = "stalk2"
+joint = "origin"
+shape = "box"
+low = [0.822, 0.995, -1.338]
+high = [0.882, 1.030, -0.260]
+material = "stalk"
+
+[[poses]]

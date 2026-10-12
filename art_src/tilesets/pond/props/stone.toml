@@ -1,0 +1,31 @@
+# Stone: a mossy pond stone with a pebble beside it.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.160]
+radius = 0.260
+scale = [1.100, 0.900, 0.750]
+material = "boulder"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.260, -0.160, 0.080]
+radius = 0.130
+scale = [1.000, 1.000, 0.800]
+material = "boulder"
+
+[[parts]]
+name = "moss"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.100, 0.300]
+high = [0.080, 0.100, 0.370]
+material = "reed"
+
+[[poses]]

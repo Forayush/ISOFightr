@@ -1,0 +1,45 @@
+# Bud: a lily bud on its stalk, nodding (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stalk"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.030, 0.000, 0.420]
+r1 = 0.025
+r2 = 0.020
+material = "reed_dark"
+
+[[parts]]
+name = "bud"
+joint = "origin"
+shape = "ball"
+centre = [0.030, 0.000, 0.520]
+radius = 0.100
+scale = [0.850, 0.850, 1.350]
+material = "petal_dark"
+
+[[parts]]
+name = "tip"
+joint = "origin"
+shape = "ball"
+centre = [0.030, 0.000, 0.640]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "petal"
+
+[[parts]]
+name = "sepal"
+joint = "origin"
+shape = "ball"
+centre = [0.030, 0.000, 0.440]
+radius = 0.085
+scale = [1.000, 1.000, 1.000]
+material = "reed"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 6.000, 0.000]

@@ -1,0 +1,160 @@
+# pond tileset materials (Lily Pads; decisions D-045 and D-063). Tile materials have
+# no outline (tiles tessellate); the props' have. Costume 0 colours the light cells of
+# the board's checker pattern, costume 1 the dark ones. New materials go at the END.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "pad"
+outline = false
+
+[[materials]]
+name = "vein"
+outline = false
+
+[[materials]]
+name = "dew"
+outline = false
+
+[[materials]]
+name = "blossom"
+outline = false
+
+[[materials]]
+name = "mud"
+outline = false
+
+[[materials]]
+name = "mud_dark"
+outline = false
+
+[[materials]]
+name = "stalk"
+outline = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "stone_dark"
+outline = false
+
+[[materials]]
+name = "moss"
+outline = false
+
+[[materials]]
+name = "leaf"
+outline = false
+
+[[materials]]
+name = "leaf_vein"
+outline = false
+
+[[materials]]
+name = "leaf_under"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "reed"
+
+[[materials]]
+name = "reed_dark"
+
+[[materials]]
+name = "cattail"
+
+[[materials]]
+name = "petal"
+
+[[materials]]
+name = "petal_dark"
+
+[[materials]]
+name = "frog"
+
+[[materials]]
+name = "frog_dark"
+
+[[materials]]
+name = "frog_belly"
+
+[[materials]]
+name = "eye"
+
+[[materials]]
+name = "pupil"
+outline = false
+lit = false
+
+[[materials]]
+name = "wood"
+
+[[materials]]
+name = "glow"
+lit = false
+
+[[materials]]
+name = "flame"
+outline = false
+lit = false
+
+[[materials]]
+name = "tassel"
+
+[[materials]]
+name = "boulder"
+
+[[materials]]
+name = "root"
+
+[[costumes]]
+name = "light"
+pad = ["91db69", "1ebc73", "239063", "165a4c", "0b5e65"]
+vein = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+dew = ["ffffff", "8ff8e2", "30e1b9", "0eaf9b", "0b8a8f"]
+blossom = ["ffffff", "eaaded", "ed8099", "cf657f", "a24b6f"]
+mud = ["966c6c", "694f62", "45293f", "3e3546", "2e222f"]
+mud_dark = ["694f62", "45293f", "3e3546", "2e222f", "2e222f"]
+stalk = ["1ebc73", "239063", "165a4c", "0b5e65", "313638"]
+stone = ["c7dcd0", "9babb2", "7f708a", "625565", "3e3546"]
+stone_dark = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+moss = ["91db69", "1ebc73", "239063", "165a4c", "374e4a"]
+leaf = ["fbff86", "cddf6c", "91db69", "1ebc73", "239063"]
+leaf_vein = ["ffffff", "fbff86", "cddf6c", "91db69", "1ebc73"]
+leaf_under = ["ed8099", "cf657f", "a24b6f", "753c54", "45293f"]
+deep = ["694f62", "45293f", "3e3546", "2e222f", "2e222f"]
+deep_dark = ["45293f", "3e3546", "2e222f", "2e222f", "2e222f"]
+reed = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+reed_dark = ["91db69", "1ebc73", "239063", "165a4c", "2e222f"]
+cattail = ["e6904e", "cd683d", "9e4539", "7a3045", "2e222f"]
+petal = ["ffffff", "ffffff", "eaaded", "ed8099", "753c54"]
+petal_dark = ["ffffff", "eaaded", "ed8099", "cf657f", "753c54"]
+frog = ["fbff86", "d5e04b", "a2a947", "676633", "2e222f"]
+frog_dark = ["d5e04b", "a2a947", "676633", "4c3e24", "2e222f"]
+frog_belly = ["ffffff", "fbff86", "d5e04b", "a2a947", "2e222f"]
+eye = ["ffffff", "ffffff", "ffffff", "c7dcd0", "2e222f"]
+pupil = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+wood = ["e6904e", "cd683d", "9e4539", "7a3045", "2e222f"]
+glow = ["f9c22b", "f9c22b", "f79617", "fb6b1d", "9e4539"]
+flame = ["fbff86", "fbff86", "f9c22b", "f79617", "fb6b1d"]
+tassel = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+boulder = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+root = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+
+[[costumes]]
+name = "dark"
+pad = ["1ebc73", "239063", "165a4c", "0b5e65", "313638"]
+vein = ["91db69", "1ebc73", "239063", "165a4c", "0b5e65"]
+stone = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+moss = ["1ebc73", "239063", "165a4c", "374e4a", "313638"]

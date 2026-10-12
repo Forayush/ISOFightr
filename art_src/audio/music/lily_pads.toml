@@ -1,175 +1,298 @@
-# Dusk on the Water: Lily Pads; G major, I vi IV V, gentle (a sunset stage) (decision D-055). Rendered by tools/build_audio.py.
+# Dusk on the Water: Lily Pads (decision D-063). A slow, swung waltz in G dorian: the
+# raised sixth (E) keeps the minor key from turning sad. A music box plays the tune, a muted
+# plucked bass gives the first beat of each bar and brushes the other two, and a soft pad
+# holds the chords under an echo. Rendered by tools/build_audio.py; written with
+# build/scratch/m14_song_lily.py.
 # Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
 id = "lily_pads"
 title = "Dusk on the Water"
-tempo = 118
-steps_per_beat = 4
-# Sections in order; the patterns in one section play together.
-sequence = [
-  ["bass", "kick", "hat"],
-  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
-]
+tempo = 92
+steps_per_beat = 2
+key = "G"
+mode = "dorian"
+meter = "3/4"
+swing = 0.22
+form = ["intro", "tune", "turn", "tune2"]
 
-[instruments.lead]
-wave = "square"
-duty = 0.25
-attack = 0.004
-decay = 0.07
-sustain = 0.55
-release = 0.04
-volume = 0.24
-vibrato_depth = 0.12
-vibrato_rate = 5.5
+[echo]
+beats = 1.0
+feedback = 0.38
+mix = 0.36
+lowpass = 0.4
 
-[instruments.harmony]
-wave = "square"
-duty = 0.5
-attack = 0.004
-decay = 0.08
-sustain = 0.5
-release = 0.04
-volume = 0.13
+[sections.intro]              # 4 bars: the pad rises, the music box winds up
+level = 0.6
+to = 1.0
+play = ["call", "pad_i_root", "pad_i_third", "pad_i_fifth", "brush*0.7"]
 
-[instruments.bass]
-wave = "triangle"
-attack = 0.003
-release = 0.03
+[sections.tune]               # 8 bars: Gm C Gm C Bb F C Dm
+kind = "verse"
+level = 0.9
+play = ["tune_a", "pad_a_root", "pad_a_third", "pad_a_fifth", "bass_a", "thump", "brush"]
+
+[sections.turn]               # 8 bars: Bb F Gm C Bb F Dm Gm, sparser, drops of glass above
+kind = "chorus"
+play = ["tune_b", "drops", "pad_b_root", "pad_b_third", "pad_b_fifth", "bass_b", "thump",
+        "brush", "rim"]
+
+[sections.tune2]              # the tune again, doubled an octave down, the glass answering
+kind = "verse"
+play = ["tune_a", "tune_a-12*0.45", "drops*0.8", "pad_a_root", "pad_a_third", "pad_a_fifth",
+        "bass_a", "thump", "brush", "rim"]
+
+[instruments.box]             # a music box: a bright, short bell
+wave = "bell"
+mod_ratio = 4.0
+mod_index = 1.4
+attack = 0.002
+release = 0.5
+lowpass = 0.7
+volume = 0.2
+send = 0.35
+
+[instruments.glass]           # drops of glass, high and far away
+wave = "ping"
+length = 0.5
+lowpass = 0.8
+release = 0.3
+volume = 0.26
+send = 0.6
+
+[instruments.bass]            # a plucked bass, muted
+wave = "pluck"
+damp = 0.85
+release = 0.12
+lowpass = 0.4
 volume = 0.5
 
-[instruments.chord_major]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 4, 7, 12]
-arpeggio_rate = 10
-attack = 0.01
+[instruments.wash]            # a soft pad, slow to speak
+wave = "pad"
+detune = 9
+attack = 0.3
+release = 0.4
+lowpass = 0.35
+volume = 0.2
+send = 0.2
+
+[instruments.thump]           # a felt beater on the first beat
+wave = "drum"
+freq = 64
+freq_end = 44
+length = 0.18
+noise = 0.0
 release = 0.08
-volume = 0.12
+volume = 0.4
 
-[instruments.chord_minor]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 3, 7, 12]
-arpeggio_rate = 10
-attack = 0.01
-release = 0.08
-volume = 0.12
-
-[instruments.kick]
-wave = "sine"
-freq = 150
-freq_end = 45
-length = 0.11
-release = 0.04
-volume = 0.85
-
-[instruments.snare]
+[instruments.brush]           # a brush on the second and third beats
 wave = "noise"
-freq = 3600
+freq = 3200
 length = 0.1
-decay = 0.07
-sustain = 0.25
-lowpass = 0.7
-release = 0.04
-volume = 0.36
+attack = 0.02
+release = 0.07
+lowpass = 0.35
+volume = 0.2
 
-[instruments.hat]
-wave = "noise"
-freq = 9000
-length = 0.035
-release = 0.02
-volume = 0.14
+[instruments.rim]             # a soft click before the third beat
+wave = "ping"
+freq = 820
+length = 0.05
+lowpass = 0.5
+release = 0.03
+volume = 0.2
 
-[patterns.lead_a]
-instrument = "lead"
-stride = 2
+[patterns.call]
+instrument = "box"
 steps = """
-B4 - D5 - G5 - - D5
-B4 - E5 - G5 - - E5
-C5 - E5 - G5 - E5 -
-F#5 - - E5 D5 - - -
+G5 - - - D5 -
+E5 - - - - .
+G5 - - Bb5 - -
+A5 - - - - .
 """
 
-[patterns.lead_b]
-instrument = "lead"
-stride = 2
+[patterns.tune_a]
+instrument = "box"
 steps = """
-G5 - - B5 - A5 G5 -
-E5 - - G5 - F#5 E5 -
-E5 - - G5 - E5 C5 -
-D5 - F#5 - A5 - - -
+D5 - G5 - Bb5 A5
+G5 - E5 - - .
+D5 - G5 - Bb5 C6
+D6 - C6 - G5 E5
+F5 - Bb5 - D6 -
+C6 - A5 - F5 -
+E5 - G5 - C6 Bb5
+A5 - - F5 D5 .
 """
 
-[patterns.echo_a]
-instrument = "harmony"
-stride = 2
+[patterns.tune_b]
+instrument = "box"
 steps = """
-B4 - D5 - G5 - - D5
-B4 - E5 - G5 - - E5
-C5 - E5 - G5 - E5 -
-F#5 - - E5 D5 - - -
+D5 - - F5 - Bb5
+A5 - - F5 - C5
+Bb5 - - G5 - D5
+E5 - - - G5 A5
+Bb5 - - D6 - Bb5
+A5 - - C6 - A5
+F5 - A5 - D6 -
+G5 - - - - .
 """
 
-[patterns.echo_b]
-instrument = "harmony"
-stride = 2
+[patterns.drops]
+instrument = "glass"
 steps = """
-G5 - - B5 - A5 G5 -
-E5 - - G5 - F#5 E5 -
-E5 - - G5 - E5 C5 -
-D5 - F#5 - A5 - - -
+. . . . . .
+. . . G6 - .
+. . . . . .
+. . . . E6 -
+. . . . . .
+. . . C6 - .
+. . . . . .
+. . D6 - . .
 """
 
-[patterns.bass]
+[patterns.pad_i_root]
+instrument = "wash"
+steps = """
+G3 - - - - -
+G3 - - - - -
+G3 - - - - -
+G3 - - - - -
+"""
+
+[patterns.pad_i_third]
+instrument = "wash"
+steps = """
+Bb3 - - - - -
+C4 - - - - -
+Bb3 - - - - -
+C4 - - - - -
+"""
+
+[patterns.pad_i_fifth]
+instrument = "wash"
+steps = """
+D4 - - - - -
+E4 - - - - -
+D4 - - - - -
+E4 - - - - -
+"""
+
+[patterns.pad_a_root]
+instrument = "wash"
+steps = """
+G3 - - - - -
+G3 - - - - -
+G3 - - - - -
+G3 - - - - -
+F3 - - - - -
+F3 - - - - -
+G3 - - - - -
+F3 - - - - -
+"""
+
+[patterns.pad_a_third]
+instrument = "wash"
+steps = """
+Bb3 - - - - -
+C4 - - - - -
+Bb3 - - - - -
+C4 - - - - -
+Bb3 - - - - -
+A3 - - - - -
+C4 - - - - -
+A3 - - - - -
+"""
+
+[patterns.pad_a_fifth]
+instrument = "wash"
+steps = """
+D4 - - - - -
+E4 - - - - -
+D4 - - - - -
+E4 - - - - -
+D4 - - - - -
+C4 - - - - -
+E4 - - - - -
+D4 - - - - -
+"""
+
+[patterns.pad_b_root]
+instrument = "wash"
+steps = """
+F3 - - - - -
+F3 - - - - -
+G3 - - - - -
+G3 - - - - -
+F3 - - - - -
+F3 - - - - -
+F3 - - - - -
+G3 - - - - -
+"""
+
+[patterns.pad_b_third]
+instrument = "wash"
+steps = """
+Bb3 - - - - -
+A3 - - - - -
+Bb3 - - - - -
+C4 - - - - -
+Bb3 - - - - -
+A3 - - - - -
+A3 - - - - -
+Bb3 - - - - -
+"""
+
+[patterns.pad_b_fifth]
+instrument = "wash"
+steps = """
+D4 - - - - -
+C4 - - - - -
+D4 - - - - -
+E4 - - - - -
+D4 - - - - -
+C4 - - - - -
+D4 - - - - -
+D4 - - - - -
+"""
+
+[patterns.bass_a]
 instrument = "bass"
-stride = 2
 steps = """
-G2 - D3 - G2 - D3 -
-E2 - B2 - E2 - B2 -
-C3 - G3 - C3 - G3 -
-D3 - A3 - D3 - A3 -
+G2 - - . . D3
+C3 - - . . G2
+G2 - - . . D3
+C3 - - . . G2
+Bb2 - - . . F3
+F2 - - . . C3
+C3 - - . . G2
+D3 - - . . A2
 """
 
-[patterns.major]
-instrument = "chord_major"
-stride = 2
+[patterns.bass_b]
+instrument = "bass"
 steps = """
-G3 - - - - - - -
-. . . . . . . .
-C4 - - - - - - -
-D4 - - - - - - -
+Bb2 - - . . F3
+F2 - - . . C3
+G2 - - . . D3
+C3 - - . . G2
+Bb2 - - . . F3
+F2 - - . . C3
+D3 - - . . A2
+G2 - - . . D3
 """
 
-[patterns.minor]
-instrument = "chord_minor"
-stride = 2
+[patterns.thump]
+instrument = "thump"
 steps = """
-. . . . . . . .
-E4 - - - - - - -
-. . . . . . . .
-. . . . . . . .
+x . . . . .
 """
 
-[patterns.kick]
-instrument = "kick"
-stride = 1
+[patterns.brush]
+instrument = "brush"
 steps = """
-x . . . . . . . x . . . . . . .
+. . x . x .
 """
 
-[patterns.snare]
-instrument = "snare"
-stride = 1
+[patterns.rim]
+instrument = "rim"
 steps = """
-. . . . . . . . x . . . . . . .
+. . . x . .
 """
-
-[patterns.hat]
-instrument = "hat"
-stride = 1
-steps = """
-x . . . x . . . x . . . x . . .
-"""
-

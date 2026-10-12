@@ -475,7 +475,11 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
 
 @pytest.mark.parametrize(
     ("stage_id", "theme", "mood", "seed"),
-    [("sky_ruins", "cloud_sea", "day", 5), ("twin_isles", "meadow", "golden", 4)],
+    [
+        ("sky_ruins", "cloud_sea", "day", 5),
+        ("twin_isles", "meadow", "golden", 4),
+        ("lily_pads", "pond", "dusk", 6),
+    ],
 )
 def test_a_painter_reproduces_its_stages_backdrop(
     stage_id: str, theme: str, mood: str, seed: int

@@ -1,0 +1,87 @@
+# Lantern: a paper lantern on a pole, swaying (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "pole"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 1.550]
+r1 = 0.040
+r2 = 0.030
+material = "wood"
+
+[[parts]]
+name = "arm"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.500]
+b = [0.260, -0.260, 1.620]
+r1 = 0.025
+r2 = 0.020
+material = "wood"
+
+[[parts]]
+name = "cord"
+joint = "lamp"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, -0.140]
+r1 = 0.010
+r2 = 0.010
+material = "wood"
+
+[[parts]]
+name = "cap"
+joint = "lamp"
+shape = "rod"
+a = [0.000, 0.000, -0.140]
+b = [0.000, 0.000, -0.190]
+r1 = 0.070
+r2 = 0.090
+material = "wood"
+
+[[parts]]
+name = "paper"
+joint = "lamp"
+shape = "ball"
+centre = [0.000, 0.000, -0.330]
+radius = 0.150
+scale = [1.000, 1.000, 1.100]
+material = "glow"
+
+[[parts]]
+name = "flame"
+joint = "lamp"
+shape = "ball"
+centre = [0.070, 0.070, -0.330]
+radius = 0.085
+scale = [1.000, 1.000, 1.000]
+material = "flame"
+
+[[parts]]
+name = "foot"
+joint = "lamp"
+shape = "rod"
+a = [0.000, 0.000, -0.470]
+b = [0.000, 0.000, -0.520]
+r1 = 0.080
+r2 = 0.060
+material = "wood"
+
+[[parts]]
+name = "tassel"
+joint = "lamp"
+shape = "rod"
+a = [0.000, 0.000, -0.520]
+b = [0.000, 0.000, -0.660]
+r1 = 0.015
+r2 = 0.010
+material = "tassel"
+
+[[poses]]
+lamp = [0.000, 4.000, 0.000]
+
+[[poses]]
+lamp = [0.000, -4.000, 0.000]

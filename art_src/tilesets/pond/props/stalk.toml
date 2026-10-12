@@ -1,0 +1,56 @@
+# Stalk: the pad's long stalk trailing down, with a small leaf (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stalk0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.060, -0.040, -0.450]
+r1 = 0.045
+r2 = 0.037
+material = "reed_dark"
+
+[[parts]]
+name = "stalk1"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.040, -0.450]
+b = [-0.040, 0.020, -0.900]
+r1 = 0.037
+r2 = 0.029
+material = "reed_dark"
+
+[[parts]]
+name = "stalk2"
+joint = "origin"
+shape = "rod"
+a = [-0.040, 0.020, -0.900]
+b = [0.050, 0.000, -1.300]
+r1 = 0.029
+r2 = 0.021
+material = "reed_dark"
+
+[[parts]]
+name = "leaf"
+joint = "origin"
+shape = "ball"
+centre = [0.160, -0.100, -0.620]
+radius = 0.110
+scale = [1.200, 1.000, 0.400]
+material = "reed"
+
+[[parts]]
+name = "leaf2"
+joint = "origin"
+shape = "ball"
+centre = [-0.140, 0.100, -1.020]
+radius = 0.080
+scale = [1.200, 1.000, 0.400]
+material = "reed"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, -5.000, 0.000]

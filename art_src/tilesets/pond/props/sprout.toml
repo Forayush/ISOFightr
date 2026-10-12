@@ -1,0 +1,55 @@
+# Sprout: a young leaf still curled, on its stalk (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stalk"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.340]
+r1 = 0.025
+r2 = 0.020
+material = "reed_dark"
+
+[[parts]]
+name = "leaf"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.400]
+radius = 0.170
+scale = [1.000, 1.000, 0.350]
+material = "reed"
+
+[[parts]]
+name = "curl"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.440]
+radius = 0.070
+scale = [1.000, 1.000, 0.600]
+material = "reed_dark"
+
+[[parts]]
+name = "stalk2"
+joint = "origin"
+shape = "rod"
+a = [0.200, -0.160, 0.000]
+b = [0.200, -0.160, 0.200]
+r1 = 0.020
+r2 = 0.016
+material = "reed_dark"
+
+[[parts]]
+name = "leaf2"
+joint = "origin"
+shape = "ball"
+centre = [0.200, -0.160, 0.240]
+radius = 0.110
+scale = [1.000, 1.000, 0.350]
+material = "reed"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 6.000, 0.000]
