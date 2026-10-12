@@ -85,7 +85,7 @@ def geometry_only(stage: Stage) -> Stage:
 
 STAGES = {
     "sky_ruins": lambda: geometry_only(load_stage("sky_ruins")),
-    "training_grid": lambda: load_stage("training_grid"),
+    "training_grid": lambda: geometry_only(load_stage("training_grid")),
     "blocks": blocks_stage,
 }
 

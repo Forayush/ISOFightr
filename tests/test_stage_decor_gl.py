@@ -150,7 +150,12 @@ def test_ambient_sprites_drift_and_leave_fighters_clear(window: Any) -> None:
         for mote, sprite in zip(found, renderer._mote_sprites, strict=True):
             if mote.front and sprite.visible:
                 assert not ambient.covers(mote, rects)
-    assert not make_view(window, "training_grid").renderer._mote_sprites, "none without a table"
+    from isofightr.render.world_renderer import WorldRenderer
+
+    window.switch_to()
+    stage = replace(load_stage("training_grid"), ambient=None)
+    bare = WorldRenderer(window.pixel_buffer, stage)
+    assert not bare._mote_sprites, "none without a table"
 
 
 def test_the_stage_name_shows_over_the_countdown_only(window: Any) -> None:

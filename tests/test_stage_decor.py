@@ -481,6 +481,7 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
         ("twin_isles", "meadow", "golden", 4),
         ("lily_pads", "pond", "dusk", 6),
         ("final_plateau", "aurora", "night", 9),
+        ("training_grid", "holo", "void", 2),
     ],
 )
 def test_a_painter_reproduces_its_stages_backdrop(

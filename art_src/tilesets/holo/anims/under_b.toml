@@ -1,0 +1,45 @@
+# Under: the dark housing below the grid, with lines of data running down.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, 0.000]
+material = "deep"
+
+[[parts]]
+name = "data_x0"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.450, -0.300]
+high = [1.012, 0.500, 0.000]
+material = "seam"
+
+[[parts]]
+name = "data_y0"
+joint = "origin"
+shape = "box"
+low = [0.450, 0.990, -0.500]
+high = [0.500, 1.012, 0.000]
+material = "seam"
+
+[[parts]]
+name = "data_x1"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.850, -0.800]
+high = [1.012, 0.900, 0.000]
+material = "seam"
+
+[[parts]]
+name = "data_y1"
+joint = "origin"
+shape = "box"
+low = [0.850, 0.990, -0.800]
+high = [0.900, 1.012, 0.000]
+material = "seam"
+
+[[poses]]

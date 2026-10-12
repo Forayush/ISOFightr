@@ -1,175 +1,230 @@
-# Practice Makes: Training Grid; D dorian, a relaxed two-chord vamp (decision D-055). Rendered by tools/build_audio.py.
+# Practice Makes: Training Grid (decision D-063). A calm pulse in D dorian at 112: a sine
+# sequence climbing and falling through each chord, a muffled saw ticking under it, a sine
+# bass, and almost no drums, so that it can loop for an hour of practice without wearing.
+# Rendered by tools/build_audio.py; written with build/scratch/m14_song_training.py.
 # Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
 id = "training_grid"
 title = "Practice Makes"
-tempo = 108
+tempo = 112
 steps_per_beat = 4
-# Sections in order; the patterns in one section play together.
-sequence = [
-  ["bass", "kick", "hat"],
-  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
-]
+key = "D"
+mode = "dorian"
+meter = "4/4"
+form = ["intro", "loop", "open", "home"]
 
-[instruments.lead]
-wave = "square"
-duty = 0.25
-attack = 0.004
-decay = 0.07
-sustain = 0.55
-release = 0.04
-volume = 0.24
-vibrato_depth = 0.12
-vibrato_rate = 5.5
+[echo]
+beats = 0.75
+feedback = 0.42
+mix = 0.34
+lowpass = 0.45
 
-[instruments.harmony]
-wave = "square"
-duty = 0.5
-attack = 0.004
-decay = 0.08
-sustain = 0.5
-release = 0.04
-volume = 0.13
+[sections.intro]              # 4 bars: Dm G Dm G; the sequence alone, the saw fading in
+level = 0.7
+to = 1.0
+play = ["seq_i", "pulse_i*0.6", "tick*0.6"]
+
+[sections.loop]               # 8 bars: Dm G Dm G Am G F G
+kind = "verse"
+level = 0.9
+play = ["seq_a", "pulse_a", "bass_a", "kick", "tick"]
+
+[sections.open]               # 8 bars: F C G Dm F C Am G; a slow tune over the top
+kind = "chorus"
+play = ["lead_b", "seq_b", "pulse_b", "bass_b", "kick", "tick"]
+
+[sections.home]               # 4 bars: Dm G Dm G; the tune comes down to rest
+kind = "verse"
+to = 0.8
+play = ["lead_out", "seq_i", "pulse_i", "bass_i", "kick", "tick"]
+
+[instruments.seq]             # a clean sine, plucked
+wave = "sine"
+attack = 0.003
+decay = 0.12
+sustain = 0.25
+release = 0.1
+volume = 0.3
+send = 0.4
+
+[instruments.pulse]           # a saw with the top taken off
+wave = "saw"
+attack = 0.003
+decay = 0.06
+sustain = 0.3
+release = 0.03
+lowpass = 0.25
+volume = 0.3
+send = 0.1
+
+[instruments.lead]            # a sine that takes its time
+wave = "sine"
+attack = 0.06
+decay = 0.1
+sustain = 0.8
+release = 0.2
+vibrato_depth = 0.15
+vibrato_rate = 4.5
+volume = 0.2
+send = 0.35
 
 [instruments.bass]
-wave = "triangle"
-attack = 0.003
-release = 0.03
-volume = 0.5
-
-[instruments.chord_major]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 4, 7, 12]
-arpeggio_rate = 12
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.chord_minor]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 3, 7, 12]
-arpeggio_rate = 12
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.kick]
 wave = "sine"
-freq = 150
-freq_end = 45
-length = 0.11
-release = 0.04
-volume = 0.85
+attack = 0.01
+release = 0.1
+lowpass = 0.6
+volume = 0.22
 
-[instruments.snare]
-wave = "noise"
-freq = 3600
-length = 0.1
-decay = 0.07
-sustain = 0.25
-lowpass = 0.7
-release = 0.04
+[instruments.kick]            # soft, on the first and third beats
+wave = "drum"
+freq = 72
+freq_end = 46
+length = 0.14
+noise = 0.0
+release = 0.06
 volume = 0.36
 
-[instruments.hat]
-wave = "noise"
-freq = 9000
-length = 0.035
+[instruments.tick]            # a small click on the off-beats
+wave = "ping"
+freq = 2100
+length = 0.03
 release = 0.02
-volume = 0.14
-
-[patterns.lead_a]
-instrument = "lead"
-stride = 2
-steps = """
-D5 - F5 - A5 - - G5
-F5 - D5 - B4 - - -
-D5 - F5 - A5 - C6 -
-B5 - G5 - D5 - - -
-"""
+volume = 0.16
 
 [patterns.lead_b]
 instrument = "lead"
-stride = 2
 steps = """
-A5 - - F5 - D5 - -
-G5 - - D5 - B4 - -
-C6 - A5 - F5 - D5 -
-D5 - - - . . . .
+A4 - - - - - - - C5 - - - - - - -
+G4 - - - - - - - E4 - - - - - - -
+B4 - - - - - - - D5 - - - - - B4 -
+A4 - - - - - - - - - - - . . . .
+C5 - - - - - - - F5 - - - - - - -
+E5 - - - - - - - G5 - - - E5 - - -
+E5 - - - - - C5 - A4 - - - - - - -
+B4 - - - - - - - D5 - - - - - - -
 """
 
-[patterns.echo_a]
-instrument = "harmony"
-stride = 2
+[patterns.lead_out]
+instrument = "lead"
 steps = """
-D5 - F5 - A5 - - G5
-F5 - D5 - B4 - - -
-D5 - F5 - A5 - C6 -
-B5 - G5 - D5 - - -
+D5 - - - - - - - A4 - - - F4 - - -
+G4 - - - - - - - B4 - - - - - - -
+D5 - - - - - E5 - F5 - - - E5 - D5 -
+B4 - - - - - - - - - - - . . . .
 """
 
-[patterns.echo_b]
-instrument = "harmony"
-stride = 2
+[patterns.seq_i]
+instrument = "seq"
 steps = """
-A5 - - F5 - D5 - -
-G5 - - D5 - B4 - -
-C6 - A5 - F5 - D5 -
-D5 - - - . . . .
+D4 . F4 . A4 . D5 . A4 . F4 . A4 . D5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+D4 . F4 . A4 . D5 . A4 . F4 . A4 . D5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
 """
 
-[patterns.bass]
+[patterns.pulse_i]
+instrument = "pulse"
+steps = """
+D3 . D3 D3 . D3 . D3 D3 . D3 . D3 D3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+D3 . D3 D3 . D3 . D3 D3 . D3 . D3 D3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+"""
+
+[patterns.bass_i]
 instrument = "bass"
-stride = 2
 steps = """
-D3 - A3 - D3 - C3 -
-G2 - D3 - G2 - B2 -
-D3 - A3 - D3 - C3 -
-G2 - D3 - G2 - B2 -
+D2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+D2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
 """
 
-[patterns.major]
-instrument = "chord_major"
-stride = 2
+[patterns.seq_a]
+instrument = "seq"
 steps = """
-. . . . . . . .
-G3 - - - - - - -
-. . . . . . . .
-G3 - - - - - - -
+D4 . F4 . A4 . D5 . A4 . F4 . A4 . D5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+D4 . F4 . A4 . D5 . A4 . F4 . A4 . D5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+C4 . E4 . A4 . C5 . A4 . E4 . A4 . C5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+C4 . F4 . A4 . C5 . A4 . F4 . A4 . C5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
 """
 
-[patterns.minor]
-instrument = "chord_minor"
-stride = 2
+[patterns.pulse_a]
+instrument = "pulse"
 steps = """
-D4 - - - - - - -
-. . . . . . . .
-D4 - - - - - - -
-. . . . . . . .
+D3 . D3 D3 . D3 . D3 D3 . D3 . D3 D3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+D3 . D3 D3 . D3 . D3 D3 . D3 . D3 D3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+A3 . A3 A3 . A3 . A3 A3 . A3 . A3 A3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+F3 . F3 F3 . F3 . F3 F3 . F3 . F3 F3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+"""
+
+[patterns.bass_a]
+instrument = "bass"
+steps = """
+D2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+D2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+A2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+F2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+"""
+
+[patterns.seq_b]
+instrument = "seq"
+steps = """
+C4 . F4 . A4 . C5 . A4 . F4 . A4 . C5 .
+C4 . E4 . G4 . C5 . G4 . E4 . G4 . C5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+D4 . F4 . A4 . D5 . A4 . F4 . A4 . D5 .
+C4 . F4 . A4 . C5 . A4 . F4 . A4 . C5 .
+C4 . E4 . G4 . C5 . G4 . E4 . G4 . C5 .
+C4 . E4 . A4 . C5 . A4 . E4 . A4 . C5 .
+D4 . G4 . B4 . D5 . B4 . G4 . B4 . D5 .
+"""
+
+[patterns.pulse_b]
+instrument = "pulse"
+steps = """
+F3 . F3 F3 . F3 . F3 F3 . F3 . F3 F3 . .
+C3 . C3 C3 . C3 . C3 C3 . C3 . C3 C3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+D3 . D3 D3 . D3 . D3 D3 . D3 . D3 D3 . .
+F3 . F3 F3 . F3 . F3 F3 . F3 . F3 F3 . .
+C3 . C3 C3 . C3 . C3 C3 . C3 . C3 C3 . .
+A3 . A3 A3 . A3 . A3 A3 . A3 . A3 A3 . .
+G3 . G3 G3 . G3 . G3 G3 . G3 . G3 G3 . .
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+F2 - - - - - - - - - - - . . . .
+C3 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
+D2 - - - - - - - - - - - . . . .
+F2 - - - - - - - - - - - . . . .
+C3 - - - - - - - - - - - . . . .
+A2 - - - - - - - - - - - . . . .
+G2 - - - - - - - - - - - . . . .
 """
 
 [patterns.kick]
 instrument = "kick"
-stride = 1
 steps = """
-x . . . . . . . . . x . . . . .
+x . . . . . . . x . . . . . . .
 """
 
-[patterns.snare]
-instrument = "snare"
-stride = 1
+[patterns.tick]
+instrument = "tick"
 steps = """
-. . . . x . . . . . . . x . . .
+. . x . . . x . . . x . . . x .
 """
-
-[patterns.hat]
-instrument = "hat"
-stride = 1
-steps = """
-x . . . x . . . x . . . x . x .
-"""
-

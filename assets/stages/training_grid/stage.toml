@@ -1,9 +1,11 @@
 # Training Grid: flat 12x12 debug and training stage, no platforms.
+# Its look (decision D-063): a holo-grid. Every cell is one unit square, and the two near
+# edges are numbered, so distances can be read off the floor. It has no mechanic.
 # The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
 # On screen, +x runs toward the bottom-right and +y toward the bottom-left.
 id = "training_grid"
 display_name = "Training Grid"
-tileset = "grid"
+tileset = "holo"
 music = "training_grid"            # a song in assets/audio/music
 
 grid = """
@@ -22,7 +24,7 @@ grid = """
 """
 
 [legend]
-"0" = { height = 0, tile = "grid" }
+"0" = { height = 0, tile = "cell" }
 
 [spawns]                     # world (x, y); z = surface height
 p1 = [2.5, 5.5]
@@ -38,3 +40,153 @@ bottom = -8.0
 
 [camera]
 bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py training_grid --theme holo --mood void --seed 2).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_lattice.png"
+parallax = 0.06
+
+[[background]]
+image = "bg_2_readouts.png"  # two frames: a bar of each read-out moves
+parallax = 0.12
+scroll = 0.01
+frames = 2
+frame_ticks = 30
+
+[[background]]
+image = "bg_3_near_lattice.png"
+parallax = 0.2
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 2.0
+hang = ["emitter", "cable"]
+
+[ambient]
+kind = "sparks"
+count = 8
+front = 0
+
+[[props]]                    # the respawn point
+sprite = "origin"
+at = [5.5, 5.5]
+layer = "ground"
+period = 20
+
+[[props]]                    # projectors at the far corner and along the two far edges
+sprite = "pylon"
+at = [0.5, 0.5]
+period = 40
+[[props]]
+sprite = "pylon"
+at = [6.0, 0.4]
+period = 40
+phase = 20
+[[props]]
+sprite = "pylon"
+at = [0.4, 6.0]
+period = 40
+phase = 60
+
+# The axes' labels, flat on the floor along the two near edges: a cell's number is the
+# world coordinate of its far corner.
+[[props]]
+sprite = "x0"
+at = [0.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x1"
+at = [1.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x2"
+at = [2.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x3"
+at = [3.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x4"
+at = [4.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x5"
+at = [5.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x6"
+at = [6.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x7"
+at = [7.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x8"
+at = [8.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x9"
+at = [9.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x10"
+at = [10.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "x11"
+at = [11.5, 11.62]
+layer = "ground"
+[[props]]
+sprite = "y0"
+at = [11.62, 0.5]
+layer = "ground"
+[[props]]
+sprite = "y1"
+at = [11.62, 1.5]
+layer = "ground"
+[[props]]
+sprite = "y2"
+at = [11.62, 2.5]
+layer = "ground"
+[[props]]
+sprite = "y3"
+at = [11.62, 3.5]
+layer = "ground"
+[[props]]
+sprite = "y4"
+at = [11.62, 4.5]
+layer = "ground"
+[[props]]
+sprite = "y5"
+at = [11.62, 5.5]
+layer = "ground"
+[[props]]
+sprite = "y6"
+at = [11.62, 6.5]
+layer = "ground"
+[[props]]
+sprite = "y7"
+at = [11.62, 7.5]
+layer = "ground"
+[[props]]
+sprite = "y8"
+at = [11.62, 8.5]
+layer = "ground"
+[[props]]
+sprite = "y9"
+at = [11.62, 9.5]
+layer = "ground"
+[[props]]
+sprite = "y10"
+at = [11.62, 10.5]
+layer = "ground"
+[[props]]
+sprite = "y11"
+at = [11.62, 11.5]
+layer = "ground"

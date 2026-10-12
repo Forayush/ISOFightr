@@ -1,0 +1,65 @@
+# y9: the label 9 of the y axis, flat on the floor.
+loop = true
+fps = 1
+
+[[parts]]
+name = "d0a"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.210, 0.012]
+b = [-0.100, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[parts]]
+name = "d0b"
+joint = "origin"
+shape = "rod"
+a = [-0.100, -0.210, 0.012]
+b = [-0.100, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[parts]]
+name = "d0c"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.000, 0.012]
+b = [-0.100, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[parts]]
+name = "d0d"
+joint = "origin"
+shape = "rod"
+a = [0.100, 0.210, 0.012]
+b = [-0.100, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[parts]]
+name = "d0f"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.210, 0.012]
+b = [0.100, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[parts]]
+name = "d0g"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.000, 0.012]
+b = [-0.100, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "glyph"
+
+[[poses]]

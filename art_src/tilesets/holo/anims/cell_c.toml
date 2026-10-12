@@ -1,0 +1,125 @@
+# Cell, variant c: half-unit ticks on its lines.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.020]
+material = "side"
+
+[[parts]]
+name = "glass"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.020]
+high = [1.000, 1.000, 0.000]
+material = "floor"
+
+[[parts]]
+name = "line_x"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.010]
+high = [0.045, 1.000, 0.004]
+material = "line"
+
+[[parts]]
+name = "line_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.010]
+high = [1.000, 0.045, 0.004]
+material = "line"
+
+[[parts]]
+name = "node"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.010]
+high = [0.100, 0.100, 0.008]
+material = "node"
+
+[[parts]]
+name = "mark0"
+joint = "origin"
+shape = "box"
+low = [0.470, 0.045, -0.010]
+high = [0.530, 0.160, 0.004]
+material = "mark"
+
+[[parts]]
+name = "mark1"
+joint = "origin"
+shape = "box"
+low = [0.045, 0.470, -0.010]
+high = [0.160, 0.530, 0.004]
+material = "mark"
+
+[[parts]]
+name = "lip_x"
+joint = "origin"
+shape = "box"
+low = [0.985, 0.000, -0.100]
+high = [1.016, 1.000, 0.000]
+material = "node"
+
+[[parts]]
+name = "lip_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.985, -0.100]
+high = [1.000, 1.016, 0.000]
+material = "node"
+
+[[parts]]
+name = "band_x0"
+joint = "origin"
+shape = "box"
+low = [0.985, 0.000, -1.070]
+high = [1.014, 1.000, -1.000]
+material = "line"
+
+[[parts]]
+name = "band_y0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.985, -1.070]
+high = [1.000, 1.014, -1.000]
+material = "line"
+
+[[parts]]
+name = "band_x1"
+joint = "origin"
+shape = "box"
+low = [0.985, 0.000, -2.070]
+high = [1.014, 1.000, -2.000]
+material = "line"
+
+[[parts]]
+name = "band_y1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.985, -2.070]
+high = [1.000, 1.014, -2.000]
+material = "line"
+
+[[parts]]
+name = "seam_x"
+joint = "origin"
+shape = "box"
+low = [0.985, 0.000, -3.000]
+high = [1.012, 0.040, -0.100]
+material = "seam"
+
+[[parts]]
+name = "seam_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.985, -3.000]
+high = [0.040, 1.012, -0.100]
+material = "seam"
+
+[[poses]]

@@ -1,0 +1,45 @@
+# Cable: a loop of cable hanging under the grid.
+loop = true
+fps = 1
+
+[[parts]]
+name = "cable0"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.020]
+b = [-0.140, 0.000, -0.400]
+r1 = 0.035
+r2 = 0.035
+material = "metal"
+
+[[parts]]
+name = "cable1"
+joint = "origin"
+shape = "rod"
+a = [-0.140, 0.000, -0.400]
+b = [0.000, 0.000, -0.550]
+r1 = 0.035
+r2 = 0.035
+material = "metal"
+
+[[parts]]
+name = "cable2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.550]
+b = [0.140, 0.000, -0.400]
+r1 = 0.035
+r2 = 0.035
+material = "metal"
+
+[[parts]]
+name = "cable3"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.000, -0.400]
+b = [0.200, 0.000, 0.020]
+r1 = 0.035
+r2 = 0.035
+material = "metal"
+
+[[poses]]

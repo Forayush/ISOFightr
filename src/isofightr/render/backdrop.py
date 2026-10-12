@@ -82,12 +82,21 @@ NIGHT: Final[Mood] = Mood(
     ruin="7f708a",
 )
 """Night: near black overhead, a deep blue toward the horizon (Final Plateau)."""
+VOID: Final[Mood] = Mood(
+    sky=("2e222f", "2e222f", "323353"),
+    cloud=("484a77", "3e3546", "2e222f"),
+    island_top="484a77",
+    island_side=("3e3546", "2e222f"),
+    ruin="4d65b4",
+)
+"""No sky at all: the dark of a room with the lights off (Training Grid)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
     "golden": GOLDEN,
     "dusk": DUSK,
     "night": NIGHT,
+    "void": VOID,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -730,3 +739,73 @@ def paint_aurora(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["aurora"] = paint_aurora
+
+
+# --- the holo-room (Training Grid) ---------------------------------------------------------
+
+LATTICE_FAR: Final[tuple[str, int]] = ("3e3546", 160)
+LATTICE_NEAR: Final[tuple[str, int]] = ("484a77", 320)
+"""A lattice of the room's walls: the colour of its lines and the width of one diamond in
+pixels (it must divide the layer's width, so the layer wraps)."""
+PANEL_COLOURS: Final[tuple[str, str, str]] = ("4d65b4", "484a77", "4d9be6")
+"""Read-outs floating in the room: their frames, their dim bars, their lit bars."""
+PANEL_FRAMES: Final[int] = 2
+PANELS: Final[int] = 14
+
+
+def lattice(
+    style: tuple[str, int], fade_from: int, width: int = LAYER_WIDTH, height: int = NATIVE_H
+) -> Image.Image:
+    """Return a lattice of diamonds in the game's own 2:1 slope, as if the grid went on
+    across the walls of a room. Above ``fade_from`` pixels down it thins out to nothing."""
+    colour, cell = hex_rgb(style[0]), style[1]
+    image = Image.new("RGBA", (width, height))
+    pixels = image.load()
+    assert pixels is not None
+    for y in range(height):
+        strength = min(1.0, 0.25 + 0.75 * y / max(fade_from, 1))
+        for x in range(width):
+            on_line = (x + 2 * y) % cell < 2 or (x - 2 * y) % cell < 2
+            if on_line and strength * 16 > BAYER_4[y % 4][(x // 2) % 4]:
+                pixels[x, y] = (*colour, 255)
+    return image
+
+
+def readouts(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return read-outs floating in the room as ``PANEL_FRAMES`` frames stacked top to
+    bottom: framed panels of bars, one bar of each lit on alternate frames."""
+    rng = random.Random(seed)
+    frame_colour, dim, lit = (hex_rgb(value) for value in PANEL_COLOURS)
+    image = Image.new("RGBA", (width, height * PANEL_FRAMES))
+    draw = ImageDraw.Draw(image)
+    for number in range(PANELS):
+        x = int((number + rng.uniform(0.1, 0.9)) * width / PANELS)
+        y = rng.randint(24, height - 90)
+        wide, rows = rng.randint(22, 44), rng.randint(3, 6)
+        tall = rows * 4 + 5
+        lengths = [rng.randint(4, wide - 8) for _ in range(rows)]
+        for frame in range(PANEL_FRAMES):
+            top = frame * height + y
+            for shift in (-width, 0, width):
+                left = x + shift
+                draw.rectangle((left, top, left + wide, top + tall), outline=frame_colour)
+                draw.rectangle((left, top, left + 5, top + 1), fill=lit)
+                for row, long in enumerate(lengths):
+                    colour = lit if (row + number + frame) % rows == 0 else dim
+                    bar_y = top + 4 + row * 4
+                    draw.rectangle((left + 3, bar_y, left + 3 + long, bar_y + 1), fill=colour)
+    return image
+
+
+def paint_holo(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Training Grid: a dark room whose walls carry the grid on, far and near, with read-outs
+    floating in it."""
+    return {
+        "bg_0_sky.png": sky(mood),
+        "bg_1_far_lattice.png": lattice(LATTICE_FAR, 200),
+        "bg_2_readouts.png": readouts(seed),
+        "bg_3_near_lattice.png": lattice(LATTICE_NEAR, 330),
+    }
+
+
+PAINTERS["holo"] = paint_holo

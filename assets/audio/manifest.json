@@ -126,12 +126,12 @@
       "meter": "4/4"
     },
     "training_grid": {
-      "source": "292a9e64314034c8",
+      "source": "77996eecbed59cad",
       "title": "Practice Makes",
-      "seconds": 44.444,
-      "tempo": 108.0,
-      "key": "",
-      "mode": "",
+      "seconds": 51.429,
+      "tempo": 112.0,
+      "key": "D",
+      "mode": "dorian",
       "meter": "4/4"
     },
     "twin_isles": {

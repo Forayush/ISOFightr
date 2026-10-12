@@ -1,0 +1,55 @@
+# Pylon: a projector at a corner of the grid; its lamp blinks (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.200, 0.000]
+high = [0.200, 0.200, 0.100]
+material = "metal"
+
+[[parts]]
+name = "post"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.100]
+b = [0.000, 0.000, 0.700]
+r1 = 0.080
+r2 = 0.060
+material = "metal"
+
+[[parts]]
+name = "collar"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.700]
+b = [0.000, 0.000, 0.780]
+r1 = 0.110
+r2 = 0.110
+material = "metal"
+
+[[smears]]
+name = "lamp_on"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.900]
+radius = 0.120
+scale = [1.000, 1.000, 1.000]
+material = "lamp"
+
+[[smears]]
+name = "lamp_off"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.900]
+radius = 0.120
+scale = [1.000, 1.000, 1.000]
+material = "lamp_dim"
+
+[[poses]]
+show = ["lamp_on"]
+
+[[poses]]
+show = ["lamp_off"]

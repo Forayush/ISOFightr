@@ -1,0 +1,615 @@
+# Origin: the respawn point's marker, a ring that pulses (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "o_ring_hi_12_0"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_1"
+joint = "origin"
+shape = "rod"
+a = [0.364, 0.210, 0.012]
+b = [0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_2"
+joint = "origin"
+shape = "rod"
+a = [0.210, 0.364, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_3"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_4"
+joint = "origin"
+shape = "rod"
+a = [-0.210, 0.364, 0.012]
+b = [-0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_5"
+joint = "origin"
+shape = "rod"
+a = [-0.364, 0.210, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_6"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_7"
+joint = "origin"
+shape = "rod"
+a = [-0.364, -0.210, 0.012]
+b = [-0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_8"
+joint = "origin"
+shape = "rod"
+a = [-0.210, -0.364, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_9"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_10"
+joint = "origin"
+shape = "rod"
+a = [0.210, -0.364, 0.012]
+b = [0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_12_11"
+joint = "origin"
+shape = "rod"
+a = [0.364, -0.210, 0.012]
+b = [0.420, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_0"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.000, 0.012]
+b = [0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_1"
+joint = "origin"
+shape = "rod"
+a = [0.141, 0.141, 0.012]
+b = [0.000, 0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.200, 0.012]
+b = [-0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_3"
+joint = "origin"
+shape = "rod"
+a = [-0.141, 0.141, 0.012]
+b = [-0.200, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_4"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.012]
+b = [-0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_5"
+joint = "origin"
+shape = "rod"
+a = [-0.141, -0.141, 0.012]
+b = [-0.000, -0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_6"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.200, 0.012]
+b = [0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_hi_8_7"
+joint = "origin"
+shape = "rod"
+a = [0.141, -0.141, 0.012]
+b = [0.200, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_hi"
+
+[[smears]]
+name = "o_ring_lo_12_0"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_1"
+joint = "origin"
+shape = "rod"
+a = [0.364, 0.210, 0.012]
+b = [0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_2"
+joint = "origin"
+shape = "rod"
+a = [0.210, 0.364, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_3"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_4"
+joint = "origin"
+shape = "rod"
+a = [-0.210, 0.364, 0.012]
+b = [-0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_5"
+joint = "origin"
+shape = "rod"
+a = [-0.364, 0.210, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_6"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_7"
+joint = "origin"
+shape = "rod"
+a = [-0.364, -0.210, 0.012]
+b = [-0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_8"
+joint = "origin"
+shape = "rod"
+a = [-0.210, -0.364, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_9"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_10"
+joint = "origin"
+shape = "rod"
+a = [0.210, -0.364, 0.012]
+b = [0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_12_11"
+joint = "origin"
+shape = "rod"
+a = [0.364, -0.210, 0.012]
+b = [0.420, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_0"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.000, 0.012]
+b = [0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_1"
+joint = "origin"
+shape = "rod"
+a = [0.141, 0.141, 0.012]
+b = [0.000, 0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.200, 0.012]
+b = [-0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_3"
+joint = "origin"
+shape = "rod"
+a = [-0.141, 0.141, 0.012]
+b = [-0.200, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_4"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.012]
+b = [-0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_5"
+joint = "origin"
+shape = "rod"
+a = [-0.141, -0.141, 0.012]
+b = [-0.000, -0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_6"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.200, 0.012]
+b = [0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_lo_8_7"
+joint = "origin"
+shape = "rod"
+a = [0.141, -0.141, 0.012]
+b = [0.200, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_lo"
+
+[[smears]]
+name = "o_ring_mid_12_0"
+joint = "origin"
+shape = "rod"
+a = [0.420, 0.000, 0.012]
+b = [0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_1"
+joint = "origin"
+shape = "rod"
+a = [0.364, 0.210, 0.012]
+b = [0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_2"
+joint = "origin"
+shape = "rod"
+a = [0.210, 0.364, 0.012]
+b = [0.000, 0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_3"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.420, 0.012]
+b = [-0.210, 0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_4"
+joint = "origin"
+shape = "rod"
+a = [-0.210, 0.364, 0.012]
+b = [-0.364, 0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_5"
+joint = "origin"
+shape = "rod"
+a = [-0.364, 0.210, 0.012]
+b = [-0.420, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_6"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.012]
+b = [-0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_7"
+joint = "origin"
+shape = "rod"
+a = [-0.364, -0.210, 0.012]
+b = [-0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_8"
+joint = "origin"
+shape = "rod"
+a = [-0.210, -0.364, 0.012]
+b = [-0.000, -0.420, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_9"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.420, 0.012]
+b = [0.210, -0.364, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_10"
+joint = "origin"
+shape = "rod"
+a = [0.210, -0.364, 0.012]
+b = [0.364, -0.210, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_12_11"
+joint = "origin"
+shape = "rod"
+a = [0.364, -0.210, 0.012]
+b = [0.420, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_0"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.000, 0.012]
+b = [0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_1"
+joint = "origin"
+shape = "rod"
+a = [0.141, 0.141, 0.012]
+b = [0.000, 0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.200, 0.012]
+b = [-0.141, 0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_3"
+joint = "origin"
+shape = "rod"
+a = [-0.141, 0.141, 0.012]
+b = [-0.200, 0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_4"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.012]
+b = [-0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_5"
+joint = "origin"
+shape = "rod"
+a = [-0.141, -0.141, 0.012]
+b = [-0.000, -0.200, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_6"
+joint = "origin"
+shape = "rod"
+a = [-0.000, -0.200, 0.012]
+b = [0.141, -0.141, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[smears]]
+name = "o_ring_mid_8_7"
+joint = "origin"
+shape = "rod"
+a = [0.141, -0.141, 0.012]
+b = [0.200, -0.000, 0.012]
+r1 = 0.030
+r2 = 0.030
+material = "ring_mid"
+
+[[poses]]
+show = ["o_ring_mid_12_0", "o_ring_mid_12_1", "o_ring_mid_12_2", "o_ring_mid_12_3", "o_ring_mid_12_4", "o_ring_mid_12_5", "o_ring_mid_12_6", "o_ring_mid_12_7", "o_ring_mid_12_8", "o_ring_mid_12_9", "o_ring_mid_12_10", "o_ring_mid_12_11", "o_ring_mid_8_0", "o_ring_mid_8_1", "o_ring_mid_8_2", "o_ring_mid_8_3", "o_ring_mid_8_4", "o_ring_mid_8_5", "o_ring_mid_8_6", "o_ring_mid_8_7"]
+
+[[poses]]
+show = ["o_ring_hi_12_0", "o_ring_hi_12_1", "o_ring_hi_12_2", "o_ring_hi_12_3", "o_ring_hi_12_4", "o_ring_hi_12_5", "o_ring_hi_12_6", "o_ring_hi_12_7", "o_ring_hi_12_8", "o_ring_hi_12_9", "o_ring_hi_12_10", "o_ring_hi_12_11", "o_ring_hi_8_0", "o_ring_hi_8_1", "o_ring_hi_8_2", "o_ring_hi_8_3", "o_ring_hi_8_4", "o_ring_hi_8_5", "o_ring_hi_8_6", "o_ring_hi_8_7"]
+
+[[poses]]
+show = ["o_ring_mid_12_0", "o_ring_mid_12_1", "o_ring_mid_12_2", "o_ring_mid_12_3", "o_ring_mid_12_4", "o_ring_mid_12_5", "o_ring_mid_12_6", "o_ring_mid_12_7", "o_ring_mid_12_8", "o_ring_mid_12_9", "o_ring_mid_12_10", "o_ring_mid_12_11", "o_ring_mid_8_0", "o_ring_mid_8_1", "o_ring_mid_8_2", "o_ring_mid_8_3", "o_ring_mid_8_4", "o_ring_mid_8_5", "o_ring_mid_8_6", "o_ring_mid_8_7"]
+
+[[poses]]
+show = ["o_ring_lo_12_0", "o_ring_lo_12_1", "o_ring_lo_12_2", "o_ring_lo_12_3", "o_ring_lo_12_4", "o_ring_lo_12_5", "o_ring_lo_12_6", "o_ring_lo_12_7", "o_ring_lo_12_8", "o_ring_lo_12_9", "o_ring_lo_12_10", "o_ring_lo_12_11", "o_ring_lo_8_0", "o_ring_lo_8_1", "o_ring_lo_8_2", "o_ring_lo_8_3", "o_ring_lo_8_4", "o_ring_lo_8_5", "o_ring_lo_8_6", "o_ring_lo_8_7"]

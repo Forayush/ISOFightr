@@ -5,6 +5,7 @@ Plan note "13 - Game Modes UI and Flow" (training mode keys, HUD) and the M3 exi
 "the hitbox overlay matches the visuals".
 """
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -500,7 +501,7 @@ def test_projectiles_draw_their_own_art_with_a_shadow_or_decal_in_the_world(
     window.switch_to()
     view = BattleView(
         window.pixel_buffer,
-        load_stage("training_grid"),
+        replace(load_stage("training_grid"), props=()),  # no decals of the stage's own
         [load_character(character), load_character("rook")],
     )
     window.show_view(view)

@@ -42,7 +42,6 @@ SONGS = sorted((AUDIO_SRC / "music").glob("*.toml"))
 LOADED = {path.stem: load_song(path) for path in SONGS}
 LEGACY = {
     "menu",
-    "training_grid",
     "victory",
 }
 """Songs from before D-063, which state no key: each is replaced when its stage is rebuilt

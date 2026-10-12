@@ -78,7 +78,7 @@ def test_every_shipped_stage_loads_and_follows_the_design_rules(stage_id: str) -
 def test_training_grid_is_a_flat_12_by_12_square() -> None:
     stage = load_stage("training_grid")
     assert (stage.size_x, stage.size_y) == (12, 12)
-    assert all(cell == Cell(top=0.0, tile="grid") for row in stage.cells for cell in row)
+    assert all(cell == Cell(top=0.0, tile="cell") for row in stage.cells for cell in row)
     assert stage.soft_platforms == ()
     assert sorted(ledge.length for ledge in stage.ledges) == [12.0] * 4
 

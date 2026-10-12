@@ -1,0 +1,29 @@
+# Deck: a thin panel of light.
+loop = true
+fps = 1
+
+[[parts]]
+name = "under"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.080]
+material = "side"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.080]
+high = [1.000, 1.000, 0.000]
+material = "floor"
+
+[[parts]]
+name = "edge"
+joint = "origin"
+shape = "box"
+low = [-0.010, -0.010, -0.100]
+high = [1.012, 1.012, -0.050]
+material = "node"
+
+[[poses]]

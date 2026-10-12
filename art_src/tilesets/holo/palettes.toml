@@ -1,0 +1,91 @@
+# holo tileset materials (Training Grid; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "floor"
+outline = false
+
+[[materials]]
+name = "line"
+outline = false
+lit = false
+
+[[materials]]
+name = "node"
+outline = false
+lit = false
+
+[[materials]]
+name = "mark"
+outline = false
+lit = false
+
+[[materials]]
+name = "side"
+outline = false
+
+[[materials]]
+name = "seam"
+outline = false
+lit = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "glyph"
+outline = false
+lit = false
+
+[[materials]]
+name = "ring_hi"
+outline = false
+lit = false
+
+[[materials]]
+name = "ring_mid"
+outline = false
+lit = false
+
+[[materials]]
+name = "ring_lo"
+outline = false
+lit = false
+
+[[materials]]
+name = "metal"
+
+[[materials]]
+name = "lamp"
+lit = false
+
+[[materials]]
+name = "lamp_dim"
+lit = false
+
+[[costumes]]
+name = "light"
+floor = ["4d65b4", "484a77", "323353", "2e222f", "2e222f"]
+line = ["4d9be6", "4d9be6", "4d65b4", "484a77", "323353"]
+node = ["8fd3ff", "8fd3ff", "4d9be6", "4d65b4", "484a77"]
+mark = ["4d65b4", "4d65b4", "484a77", "323353", "2e222f"]
+side = ["484a77", "323353", "2e222f", "2e222f", "2e222f"]
+seam = ["484a77", "484a77", "323353", "2e222f", "2e222f"]
+deep = ["323353", "2e222f", "2e222f", "2e222f", "2e222f"]
+glyph = ["8ff8e2", "8ff8e2", "8ff8e2", "8ff8e2", "8ff8e2"]
+ring_hi = ["ffffff", "ffffff", "ffffff", "ffffff", "ffffff"]
+ring_mid = ["8fd3ff", "8fd3ff", "8fd3ff", "8fd3ff", "8fd3ff"]
+ring_lo = ["4d9be6", "4d9be6", "4d9be6", "4d9be6", "4d9be6"]
+metal = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+lamp = ["8ff8e2", "8ff8e2", "30e1b9", "0eaf9b", "0b5e65"]
+lamp_dim = ["0eaf9b", "0eaf9b", "0b8a8f", "0b5e65", "0b5e65"]
+
+[[costumes]]
+name = "dark"
+floor = ["484a77", "323353", "2e222f", "2e222f", "2e222f"]

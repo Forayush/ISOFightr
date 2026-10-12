@@ -1,0 +1,49 @@
+# Emitter: a projector's lens under the grid, its beam flickering (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "housing"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.200]
+r1 = 0.200
+r2 = 0.140
+material = "metal"
+
+[[parts]]
+name = "lens"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.200]
+b = [0.000, 0.000, -0.280]
+r1 = 0.100
+r2 = 0.080
+material = "lamp"
+
+[[smears]]
+name = "beam0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.280]
+b = [0.000, 0.000, -1.000]
+r1 = 0.030
+r2 = 0.010
+material = "lamp"
+
+[[smears]]
+name = "beam1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.280]
+b = [0.000, 0.000, -0.700]
+r1 = 0.030
+r2 = 0.010
+material = "lamp_dim"
+
+[[poses]]
+show = ["beam0"]
+
+[[poses]]
+show = ["beam1"]
