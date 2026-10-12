@@ -18,7 +18,7 @@ from isofightr.sim.stage import BackgroundLayer
 
 pytestmark = pytest.mark.gl
 FAR_AWAY = Vec3(40.0, 40.0, 0.0)
-BODY_PART = 2
+BODY_PART = 4
 
 
 def make_view(window: Any, stage_id: str = "sky_ruins", rules: MatchRules | None = None) -> Any:

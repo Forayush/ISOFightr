@@ -9,6 +9,7 @@ Reads state only: it never changes what it draws.
 """
 
 import logging
+import math
 from collections.abc import Callable, Mapping, Sequence
 from enum import IntEnum
 from typing import Protocol
@@ -42,6 +43,7 @@ from isofightr.render.depth import (
     dynamic_goes_first,
     moving_blocks,
 )
+from isofightr.render.depth_cues import Cue, Place, cue
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.ground_items import GroundItem, platform_shadows
 from isofightr.render.iso import project
@@ -56,6 +58,7 @@ from isofightr.render.props import (
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
 from isofightr.render.stage_art import DECK_TILE, Edges, StageArt, cell_edges, tile_variant
+from isofightr.settings import DEPTH_OFF, DEPTH_STANDARD, DEPTH_STRONG
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import BackgroundLayer, Stage
@@ -74,9 +77,14 @@ class Part(IntEnum):
     """The sprites one entity can own. The value is also the tie-break rank among items at
     the same place: flat things on the ground are drawn before the body standing on them."""
 
-    SHADOW = 0
-    REVIVAL_PLATFORM = 1
-    BODY = 2
+    GRID = 0
+    """The "Strong" depth aid's grid on the plane under a fighter that is off the stage."""
+    SHADOW = 1
+    """The marker: shadow and ring on a surface, or the dashed ring where there is none."""
+    REVIVAL_PLATFORM = 2
+    LINE = 3
+    """The dotted line from the marker to the feet."""
+    BODY = 4
 
 
 class WorldEntity(Protocol):
@@ -148,6 +156,9 @@ class WorldRenderer:
         self.stage_art = None if tileset is None else StageArt(tileset)
         self.calm = False
         """The "reduce flashing" setting: ambient sprites then neither blink nor turn."""
+        self.depth_aids = DEPTH_STANDARD
+        """The "depth aids" setting (decision D-065): off draws the world as it was before
+        (no marker over the void, a faint copy of a hidden fighter)."""
         self._tick = 0
         """The frame of the last :meth:`sync`: it drives everything that moves by itself."""
         self.sorter = DepthSorter(stage)
@@ -190,6 +201,7 @@ class WorldRenderer:
         # The cells of platforms that move (decision D-063): dynamic blocks, placed every
         # frame from where the match says the platform is.
         self.live: Stage = stage
+        self._block_items: list[DynamicItem] = []
         """The stage on the frame being drawn: ``stage``, with its platforms where they are."""
         self._blocks: dict[int, _RankedSprite] = {}
         for block in moving_blocks(stage, stage):
@@ -220,6 +232,15 @@ class WorldRenderer:
         # a platform or the island it shows.
         self._ghosts: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._ghost_of: dict[int, arcade.Sprite] = {}
+        self._outlines: dict[tuple[arcade.Texture, int], arcade.Texture] = {}
+        self._alphas: dict[arcade.Texture, tuple[int, int, bytes]] = {}
+        """Which pixels of a texture are solid (width, height, one byte each), for
+        :meth:`_covers`."""
+
+        # A marker or a height line that the stage is in front of is drawn once more over
+        # the finished world, thinned: it is never hidden (decision D-065).
+        self._covered: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
+        self._covered_of: dict[tuple[int, Part], arcade.Sprite] = {}
 
         self._background: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._layers = self._load_backdrop()
@@ -258,6 +279,7 @@ class WorldRenderer:
         self._tick = frame
         self.live = live if live is not None else self.stage
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
+        self._block_items = list(moving_blocks(self.stage, self.live))
         items: list[DynamicItem] = []
         self._body_rects = []
         for entity in entities:
@@ -267,11 +289,12 @@ class WorldRenderer:
             items.append(body)
             if not hidden:
                 self._body_rects.append(body.rect)
-                if self._behind_a_prop(body):
+                if self._behind_a_prop(body, self._parts[(entity.entity_id, Part.BODY)]):
                     self._ghost_of[entity.entity_id].visible = True
-            for item in (self._sync_shadow(entity), self._sync_revival_platform(entity)):
-                if item is not None:
-                    items.append(item)
+            items.extend(self._sync_marker(entity, hidden))
+            platform = self._sync_revival_platform(entity)
+            if platform is not None:
+                items.append(platform)
 
         for prop, sprite, frames in zip(
             self.props, self._prop_sprites, self._prop_frames, strict=True
@@ -280,7 +303,7 @@ class WorldRenderer:
             if sprite.texture is not texture:
                 sprite.texture = texture
         items.extend(self._prop_items)
-        for block in moving_blocks(self.stage, self.live):
+        for block in self._block_items:
             rect = block.rect
             self._blocks[block.item_id].position = (
                 (rect.left + rect.right) / 2,
@@ -374,6 +397,7 @@ class WorldRenderer:
         self.camera.zoom = zoom
         with self.camera.activate():
             self.sprites.draw(pixelated=True)
+            self._covered.draw(pixelated=True)
             if OCCLUDED_FIGHTER_ALPHA > 0:
                 self._ghosts.draw(pixelated=True)
             if self._mote_sprites:
@@ -453,12 +477,16 @@ class WorldRenderer:
             for index in range(prop.art.frames)
         ]
 
-    def _behind_a_prop(self, body: DynamicItem) -> bool:
-        """Return whether a prop is drawn over part of a fighter (who then gets the same
-        faint copy as one behind the stage, decision D-025)."""
+    def _behind_a_prop(self, body: DynamicItem, sprite: arcade.Sprite) -> bool:
+        """Return whether a prop is drawn over part of a fighter (who is then shown like one
+        behind the stage, decisions D-025 and D-065). With the depth aids on, the prop's
+        solid pixels must really cover the fighter's."""
+        exact = self.depth_aids != DEPTH_OFF
         return any(
-            item.rect.overlaps(body.rect) and dynamic_goes_first(body, item)
-            for item in self._prop_items
+            item.rect.overlaps(body.rect)
+            and dynamic_goes_first(body, item)
+            and (not exact or self._covers(prop, sprite))
+            for item, prop in zip(self._prop_items, self._prop_sprites, strict=True)
         )
 
     def _mote_texture(self, frame: int) -> arcade.Texture:
@@ -558,48 +586,255 @@ class WorldRenderer:
             rect=rect,
         )
 
+        # What shows of a fighter the stage hides: its outline in the player's colour, or
+        # with the depth aids off the faint copy there always was (decision D-025).
+        outlined = self.depth_aids != DEPTH_OFF
+        shown = self._outline(texture, entity.color_index) if outlined else texture
         ghost = self._ghost_of.get(entity.entity_id)
         if ghost is None:
-            ghost = arcade.Sprite(texture)
-            ghost.alpha = OCCLUDED_FIGHTER_ALPHA
+            ghost = arcade.Sprite(shown)
             self._ghost_of[entity.entity_id] = ghost
             self._ghosts.append(ghost)
-        elif ghost.texture is not texture:
-            ghost.texture = texture
+        elif ghost.texture is not shown:
+            ghost.texture = shown
+        ghost.alpha = 255 if outlined else OCCLUDED_FIGHTER_ALPHA
         ghost.position = sprite.position
         # Only while the stage hides part of the fighter, so fighters overlapping each other
-        # in the open are not tinted by one another.
-        ghost.visible = not hidden and self.sorter.is_hidden_by_stage(item)
+        # in the open are not tinted by one another. The faint copy changes nothing where the
+        # fighter is in plain view, so overlapping rectangles were test enough for it; an
+        # outline would show there, so it asks whether solid pixels really cover the fighter.
+        if hidden:
+            ghost.visible = False
+        elif outlined:
+            ghost.visible = any(
+                self._covers(self._static_sprites[index], sprite)
+                for index in self.sorter.statics_in_front(item)
+            )
+        else:
+            ghost.visible = self.sorter.is_hidden_by_stage(item)
         return item
 
-    def _sync_shadow(self, entity: WorldEntity) -> DynamicItem | None:
-        sprite = self._part(
-            entity, Part.SHADOW, self._shadow_texture(entity.color_index, 0, FULL_MASK)
-        )
-        pos = entity.pos
-        surface = self.live.support_below(pos.x, pos.y, pos.z)
-        sprite.visible = surface is not None
-        if surface is None:
-            return None
+    def _alpha(self, texture: arcade.Texture) -> tuple[int, int, bytes]:
+        found = self._alphas.get(texture)
+        if found is None:
+            image = texture.image
+            found = (image.width, image.height, image.getchannel("A").tobytes())
+            self._alphas[texture] = found
+        return found
 
-        centre_x, centre_y = (snap(value) for value in project(pos.x, pos.y, surface))
-        variant = art.shadow_variant_index(pos.z - surface)
-        mask = shadow_mask(self.live, centre_x, centre_y, surface)
-        texture = self._shadow_texture(entity.color_index, variant, mask)
+    def _covers(self, front: arcade.Sprite, behind: arcade.Sprite, least: int = 128) -> bool:
+        """Return whether a solid pixel of ``front`` lies over a pixel of ``behind`` whose
+        alpha is ``least`` or more (every pixel is looked at: a ring is one pixel thin)."""
+        front_w, front_h, front_alpha = self._alpha(front.texture)
+        back_w, back_h, back_alpha = self._alpha(behind.texture)
+        front_left = round(front.center_x - front_w / 2)
+        front_top = round(front.center_y + front_h / 2)
+        back_left = round(behind.center_x - back_w / 2)
+        back_top = round(behind.center_y + back_h / 2)
+        left, right = max(front_left, back_left), min(front_left + front_w, back_left + back_w)
+        top, bottom = min(front_top, back_top), max(front_top - front_h, back_top - back_h)
+        for y in range(top - 1, bottom - 1, -1):
+            front_row = (front_top - 1 - y) * front_w - front_left
+            back_row = (back_top - 1 - y) * back_w - back_left
+            for x in range(left, right):
+                if back_alpha[back_row + x] >= least and front_alpha[front_row + x] >= 128:
+                    return True
+        return False
+
+    def _sync_marker(self, entity: WorldEntity, hidden: bool) -> list[DynamicItem]:
+        """Place what says where an entity is (decision D-065): the shadow and ring on the
+        surface below it; where there is no surface, a dashed ring on the stage's reference
+        plane (or on the ground above, under the island); a dotted line up to the feet when
+        they are far from the marker; and, with the "strong" setting, a grid on the plane
+        around a fighter that is off the stage. With the setting off, or on a revival
+        platform, only the shadow on a surface is drawn, as it always was."""
+        color = entity.color_index
+        sprite = self._part(entity, Part.SHADOW, self._shadow_texture(color, 0, FULL_MASK))
+        pos = entity.pos
+        aided = self.depth_aids != DEPTH_OFF and not entity.on_revival_platform
+        if aided:
+            found = cue(self.live, pos.x, pos.y, pos.z)
+        else:
+            surface = self.live.support_below(pos.x, pos.y, pos.z)
+            self._hide_cues(entity)
+            sprite.visible = surface is not None
+            if surface is None:
+                return []
+            found = Cue(Place.SURFACE, surface, pos.z - surface, False, 0.0)
+
+        centre_x, centre_y = (snap(value) for value in project(pos.x, pos.y, found.marker_z))
+        if found.dashed:
+            # On the plane over the void the ring is whole; on the ground above a fighter
+            # that is under the island it is clipped to that ground like any shadow.
+            mask = FULL_MASK
+            if found.place is Place.UNDER:
+                mask = shadow_mask(self.live, centre_x, centre_y, found.marker_z)
+            texture = self._texture(
+                ("void_ring", color, mask), lambda: apply_mask(art.build_void_ring(color), mask)
+            )
+        else:
+            variant = art.shadow_variant_index(found.height)
+            mask = shadow_mask(self.live, centre_x, centre_y, found.marker_z)
+            texture = self._shadow_texture(color, variant, mask)
         if sprite.texture is not texture:
             sprite.texture = texture
         sprite.position = (centre_x, centre_y)
+        sprite.visible = True
         half_w, half_h = art.SHADOW_WIDTH / 2, art.SHADOW_HEIGHT / 2
-        return DynamicItem(
+        marker = DynamicItem(
             item_id=_item_id(entity.entity_id, Part.SHADOW),
             rank=Part.SHADOW,
             x=pos.x,
             y=pos.y,
-            z=surface,
+            z=found.marker_z,
             height=0.0,
             rect=ScreenRect(
                 centre_x - half_w, centre_y - half_h, centre_x + half_w, centre_y + half_h
             ),
+        )
+        items = [marker]
+        if not aided:
+            return items
+
+        shows = not hidden
+        covered = shows and self._cue_covered(marker, sprite)
+        over = self._covered_part(entity, Part.SHADOW)
+        over.visible = covered
+        if covered:
+            over.texture = self._texture(
+                ("ring_over", color, found.dashed),
+                lambda: art.dithered(art.build_ring(color, found.dashed)),
+            )
+            over.position = (centre_x, centre_y)
+        line = self._sync_line(entity, found, centre_x, shows)
+        if line is not None:
+            items.append(line)
+        grid = self._sync_grid(entity, found, shows)
+        if grid is not None:
+            items.append(grid)
+        return items
+
+    def _sync_line(
+        self, entity: WorldEntity, found: Cue, centre_x: float, shows: bool
+    ) -> DynamicItem | None:
+        """Place an entity's height line: among the world's sprites when nothing solid is in
+        its way, and (thinner) over the world where the stage is in front of it."""
+        color = entity.color_index
+        pos = entity.pos
+        sprite = self._part(entity, Part.LINE, self._line_texture(color, 1, False))
+        over = self._covered_part(entity, Part.LINE)
+        pixels = round(found.line * Z_PX)
+        if pixels <= 0 or not shows:
+            sprite.visible = over.visible = False
+            return None
+        low_z = min(found.marker_z, pos.z)
+        bottom = snap(project(pos.x, pos.y, low_z)[1])
+        position = (centre_x + 0.5, bottom + pixels / 2)
+        item = DynamicItem(
+            item_id=_item_id(entity.entity_id, Part.LINE),
+            rank=Part.LINE,
+            x=pos.x,
+            y=pos.y,
+            z=low_z,
+            height=found.line,
+            rect=ScreenRect(centre_x, bottom, centre_x + 1, bottom + pixels),
+        )
+        sprite.visible = not found.through_solid
+        if sprite.visible:
+            sprite.texture = self._line_texture(color, pixels, False)
+            sprite.position = position
+        over.visible = found.through_solid or self._cue_covered(item, sprite)
+        if over.visible:
+            over.texture = self._line_texture(color, pixels, True)
+            over.position = position
+        return None if found.through_solid else item
+
+    def _sync_grid(self, entity: WorldEntity, found: Cue, shows: bool) -> DynamicItem | None:
+        """Place the "strong" setting's grid on the reference plane around an entity that is
+        over the void: the outlines of the empty cells near it."""
+        sprite = self._parts.get((entity.entity_id, Part.GRID))
+        wanted = shows and self.depth_aids == DEPTH_STRONG and found.place is Place.VOID
+        if not wanted:
+            if sprite is not None:
+                sprite.visible = False
+            return None
+        pos = entity.pos
+        reach = art.PLANE_GRID_RADIUS
+        cell_x, cell_y = math.floor(pos.x), math.floor(pos.y)
+        void = tuple(
+            tuple(
+                self.stage.cell(cell_x + column, cell_y + row) is None
+                for column in range(-reach, reach + 1)
+            )
+            for row in range(-reach, reach + 1)
+        )
+        texture = self._texture(("plane_grid", void), lambda: art.build_plane_grid(void))
+        sprite = self._part(entity, Part.GRID, texture)
+        # The picture's top corner is the far corner of the cell ``reach`` back on both axes.
+        top_x, top_y = project(cell_x - reach, cell_y - reach, found.marker_z)
+        sprite.position = (snap(top_x), snap(top_y) - texture.height / 2)
+        sprite.visible = True
+        return DynamicItem(
+            item_id=_item_id(entity.entity_id, Part.GRID),
+            rank=Part.GRID,
+            x=cell_x + 0.5,
+            y=cell_y + 0.5,
+            z=found.marker_z,
+            height=0.0,
+            rect=ScreenRect(
+                snap(top_x) - texture.width / 2,
+                snap(top_y) - texture.height,
+                snap(top_x) + texture.width / 2,
+                snap(top_y),
+            ),
+        )
+
+    def _cue_covered(self, item: DynamicItem, sprite: arcade.Sprite) -> bool:
+        """Return whether solid pixels of the stage, a prop or a moving platform's cell are
+        drawn over any pixel of a cue (a marker or a height line)."""
+        if any(
+            self._covers(self._static_sprites[index], sprite, 1)
+            for index in self.sorter.statics_in_front(item)
+        ):
+            return True
+        others = [
+            *zip(self._prop_items, self._prop_sprites, strict=True),
+            *((block, self._blocks[block.item_id]) for block in self._block_items),
+        ]
+        return any(
+            other.rect.overlaps(item.rect)
+            and dynamic_goes_first(item, other)
+            and self._covers(front, sprite, 1)
+            for other, front in others
+        )
+
+    def _hide_cues(self, entity: WorldEntity) -> None:
+        """Hide an entity's line, grid and covered copies (the depth aids are off for it)."""
+        for part in (Part.LINE, Part.GRID):
+            sprite = self._parts.get((entity.entity_id, part))
+            if sprite is not None:
+                sprite.visible = False
+        for part in (Part.SHADOW, Part.LINE):
+            over = self._covered_of.get((entity.entity_id, part))
+            if over is not None:
+                over.visible = False
+
+    def _covered_part(self, entity: WorldEntity, part: Part) -> arcade.Sprite:
+        """Return the sprite that redraws one of an entity's cues over the world."""
+        key = (entity.entity_id, part)
+        sprite = self._covered_of.get(key)
+        if sprite is None:
+            sprite = arcade.Sprite(self._line_texture(entity.color_index, 1, True))
+            sprite.visible = False
+            self._covered_of[key] = sprite
+            self._covered.append(sprite)
+        return sprite
+
+    def _line_texture(self, player_index: int, pixels: int, covered: bool) -> arcade.Texture:
+        step = art.COVERED_LINE_STEP if covered else art.HEIGHT_LINE_STEP
+        return self._texture(
+            ("height_line", player_index, pixels, covered),
+            lambda: art.build_height_line(player_index, pixels, step),
         )
 
     def _sync_revival_platform(self, entity: WorldEntity) -> DynamicItem | None:
@@ -681,6 +916,8 @@ class WorldRenderer:
             self._order = None
         for entity_id in [key for key in self._ghost_of if key not in alive]:
             self._ghost_of.pop(entity_id).remove_from_sprite_lists()
+        for key in [key for key in self._covered_of if key[0] not in alive]:
+            self._covered_of.pop(key).remove_from_sprite_lists()
 
     def _apply_order(self, order: Sequence[DrawEntry]) -> None:
         for sprite in (*self._parts.values(), *self._ground.values()):
@@ -708,6 +945,15 @@ class WorldRenderer:
             texture = arcade.Texture(build())
             self._textures[key] = texture
         return texture
+
+    def _outline(self, texture: arcade.Texture, player_index: int) -> arcade.Texture:
+        """Return the outline picture of a fighter's frame (built once per frame and colour)."""
+        key = (texture, player_index)
+        found = self._outlines.get(key)
+        if found is None:
+            found = arcade.Texture(art.build_outline(texture.image, player_index))
+            self._outlines[key] = found
+        return found
 
     def _shadow_texture(self, player_index: int, variant: int, mask: bytes) -> arcade.Texture:
         # One small texture per distinct clip mask. Masks only vary near surface edges, and

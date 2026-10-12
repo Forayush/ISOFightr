@@ -12,10 +12,11 @@ module are image coordinates (origin top-left, y down).
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from isofightr.config import DECK_THICKNESS, NATIVE_H, NATIVE_W, TILE_H, TILE_W, Z_PX
 from isofightr.render.iso import project
@@ -581,6 +582,122 @@ def build_shadow(player_index: int, variant_index: int) -> Image.Image:
         fill=(0, 0, 0, variant.blob_alpha),
     )
     draw.ellipse((0, 0, SHADOW_WIDTH - 1, SHADOW_HEIGHT - 1), outline=player_color(player_index))
+    return image
+
+
+VOID_RING_DASHES: Final[int] = 8
+"""How many dashes the ring of a fighter with no ground below is broken into."""
+VOID_RING_WIDTH: Final[int] = 2
+"""And how thick its dashes are: thicker than a ring on the ground, to be found far below."""
+HEIGHT_LINE_STEP: Final[int] = 2
+"""A height line is one dot every this many pixels, with ink between the dots so that it
+shows on light ground and on dark."""
+LINE_INK: Final[Rgba] = (46, 34, 47, 255)
+COVERED_LINE_STEP: Final[int] = 4
+"""And every this many where the stage is in front of it."""
+PLANE_GRID_RADIUS: Final[int] = 3
+"""The plane grid of the "Strong" depth aid reaches this many cells from the fighter's."""
+PLANE_GRID_COLOR: Final[Rgba] = (199, 220, 208, 255)
+OUTLINE_FILL_ALPHA: Final[int] = 72
+"""How strongly a hidden fighter's own picture shows inside its outline (0 to 255)."""
+
+
+def build_void_ring(player_index: int) -> Image.Image:
+    """Return the marker of a fighter with no ground below (decision D-065): the player's
+    ring, dashed, with no shadow in it (there is nothing for a shadow to fall on)."""
+    image = Image.new("RGBA", (SHADOW_WIDTH, SHADOW_HEIGHT), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    turn = 360 / VOID_RING_DASHES
+    for dash in range(VOID_RING_DASHES):
+        start = dash * turn - turn / 4
+        draw.arc(
+            (0, 0, SHADOW_WIDTH - 1, SHADOW_HEIGHT - 1),
+            start,
+            start + turn / 2,
+            fill=player_color(player_index),
+            width=VOID_RING_WIDTH,
+        )
+    return image
+
+
+def build_ring(player_index: int, dashed: bool = False) -> Image.Image:
+    """Return a player's ring alone, whole or dashed: what is drawn, dithered, where the
+    stage is in front of a marker."""
+    if dashed:
+        return build_void_ring(player_index)
+    image = Image.new("RGBA", (SHADOW_WIDTH, SHADOW_HEIGHT), TRANSPARENT)
+    ImageDraw.Draw(image).ellipse(
+        (0, 0, SHADOW_WIDTH - 1, SHADOW_HEIGHT - 1), outline=player_color(player_index)
+    )
+    return image
+
+
+def dithered(image: Image.Image) -> Image.Image:
+    """Return a picture with every other pixel removed in a checkerboard: half strength
+    without a new colour or a blend."""
+    thinned = image.copy()
+    pixels = thinned.load()
+    assert pixels is not None
+    for y in range(thinned.height):
+        for x in range(thinned.width):
+            if (x + y) % 2:
+                pixels[x, y] = TRANSPARENT
+    return thinned
+
+
+def build_height_line(player_index: int, pixels: int, step: int = HEIGHT_LINE_STEP) -> Image.Image:
+    """Return the dotted line from a fighter's marker up to its feet: one pixel wide,
+    ``pixels`` tall, a dot of the player's colour every ``step`` pixels from the bottom. The
+    line in the open has ink between its dots; the thinner one drawn where the stage is in
+    front has nothing."""
+    gaps = LINE_INK if step == HEIGHT_LINE_STEP else TRANSPARENT
+    image = Image.new("RGBA", (1, max(pixels, 1)), gaps)
+    for row in range(image.height - 1, -1, -step):
+        image.putpixel((0, row), player_color(player_index))
+    return image
+
+
+def build_outline(image: Image.Image, player_index: int) -> Image.Image:
+    """Return what shows of a fighter the stage hides (decision D-065): a one-pixel outline of
+    its picture in the player's colour, with the picture itself faint inside it. One pixel
+    bigger than ``image`` on every side."""
+    padded = Image.new("RGBA", (image.width + 2, image.height + 2), TRANSPARENT)
+    padded.paste(image.convert("RGBA"), (1, 1))
+    solid = padded.getchannel("A").point(lambda value: 255 if value >= 128 else 0)
+    grown = solid.filter(ImageFilter.MaxFilter(3))
+    edge = ImageChops.subtract(grown, solid)
+    faint = padded.copy()
+    faint.putalpha(solid.point(lambda value: OUTLINE_FILL_ALPHA if value else 0))
+    faint.paste(Image.new("RGBA", padded.size, player_color(player_index)), (0, 0), edge)
+    return faint
+
+
+def build_plane_grid(void: Sequence[Sequence[bool]]) -> Image.Image:
+    """Return the "Strong" depth aid's picture of the reference plane around a fighter that
+    is off the stage: the outlines of the void cells near it, dotted, thinning toward the
+    edge. ``void[row][column]`` says whether the cell that many rows (world y) and columns
+    (world x) from the far corner is empty; the grid is square."""
+    cells = len(void)
+    width, height = cells * TILE_W, cells * TILE_H
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    pixels = image.load()
+    assert pixels is not None
+    middle = (cells - 1) / 2
+    for row in range(cells):
+        for column in range(cells):
+            if not void[row][column]:
+                continue
+            far = max(abs(row - middle), abs(column - middle)) / max(middle, 1.0)
+            skip = 2 if far < 0.5 else 4
+            # The cell's far corner on the picture, then its two far edges.
+            left = width // 2 + (column - row) * HALF_TILE_W
+            top = (column + row) * (TILE_H // 2)
+            for step in range(HALF_TILE_W):
+                if step % skip:
+                    continue
+                for x, y in ((left + step, top + step // 2), (left - 1 - step, top + step // 2)):
+                    if 0 <= x < width and 0 <= y < height:
+                        pixels[x, y] = PLANE_GRID_COLOR
     return image
 
 

@@ -630,6 +630,7 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
         "reset",
         "dummy_level",
         "stage_hazards",
+        "depth_aids",
         "moves",
         "help",
         "quit",

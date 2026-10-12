@@ -372,11 +372,20 @@ def test_shadow_lands_on_a_platform_the_fighter_is_above(window: Any) -> None:
 
 
 def test_no_shadow_over_the_void(window: Any) -> None:
+    """With the depth aids off, as before M15 (decision D-021). With them on, the ring is
+    there, on the stage's reference plane (decision D-065)."""
+    from dataclasses import replace
+
     view = make_view(window, load_stage("sky_ruins"))
+    view.settings = replace(view.settings, depth_aids="off")
     pos = Vec3(15.0, 4.5, 1.0)
     centre = render(view, pos)
     for surface in (0.0, 1.0):
         assert P1_BODY not in ring_pixels(window, centre, pos, surface)
+    view.settings = replace(view.settings, depth_aids="standard")
+    centre = render(view, pos)
+    assert ring_pixels(window, centre, pos, 0.0) == (P1_BODY, P1_BODY), "on the plane"
+    assert P1_BODY not in ring_pixels(window, centre, pos, 1.0), "not at the feet's height"
 
 
 def test_shadow_is_clipped_at_the_island_edge(window: Any) -> None:

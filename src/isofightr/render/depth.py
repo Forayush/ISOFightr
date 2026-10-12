@@ -283,6 +283,15 @@ class DepthSorter:
             self._fixed_edges[item.item_id] = (item, found)
         return found
 
+    def statics_in_front(self, item: DynamicItem) -> list[int]:
+        """Return the indices of the stage geometry drawn in front of ``item`` whose sprite
+        rectangles overlap its own (their pixels may still miss it)."""
+        return [
+            index
+            for index in self._overlapping_statics(item.rect)
+            if static_hides(self.statics[index], item)
+        ]
+
     def is_hidden_by_stage(self, item: DynamicItem) -> bool:
         """Return whether any stage geometry is drawn in front of part of ``item``."""
         return any(

@@ -27,6 +27,7 @@ from isofightr.render.pixel_scale import window_to_native
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     CAMERA_ZOOMS,
+    DEPTH_AIDS,
     KEYBOARD_SOLO,
     SCALES,
     SHAKE_STEPS,
@@ -523,6 +524,7 @@ class SettingsView(MenuListView):
         "controls": "controller",
         "camera_zoom": "stage",
         "reduce_flashing": "shield",
+        "depth_aids": "fall",
         "defaults": "cross",
         "back": "arrow_left",
     }
@@ -543,6 +545,7 @@ class SettingsView(MenuListView):
         "controls": "Rebind the keyboards and the gamepads.",
         "camera_zoom": "Stepped: the camera doubles when everyone is close.",
         "reduce_flashing": "No hit flashes, no screen shake, no pulsing clock.",
+        "depth_aids": "A ring and a line show where a fighter is. Strong adds a grid.",
         "defaults": "Video, sound and accessibility back to how they came.",
         "back": "Back to the main menu.",
     }
@@ -583,6 +586,9 @@ class SettingsView(MenuListView):
                 MenuItem(
                     "reduce_flashing", "Reduce flashing", ON_OFF, int(settings.reduce_flashing)
                 ),
+                _setting(
+                    "depth_aids", "Depth aids", list(DEPTH_AIDS), DEPTH_AIDS, settings.depth_aids
+                ),
                 MenuItem("defaults", "Reset to defaults"),
                 MenuItem("back", "Back"),
             ]
@@ -604,6 +610,7 @@ class SettingsView(MenuListView):
                 sfx_volume=menu.item("sfx_volume").index,
                 camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
                 reduce_flashing=bool(menu.item("reduce_flashing").index),
+                depth_aids=DEPTH_AIDS[menu.item("depth_aids").index],
             )
         )
 

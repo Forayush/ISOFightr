@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -67,7 +68,13 @@ from isofightr.render.sprite_bank import SpriteBank
 from isofightr.render.world_renderer import Overlay, WorldRenderer
 from isofightr.scenes.setup import QUIT_HINT, MatchSetup, clock_text, countdown_text, quit_chord
 from isofightr.scenes.ticked_view import TickedView
-from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, ZOOM_STEPPED, Settings
+from isofightr.settings import (
+    DEPTH_AIDS,
+    KEYBOARD_ARROWS,
+    KEYBOARD_SOLO,
+    ZOOM_STEPPED,
+    Settings,
+)
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, InputFrame
@@ -189,6 +196,7 @@ MENU_RESET = "reset"
 BATTLE_FADE_TICKS = 20
 MENU_DUMMY_LEVEL = "dummy_level"
 MENU_HAZARDS = "stage_hazards"
+MENU_DEPTH = "depth_aids"
 CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
@@ -430,6 +438,12 @@ class BattleView(TickedView):
                 MenuItem(
                     MENU_HAZARDS, "Stage hazards", ON_OFF, int(self.match.rules.stage_hazards)
                 ),
+                MenuItem(
+                    MENU_DEPTH,
+                    "Depth aids",
+                    DEPTH_AIDS,
+                    DEPTH_AIDS.index(self.settings.depth_aids),
+                ),
             ]
         items.append(MenuItem(MENU_MOVES, "Move list"))
         items.append(MenuItem(MENU_HELP, "Controls help", ON_OFF, int(self.show_help)))
@@ -624,6 +638,7 @@ class BattleView(TickedView):
             menu.item(MENU_INFO).index = int(self.show_fighter_info)
             menu.item(MENU_DUMMY_LEVEL).index = CPU_LEVEL_CHOICES.index(str(self.dummy_level))
             menu.item(MENU_HAZARDS).index = int(self.match.rules.stage_hazards)
+            menu.item(MENU_DEPTH).index = DEPTH_AIDS.index(self.settings.depth_aids)
             dummies = self.match.fighters[FIRST_DUMMY:]
             damage = dummies[0].damage if dummies else 0.0
             menu.item(MENU_DAMAGE).label = f"Dummy damage: < {damage:.0f}% >"
@@ -661,6 +676,11 @@ class BattleView(TickedView):
             hazards = bool(menu.item(MENU_HAZARDS).index)
             if hazards != self.match.rules.stage_hazards:
                 self.match.set_stage_hazards(hazards)  # one of the sim's own training tools
+            aids = DEPTH_AIDS[menu.item(MENU_DEPTH).index]
+            if aids != self.settings.depth_aids:
+                self.settings = replace(self.settings, depth_aids=aids)
+                if self.flow is not None:
+                    self.flow.update_settings(self.settings)
         self._sync_pause_menu()
 
     def quit_match(self) -> None:
@@ -1089,6 +1109,7 @@ class BattleView(TickedView):
             hazard_sprites(self.match.stage, frame, calm) if hazards_on else []
         )
         self.renderer.calm = calm
+        self.renderer.depth_aids = self.settings.depth_aids
         self.renderer.sync(fighters, frame, looks, ground, self.match.stage)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
         # hitboxes are only drawn by the F1 overlay.

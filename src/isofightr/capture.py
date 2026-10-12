@@ -407,13 +407,13 @@ def capture_depth_lab(
             first.pos, second.pos = Vec3(*spot), away
             first.vel = second.vel = Vec3(0.0, 0.0, 0.0)
             first.facing = second.facing = Dir8.SE
-            camera.x, camera.y = world_x, world_y + DEPTH_LAB_CROP[1] // 6
+            camera.x, camera.y = world_x, world_y
             view.on_draw()
             centre_x, centre_y = view.view_centre()
             at_x = NATIVE_W // 2 + round(world_x - centre_x)
             at_y = NATIVE_H // 2 - round(world_y - centre_y)
             left = min(max(at_x - DEPTH_LAB_CROP[0] // 2, 0), NATIVE_W - DEPTH_LAB_CROP[0])
-            upper = min(max(at_y - DEPTH_LAB_CROP[1] * 2 // 3, 0), NATIVE_H - DEPTH_LAB_CROP[1])
+            upper = min(max(at_y - DEPTH_LAB_CROP[1] // 2, 0), NATIVE_H - DEPTH_LAB_CROP[1])
             frame = read_frame(window).crop(
                 (left, upper, left + DEPTH_LAB_CROP[0], upper + DEPTH_LAB_CROP[1])
             )

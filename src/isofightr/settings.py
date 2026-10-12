@@ -86,6 +86,12 @@ MAX_KEYS: Final[int] = MAX_CONTROLS
 ZOOM_STATIC: Final[str] = "static"
 ZOOM_STEPPED: Final[str] = "stepped"
 CAMERA_ZOOMS: Final[tuple[str, ...]] = (ZOOM_STATIC, ZOOM_STEPPED)
+DEPTH_OFF: Final[str] = "off"
+DEPTH_STANDARD: Final[str] = "standard"
+DEPTH_STRONG: Final[str] = "strong"
+DEPTH_AIDS: Final[tuple[str, ...]] = (DEPTH_OFF, DEPTH_STANDARD, DEPTH_STRONG)
+"""How much the game draws to say where a fighter is (decision D-065): nothing new; a marker
+and a height line always; or those plus a grid on the plane under a fighter off the stage."""
 
 MIN_COUNT: Final[int] = 1
 MAX_COUNT: Final[int] = 99
@@ -222,6 +228,8 @@ class Settings:
     reduce_flashing: bool = False
     """Accessibility: no white hit flash or charge blink, and intangible fighters are dimmed
     instead of blinking."""
+    depth_aids: str = DEPTH_STANDARD
+    """One of :data:`DEPTH_AIDS`."""
     master_volume: int = VOLUME_MAX
     music_volume: int = 8
     sfx_volume: int = VOLUME_MAX
@@ -509,6 +517,7 @@ def from_data(data: Mapping[str, Any]) -> Settings:
         reduce_flashing=(
             reduce_flashing if isinstance(reduce_flashing, bool) else defaults.reduce_flashing
         ),
+        depth_aids=_pick(video.get("depth_aids"), DEPTH_AIDS, defaults.depth_aids),
         master_volume=_volume(audio.get("master"), defaults.master_volume),
         music_volume=_volume(audio.get("music"), defaults.music_volume),
         sfx_volume=_volume(audio.get("sfx"), defaults.sfx_volume),
@@ -540,6 +549,7 @@ def to_toml(settings: Settings) -> str:
         f"screen_shake = {settings.screen_shake}",
         f"camera_zoom = {text(settings.camera_zoom)}",
         f"reduce_flashing = {'true' if settings.reduce_flashing else 'false'}",
+        f"depth_aids = {text(settings.depth_aids)}",
         "",
         "[audio]",
         f"master = {settings.master_volume}",
