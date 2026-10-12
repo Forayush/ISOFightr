@@ -1,0 +1,202 @@
+# Cairn: a pile of flat stones with a pole of prayer flags (3 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stone0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.150]
+r1 = 0.300
+r2 = 0.270
+material = "stone"
+
+[[parts]]
+name = "stone1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.160]
+b = [0.000, 0.000, 0.310]
+r1 = 0.250
+r2 = 0.225
+material = "stone"
+
+[[parts]]
+name = "stone2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.300]
+b = [0.000, 0.000, 0.450]
+r1 = 0.200
+r2 = 0.180
+material = "stone"
+
+[[parts]]
+name = "stone3"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.420]
+b = [0.000, 0.000, 0.570]
+r1 = 0.140
+r2 = 0.126
+material = "stone"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.560]
+b = [0.000, 0.000, 0.620]
+r1 = 0.120
+r2 = 0.060
+material = "snowcap"
+
+[[parts]]
+name = "pole"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.500]
+b = [0.000, 0.000, 1.500]
+r1 = 0.045
+r2 = 0.040
+material = "trunk"
+
+[[smears]]
+name = "flag00"
+joint = "origin"
+shape = "box"
+low = [0.080, -0.200, 1.090]
+high = [0.200, -0.080, 1.250]
+material = "flag_red"
+
+[[smears]]
+name = "flag01"
+joint = "origin"
+shape = "box"
+low = [0.250, -0.370, 1.005]
+high = [0.370, -0.250, 1.165]
+material = "flag_gold"
+
+[[smears]]
+name = "flag02"
+joint = "origin"
+shape = "box"
+low = [0.420, -0.540, 0.920]
+high = [0.540, -0.420, 1.080]
+material = "flag_blue"
+
+[[smears]]
+name = "flag03"
+joint = "origin"
+shape = "box"
+low = [0.590, -0.710, 0.835]
+high = [0.710, -0.590, 0.995]
+material = "flag_red"
+
+[[smears]]
+name = "flag04"
+joint = "origin"
+shape = "box"
+low = [0.760, -0.880, 0.750]
+high = [0.880, -0.760, 0.910]
+material = "flag_gold"
+
+[[smears]]
+name = "flag10"
+joint = "origin"
+shape = "box"
+low = [0.080, -0.200, 1.150]
+high = [0.200, -0.080, 1.310]
+material = "flag_red"
+
+[[smears]]
+name = "flag11"
+joint = "origin"
+shape = "box"
+low = [0.250, -0.370, 0.945]
+high = [0.370, -0.250, 1.105]
+material = "flag_gold"
+
+[[smears]]
+name = "flag12"
+joint = "origin"
+shape = "box"
+low = [0.420, -0.540, 0.980]
+high = [0.540, -0.420, 1.140]
+material = "flag_blue"
+
+[[smears]]
+name = "flag13"
+joint = "origin"
+shape = "box"
+low = [0.590, -0.710, 0.775]
+high = [0.710, -0.590, 0.935]
+material = "flag_red"
+
+[[smears]]
+name = "flag14"
+joint = "origin"
+shape = "box"
+low = [0.760, -0.880, 0.810]
+high = [0.880, -0.760, 0.970]
+material = "flag_gold"
+
+[[smears]]
+name = "flag20"
+joint = "origin"
+shape = "box"
+low = [0.080, -0.200, 1.050]
+high = [0.200, -0.080, 1.210]
+material = "flag_red"
+
+[[smears]]
+name = "flag21"
+joint = "origin"
+shape = "box"
+low = [0.250, -0.370, 1.045]
+high = [0.370, -0.250, 1.205]
+material = "flag_gold"
+
+[[smears]]
+name = "flag22"
+joint = "origin"
+shape = "box"
+low = [0.420, -0.540, 0.880]
+high = [0.540, -0.420, 1.040]
+material = "flag_blue"
+
+[[smears]]
+name = "flag23"
+joint = "origin"
+shape = "box"
+low = [0.590, -0.710, 0.875]
+high = [0.710, -0.590, 1.035]
+material = "flag_red"
+
+[[smears]]
+name = "flag24"
+joint = "origin"
+shape = "box"
+low = [0.760, -0.880, 0.710]
+high = [0.880, -0.760, 0.870]
+material = "flag_gold"
+
+[[parts]]
+name = "line"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.440]
+b = [0.900, -0.900, 0.860]
+r1 = 0.012
+r2 = 0.012
+material = "trunk"
+
+[[poses]]
+show = ["flag00", "flag01", "flag02", "flag03", "flag04"]
+
+[[poses]]
+show = ["flag10", "flag11", "flag12", "flag13", "flag14"]
+
+[[poses]]
+show = ["flag20", "flag21", "flag22", "flag23", "flag24"]

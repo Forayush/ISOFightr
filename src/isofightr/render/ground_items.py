@@ -48,6 +48,10 @@ class GroundItem:
     """What the image looks like: equal keys share a texture."""
     build: Callable[[], Image.Image]
     rank: int = DECAL_RANK
+    on_ground: bool = False
+    """Whether it lies on solid ground, which never moves: it is then clipped against the
+    stage as loaded, and the renderer may keep the clipping for the next time something
+    lies in the same place (a stage's flat props, the shadows of its moving platforms)."""
 
 
 class ProjectileLooks:
@@ -146,3 +150,58 @@ def decal_items(
             )
         )
     return items
+
+
+# --- the shadows of moving platforms (decision D-063) -------------------------------------
+
+PLATFORM_SHADOW_BASE: Final[int] = (1 << 19) + (1 << 18)
+"""Ids of platform shadows start here: above the stage's flat props, and still under
+``1 << 20``, where the world renderer's ids for ground items end."""
+SURFACES_PER_PLATFORM: Final[int] = 4
+"""Heights of ground one platform's shadow may fall on at once."""
+SHADOW_SAMPLE: Final[float] = 0.45
+"""How far from a cell's middle its shadow looks for ground: nearly to its corners."""
+
+
+def platform_shadows(rest: Stage, live: Stage) -> list[GroundItem]:
+    """Return the shadow every moving platform casts on the solid ground under it.
+
+    A platform in this projection could as well be lying on the ground further back as
+    floating: its shadow is what says how high it is. ``rest`` is the stage as loaded (it
+    says which platforms move), ``live`` the same stage on this frame. One picture of the
+    whole platform per height of ground under it (the renderer clips each to its own
+    surface, so a platform half over an edge shades only the ground that is there); nothing
+    over the void, and nothing on ground that is higher than the platform.
+    """
+    from isofightr.render.placeholder_art import build_moving_shadow
+
+    shadows = []
+    for index, (still, now) in enumerate(
+        zip(rest.soft_platforms, live.soft_platforms, strict=True)
+    ):
+        if still.motion is None:
+            continue
+        columns = round(still.x1 - still.x0)
+        rows = round(still.y1 - still.y0)
+        tops = set()
+        for row in range(rows):
+            for column in range(columns):
+                x, y = now.x0 + column + 0.5, now.y0 + row + 0.5
+                for dx, dy in ((0.0, 0.0), (-1.0, -1.0), (-1.0, 1.0), (1.0, -1.0), (1.0, 1.0)):
+                    top = rest.surface_top(x + dx * SHADOW_SAMPLE, y + dy * SHADOW_SAMPLE)
+                    if top is not None and top < now.z:
+                        tops.add(top)
+        for order, top in enumerate(sorted(tops)[:SURFACES_PER_PLATFORM]):
+            shadows.append(
+                GroundItem(
+                    PLATFORM_SHADOW_BASE + index * SURFACES_PER_PLATFORM + order,
+                    now.x0 + columns / 2,
+                    now.y0 + rows / 2,
+                    top,
+                    ("platform-shadow", columns, rows),
+                    partial(build_moving_shadow, columns, rows),
+                    DECAL_RANK,
+                    on_ground=True,
+                )
+            )
+    return shadows

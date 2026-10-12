@@ -1,0 +1,344 @@
+{
+ "format": 1,
+ "tileset": "frost",
+ "blender": "4.5.5",
+ "depth_px": 48,
+ "source": "507294ad4bd61241fb9c8b82cd8ee6de5759eb73b1c4c954b2e786c29e6971c4",
+ "tiles": [
+  "deck",
+  "deck_b",
+  "ice",
+  "ice_b",
+  "snow",
+  "snow_b",
+  "snow_c",
+  "snow_d",
+  "under",
+  "under_b"
+ ],
+ "props": {
+  "boulder": {
+   "frames": 1,
+   "size": [
+    19,
+    12
+   ],
+   "pivot": [
+    11,
+    9
+   ]
+  },
+  "cairn": {
+   "frames": 3,
+   "size": [
+    37,
+    29
+   ],
+   "pivot": [
+    29,
+    25
+   ]
+  },
+  "drift": {
+   "frames": 1,
+   "size": [
+    23,
+    12
+   ],
+   "pivot": [
+    13,
+    6
+   ]
+  },
+  "icicles": {
+   "frames": 2,
+   "size": [
+    12,
+    15
+   ],
+   "pivot": [
+    6,
+    3
+   ]
+  },
+  "pine": {
+   "frames": 2,
+   "size": [
+    24,
+    42
+   ],
+   "pivot": [
+    12,
+    40
+   ]
+  },
+  "root": {
+   "frames": 1,
+   "size": [
+    5,
+    16
+   ],
+   "pivot": [
+    3,
+    2
+   ]
+  },
+  "shine": {
+   "frames": 4,
+   "size": [
+    12,
+    7
+   ],
+   "pivot": [
+    6,
+    3
+   ]
+  },
+  "snowman": {
+   "frames": 1,
+   "size": [
+    25,
+    17
+   ],
+   "pivot": [
+    13,
+    15
+   ]
+  },
+  "spikes": {
+   "frames": 2,
+   "size": [
+    16,
+    14
+   ],
+   "pivot": [
+    8,
+    11
+   ]
+  }
+ },
+ "costumes": [
+  {
+   "name": "light",
+   "colors": [
+    "000000",
+    "ffffff",
+    "ffffff",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "ffffff",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "625565",
+    "ffffff",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "323353",
+    "ffffff",
+    "ffffff",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "9babb2",
+    "7f708a",
+    "484a77",
+    "323353",
+    "2e222f",
+    "7f708a",
+    "484a77",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "484a77",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "1ebc73",
+    "239063",
+    "165a4c",
+    "0b5e65",
+    "2e222f",
+    "ffffff",
+    "ffffff",
+    "c7dcd0",
+    "9babb2",
+    "484a77",
+    "ab947a",
+    "966c6c",
+    "694f62",
+    "45293f",
+    "2e222f",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "625565",
+    "2e222f",
+    "ffffff",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "323353",
+    "f68181",
+    "e83b3b",
+    "ae2334",
+    "6e2727",
+    "2e222f",
+    "fbff86",
+    "f9c22b",
+    "f79617",
+    "cd683d",
+    "2e222f",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f"
+   ]
+  },
+  {
+   "name": "dark",
+   "colors": [
+    "000000",
+    "ffffff",
+    "c7dcd0",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "ffffff",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "625565",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "323353",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "323353",
+    "ffffff",
+    "ffffff",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "9babb2",
+    "7f708a",
+    "484a77",
+    "323353",
+    "2e222f",
+    "7f708a",
+    "484a77",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "484a77",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "323353",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "ffffff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "8fd3ff",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "4d9be6",
+    "1ebc73",
+    "239063",
+    "165a4c",
+    "0b5e65",
+    "2e222f",
+    "ffffff",
+    "ffffff",
+    "c7dcd0",
+    "9babb2",
+    "484a77",
+    "ab947a",
+    "966c6c",
+    "694f62",
+    "45293f",
+    "2e222f",
+    "c7dcd0",
+    "9babb2",
+    "7f708a",
+    "625565",
+    "2e222f",
+    "ffffff",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "323353",
+    "f68181",
+    "e83b3b",
+    "ae2334",
+    "6e2727",
+    "2e222f",
+    "fbff86",
+    "f9c22b",
+    "f79617",
+    "cd683d",
+    "2e222f",
+    "8fd3ff",
+    "4d9be6",
+    "4d65b4",
+    "484a77",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f",
+    "2e222f"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+  "description": "All four characters on Frostpeak with the stage hazards rule on (slick ice and two drifting floes), starting at 60%, driven by 6000 ticks of seeded random input (decision D-063).",
+  "stage": "frostpeak",
+  "characters": [
+    "rook",
+    "bramble",
+    "zephyr",
+    "mote"
+  ],
+  "seed": 11,
+  "stocks": null,
+  "start_damage": 60.0,
+  "input_seed": 33,
+  "ticks": 6000,
+  "rules": {
+    "stage_hazards": true
+  },
+  "hash": "04f063e3b8b3d9940f3f3b754b154c9f"
+}

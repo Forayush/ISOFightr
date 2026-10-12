@@ -1,0 +1,156 @@
+# Frostpeak: a frozen summit (decision D-063, new in M14). The main island has a snowy ledge
+# one unit up along its far side and a sheet of ice across its middle; a smaller island
+# stands across a gap three cells wide.
+# Mechanics: the ice is slick (a quarter of the usual grip, so fighters slide and are
+# knocked further along it), and two floes drift out over the gap to the far island and
+# back, out of step. With the "stage hazards" rule off the ice grips like any ground and the
+# floes rest over the main island's edge.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "frostpeak"
+display_name = "Frostpeak"
+description = "A frozen summit: slick ice, and two floes over the gap."
+tileset = "frost"
+music = "frostpeak"            # a song in assets/audio/music
+
+# Legend: '.' = void. 's' snow, 'L' the snowy ledge (one unit up), 'i' the ice sheet.
+grid = """
+LLLLLLLLL......
+LLLLLLLLL......
+sssssssss...sss
+ssiiiiiss...sss
+ssiiiiiss...sss
+ssiiiiiss...sss
+sssssssss...sss
+sssssssss......
+"""
+
+[legend]
+"s" = { height = 0, tile = "snow" }
+"L" = { height = 1, tile = "snow" }
+"i" = { height = 0, tile = "ice", traction = 0.25 }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [7, 2, 9, 4]          # the far floe: out to the small island and back, 8 seconds
+z = 2.5
+motion = { kind = "ping_pong", to = [3.0, 0.0, 0.0], period = 480 }
+[[soft_platforms]]
+rect = [7, 5, 9, 7]          # the near floe, half a trip behind
+z = 2.5
+motion = { kind = "ping_pong", to = [3.0, 0.0, 0.0], period = 480, phase = 240 }
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [1.0, 4.5]
+p2 = [13.5, 4.5]
+p3 = [5.0, 7.0]
+p4 = [4.5, 1.0]
+respawn = [7.5, 4.5]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py frostpeak --theme peaks --mood dawn --seed 5).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.04
+scroll = 0.015
+
+[[background]]
+image = "bg_2_far_peaks.png"
+parallax = 0.08
+
+[[background]]
+image = "bg_3_near_peaks.png"
+parallax = 0.16
+
+[[background]]
+image = "bg_4_bank.png"
+parallax = 0.3
+scroll = 0.03
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 1.5
+hang = ["icicles", "root"]
+
+[ambient]
+kind = "snow"
+count = 16
+front = 5
+
+[[props]]                    # flat on the ice: light sliding over it
+sprite = "shine"
+at = [3.0, 3.6]
+layer = "ground"
+period = 18
+[[props]]
+sprite = "shine"
+at = [5.5, 4.4]
+layer = "ground"
+period = 18
+phase = 27
+[[props]]
+sprite = "shine"
+at = [3.6, 5.4]
+layer = "ground"
+period = 18
+phase = 50
+[[props]]
+sprite = "shine"
+at = [6.2, 3.3]
+layer = "ground"
+period = 18
+phase = 12
+
+[[props]]                    # on the ledge at the back: the tall things
+sprite = "pine"
+at = [0.6, 0.6]
+[[props]]
+sprite = "pine"
+at = [2.2, 0.5]
+phase = 9
+[[props]]
+sprite = "cairn"
+at = [7.5, 0.6]
+period = 12
+[[props]]
+sprite = "boulder"
+at = [6.0, 0.5]
+[[props]]
+sprite = "drift"
+at = [3.4, 1.6]
+
+[[props]]                    # the main island
+sprite = "snowman"
+at = [0.6, 6.5]
+[[props]]
+sprite = "spikes"
+at = [0.5, 2.5]
+period = 40
+[[props]]
+sprite = "drift"
+at = [2.5, 7.5]
+[[props]]
+sprite = "boulder"
+at = [7.5, 7.5]
+
+[[props]]                    # the small island
+sprite = "pine"
+at = [13.5, 2.5]
+phase = 4
+[[props]]
+sprite = "spikes"
+at = [14.5, 2.6]
+period = 40
+phase = 20
+[[props]]
+sprite = "drift"
+at = [12.5, 6.5]

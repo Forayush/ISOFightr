@@ -1,0 +1,57 @@
+# Icicles: hang under the summit; one glints (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "ice0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.900]
+r1 = 0.070
+r2 = 0.010
+material = "icicle"
+
+[[parts]]
+name = "ice1"
+joint = "origin"
+shape = "rod"
+a = [0.160, -0.080, 0.020]
+b = [0.160, -0.080, -0.500]
+r1 = 0.070
+r2 = 0.010
+material = "icicle"
+
+[[parts]]
+name = "ice2"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.080, 0.020]
+b = [-0.160, 0.080, -0.600]
+r1 = 0.070
+r2 = 0.010
+material = "icicle"
+
+[[parts]]
+name = "ice3"
+joint = "origin"
+shape = "rod"
+a = [0.060, 0.140, 0.020]
+b = [0.060, 0.140, -0.360]
+r1 = 0.070
+r2 = 0.010
+material = "icicle"
+
+[[smears]]
+name = "glint"
+joint = "origin"
+shape = "ball"
+centre = [0.040, 0.040, -0.400]
+radius = 0.040
+scale = [1.000, 1.000, 1.000]
+material = "glint_hi"
+
+[[poses]]
+
+[[poses]]
+show = ["glint"]

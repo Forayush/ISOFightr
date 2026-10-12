@@ -371,3 +371,43 @@ def test_wait_helper_and_rules_are_what_the_other_tests_assume() -> None:
     match = start(build(), MatchRules(stocks=None))
     wait(match, 3)
     assert match.frame == 3 and not match.rules.stage_hazards
+
+
+# --- the shadows of moving platforms -------------------------------------------------------
+
+
+def test_a_moving_platform_shades_only_the_ground_under_it() -> None:
+    from isofightr.render.ground_items import PLATFORM_SHADOW_BASE, platform_shadows
+    from isofightr.render.placeholder_art import build_moving_shadow
+    from isofightr.render.props import GROUND_PROP_BASE
+
+    rest = load_stage("frostpeak")
+    assert len(platform_shadows(rest, rest)) == 2, "at rest too: the rule off changes nothing"
+    still = load_stage("sky_ruins")
+    assert platform_shadows(still, still) == [], "platforms that never move have theirs painted"
+
+    for frame in (0, 120, 240, 400):
+        live = rest.at(frame)
+        shadows = platform_shadows(rest, live)
+        ids = [item.item_id for item in shadows]
+        assert len(set(ids)) == len(ids)
+        assert all(GROUND_PROP_BASE + 40 < item_id < 1 << 20 for item_id in ids)
+        assert min(ids) >= PLATFORM_SHADOW_BASE
+        for item in shadows:
+            assert item.surface == 0.0, "the floes pass over the snow, never over the ledge"
+            platform = live.soft_platforms[(item.item_id - PLATFORM_SHADOW_BASE) // 4]
+            assert (item.x, item.y) == (platform.x0 + 1.0, platform.y0 + 1.0), "under its middle"
+    # After half its trip the far floe is right out over the gap and casts nothing; the
+    # near one, half a trip behind, is back over the main island.
+    (out,) = platform_shadows(rest, rest.at(240))
+    assert out.item_id == PLATFORM_SHADOW_BASE + 4 and out.x == 8.0
+
+    # Lily Pads' leaves hang mostly over the gap: each shades the corner of the centre pad.
+    pads = load_stage("lily_pads")
+    assert [item.surface for item in platform_shadows(pads, pads)] == [0.0, 0.0]
+    assert all(item.on_ground for item in platform_shadows(pads, pads))
+
+    picture = build_moving_shadow(3, 2)
+    assert picture.size == (80, 40)
+    assert picture.getpixel((40, 20))[3] > 0 and picture.getpixel((0, 0))[3] == 0
+    assert picture.getpixel((32, 1))[3] > 0, "the far corner is two cells in from the left"

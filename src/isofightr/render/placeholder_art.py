@@ -584,6 +584,27 @@ def build_shadow(player_index: int, variant_index: int) -> Image.Image:
     return image
 
 
+def build_moving_shadow(columns: int, rows: int) -> Image.Image:
+    """Return the shadow a moving platform of ``columns`` by ``rows`` cells casts on the ground
+    under it: its own flat 2:1 outline, in the colour of the shadow a resting platform's
+    cells have painted on them (decision D-063)."""
+    half_w, half_h = TILE_W // 2, TILE_H // 2
+    width, height = (columns + rows) * half_w, (columns + rows) * half_h
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    # The far corner, the right one (+x), the near one, the left one (+y).
+    draw.polygon(
+        (
+            (rows * half_w, 0),
+            (width - 1, columns * half_h),
+            (columns * half_w, height - 1),
+            (0, rows * half_h),
+        ),
+        fill=PLATFORM_SHADOW,
+    )
+    return image
+
+
 def build_sky() -> Image.Image:
     """Return the 640x360 banded sky gradient used until stages have real backgrounds."""
     image = Image.new("RGBA", (NATIVE_W, NATIVE_H), SKY_BANDS[-1])

@@ -43,7 +43,7 @@ from isofightr.render.depth import (
     moving_blocks,
 )
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
-from isofightr.render.ground_items import GroundItem
+from isofightr.render.ground_items import GroundItem, platform_shadows
 from isofightr.render.iso import project
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.props import (
@@ -164,6 +164,9 @@ class WorldRenderer:
         self._ground: dict[int, _RankedSprite] = {}
         """Sprites of ground items (projectile shadows, decals), by item id."""
         self._ground_images: dict[object, Image.Image] = {}
+        self._ground_masks: dict[tuple[float, float, float, int, int], bytes] = {}
+        """The clipping of things lying on solid ground, by place and size: the ground does
+        not move, so it is worked out once per place."""
         self._order: list[DrawEntry] | None = None
 
         # Props (decision D-063): decorations from the tileset, sorted like everything else.
@@ -289,6 +292,8 @@ class WorldRenderer:
             # The stage's own decals (glowing runes, markings) lie under everything else.
             flat = ground_items(self._ground_props, frame, self.stage_art.prop, self.calm)
             ground = [*flat, *ground]
+        if self.stage.has_mechanics:
+            ground = [*platform_shadows(self.stage, self.live), *ground]
         self._drop_ground({item.item_id for item in ground})
         items.extend(self._sync_ground(item) for item in ground)
 
@@ -631,7 +636,15 @@ class WorldRenderer:
         screen_x, screen_y = project(item.x, item.y, item.surface)
         centre_x = snap(screen_x) + (width % 2) / 2
         centre_y = snap(screen_y) + (height % 2) / 2
-        mask = shadow_mask(self.live, centre_x, centre_y, item.surface, width, height)
+        if item.on_ground:
+            place = (centre_x, centre_y, item.surface, width, height)
+            found = self._ground_masks.get(place)
+            if found is None:
+                found = shadow_mask(self.stage, centre_x, centre_y, item.surface, width, height)
+                self._ground_masks[place] = found
+            mask = found
+        else:
+            mask = shadow_mask(self.live, centre_x, centre_y, item.surface, width, height)
         texture = self._texture(("ground", item.key, mask), lambda: apply_mask(image, mask))
         sprite = self._ground.get(item.item_id)
         if sprite is None:

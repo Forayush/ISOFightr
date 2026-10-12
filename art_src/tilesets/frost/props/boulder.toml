@@ -1,0 +1,32 @@
+# Boulder: a rock with snow on it.
+loop = true
+fps = 1
+
+[[parts]]
+name = "rock"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.200]
+radius = 0.300
+scale = [1.100, 0.900, 0.800]
+material = "stone"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.300, -0.140, 0.100]
+radius = 0.150
+scale = [1.000, 1.000, 0.800]
+material = "stone"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.360]
+radius = 0.200
+scale = [1.100, 0.900, 0.450]
+material = "snowcap"
+
+[[poses]]

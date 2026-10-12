@@ -1,0 +1,90 @@
+# Snowman: three balls, a carrot and a scarf.
+loop = true
+fps = 1
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.200]
+radius = 0.240
+scale = [1.000, 1.000, 1.000]
+material = "snowcap"
+
+[[parts]]
+name = "chest"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.500]
+radius = 0.180
+scale = [1.000, 1.000, 1.000]
+material = "snowcap"
+
+[[parts]]
+name = "head"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.740]
+radius = 0.130
+scale = [1.000, 1.000, 1.000]
+material = "snowcap"
+
+[[parts]]
+name = "scarf"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.600]
+b = [0.000, 0.000, 0.660]
+r1 = 0.150
+r2 = 0.150
+material = "flag_red"
+
+[[parts]]
+name = "nose"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.080, 0.740]
+b = [0.200, 0.200, 0.730]
+r1 = 0.030
+r2 = 0.008
+material = "flag_gold"
+
+[[parts]]
+name = "eye0"
+joint = "origin"
+shape = "ball"
+centre = [0.120, 0.030, 0.790]
+radius = 0.020
+scale = [1.000, 1.000, 1.000]
+material = "coal"
+
+[[parts]]
+name = "eye1"
+joint = "origin"
+shape = "ball"
+centre = [0.030, 0.120, 0.790]
+radius = 0.020
+scale = [1.000, 1.000, 1.000]
+material = "coal"
+
+[[parts]]
+name = "arm0"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.100, 0.520]
+b = [0.360, -0.360, 0.660]
+r1 = 0.015
+r2 = 0.012
+material = "trunk"
+
+[[parts]]
+name = "arm1"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.100, 0.520]
+b = [-0.360, 0.360, 0.620]
+r1 = 0.015
+r2 = 0.012
+material = "trunk"
+
+[[poses]]

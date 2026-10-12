@@ -1,0 +1,340 @@
+# Summit Morning: Frostpeak (decision D-063). Bright and cold, in A lydian: the raised
+# fourth (D#) is the glitter on the snow. A bell runs up and down each chord, glass answers
+# it two octaves up, a triangle carries the tune over a soft pad, a plucked bass walks, and
+# sleigh bells keep time. Rendered by tools/build_audio.py; written with
+# build/scratch/m14_song_frost.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
+id = "frostpeak"
+title = "Summit Morning"
+tempo = 135
+steps_per_beat = 4
+key = "A"
+mode = "lydian"
+meter = "4/4"
+form = ["intro", "verse", "chorus", "verse2"]
+
+[echo]
+beats = 0.75
+feedback = 0.36
+mix = 0.3
+lowpass = 0.7
+
+[sections.intro]              # 4 bars: A B A B; the bell alone, then the pad and the sleigh
+level = 0.65
+to = 1.0
+play = ["arp_i", "pad_i_root", "pad_i_third", "pad_i_fifth", "sleigh*0.6"]
+
+[sections.verse]              # 8 bars: A B A B F#m B E E
+level = 0.9
+play = ["verse", "arp_v*0.8", "pad_v_root", "pad_v_third", "pad_v_fifth", "bass_v", "kick",
+        "sleigh"]
+
+[sections.chorus]             # 8 bars: A B C#m B A B E A; glass above everything
+play = ["chorus", "arp_c*0.8", "glass_c+24", "pad_c_root", "pad_c_third", "pad_c_fifth",
+        "bass_c", "kick", "sleigh", "clap"]
+
+[sections.verse2]             # the verse again, the glass staying
+kind = "verse"
+play = ["verse", "verse+12*0.4", "arp_v*0.8", "glass_v+24*0.8", "pad_v_root", "pad_v_third",
+        "pad_v_fifth", "bass_v", "kick", "sleigh", "clap"]
+
+[instruments.chime]           # a small clear bell
+wave = "bell"
+mod_ratio = 3.0
+mod_index = 0.9
+release = 0.3
+volume = 0.2
+send = 0.4
+
+[instruments.glass]
+wave = "ping"
+length = 0.35
+release = 0.25
+volume = 0.2
+send = 0.6
+
+[instruments.tune]            # a triangle with a slow vibrato: a wooden flute, nearly
+wave = "triangle"
+attack = 0.02
+decay = 0.06
+sustain = 0.8
+release = 0.08
+vibrato_depth = 0.2
+vibrato_rate = 5.0
+volume = 0.26
+send = 0.25
+
+[instruments.air]             # a soft pad
+wave = "pad"
+detune = 5
+attack = 0.25
+release = 0.35
+lowpass = 0.45
+volume = 0.16
+send = 0.2
+
+[instruments.bass]            # plucked
+wave = "pluck"
+damp = 0.4
+release = 0.15
+volume = 0.36
+
+[instruments.kick]
+wave = "drum"
+freq = 78
+freq_end = 48
+length = 0.14
+noise = 0.05
+release = 0.06
+volume = 0.34
+
+[instruments.sleigh]          # sleigh bells: very high, very short
+wave = "noise"
+freq = 9800
+length = 0.045
+release = 0.03
+volume = 0.1
+
+[instruments.clap]            # mittens
+wave = "noise"
+freq = 1500
+length = 0.09
+release = 0.05
+lowpass = 0.5
+volume = 0.16
+
+[patterns.verse]
+instrument = "tune"
+steps = """
+E5 - - - C#5 - E5 - A5 - - - G#5 - E5 -
+F#5 - - - D#5 - - - B4 - - - . . . .
+E5 - - - C#5 - E5 - A5 - - - B5 - A5 -
+F#5 - - - - - D#5 - F#5 - - - . . . .
+C#5 - - - F#5 - A5 - C#6 - - - A5 - - -
+B5 - - - F#5 - - - D#5 - - - F#5 - - -
+G#5 - - - E5 - B4 - E5 - - - G#5 - B5 -
+B5 - - - - - - - - - - - . . . .
+"""
+
+[patterns.chorus]
+instrument = "tune"
+steps = """
+C#6 - - - - - B5 - A5 - - - E5 - - -
+D#6 - - - - - B5 - F#5 - - - B5 - - -
+E6 - - - C#6 - G#5 - E5 - - - G#5 - C#6 -
+B5 - - - - - - - F#5 - - - . . . .
+C#6 - - - - - B5 - A5 - - - C#6 - - -
+D#6 - - - - - F#6 - D#6 - - - B5 - - -
+E6 - - - B5 - G#5 - B5 - - - E6 - - -
+A5 - - - - - - - - - - - . . . .
+"""
+
+[patterns.arp_i]
+instrument = "chime"
+steps = """
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+"""
+
+[patterns.pad_i_root]
+instrument = "air"
+steps = """
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_i_third]
+instrument = "air"
+steps = """
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_i_fifth]
+instrument = "air"
+steps = """
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.arp_v]
+instrument = "chime"
+steps = """
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+A4 . C#5 . F#5 . A5 . F#5 . C#5 . F#5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+B4 . E5 . G#5 . B5 . G#5 . E5 . G#5 . B5 .
+B4 . E5 . G#5 . B5 . G#5 . E5 . G#5 . B5 .
+"""
+
+[patterns.pad_v_root]
+instrument = "air"
+steps = """
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_v_third]
+instrument = "air"
+steps = """
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_v_fifth]
+instrument = "air"
+steps = """
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+G#4 - - - - - - - - - - - - - - -
+G#4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.arp_c]
+instrument = "chime"
+steps = """
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+G#4 . C#5 . E5 . G#5 . E5 . C#5 . E5 . G#5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+B4 . D#5 . F#5 . B5 . F#5 . D#5 . F#5 . B5 .
+B4 . E5 . G#5 . B5 . G#5 . E5 . G#5 . B5 .
+A4 . C#5 . E5 . A5 . E5 . C#5 . E5 . A5 .
+"""
+
+[patterns.pad_c_root]
+instrument = "air"
+steps = """
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_c_third]
+instrument = "air"
+steps = """
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.pad_c_fifth]
+instrument = "air"
+steps = """
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+F#4 - - - - - - - - - - - - - - -
+G#4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.glass_v]
+instrument = "glass"
+steps = """
+. . . . A5 . . . . . E5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . A5 . . . . . E5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . A5 . . . . . F#5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . B5 . . . . . G#5 . . . E5 .
+. . . . B5 . . . . . G#5 . . . E5 .
+"""
+
+[patterns.bass_v]
+instrument = "bass"
+steps = """
+A2 - - - . . A2 - A2 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+A2 - - - . . A2 - A2 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+F#2 - - - . . F#2 - F#2 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+E2 - - - . . E2 - E2 - - - . . . .
+E2 - - - . . E2 - E2 - - - . . . .
+"""
+
+[patterns.glass_c]
+instrument = "glass"
+steps = """
+. . . . A5 . . . . . E5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . G#5 . . . . . E5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . A5 . . . . . E5 . . . C#5 .
+. . . . B5 . . . . . F#5 . . . D#5 .
+. . . . B5 . . . . . G#5 . . . E5 .
+. . . . A5 . . . . . E5 . . . C#5 .
+"""
+
+[patterns.bass_c]
+instrument = "bass"
+steps = """
+A2 - - - . . A2 - A2 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+C#3 - - - . . C#3 - C#3 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+A2 - - - . . A2 - A2 - - - . . . .
+B2 - - - . . B2 - B2 - - - . . . .
+E2 - - - . . E2 - E2 - - - . . . .
+A2 - - - . . A2 - A2 - - - . . . .
+"""
+
+[patterns.kick]
+instrument = "kick"
+steps = """
+x . . . . . . . x . . . . . x .
+"""
+
+[patterns.sleigh]
+instrument = "sleigh"
+steps = """
+x . x x x . x x x . x x x . x x
+"""
+
+[patterns.clap]
+instrument = "clap"
+steps = """
+. . . . x . . . . . . . x . . .
+"""

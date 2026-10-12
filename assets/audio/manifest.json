@@ -98,6 +98,15 @@
       "mode": "minor",
       "meter": "4/4"
     },
+    "frostpeak": {
+      "source": "a28b57d03e3751ea",
+      "title": "Summit Morning",
+      "seconds": 49.778,
+      "tempo": 135.0,
+      "key": "A",
+      "mode": "lydian",
+      "meter": "4/4"
+    },
     "lily_pads": {
       "source": "5ce7ddf74896de37",
       "title": "Dusk on the Water",

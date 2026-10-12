@@ -167,6 +167,7 @@ def ground_items(
                 ("ground-prop", name, frame),
                 partial(build),
                 DECAL_RANK,
+                on_ground=True,
             )
         )
     return items

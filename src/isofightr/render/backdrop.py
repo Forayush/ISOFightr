@@ -98,6 +98,14 @@ EMBER: Final[Mood] = Mood(
     ruin="f57d4a",
 )
 """Smoke lit from below: black overhead, red and orange toward the ground (Ember Forge)."""
+DAWN: Final[Mood] = Mood(
+    sky=("4d9be6", "8fd3ff", "c7dcd0", "fdcbb0"),
+    cloud=("ffffff", "fdcbb0", "c7dcd0"),
+    island_top="ffffff",
+    island_side=("9babb2", "7f708a"),
+    ruin="ffffff",
+)
+"""A cold, clear dawn: blue overhead paling to peach at the horizon (Frostpeak)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -106,6 +114,7 @@ MOODS: Final[dict[str, Mood]] = {
     "night": NIGHT,
     "void": VOID,
     "ember": EMBER,
+    "dawn": DAWN,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -700,13 +709,18 @@ def aurora(
 
 
 def peaks(
-    seed: int, crest: int, tall: int, width: int = LAYER_WIDTH, height: int = NATIVE_H
+    seed: int,
+    crest: int,
+    tall: int,
+    colours: tuple[str, str, str] = PEAK_COLOURS,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
 ) -> Image.Image:
     """Return a range of sharp mountains along the bottom of the picture: their summits about
     ``crest`` pixels down and up to ``tall`` pixels high, snow on their left flanks. It
     wraps."""
     rng = random.Random(seed)
-    snow, rock, shade = (hex_rgb(value) for value in PEAK_COLOURS)
+    snow, rock, shade = (hex_rgb(value) for value in colours)
     image = Image.new("RGBA", (width, height))
     draw = ImageDraw.Draw(image)
     count = 11
@@ -980,3 +994,26 @@ def paint_volcano(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["volcano"] = paint_volcano
+
+
+# --- snowy peaks at dawn (Frostpeak) -------------------------------------------------------
+
+DAWN_SUN: Final[tuple[int, int]] = (150, 176)
+FAR_SNOW_PEAKS: Final[tuple[str, str, str]] = ("ffffff", "c7dcd0", "9babb2")
+NEAR_SNOW_PEAKS: Final[tuple[str, str, str]] = ("ffffff", "9babb2", "7f708a")
+"""A range of snowy mountains: their sunlit snow, their rock, their rock in shadow."""
+
+
+def paint_peaks(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Frostpeak: a low sun in a clear dawn sky, thin clouds, two ranges of snowy mountains,
+    and a bank of cloud lying in the valley below."""
+    return {
+        "bg_0_sky.png": sunny_sky(mood, DAWN_SUN),
+        "bg_1_far_clouds.png": clouds(mood, seed, 6, (50, 130), (10, 16)),
+        "bg_2_far_peaks.png": peaks(seed + 1, 150, 90, FAR_SNOW_PEAKS),
+        "bg_3_near_peaks.png": peaks(seed + 2, 200, 100, NEAR_SNOW_PEAKS),
+        "bg_4_bank.png": cloud_bank(mood, seed + 3, 304, 12, 30),
+    }
+
+
+PAINTERS["peaks"] = paint_peaks

@@ -36,6 +36,7 @@ STAGES = (
     "twin_isles",
     "lily_pads",
     "ember_forge",
+    "frostpeak",
 )
 
 
@@ -154,7 +155,9 @@ def test_cpus_are_deterministic_for_a_seed() -> None:
 
 @pytest.mark.parametrize(
     ("stage", "character"),
-    list(zip(STAGES, ("rook", "bramble", "zephyr", "mote", "rook", "bramble"), strict=True)),
+    list(
+        zip(STAGES, ("rook", "bramble", "zephyr", "mote", "rook", "bramble", "zephyr"), strict=True)
+    ),
 )
 def test_a_level_9_cpu_reaches_and_hits_a_standing_opponent(stage: str, character: str) -> None:
     match, cpus = cpu_match(stage, (character, "rook"), (9, 0))

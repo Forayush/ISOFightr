@@ -1,0 +1,87 @@
+# Shine: light sliding over the ice (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "s_glint_hi_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.030, 0.004]
+high = [-0.060, 0.030, 0.014]
+material = "glint_hi"
+
+[[smears]]
+name = "s_glint_hi_1"
+joint = "origin"
+shape = "box"
+low = [0.060, 0.120, 0.004]
+high = [0.340, 0.180, 0.014]
+material = "glint_hi"
+
+[[smears]]
+name = "s_glint_hi_2"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.260, 0.004]
+high = [0.100, -0.200, 0.014]
+material = "glint_hi"
+
+[[smears]]
+name = "s_glint_lo_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.030, 0.004]
+high = [-0.060, 0.030, 0.014]
+material = "glint_lo"
+
+[[smears]]
+name = "s_glint_lo_1"
+joint = "origin"
+shape = "box"
+low = [0.060, 0.120, 0.004]
+high = [0.340, 0.180, 0.014]
+material = "glint_lo"
+
+[[smears]]
+name = "s_glint_lo_2"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.260, 0.004]
+high = [0.100, -0.200, 0.014]
+material = "glint_lo"
+
+[[smears]]
+name = "s_glint_mid_0"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.030, 0.004]
+high = [-0.060, 0.030, 0.014]
+material = "glint_mid"
+
+[[smears]]
+name = "s_glint_mid_1"
+joint = "origin"
+shape = "box"
+low = [0.060, 0.120, 0.004]
+high = [0.340, 0.180, 0.014]
+material = "glint_mid"
+
+[[smears]]
+name = "s_glint_mid_2"
+joint = "origin"
+shape = "box"
+low = [-0.140, -0.260, 0.004]
+high = [0.100, -0.200, 0.014]
+material = "glint_mid"
+
+[[poses]]
+show = ["s_glint_mid_0", "s_glint_mid_1", "s_glint_mid_2"]
+
+[[poses]]
+show = ["s_glint_hi_0", "s_glint_hi_1", "s_glint_hi_2"]
+
+[[poses]]
+show = ["s_glint_mid_0", "s_glint_mid_1", "s_glint_mid_2"]
+
+[[poses]]
+show = ["s_glint_lo_0", "s_glint_lo_1", "s_glint_lo_2"]

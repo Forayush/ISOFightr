@@ -1,0 +1,116 @@
+# frost tileset materials (Frostpeak; decisions D-045 and D-063). Tile materials have
+# no outline (tiles tessellate); the props' have. Costume 0 colours the light cells of
+# the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "snow"
+outline = false
+
+[[materials]]
+name = "snow_shade"
+outline = false
+
+[[materials]]
+name = "ice"
+outline = false
+
+[[materials]]
+name = "ice_dark"
+outline = false
+
+[[materials]]
+name = "ice_light"
+outline = false
+
+[[materials]]
+name = "crag"
+outline = false
+
+[[materials]]
+name = "crag_dark"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "glint_hi"
+outline = false
+lit = false
+
+[[materials]]
+name = "glint_mid"
+outline = false
+lit = false
+
+[[materials]]
+name = "glint_lo"
+outline = false
+lit = false
+
+[[materials]]
+name = "needle"
+
+[[materials]]
+name = "snowcap"
+
+[[materials]]
+name = "trunk"
+
+[[materials]]
+name = "stone"
+
+[[materials]]
+name = "icicle"
+
+[[materials]]
+name = "flag_red"
+
+[[materials]]
+name = "flag_gold"
+
+[[materials]]
+name = "flag_blue"
+
+[[materials]]
+name = "coal"
+outline = false
+lit = false
+
+[[costumes]]
+name = "light"
+snow = ["ffffff", "ffffff", "c7dcd0", "9babb2", "7f708a"]
+snow_shade = ["ffffff", "c7dcd0", "9babb2", "7f708a", "625565"]
+ice = ["ffffff", "8fd3ff", "4d9be6", "4d65b4", "484a77"]
+ice_dark = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]
+ice_light = ["ffffff", "ffffff", "8fd3ff", "4d9be6", "4d65b4"]
+crag = ["9babb2", "7f708a", "484a77", "323353", "2e222f"]
+crag_dark = ["7f708a", "484a77", "323353", "2e222f", "2e222f"]
+deep = ["484a77", "323353", "2e222f", "2e222f", "2e222f"]
+deep_dark = ["323353", "2e222f", "2e222f", "2e222f", "2e222f"]
+glint_hi = ["ffffff", "ffffff", "ffffff", "ffffff", "ffffff"]
+glint_mid = ["8fd3ff", "8fd3ff", "8fd3ff", "8fd3ff", "8fd3ff"]
+glint_lo = ["4d9be6", "4d9be6", "4d9be6", "4d9be6", "4d9be6"]
+needle = ["1ebc73", "239063", "165a4c", "0b5e65", "2e222f"]
+snowcap = ["ffffff", "ffffff", "c7dcd0", "9babb2", "484a77"]
+trunk = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+stone = ["c7dcd0", "9babb2", "7f708a", "625565", "2e222f"]
+icicle = ["ffffff", "8fd3ff", "4d9be6", "4d65b4", "323353"]
+flag_red = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+flag_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "2e222f"]
+flag_blue = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "2e222f"]
+coal = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+
+[[costumes]]
+name = "dark"
+snow = ["ffffff", "c7dcd0", "c7dcd0", "9babb2", "7f708a"]
+ice = ["8fd3ff", "4d9be6", "4d65b4", "484a77", "323353"]

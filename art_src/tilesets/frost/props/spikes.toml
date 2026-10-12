@@ -1,0 +1,47 @@
+# Spikes: shards of ice standing out of the ground; one glints (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "shard0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.030, 0.000, 0.660]
+r1 = 0.120
+r2 = 0.015
+material = "icicle"
+
+[[parts]]
+name = "shard1"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.080, 0.000]
+b = [-0.280, 0.140, 0.380]
+r1 = 0.090
+r2 = 0.012
+material = "icicle"
+
+[[parts]]
+name = "shard2"
+joint = "origin"
+shape = "rod"
+a = [0.160, -0.060, 0.000]
+b = [0.280, -0.120, 0.460]
+r1 = 0.090
+r2 = 0.012
+material = "icicle"
+
+[[smears]]
+name = "glint"
+joint = "origin"
+shape = "ball"
+centre = [0.060, 0.060, 0.520]
+radius = 0.045
+scale = [1.000, 1.000, 1.000]
+material = "glint_hi"
+
+[[poses]]
+
+[[poses]]
+show = ["glint"]

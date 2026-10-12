@@ -1,0 +1,34 @@
+# Root: a frozen root hanging under the summit.
+loop = true
+fps = 1
+
+[[parts]]
+name = "root0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.080, 0.000, -0.500]
+r1 = 0.060
+r2 = 0.040
+material = "trunk"
+
+[[parts]]
+name = "root1"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.000, -0.500]
+b = [-0.020, 0.000, -0.900]
+r1 = 0.040
+r2 = 0.012
+material = "trunk"
+
+[[parts]]
+name = "frost"
+joint = "origin"
+shape = "ball"
+centre = [0.040, 0.000, -0.300]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "snowcap"
+
+[[poses]]

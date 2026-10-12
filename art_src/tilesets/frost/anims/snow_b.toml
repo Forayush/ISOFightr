@@ -1,0 +1,317 @@
+# Snow, variant b.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.240]
+material = "crag_dark"
+
+[[parts]]
+name = "pack"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.240]
+high = [1.000, 1.000, 0.000]
+material = "snow"
+
+[[parts]]
+name = "dip0"
+joint = "origin"
+shape = "box"
+low = [0.119, 0.291, -0.020]
+high = [0.259, 0.436, 0.004]
+material = "snow_shade"
+
+[[parts]]
+name = "dip1"
+joint = "origin"
+shape = "box"
+low = [0.606, 0.221, -0.020]
+high = [0.752, 0.304, 0.004]
+material = "snow_shade"
+
+[[parts]]
+name = "hang0"
+joint = "origin"
+shape = "box"
+low = [0.860, 0.990, -0.428]
+high = [0.984, 1.026, -0.200]
+material = "snow"
+
+[[parts]]
+name = "hang1"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.743, -0.402]
+high = [1.026, 0.832, -0.200]
+material = "snow"
+
+[[parts]]
+name = "hang2"
+joint = "origin"
+shape = "box"
+low = [0.806, 0.990, -0.400]
+high = [0.938, 1.026, -0.200]
+material = "snow"
+
+[[parts]]
+name = "hang3"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.752, -0.373]
+high = [1.026, 0.886, -0.200]
+material = "snow"
+
+[[parts]]
+name = "hang4"
+joint = "origin"
+shape = "box"
+low = [0.783, 0.990, -0.385]
+high = [0.913, 1.026, -0.200]
+material = "snow"
+
+[[parts]]
+name = "crag0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.589]
+high = [1.012, 0.312, -0.240]
+material = "crag_dark"
+
+[[parts]]
+name = "crag1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.312, -0.589]
+high = [1.012, 0.624, -0.240]
+material = "crag_dark"
+
+[[parts]]
+name = "crag2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.624, -0.589]
+high = [1.012, 1.000, -0.240]
+material = "crag_dark"
+
+[[parts]]
+name = "crag3"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.589]
+high = [0.430, 1.012, -0.240]
+material = "crag"
+
+[[parts]]
+name = "crag4"
+joint = "origin"
+shape = "box"
+low = [0.430, 0.950, -0.589]
+high = [1.000, 1.012, -0.240]
+material = "crag_dark"
+
+[[parts]]
+name = "crag5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.014]
+high = [1.012, 0.434, -0.589]
+material = "crag"
+
+[[parts]]
+name = "crag6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.434, -1.014]
+high = [1.012, 0.811, -0.589]
+material = "crag"
+
+[[parts]]
+name = "crag7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.811, -1.014]
+high = [1.012, 1.000, -0.589]
+material = "crag"
+
+[[parts]]
+name = "crag8"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.014]
+high = [0.406, 1.012, -0.589]
+material = "crag"
+
+[[parts]]
+name = "crag9"
+joint = "origin"
+shape = "box"
+low = [0.406, 0.950, -1.014]
+high = [0.796, 1.012, -0.589]
+material = "crag"
+
+[[parts]]
+name = "crag10"
+joint = "origin"
+shape = "box"
+low = [0.796, 0.950, -1.014]
+high = [1.000, 1.012, -0.589]
+material = "crag_dark"
+
+[[parts]]
+name = "crag11"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.397]
+high = [1.012, 0.424, -1.014]
+material = "crag"
+
+[[parts]]
+name = "crag12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.424, -1.397]
+high = [1.012, 1.000, -1.014]
+material = "crag"
+
+[[parts]]
+name = "crag13"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.397]
+high = [0.409, 1.012, -1.014]
+material = "crag"
+
+[[parts]]
+name = "crag14"
+joint = "origin"
+shape = "box"
+low = [0.409, 0.950, -1.397]
+high = [0.782, 1.012, -1.014]
+material = "crag"
+
+[[parts]]
+name = "crag15"
+joint = "origin"
+shape = "box"
+low = [0.782, 0.950, -1.397]
+high = [1.000, 1.012, -1.014]
+material = "crag_dark"
+
+[[parts]]
+name = "crag16"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.895]
+high = [1.012, 0.579, -1.397]
+material = "crag"
+
+[[parts]]
+name = "crag17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.579, -1.895]
+high = [1.012, 1.000, -1.397]
+material = "crag"
+
+[[parts]]
+name = "crag18"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.895]
+high = [0.466, 1.012, -1.397]
+material = "crag"
+
+[[parts]]
+name = "crag19"
+joint = "origin"
+shape = "box"
+low = [0.466, 0.950, -1.895]
+high = [1.000, 1.012, -1.397]
+material = "crag_dark"
+
+[[parts]]
+name = "crag20"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.435]
+high = [1.012, 0.541, -1.895]
+material = "crag"
+
+[[parts]]
+name = "crag21"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.541, -2.435]
+high = [1.012, 1.000, -1.895]
+material = "crag"
+
+[[parts]]
+name = "crag22"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.435]
+high = [0.392, 1.012, -1.895]
+material = "crag"
+
+[[parts]]
+name = "crag23"
+joint = "origin"
+shape = "box"
+low = [0.392, 0.950, -2.435]
+high = [0.813, 1.012, -1.895]
+material = "crag_dark"
+
+[[parts]]
+name = "crag24"
+joint = "origin"
+shape = "box"
+low = [0.813, 0.950, -2.435]
+high = [1.000, 1.012, -1.895]
+material = "crag"
+
+[[parts]]
+name = "crag25"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.970]
+high = [1.012, 0.370, -2.435]
+material = "ice_dark"
+
+[[parts]]
+name = "crag26"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.370, -2.970]
+high = [1.012, 1.000, -2.435]
+material = "crag"
+
+[[parts]]
+name = "crag27"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.970]
+high = [0.287, 1.012, -2.435]
+material = "crag"
+
+[[parts]]
+name = "crag28"
+joint = "origin"
+shape = "box"
+low = [0.287, 0.950, -2.970]
+high = [0.554, 1.012, -2.435]
+material = "crag"
+
+[[parts]]
+name = "crag29"
+joint = "origin"
+shape = "box"
+low = [0.554, 0.950, -2.970]
+high = [1.000, 1.012, -2.435]
+material = "crag"
+
+[[poses]]

@@ -1,0 +1,98 @@
+# Pine: a mountain pine under snow, swaying (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "trunk"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.500]
+r1 = 0.090
+r2 = 0.070
+material = "trunk"
+
+[[parts]]
+name = "tier0"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.350]
+b = [0.000, 0.000, 0.850]
+r1 = 0.500
+r2 = 0.030
+material = "needle"
+
+[[parts]]
+name = "snow0"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.630]
+b = [0.000, 0.000, 0.880]
+r1 = 0.280
+r2 = 0.050
+material = "snowcap"
+
+[[parts]]
+name = "tier1"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 0.800]
+b = [0.000, 0.000, 1.300]
+r1 = 0.400
+r2 = 0.030
+material = "needle"
+
+[[parts]]
+name = "snow1"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 1.080]
+b = [0.000, 0.000, 1.330]
+r1 = 0.224
+r2 = 0.050
+material = "snowcap"
+
+[[parts]]
+name = "tier2"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 1.200]
+b = [0.000, 0.000, 1.700]
+r1 = 0.300
+r2 = 0.030
+material = "needle"
+
+[[parts]]
+name = "snow2"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 1.480]
+b = [0.000, 0.000, 1.730]
+r1 = 0.168
+r2 = 0.050
+material = "snowcap"
+
+[[parts]]
+name = "tier3"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 1.550]
+b = [0.000, 0.000, 2.050]
+r1 = 0.200
+r2 = 0.030
+material = "needle"
+
+[[parts]]
+name = "snow3"
+joint = "crown"
+shape = "rod"
+a = [0.000, 0.000, 1.830]
+b = [0.000, 0.000, 2.080]
+r1 = 0.112
+r2 = 0.050
+material = "snowcap"
+
+[[poses]]
+
+[[poses]]
+crown = [0.000, 3.000, 0.000]
