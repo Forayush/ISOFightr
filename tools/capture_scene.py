@@ -38,6 +38,7 @@ from isofightr.capture import (
     SCREENS,
     STAGE_SHEET_TICKS,
     capture,
+    capture_depth_lab,
     capture_screen,
     capture_stage_sheet,
     parse_script,
@@ -68,6 +69,11 @@ def main() -> None:
     parser.add_argument("--screen", choices=SCREENS, help="capture a screen, not a battle")
     parser.add_argument("--players", type=int, default=2, help="fighters on a --screen")
     parser.add_argument("--stage-sheet", default="", metavar="ID", help="a stage's review sheet")
+    parser.add_argument(
+        "--depth-lab",
+        action="store_true",
+        help="the --stage's depth lab: ground points and their off-stage twins, side by side",
+    )
     parser.add_argument(
         "--hazards", choices=("on", "off"), default="on", help="stage mechanics on a --stage-sheet"
     )
@@ -103,7 +109,9 @@ def main() -> None:
         crop = (left, top, width, height)
     window = GameWindow(visible=False, sound=False)
     ticks = [int(value) for value in _numbers(args.ticks)] if args.ticks else [30]
-    if args.stage_sheet:
+    if args.depth_lab:
+        sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)
+    elif args.stage_sheet:
         sheet = capture_stage_sheet(
             window,
             args.stage_sheet,

@@ -22,6 +22,7 @@ from isofightr.app import GameWindow
 from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
+from isofightr.render.depth_cues import off_stage_twins
 from isofightr.render.iso import project
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
@@ -30,7 +31,7 @@ from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
 from isofightr.settings import SavedRules, Settings
-from isofightr.sim.input_frame import facing_from_move
+from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.match import MatchRules
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.stage import Stage
@@ -356,6 +357,73 @@ def _hazard_rules(hazards: bool) -> MatchRules:
     """Return the rules for a stage sheet: the sandbox's, with the stage's mechanics on or
     off (decision D-063)."""
     return replace(MatchRules(), stage_hazards=hazards)
+
+
+DEPTH_LAB_CROP: tuple[int, int] = (200, 150)
+"""Native pixels of each depth-lab picture: the fighter and the ground around its marker."""
+DEPTH_LAB_SCALE = 2
+DEPTH_LAB_PAIRS = 4
+
+
+def capture_depth_lab(
+    window: GameWindow,
+    stage_id: str,
+    pairs: int = DEPTH_LAB_PAIRS,
+    character: str = "rook",
+    seed: int = 0,
+    scale: int = 1,
+) -> Image.Image:
+    """Return a stage's depth-lab sheet (decision D-065): one row per pair of
+    :func:`isofightr.render.depth_cues.off_stage_twins`, with a fighter standing on the
+    ground on the left and the same fighter in the air off the stage, on the same pixels, on
+    the right. Each picture is the same crop of the screen at twice the size, with the HUD
+    off, so the two differ only in what the game draws to tell the places apart.
+
+    The other fighter of the match waits on the spawn furthest from the pair.
+    """
+    window.switch_to()
+    stage = load_stage(stage_id)
+    twins = off_stage_twins(stage, pairs)
+    if not twins:
+        raise ValueError(f"{stage_id} has no ground point with a twin over the void")
+    view = BattleView(window.pixel_buffer, stage, [load_character(character)] * 2, seed=seed)
+    view.show_help = False
+    view.hud_display = False
+    window.show_view(view)
+    view.on_update(TICK_SECONDS)
+    camera = view.camera
+    camera.clamped = False
+    first, second = view.match.fighters[0], view.match.fighters[1]
+    wide, tall = DEPTH_LAB_CROP[0] * DEPTH_LAB_SCALE, DEPTH_LAB_CROP[1] * DEPTH_LAB_SCALE
+    sheet = Image.new("RGBA", (2 * wide, len(twins) * tall), LABEL_SHADE)
+    spawns = [stage.spawn_point(index) for index in range(len(stage.spawns))]
+    for row, pair in enumerate(twins):
+        ground = Vec3(*pair.ground)
+        away = max(spawns, key=lambda spawn: (spawn - ground).length())
+        world_x, world_y = project(*pair.ground)
+        for column, (spot, where) in enumerate(
+            ((pair.ground, "on the ground"), (pair.air, "in the air, off the stage"))
+        ):
+            first.pos, second.pos = Vec3(*spot), away
+            first.vel = second.vel = Vec3(0.0, 0.0, 0.0)
+            first.facing = second.facing = Dir8.SE
+            camera.x, camera.y = world_x, world_y + DEPTH_LAB_CROP[1] // 6
+            view.on_draw()
+            centre_x, centre_y = view.view_centre()
+            at_x = NATIVE_W // 2 + round(world_x - centre_x)
+            at_y = NATIVE_H // 2 - round(world_y - centre_y)
+            left = min(max(at_x - DEPTH_LAB_CROP[0] // 2, 0), NATIVE_W - DEPTH_LAB_CROP[0])
+            upper = min(max(at_y - DEPTH_LAB_CROP[1] * 2 // 3, 0), NATIVE_H - DEPTH_LAB_CROP[1])
+            frame = read_frame(window).crop(
+                (left, upper, left + DEPTH_LAB_CROP[0], upper + DEPTH_LAB_CROP[1])
+            )
+            frame = frame.resize((wide, tall), Image.Resampling.NEAREST)
+            place = ", ".join(f"{value:g}" for value in spot)
+            _label(frame, f"{stage_id}  {where}  ({place})")
+            sheet.paste(frame, (column * wide, row * tall))
+    if scale > 1:
+        sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
+    return sheet
 
 
 def capture_stage_sheet(

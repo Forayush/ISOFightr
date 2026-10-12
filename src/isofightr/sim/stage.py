@@ -373,6 +373,21 @@ class Stage:
         """
         return self.bounds.z_min - ISLAND_THICKNESS
 
+    @property
+    def reference_z(self) -> float:
+        """Height of the stage's reference plane: the top height most of its solid cells
+        have (the lower one if two heights tie). Where a fighter has no ground below, the
+        renderer draws its marker on this plane (decision D-065); nothing in the sim reads
+        it."""
+        counts: dict[float, int] = {}
+        for row in self.cells:
+            for cell in row:
+                if cell is not None:
+                    counts[cell.top] = counts.get(cell.top, 0) + 1
+        if not counts:
+            return 0.0
+        return min(counts, key=lambda top: (-counts[top], top))
+
     def cell(self, cx: int, cy: int) -> Cell | None:
         """Return the solid cell at grid coordinates, or ``None`` for void or out of range."""
         if 0 <= cy < len(self.cells) and 0 <= cx < len(self.cells[0]):

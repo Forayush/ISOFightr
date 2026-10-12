@@ -64,3 +64,24 @@ def test_a_stage_sheet_has_the_whole_screen_and_eight_close_ups_per_tick(window:
     assert view.hud_display and view.camera.clamped, "the camera and the HUD are put back"
     with pytest.raises(ValueError, match="no ticks"):
         capture_stage_sheet(window, "twin_isles", ticks=[])
+
+
+def test_the_depth_lab_puts_each_ground_point_beside_its_off_stage_twin(window: Any) -> None:
+    """Decision D-065: the pair lands on the same pixels, so the two pictures of a row differ
+    only around the fighter (its pose, and what the game draws to tell the places apart)."""
+    from PIL import ImageChops
+
+    from isofightr.capture import DEPTH_LAB_CROP, DEPTH_LAB_SCALE, capture_depth_lab
+
+    wide, tall = DEPTH_LAB_CROP[0] * DEPTH_LAB_SCALE, DEPTH_LAB_CROP[1] * DEPTH_LAB_SCALE
+    sheet = capture_depth_lab(window, "twin_isles", pairs=2)
+    assert sheet.size == (2 * wide, 2 * tall), "a row per pair: on the ground, then in the air"
+    label = 12 * DEPTH_LAB_SCALE
+    for row in range(2):
+        ground = sheet.crop((0, row * tall + label, wide, (row + 1) * tall)).convert("RGB")
+        air = sheet.crop((wide, row * tall + label, 2 * wide, (row + 1) * tall)).convert("RGB")
+        box = ImageChops.difference(ground, air).getbbox()
+        assert box is not None, "the two are not the same picture"
+        assert box[2] - box[0] <= wide // 2 and box[3] - box[1] <= tall * 3 // 4, (
+            "and they differ only around the fighter"
+        )

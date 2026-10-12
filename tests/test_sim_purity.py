@@ -92,6 +92,8 @@ WINDOWLESS_MODULES = (
     "isofightr.input.keyboard",
     "isofightr.data.sprite_sheet",
     "isofightr.data.stage_rules",
+    "isofightr.data.backdrop_rules",
+    "isofightr.render.depth_cues",
     "isofightr.scenes.sound_test_model",
     "isofightr.render.underside",
     "isofightr.render.props",
