@@ -142,17 +142,22 @@ def test_menu_navigation_wraps_and_confirm_returns_the_key() -> None:
 
 def test_setup_rules_for_each_mode() -> None:
     stock = MatchSetup(stocks=4)
-    assert stock.rules() == MatchRules(stocks=4, countdown_frames=COUNTDOWN_FRAMES)
+    # The game's own rules have stage hazards on (decision D-063); the sim's default is off.
+    assert stock.rules() == MatchRules(
+        stocks=4, countdown_frames=COUNTDOWN_FRAMES, stage_hazards=True
+    )
     timed = MatchSetup(stock_on=False, time_on=True, minutes=2)
     assert timed.rules() == MatchRules(
-        stocks=None, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES
+        stocks=None, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES, stage_hazards=True
     )
     both = MatchSetup(time_on=True, minutes=2, stocks=4)
     assert both.rules() == MatchRules(
-        stocks=4, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES
+        stocks=4, time_frames=2 * 3600, countdown_frames=COUNTDOWN_FRAMES, stage_hazards=True
     ), "stocks and a clock together (decision D-061)"
     training = training_setup()
-    assert training.rules() == MatchRules(stocks=None) and training.stage == "training_grid"
+    assert training.rules() == MatchRules(stocks=None, stage_hazards=True)
+    assert training.stage == "training_grid"
+    assert not MatchSetup(stage_hazards=False).rules().stage_hazards
 
 
 def test_setup_counts_are_independent_and_stay_in_range() -> None:

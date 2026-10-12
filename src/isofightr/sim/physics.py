@@ -33,7 +33,7 @@ def apply_traction(fighter: Fighter, multiplier: float = 1.0) -> None:
     """Slow a grounded fighter's ground velocity by its traction, stopping at zero."""
     horizontal = fighter.vel.xy
     speed = horizontal.length()
-    loss = fighter.character.movement.traction * multiplier
+    loss = fighter.character.movement.traction * multiplier * fighter.traction_scale
     horizontal = Vec2() if speed <= loss else horizontal * ((speed - loss) / speed)
     fighter.vel = Vec3(horizontal.x, horizontal.y, 0.0)
 
@@ -85,7 +85,8 @@ def decay_knockback(fighter: Fighter) -> None:
     speed = fighter.kb_vel.length()
     if speed == 0.0:
         return
-    loss = KB_DECAY + (fighter.character.movement.traction if fighter.grounded else 0.0)
+    traction = fighter.character.movement.traction * fighter.traction_scale
+    loss = KB_DECAY + (traction if fighter.grounded else 0.0)
     if speed <= loss:
         fighter.kb_vel = ZERO3
     else:
@@ -132,14 +133,18 @@ class StepResult:
 _NOTHING = StepResult()
 
 
-def step(stage: Stage, fighter: Fighter, stop_at_edges: bool = False) -> StepResult:
+def step(
+    stage: Stage, fighter: Fighter, stop_at_edges: bool = False, push: Vec3 = ZERO3
+) -> StepResult:
     """Move a fighter by its velocities for one tick and resolve stage collision.
 
     With ``stop_at_edges`` a grounded fighter is held at an edge instead of going over it.
+    ``push`` is how far the stage itself carries the fighter this tick (a conveyor under the
+    feet, a wind): it moves the fighter like a velocity but is not one.
     """
     if not fighter.in_play or fighter.ground is GroundKind.REVIVAL:
         return _NOTHING
-    delta = fighter.vel + fighter.kb_vel
+    delta = fighter.vel + fighter.kb_vel + push
     if fighter.grounded:
         return _move_grounded(stage, fighter, delta.xy, stop_at_edges)
     return _move_airborne(stage, fighter, delta)
@@ -200,7 +205,8 @@ def _support_at(
     for index, platform in enumerate(stage.soft_platforms):
         if index == ignore_platform or not platform.contains(x, y):
             continue
-        in_range = low - SURFACE_EPSILON <= platform.z <= high + SURFACE_EPSILON
+        # A deck that rose this tick may have come up past feet that were above it.
+        in_range = low - SURFACE_EPSILON <= platform.z <= high + platform.step.z + SURFACE_EPSILON
         if in_range and (best is None or platform.z > best.height):
             best = Support(platform.z, index)
     return best

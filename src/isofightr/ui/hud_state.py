@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Final
 
-from isofightr.sim.events import Event, HitEvent, KoEvent
+from isofightr.sim.events import Event, HazardHitEvent, HitEvent, KoEvent
 from isofightr.sim.fighter import Fighter
 from isofightr.sim.math3d import Vec3
 from isofightr.ui import hud_layout as layout
@@ -94,7 +94,9 @@ class HudState:
             self.ko_banner = (player, age + 1) if age + 1 < KO_BANNER_TICKS else None
 
         for event in events:
-            if isinstance(event, HitEvent):
+            if isinstance(event, HazardHitEvent) and event.blocked:
+                continue
+            if isinstance(event, HitEvent | HazardHitEvent):
                 self.flash[event.target] = layout.HIT_FLASH_TICKS
                 self.popups.append(Popup(event.position, event.damage))
             elif isinstance(event, KoEvent):

@@ -32,6 +32,7 @@ from isofightr.render import placeholder_art as art
 from isofightr.render.ambient import build_mote, covers, motes
 from isofightr.render.camera import snap
 from isofightr.render.depth import (
+    PLATFORM_ITEM_BASE,
     DepthSorter,
     DrawEntry,
     DynamicItem,
@@ -39,6 +40,7 @@ from isofightr.render.depth import (
     StaticItem,
     StaticKind,
     dynamic_goes_first,
+    moving_blocks,
 )
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose
 from isofightr.render.ground_items import GroundItem
@@ -175,6 +177,20 @@ class WorldRenderer:
             self._prop_sprites.append(sprite)
             self.sprites.append(sprite)
 
+        # The cells of platforms that move (decision D-063): dynamic blocks, placed every
+        # frame from where the match says the platform is.
+        self.live: Stage = stage
+        """The stage on the frame being drawn: ``stage``, with its platforms where they are."""
+        self._blocks: dict[int, _RankedSprite] = {}
+        for block in moving_blocks(stage, stage):
+            cell = block.item_id % 2
+            texture = self._texture(
+                ("deck", cell == 0, cell), lambda cell=cell: self._deck_image(cell == 0, cell)
+            )
+            sprite = _RankedSprite(texture)
+            self._blocks[block.item_id] = sprite
+            self.sprites.append(sprite)
+
         # Ambient sprites: some behind the world (screen space), some in front of it.
         self._motes_back: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._motes_front: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
@@ -217,6 +233,7 @@ class WorldRenderer:
         frame: int = 0,
         looks: Mapping[int, FighterLook] | None = None,
         ground: Sequence[GroundItem] = (),
+        live: Stage | None = None,
     ) -> None:
         """Update sprite positions, textures and draw order from the current world state.
 
@@ -224,9 +241,12 @@ class WorldRenderer:
         the pose, flash and shake of entities by ``entity_id``; the rest stand normally.
         ``ground`` are the flat items lying on the stage this frame (projectile shadows,
         decals): they are clipped to their surface and sorted with everything else.
+        ``live`` is the stage on this frame (``match.stage``) when its platforms move;
+        without it they are drawn where they rest.
         """
         self._drop_missing({entity.entity_id for entity in entities})
         self._tick = frame
+        self.live = live if live is not None else self.stage
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
         items: list[DynamicItem] = []
         self._body_rects = []
@@ -250,6 +270,13 @@ class WorldRenderer:
             if sprite.texture is not texture:
                 sprite.texture = texture
         items.extend(self._prop_items)
+        for block in moving_blocks(self.stage, self.live):
+            rect = block.rect
+            self._blocks[block.item_id].position = (
+                (rect.left + rect.right) / 2,
+                (rect.bottom + rect.top) / 2,
+            )
+            items.append(block)
 
         self._drop_ground({item.item_id for item in ground})
         items.extend(self._sync_ground(item) for item in ground)
@@ -534,14 +561,14 @@ class WorldRenderer:
             entity, Part.SHADOW, self._shadow_texture(entity.color_index, 0, FULL_MASK)
         )
         pos = entity.pos
-        surface = self.stage.support_below(pos.x, pos.y, pos.z)
+        surface = self.live.support_below(pos.x, pos.y, pos.z)
         sprite.visible = surface is not None
         if surface is None:
             return None
 
         centre_x, centre_y = (snap(value) for value in project(pos.x, pos.y, surface))
         variant = art.shadow_variant_index(pos.z - surface)
-        mask = shadow_mask(self.stage, centre_x, centre_y, surface)
+        mask = shadow_mask(self.live, centre_x, centre_y, surface)
         texture = self._shadow_texture(entity.color_index, variant, mask)
         if sprite.texture is not texture:
             sprite.texture = texture
@@ -593,7 +620,7 @@ class WorldRenderer:
         screen_x, screen_y = project(item.x, item.y, item.surface)
         centre_x = snap(screen_x) + (width % 2) / 2
         centre_y = snap(screen_y) + (height % 2) / 2
-        mask = shadow_mask(self.stage, centre_x, centre_y, item.surface, width, height)
+        mask = shadow_mask(self.live, centre_x, centre_y, item.surface, width, height)
         texture = self._texture(("ground", item.key, mask), lambda: apply_mask(image, mask))
         sprite = self._ground.get(item.item_id)
         if sprite is None:
@@ -637,6 +664,8 @@ class WorldRenderer:
         for rank, entry in enumerate(order):
             if entry.is_static:
                 self._static_sprites[entry.index].draw_rank = rank
+            elif entry.index >= PLATFORM_ITEM_BASE:
+                self._blocks[entry.index].draw_rank = rank
             elif entry.index >= PROP_ITEM_BASE:
                 self._prop_sprites[entry.index - PROP_ITEM_BASE].draw_rank = rank
             elif entry.index >= GROUND_ITEM_BASE:

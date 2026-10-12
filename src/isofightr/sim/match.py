@@ -10,26 +10,34 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Final
 
 from isofightr.sim import physics, rules
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat.constants import MAX_DAMAGE, SHIELD_MAX_HP, SHIELD_REGEN
 from isofightr.sim.combat.grab_resolution import resolve_grabs
+from isofightr.sim.combat.hazard_hits import resolve_hazard_hits, wind_push
 from isofightr.sim.combat.hit_resolution import resolve_hits, step_hitlag
 from isofightr.sim.combat.projectile_hits import resolve_projectile_hits
 from isofightr.sim.constants import DEFAULT_STOCKS, PUSH_HEIGHT_TOLERANCE, PUSH_SPEED
-from isofightr.sim.events import Event, KoEvent, LandEvent, ProjectileEvent, ShockwaveEvent
+from isofightr.sim.events import (
+    BounceEvent,
+    Event,
+    KoEvent,
+    LandEvent,
+    ProjectileEvent,
+    ShockwaveEvent,
+)
 from isofightr.sim.fighter import NO_TEAM, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame, facing_from_move
-from isofightr.sim.math3d import EPSILON, Box3, Vec2, Vec3
+from isofightr.sim.math3d import EPSILON, ZERO3, Box3, Vec2, Vec3
 from isofightr.sim.move_def import ProjectileDef
 from isofightr.sim.projectile import Projectile, spawn
 from isofightr.sim.projectile import step as step_projectile
 from isofightr.sim.rng import Rng
 from isofightr.sim.rules import MatchPhase, MatchResult, PlayerStats
-from isofightr.sim.stage import Stage
+from isofightr.sim.stage import NO_PLATFORM, Stage
 from isofightr.sim.states import STATES, change_state
 from isofightr.sim.states.ledge import try_grab_ledge
 
@@ -37,6 +45,27 @@ HASH_DECIMALS: Final[int] = 6
 """Floats are rounded to this many decimals in the state hash (plan note 16, "State hash")."""
 HASH_BYTES: Final[int] = 16
 _PUSHABLE: Final[frozenset[GroundKind]] = frozenset({GroundKind.CELL, GroundKind.PLATFORM})
+_NO_BOUNCE: Final[frozenset[StateId]] = frozenset(
+    {
+        StateId.FLINCH,
+        StateId.TUMBLE,
+        StateId.KNOCKDOWN,
+        StateId.GETUP,
+        StateId.GETUP_ROLL,
+        StateId.TECH,
+        StateId.TECH_ROLL,
+        StateId.SHIELD_BREAK,
+        StateId.DIZZY,
+        StateId.GRAB_HOLD,
+        StateId.GRABBED,
+        StateId.THROW,
+        StateId.GRAB_RELEASE,
+        StateId.KO,
+        StateId.REVIVAL,
+    }
+)
+"""States a spring cell leaves alone: a fighter that was just hit or is down stays put, so a
+spring never rescues anyone from a combo (decision D-063)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +90,11 @@ class MatchRules:
     """Whether a hit in the first frames of dropping shield is parried (optional rule)."""
     air_dodge_helpless: bool = False
     """Whether a directional air dodge ends in the helpless fall (optional rule)."""
+    stage_hazards: bool = False
+    """Whether the stage's mechanics are on (decision D-063): moving platforms, hazards,
+    and ice, conveyors and springs. Off, every stage is plain ground and its platforms rest
+    where they start. Off by default here, so sandboxes, tests and old replays play as they
+    always did; the game's own rules turn it on."""
     short_hop_macro: bool = True
     """Whether an attack pressed with the jump makes a short hop even while jump is held, so
     jump and attack together give a short-hop aerial (decision D-053; on by default)."""
@@ -94,6 +128,9 @@ class Match:
     eliminated: list[int] = field(default_factory=list)
     """Player indices in the order they ran out of stocks."""
     result: MatchResult | None = None
+    rest_stage: Stage | None = None
+    """The stage as it was loaded. ``stage`` is this stage as it is on the current frame:
+    the same object unless a platform has moved (decision D-063)."""
 
     @classmethod
     def create(
@@ -152,6 +189,7 @@ class Match:
             raise ValueError(f"expected {len(self.fighters)} input frames, got {len(inputs)}")
         self.frame += 1
         self.events = []
+        mechanics = self._step_stage()
         counting_down = self.phase is MatchPhase.COUNTDOWN
         if counting_down:
             # Fighters stand ready: whatever is held or pressed now does not count.
@@ -189,10 +227,13 @@ class Match:
             state = STATES[fighter.state]
             state.motion(self, fighter)
             if state.uses_physics:
-                result = physics.step(self.stage, fighter, state.holds_edge(fighter))
+                push = self._stage_push(fighter) if mechanics else ZERO3
+                result = physics.step(self.stage, fighter, state.holds_edge(fighter), push)
                 self._apply(fighter, result)
                 if not result.landed:
                     try_grab_ledge(self, fighter)
+                if mechanics:
+                    self._spring(fighter)
         self._push_fighters_apart()
 
         # 6. Projectiles fly.
@@ -205,6 +246,8 @@ class Match:
         # 7. Hit resolution, then grabs (a grabber that was just hit does not grab).
         resolve_hits(self)
         resolve_projectile_hits(self)
+        if mechanics and self.stage.hazards:
+            resolve_hazard_hits(self)
         resolve_grabs(self)
         self._clear_dead_projectiles()
 
@@ -225,6 +268,13 @@ class Match:
     def set_damage(self, player_index: int, percent: float) -> None:
         """Set a fighter's damage percent (training mode)."""
         self.fighters[player_index].damage = min(max(percent, 0.0), MAX_DAMAGE)
+
+    def set_stage_hazards(self, on: bool) -> None:
+        """Turn the stage's mechanics on or off in the middle of a match (training mode).
+        Off, the platforms go back to where they rest."""
+        self.rules = replace(self.rules, stage_hazards=on)
+        if not on and self.rest_stage is not None:
+            self.stage = self.rest_stage
 
     def reload_characters(self, characters: Sequence[CharacterDef]) -> None:
         """Swap in freshly loaded character data, one per fighter (F9 hot reload).
@@ -247,6 +297,61 @@ class Match:
         digest = hashlib.blake2b(digest_size=HASH_BYTES)
         digest.update(repr(self._canonical()).encode())
         return digest.hexdigest()
+
+    # --- stage mechanics (decision D-063) ----------------------------------------------------
+
+    def _step_stage(self) -> bool:
+        """Start a tick's stage mechanics: put the moving platforms where they are on this
+        frame, carry whoever stands on one, and read the ground under every fighter's feet.
+        Returns whether the stage's mechanics are on."""
+        if self.rest_stage is None:
+            self.rest_stage = self.stage
+        rest = self.rest_stage
+        if not (self.rules.stage_hazards and rest.has_mechanics):
+            return False
+        if rest.moves:
+            self.stage = rest.at(self.frame)
+            platforms = self.stage.soft_platforms
+            for fighter in self.fighters:
+                if fighter.in_play and fighter.ground is GroundKind.PLATFORM:
+                    step = platforms[fighter.platform].step
+                    if step != ZERO3:
+                        fighter.pos = fighter.pos + step
+        for fighter in self.fighters:
+            cell = None
+            if fighter.ground is GroundKind.CELL:
+                cell = self.stage.cell_at(fighter.pos.x, fighter.pos.y)
+            fighter.traction_scale = 1.0 if cell is None else cell.traction
+        return True
+
+    def _stage_push(self, fighter: Fighter) -> Vec3:
+        """Return how far the stage carries a fighter this tick: the conveyor it stands on
+        plus any wind it is in."""
+        push = wind_push(self.stage, self.frame, fighter) if self.stage.hazards else ZERO3
+        if fighter.ground is GroundKind.CELL:
+            cell = self.stage.cell_at(fighter.pos.x, fighter.pos.y)
+            if cell is not None:
+                push = push + cell.drive.with_z(0.0)
+        return push
+
+    def _spring(self, fighter: Fighter) -> None:
+        """Throw a fighter that stands on a spring cell into the air."""
+        if (
+            fighter.ground is not GroundKind.CELL
+            or fighter.hitstun > 0
+            or fighter.hitlag > 0
+            or fighter.state in _NO_BOUNCE
+        ):
+            return
+        cell = self.stage.cell_at(fighter.pos.x, fighter.pos.y)
+        if cell is None or cell.bounce <= 0.0:
+            return
+        fighter.vel = Vec3(fighter.vel.x, fighter.vel.y, cell.bounce)
+        fighter.ground = GroundKind.NONE
+        fighter.platform = NO_PLATFORM
+        fighter.fast_falling = False
+        change_state(self, fighter, StateId.FALL)
+        self.events.append(BounceEvent(fighter.player_index, fighter.pos, cell.bounce))
 
     # --- internals -------------------------------------------------------------------------
 
@@ -376,7 +481,17 @@ class Match:
                 for stats in self.stats
             ),
             tuple(_canonical_projectile(projectile) for projectile in self.projectiles),
+            *self._canonical_mechanics(),
         )
+
+    def _canonical_mechanics(self) -> tuple[object, ...]:
+        """Return what stage mechanics add to the state hash: nothing on a stage without
+        hazards (so those hash as they always did), else each fighter's hazard record. Where
+        the platforms are needs no entry: it follows from the frame."""
+        rest = self.rest_stage or self.stage
+        if not (self.rules.stage_hazards and rest.hazards):
+            return ()
+        return (tuple(tuple(sorted(fighter.hazard_hits.items())) for fighter in self.fighters),)
 
 
 def _blast_crossing(zone: Box3, pos: Vec3) -> tuple[Vec3, Vec3]:

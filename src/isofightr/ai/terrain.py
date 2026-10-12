@@ -58,6 +58,8 @@ def ground_points(stage: Stage) -> tuple[Vec3, ...]:
             if cell is not None:
                 points.append(Vec3(cx + CELL_CENTRE, cy + CELL_CENTRE, cell.top))
     for platform in stage.soft_platforms:
+        if platform.motion is not None:
+            continue
         x = platform.x0 + CELL_CENTRE
         while x < platform.x1:
             y = platform.y0 + CELL_CENTRE
@@ -190,10 +192,14 @@ def regions(stage: Stage) -> tuple[Region, ...]:
                         todo.append((nx, ny))
             found.append(Region(len(found), tuple(sorted(group, key=lambda p: (p.y, p.x)))))
     for platform in stage.soft_platforms:
+        if platform.motion is not None:
+            # A platform that moves is no place to plan a route over (decision D-063): the
+            # CPU stands and fights on one if it finds itself there, but never aims for it.
+            continue
         points = [
             Vec3(x + CELL_CENTRE, y + CELL_CENTRE, platform.z)
-            for x in range(platform.x0, platform.x1)
-            for y in range(platform.y0, platform.y1)
+            for x in range(int(platform.x0), int(platform.x1))
+            for y in range(int(platform.y0), int(platform.y1))
         ]
         found.append(Region(len(found), tuple(points)))
     return tuple(found)

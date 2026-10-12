@@ -58,6 +58,9 @@ def test_the_default_setup_gives_exactly_the_rules_from_before_this_milestone() 
         air_dodge_helpless=False,
         short_hop_macro=True,
         start_damage=0.0,
+        # The one rule that is new since: stage hazards, on by default (decision D-063).
+        # The stages from before that milestone have no mechanics, so they play the same.
+        stage_hazards=True,
     )
     setup = MatchSetup()
     assert (setup.hud_display, setup.score_display, setup.player_tags, setup.pausing) == (
@@ -118,6 +121,7 @@ def test_rows_are_only_rules_the_game_has_and_each_has_an_icon_and_help() -> Non
         "parry",
         "short_hop_macro",
         "air_dodge_helpless",
+        "stage_hazards",
         "hud_display",
         "score_display",
         "player_tags",

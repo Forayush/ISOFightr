@@ -18,10 +18,12 @@ from isofightr.render.iso import project
 from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
+    BounceEvent,
     ClankEvent,
     CounterEvent,
     Event,
     GrabEvent,
+    HazardHitEvent,
     HitEvent,
     JumpEvent,
     JumpKind,
@@ -437,10 +439,12 @@ class BattleEffects:
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
         for event in events:
-            if isinstance(event, HitEvent | ShieldHitEvent):
+            if isinstance(event, HitEvent | ShieldHitEvent | HazardHitEvent):
                 self._hit_points.append(event.position)
                 self._struck.add(event.target)
-            if isinstance(event, HitEvent):
+            if isinstance(event, HazardHitEvent) and event.blocked:
+                self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
+            elif isinstance(event, HitEvent | HazardHitEvent):
                 self.sparks.append(
                     Spark(
                         event.position,
@@ -493,6 +497,9 @@ class BattleEffects:
                         self.rings.append(Ring(event.position))
             elif isinstance(event, JumpEvent) and event.kind is not JumpKind.AIR:
                 self.puffs.append(Puff(event.position, "small"))
+            elif isinstance(event, BounceEvent):
+                self.puffs.append(Puff(event.position, "small"))
+                self.rings.append(Ring(event.position))
             elif isinstance(event, JumpEvent):
                 self.fx.append(Fx("air_ring", event.position, "wind"))
             elif isinstance(event, ShockwaveEvent):

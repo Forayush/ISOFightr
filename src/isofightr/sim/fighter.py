@@ -217,6 +217,12 @@ class Fighter:
     tether_ledge: int = NO_LEDGE
     """Ledge a tether recovery has caught and is reeling toward (Vine Lash)."""
     tether_point: Vec2 = ZERO2
+    hazard_hits: dict[int, int] = field(default_factory=dict)
+    """For each stage hazard (by index) that has hit this fighter: which of its activations
+    did, so one eruption hits once (decision D-063; in the state hash)."""
+    traction_scale: float = 1.0
+    """The traction multiplier of the ground under the feet (ice). Set by the match at the
+    start of every tick from where the fighter stands, so it is not state of its own."""
     last_hit_by: int = NO_PARTNER
     """Player index of the last fighter that hit this one (for KO credit), or -1."""
     last_hit_timer: int = 0

@@ -14,6 +14,9 @@ screen, and then geometry decides which is in front:
   axis can never be hidden by it.
 - Two upright sprites (fighters) that share a height range sort by the depth key of their
   feet, ``x + y``, then height, then id (plan note 03).
+- A **moving block** (a cell of a soft platform that moves, decision D-063) is a dynamic item
+  with ``block`` set: the same cell-shaped geometry as a static deck cell, at a position that
+  need not be whole cells, so the block rules above apply to it with its real coordinates.
 
 **Static items** (stage geometry) get their mutual constraints once, at load. **Dynamic
 items** (fighters, their ground shadows, later projectiles) add theirs each frame, and the
@@ -104,6 +107,9 @@ class DynamicItem:
     fixed: bool = False
     """Whether the item never moves (a stage prop): its place among the stage geometry is
     then worked out once and remembered."""
+    block: bool = False
+    """Whether the item is a cell-sized block whose far corner is at ``(x, y)`` (a cell of a
+    moving platform), not an upright sprite standing on a point."""
 
     @property
     def key(self) -> float:
@@ -170,7 +176,16 @@ def static_hides(static: StaticItem, item: DynamicItem) -> bool:
         return False  # the item is entirely above it
     if static.bottom >= item.z + item.height - SURFACE_EPSILON:
         return True  # it is entirely above the item
+    if item.block:
+        # Two blocks side by side: the one further along both ground axes is in front.
+        return item.x <= static.cx and item.y <= static.cy
     return item.x < static.cx + 1 and item.y < static.cy + 1
+
+
+def _block_hides(block: DynamicItem, point: DynamicItem) -> bool:
+    """Return whether a moving block is in front of an upright sprite that shares its height
+    range: it is, unless the sprite stands past the block on either ground axis."""
+    return point.x < block.x + 1 and point.y < block.y + 1
 
 
 def dynamic_goes_first(first: DynamicItem, second: DynamicItem) -> bool:
@@ -181,6 +196,15 @@ def dynamic_goes_first(first: DynamicItem, second: DynamicItem) -> bool:
         # One is entirely above the other (a fighter standing on the plane a shadow lies on
         # counts), so it is in front wherever they overlap.
         return second_above
+    if first.block and second.block:
+        if first.x <= second.x and first.y <= second.y:
+            return True
+        if second.x <= first.x and second.y <= first.y:
+            return False
+    elif second.block:
+        return _block_hides(second, first)
+    elif first.block:
+        return not _block_hides(first, second)
     return first.back_to_front < second.back_to_front
 
 
@@ -358,9 +382,11 @@ def _build_statics(stage: Stage) -> tuple[StaticItem, ...]:
 
     shadowed: dict[tuple[int, int], int] = {}
     for index, platform in enumerate(stage.soft_platforms):
+        if platform.motion is not None:
+            continue  # a platform that moves is drawn from dynamic blocks (moving_blocks)
         deck_bottom = platform.z - DECK_THICKNESS
-        for cy in range(platform.y0, platform.y1):
-            for cx in range(platform.x0, platform.x1):
+        for cy in range(int(platform.y0), int(platform.y1)):
+            for cx in range(int(platform.x0), int(platform.x1)):
                 rect = cell_block_rect(cx, cy, deck_bottom, platform.z)
                 statics.append(
                     StaticItem(StaticKind.DECK, cx, cy, deck_bottom, platform.z, index, rect)
@@ -380,3 +406,53 @@ def _build_statics(stage: Stage) -> tuple[StaticItem, ...]:
 
     statics.sort(key=lambda item: (item.cx + item.cy, item.top, item.kind, item.cx))
     return tuple(statics)
+
+
+PLATFORM_ITEM_BASE = 1 << 22
+"""Depth sorter ids of moving platform cells start here, above every prop."""
+PLATFORM_ITEM_SPAN = 256
+"""Ids set aside for the cells of one platform."""
+BLOCK_RANK = 0
+
+
+def moving_blocks(rest: Stage, live: Stage) -> list[DynamicItem]:
+    """Return one dynamic block per cell of every platform that moves, where it is now.
+
+    ``rest`` is the stage as loaded (it says which platforms move and how many cells each
+    has); ``live`` is the same stage on the current frame (``Stage.at``). A block's sprite is
+    drawn on whole pixels, so its rect is taken from the rounded position: it bounds exactly
+    what is drawn.
+    """
+    blocks = []
+    for index, (still, now) in enumerate(
+        zip(rest.soft_platforms, live.soft_platforms, strict=True)
+    ):
+        if still.motion is None:
+            continue
+        columns = round(still.x1 - still.x0)
+        rows = round(still.y1 - still.y0)
+        for row in range(rows):
+            for column in range(columns):
+                x, y = now.x0 + column, now.y0 + row
+                centre_x, back_y = (round(value) for value in project(x, y, now.z))
+                blocks.append(
+                    DynamicItem(
+                        item_id=PLATFORM_ITEM_BASE
+                        + index * PLATFORM_ITEM_SPAN
+                        + row * columns
+                        + column,
+                        rank=BLOCK_RANK,
+                        x=x,
+                        y=y,
+                        z=now.z - DECK_THICKNESS,
+                        height=DECK_THICKNESS,
+                        rect=ScreenRect(
+                            centre_x - HALF_TILE_W,
+                            back_y - TILE_H - DECK_THICKNESS * Z_PX,
+                            centre_x + HALF_TILE_W,
+                            back_y,
+                        ),
+                        block=True,
+                    )
+                )
+    return blocks

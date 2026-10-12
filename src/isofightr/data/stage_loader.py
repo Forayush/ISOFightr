@@ -18,19 +18,23 @@ from isofightr.config import (
 from isofightr.data.paths import STAGE_FILE_NAME, STAGES_DIR
 from isofightr.data.tileset_art import TilesetArtError, load_tileset_art
 from isofightr.data.validation import DataError, TableReader
-from isofightr.sim.math3d import Vec2
+from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3
+from isofightr.sim.move_def import Effect
 from isofightr.sim.stage import (
     DEFAULT_TILE,
     VOID_SYMBOL,
     Ambient,
     BackgroundLayer,
     Cell,
+    Hazard,
+    PlatformMotion,
     Prop,
     SoftPlatform,
     Stage,
     StageError,
     Underside,
     build_stage,
+    hazard_hitbox,
 )
 
 _TOP_LEVEL_KEYS = (
@@ -49,7 +53,15 @@ _TOP_LEVEL_KEYS = (
     "props",
     "ambient",
     "underside",
+    "hazards",
 )
+_HAZARD_DEFAULTS = {
+    # kind: (height, launch angle, base knockback, knockback growth, effect)
+    "geyser": (5.0, 88.0, 55.0, 70.0, Effect.FIRE),
+    "lightning": (9.0, 361.0, 45.0, 85.0, Effect.ELECTRIC),
+}
+"""What a hitting hazard does unless its table says otherwise."""
+_WIND_HEIGHT = 5.0
 _RESPAWN_KEY = "respawn"
 _SPAWN_KEYS = tuple(f"p{index + 1}" for index in range(PLAYER_SPAWN_COUNT))
 
@@ -136,6 +148,9 @@ def parse_stage(
             props=[_prop(table, source, index) for index, table in enumerate(root.tables("props"))],
             ambient=_ambient(data["ambient"], source) if "ambient" in data else None,
             underside_art=_underside(data["underside"], source) if "underside" in data else None,
+            hazards=[
+                _hazard(table, source, index) for index, table in enumerate(root.tables("hazards"))
+            ],
         )
     except StageError as error:
         raise DataError(f"{source}: {error}") from error
@@ -163,7 +178,7 @@ def _legend(table: object, source: str) -> dict[str, Cell]:
             reader.table[symbol],
             source=source,
             where=f"legend.{symbol!r}",
-            allowed=("height", "tile", "ledge"),
+            allowed=("height", "tile", "ledge", "traction", "drive", "bounce"),
         )
         height = entry.number("height")
         if height < 0:
@@ -172,16 +187,106 @@ def _legend(table: object, source: str) -> dict[str, Cell]:
             top=height,
             tile=entry.string("tile") if entry.has("tile") else DEFAULT_TILE,
             ledge=entry.boolean("ledge", default=True),
+            traction=entry.number("traction", 1.0),
+            drive=Vec2(*entry.numbers("drive", 2)) if entry.has("drive") else ZERO2,
+            bounce=entry.number("bounce", 0.0),
         )
     return legend
 
 
 def _soft_platform(table: object, source: str, index: int) -> SoftPlatform:
-    reader = TableReader(
-        table, source=source, where=f"soft_platforms[{index}]", allowed=("rect", "z")
-    )
+    where = f"soft_platforms[{index}]"
+    reader = TableReader(table, source=source, where=where, allowed=("rect", "z", "motion"))
     x0, y0, x1, y1 = reader.integers("rect", 4)
-    return SoftPlatform(x0=x0, y0=y0, x1=x1, y1=y1, z=reader.number("z"))
+    motion = None
+    if reader.has("motion"):
+        motion = _motion(reader.raw("motion"), source, f"{where}.motion")
+    return SoftPlatform(x0=x0, y0=y0, x1=x1, y1=y1, z=reader.number("z"), motion=motion)
+
+
+def _motion(table: object, source: str, where: str) -> PlatformMotion:
+    """Read how a platform moves: ``to`` (one far point), ``points`` (several) or, for a
+    ``bob``, an ``amplitude``; all are offsets from where the platform rests."""
+    reader = TableReader(
+        table,
+        source=source,
+        where=where,
+        allowed=("kind", "to", "points", "amplitude", "period", "phase"),
+    )
+    kind = reader.string("kind")
+    given = [key for key in ("to", "points", "amplitude") if reader.has(key)]
+    if len(given) != 1:
+        raise reader.error("give exactly one of to, points or amplitude")
+    if reader.has("amplitude"):
+        if kind != "bob":
+            raise reader.error("is only for a bob", "amplitude")
+        points: tuple[Vec3, ...] = (Vec3(0.0, 0.0, reader.number("amplitude")),)
+    elif reader.has("to"):
+        points = (Vec3(*reader.numbers("to", 3)),)
+    else:
+        raw = reader.raw("points")
+        if not isinstance(raw, list) or not raw:
+            raise reader.error("must be a list of [x, y, z] offsets", "points")
+        try:
+            points = tuple(Vec3(*(float(value) for value in point)) for point in raw)
+        except (TypeError, ValueError) as error:
+            raise reader.error("must be a list of [x, y, z] offsets", "points") from error
+    return PlatformMotion(
+        kind=kind,
+        points=points,
+        period=reader.integer("period"),
+        phase=reader.integer("phase") if reader.has("phase") else 0,
+    )
+
+
+def _hazard(table: object, source: str, index: int) -> Hazard:
+    """Read one ``[[hazards]]`` table. A geyser or lightning takes ``damage`` (and may set
+    ``angle``, ``bkb``, ``kbg``); a wind takes a ``push``."""
+    reader = TableReader(
+        table,
+        source=source,
+        where=f"hazards[{index}]",
+        allowed=(
+            "kind", "at", "radius", "height", "z", "rest", "warn", "active", "phase",
+            "damage", "angle", "bkb", "kbg", "push",
+        ),
+    )  # fmt: skip
+    kind = reader.string("kind")
+    x, y = reader.numbers("at", 2)
+    hitbox = None
+    push = ZERO3
+    height = _WIND_HEIGHT
+    if kind in _HAZARD_DEFAULTS:
+        height, angle, bkb, kbg, effect = _HAZARD_DEFAULTS[kind]
+        if reader.has("push"):
+            raise reader.error("is only for a wind", "push")
+        hitbox = hazard_hitbox(
+            reader.number("damage"),
+            reader.number("angle", angle),
+            reader.number("bkb", bkb),
+            reader.number("kbg", kbg),
+            effect,
+        )
+    elif kind == "wind":
+        for key in ("damage", "angle", "bkb", "kbg"):
+            if reader.has(key):
+                raise reader.error("is not for a wind", key)
+        if reader.has("push"):
+            push = Vec3(*reader.numbers("push", 3))
+    return Hazard(
+        kind=kind,
+        x=x,
+        y=y,
+        radius=reader.number("radius"),
+        z=reader.number("z", 0.0),
+        height=reader.number("height", height),
+        rest=reader.integer("rest"),
+        warn=reader.integer("warn"),
+        active=reader.integer("active"),
+        phase=reader.integer("phase") if reader.has("phase") else 0,
+        hitbox=hitbox,
+        push=push,
+    )
 
 
 def _background(table: object, source: str, index: int) -> BackgroundLayer:

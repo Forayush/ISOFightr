@@ -9,7 +9,9 @@ them and a test can run them over every stage in ``assets/stages``:
 - every soft platform is reachable with one jump from a surface near it;
 - the whole stage fits the play area (the screen between the HUD's bands) with a margin;
 - the blast zones enclose the stage with room to be launched in;
-- no notch in the ground narrower than 2 cells.
+- no notch in the ground narrower than 2 cells;
+- its mechanics (decision D-063): moving platforms keep clear of the side blast zones, and
+  hazards warn for long enough.
 
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
@@ -23,7 +25,7 @@ from typing import Final
 from isofightr.render.iso import project
 from isofightr.render.underside import lowest_point
 from isofightr.sim.character_def import CharacterDef
-from isofightr.sim.stage import Stage
+from isofightr.sim.stage import Stage, path_extent
 from isofightr.ui.hud_layout import PLAY_AREA
 
 MIN_SPAWN_GAP: Final[float] = 4.0
@@ -37,6 +39,10 @@ MIN_BLAST_SIDE: Final[float] = 5.0
 MIN_BLAST_ABOVE: Final[float] = 6.0
 """The top blast zone must be this far above the highest surface."""
 MIN_BLAST_BELOW: Final[float] = 3.0
+MIN_PLATFORM_BLAST_GAP: Final[float] = 3.0
+"""A moving platform never carries a fighter closer than this to a side blast zone."""
+MIN_HAZARD_WARN: Final[int] = 45
+"""A hazard warns for at least this many frames (three quarters of a second)."""
 """The bottom blast zone must be this far under the island's underside."""
 RULES: Final[tuple[str, ...]] = (
     "spawns",
@@ -45,6 +51,7 @@ RULES: Final[tuple[str, ...]] = (
     "fits_play_area",
     "blast_zones",
     "no_narrow_notch",
+    "mechanics",
 )
 """The name of every check, in the order they are reported."""
 
@@ -105,13 +112,12 @@ def screen_extent(stage: Stage) -> tuple[float, float]:
                 points.append(project(x, y, cell.top))
                 points.append(project(x, y, bottom))
     for platform in stage.soft_platforms:
-        for x, y in (
-            (platform.x0, platform.y0),
-            (platform.x1, platform.y0),
-            (platform.x0, platform.y1),
-            (platform.x1, platform.y1),
-        ):
-            points.append(project(x, y, platform.z))
+        # Everywhere the deck goes on its trip (its own rectangle if it does not move).
+        reach = path_extent(platform)
+        for x in (reach.x_min, reach.x_max):
+            for y in (reach.y_min, reach.y_max):
+                for z in (reach.z_min, reach.z_max):
+                    points.append(project(x, y, z))
     xs, ys = [point[0] for point in points], [point[1] for point in points]
     return (max(xs) - min(xs), max(ys) - min(ys))
 
@@ -250,6 +256,50 @@ def _check_notches(stage: Stage) -> Check:
     return Check("no_narrow_notch", not notches, detail)
 
 
+def _check_mechanics(stage: Stage) -> Check:
+    """Report what the "stage hazards" rule governs on this stage, and check what loading
+    does not: a moving platform's trip stays where a fighter can follow it, and a hazard
+    warns for long enough to get out of it."""
+    if not stage.has_mechanics:
+        return Check("mechanics", True, "none: plain ground")
+    parts = []
+    problems = []
+    for index, platform in enumerate(stage.soft_platforms):
+        if platform.motion is None:
+            continue
+        reach = path_extent(platform)
+        zone = stage.blast_zone
+        margin = min(
+            reach.x_min - zone.x_min,
+            zone.x_max - reach.x_max,
+            reach.y_min - zone.y_min,
+            zone.y_max - reach.y_max,
+        )
+        parts.append(f"platform {index} {platform.motion.kind} every {platform.motion.period}")
+        if margin < MIN_PLATFORM_BLAST_GAP:
+            problems.append(f"platform {index} comes within {margin:.1f} of a side blast zone")
+    for index, hazard in enumerate(stage.hazards):
+        parts.append(f"{hazard.kind} first active on frame {hazard.first_active()}")
+        if hazard.warn < MIN_HAZARD_WARN:
+            problems.append(f"hazard {index} warns for only {hazard.warn} frames")
+    surfaces = sorted(
+        {
+            name
+            for row in stage.cells
+            for cell in row
+            if cell is not None
+            for name, there in (
+                ("ice", cell.traction != 1.0),
+                ("conveyor", cell.drive.length() > 0.0),
+                ("spring", cell.bounce > 0.0),
+            )
+            if there
+        }
+    )
+    parts += surfaces
+    return Check("mechanics", not problems, "; ".join(problems or parts))
+
+
 def check_stage(stage: Stage, characters: Sequence[CharacterDef]) -> list[Check]:
     """Return every rule's verdict for a stage, in the order of :data:`RULES`. ``characters``
     is the roster: the lowest full hop among them decides what one jump reaches."""
@@ -261,6 +311,7 @@ def check_stage(stage: Stage, characters: Sequence[CharacterDef]) -> list[Check]
         _check_fit(stage),
         _check_blast_zones(stage),
         _check_notches(stage),
+        _check_mechanics(stage),
     ]
 
 

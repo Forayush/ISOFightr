@@ -183,6 +183,32 @@ class MatchEndEvent:
     winner: int
 
 
+@dataclass(frozen=True, slots=True)
+class HazardHitEvent:
+    """A stage hazard hit a fighter, or its shield (decision D-063). Nobody is the attacker."""
+
+    hazard: int
+    """Index into ``stage.hazards``."""
+    kind: str
+    target: int
+    damage: float
+    """Damage dealt (to the shield if ``blocked``; 0 against an invincible target)."""
+    knockback: float
+    position: Vec3
+    effect: Effect
+    hitlag: int
+    blocked: bool
+
+
+@dataclass(frozen=True, slots=True)
+class BounceEvent:
+    """A spring cell threw a fighter into the air."""
+
+    player: int
+    position: Vec3
+    speed: float
+
+
 type Event = (
     JumpEvent
     | LandEvent
@@ -201,4 +227,6 @@ type Event = (
     | ShockwaveEvent
     | SuddenDeathEvent
     | MatchEndEvent
+    | HazardHitEvent
+    | BounceEvent
 )

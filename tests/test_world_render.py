@@ -25,7 +25,7 @@ from isofightr.render.stage_art import TEETH_DEPTHS
 from isofightr.render.underside import under_depths
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec2, Vec3
-from isofightr.sim.stage import SoftPlatform, Stage, build_stage
+from isofightr.sim.stage import PlatformMotion, SoftPlatform, Stage, build_stage
 from isofightr.ui.hud_layout import CAMERA_LIFT
 
 pytestmark = pytest.mark.gl
@@ -219,12 +219,10 @@ def frange(start: float, stop: float, step: float) -> list[float]:
 # --- occlusion ----------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("stage_name", list(STAGES))
-def test_fighter_is_hidden_exactly_where_stage_geometry_is_in_front(
-    window: Any, stage_name: str
-) -> None:
-    stage = STAGES[stage_name]()
-    view = make_view(window, stage)
+def sweep(window: Any, view: Any, stage: Stage) -> tuple[int, int, list[str]]:
+    """Stand player 1 all over (and under, and above) a stage and compare two of its body
+    pixels with the oracle each time. Returns how many samples counted, how many of those
+    the oracle says are hidden, and every sample the picture got wrong."""
     xs = frange(stage.bounds.x_min - 2.3, stage.bounds.x_max + 2.3, 0.65)
     ys = frange(stage.bounds.y_min - 2.3, stage.bounds.y_max + 2.3, 0.65)
     zs = [-3.0, -1.2, -0.4, 0.0, 0.9, 2.0, 2.5, 3.5, 4.5, 6.0]
@@ -254,8 +252,53 @@ def test_fighter_is_hidden_exactly_where_stage_geometry_is_in_front(
                     f"{'hidden' if expect_hidden else 'visible'}"
                 )
 
+    return checked, hidden, failures
+
+
+@pytest.mark.parametrize("stage_name", list(STAGES))
+def test_fighter_is_hidden_exactly_where_stage_geometry_is_in_front(
+    window: Any, stage_name: str
+) -> None:
+    stage = STAGES[stage_name]()
+    checked, hidden, failures = sweep(window, make_view(window, stage), stage)
     assert checked > 1000, "the sweep should exercise plenty of positions"
     assert 0 < hidden < checked, "the sweep should include both hidden and visible samples"
+    assert not failures, f"{len(failures)} of {checked} wrong, e.g. {failures[:12]}"
+
+
+MOVING_PLATFORM = SoftPlatform(
+    2, 2, 4, 4, 4.6, PlatformMotion("ping_pong", (Vec3(2.3, 1.1, 0.7),), 300)
+)
+
+
+@pytest.mark.parametrize("frame", [0, 41, 113])
+def test_a_moving_platform_hides_and_shows_fighters_like_any_deck(window: Any, frame: int) -> None:
+    """Decision D-063: the cells of a platform that moves are dynamic blocks in the sorter.
+    Wherever the platform is on its trip (between cells, mostly), the picture must agree
+    with the same geometric oracle as the fixed stage."""
+    from isofightr.scenes.battle import BattleView
+    from isofightr.sim.match import MatchRules
+
+    rest = replace(
+        blocks_stage(), soft_platforms=(blocks_stage().soft_platforms[0], MOVING_PLATFORM)
+    )
+    window.switch_to()
+    view = BattleView(
+        window.pixel_buffer,
+        rest,
+        [load_character("rook")] * 2,
+        placeholder_art=True,
+        rules=MatchRules(stage_hazards=True),
+    )
+    window.show_view(view)
+    view.camera.clamped = False
+    view.match.fighters[1].pos = FAR_AWAY
+    live = rest.at(frame)
+    view.match.rest_stage, view.match.stage = rest, live
+    moved = live.soft_platforms[1]
+    assert (moved.x0 == 2) == (frame == 0), "between cells, except at rest"
+    checked, hidden, failures = sweep(window, view, live)
+    assert checked > 1000 and 0 < hidden < checked
     assert not failures, f"{len(failures)} of {checked} wrong, e.g. {failures[:12]}"
 
 

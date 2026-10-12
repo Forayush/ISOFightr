@@ -139,6 +139,9 @@ class CpuController:
         self.level: CpuLevel = cpu_level(level)
         self.rng = Rng.seeded((seed ^ SEED_SALT) * 31 + player_index)
         self.stage = stage
+        self.live = stage
+        """The stage on the current frame (``match.stage``): where its moving platforms are
+        now. Routes are planned on ``stage``, where they rest and are left out (D-063)."""
         self.history: deque[WorldView] = deque(maxlen=self.level.reaction_frames + 1)
         self.queue: deque[InputFrame] = deque()
         self.last = NEUTRAL_INPUT
@@ -187,6 +190,7 @@ class CpuController:
                     self._edge_lookahead = max(
                         config.CPU_EDGE_LOOKAHEAD, skid + config.CPU_EDGE_MARGIN
                     )
+        self.live = match.stage
         if world is None:
             world = observe(match)
         self.history.append(world)
@@ -243,7 +247,7 @@ class CpuController:
             return self._emit()
         if me.state in SHIELDING:
             return self._shielding(world, me)
-        if not me.grounded and not over_ground(self.stage, me.pos):
+        if not me.grounded and not over_ground(self.live, me.pos):
             return self._recover(me)
         if me.grounded:
             self._destination = None
@@ -288,7 +292,7 @@ class CpuController:
             return Vec3(pos.x, pos.y, target.pos.z)
         gravity = self.gravity.get(target.index, 0.0)
         z = target.pos.z + target.vel.z * t - 0.5 * gravity * t * t
-        floor = ground_below(self.stage, pos.x, pos.y, target.pos.z)
+        floor = ground_below(self.live, pos.x, pos.y, target.pos.z)
         return Vec3(pos.x, pos.y, max(z, floor) if floor is not None else z)
 
     def _hurt(self, index: int, feet: Vec3) -> tuple[Vec3, Vec3, float]:
@@ -335,7 +339,7 @@ class CpuController:
 
     def _frames_to_land(self, me: FighterView) -> int | None:
         """Frames until a tumbling fighter reaches the ground below it, or ``None``."""
-        floor = ground_below(self.stage, me.pos.x, me.pos.y, me.pos.z)
+        floor = ground_below(self.live, me.pos.x, me.pos.y, me.pos.z)
         if floor is None:
             return None
         gravity = self.gravity[self.player] * combat.HITSTUN_GRAVITY_MULT
@@ -672,11 +676,11 @@ class CpuController:
         end = me.pos + _rotate(action.offset_at(action.commit), aim)
         if action.start is Start.AIR:
             end = end + Vec3(me.vel.x, me.vel.y, 0.0) * float(action.commit)
-        if not over_ground(self.stage, Vec3(end.x, end.y, me.pos.z + 1.0)):
+        if not over_ground(self.live, Vec3(end.x, end.y, me.pos.z + 1.0)):
             return False
         if action.helpless:
             inside = end.xy + (self.stage.respawn - end.xy).normalized() * HELPLESS_ARRIVAL
-            return over_ground(self.stage, Vec3(inside.x, inside.y, end.z))
+            return over_ground(self.live, Vec3(inside.x, inside.y, end.z))
         return True
 
     def _connects(
@@ -736,7 +740,7 @@ class CpuController:
         """Where the CPU wants to be: near the target (at its preferred range), but never off
         the stage. With the target recovering, maybe at the ledge it is heading for."""
         where = self._predict(target, lead)
-        if not target.grounded and not over_ground(self.stage, where):
+        if not target.grounded and not over_ground(self.live, where):
             self._edgeguarding = self._roll("edgeguard") < self.level.edgeguard_chance
             if not self._edgeguarding:
                 return safe_spot(
@@ -750,7 +754,7 @@ class CpuController:
         if zoner and abs(where.z - me.pos.z) <= config.CPU_ZONER_HEIGHT and away.length() > 0.0:
             line = facing_from_move(away) or me.facing
             spot = where.xy + line.world * config.CPU_ZONER_RANGE
-            floor = ground_below(self.stage, spot.x, spot.y, where.z)
+            floor = ground_below(self.live, spot.x, spot.y, where.z)
             if floor is not None and abs(floor - where.z) <= config.CPU_STEP_HEIGHT:
                 spot_region = region_of(self.stage, Vec3(spot.x, spot.y, floor))
                 if spot_region is not None and spot_region == region_of(self.stage, where):
@@ -788,9 +792,9 @@ class CpuController:
         knowledge = self.knowledge[self.player]
         if rise > config.CPU_STEP_HEIGHT and distance < config.CPU_WALK_RANGE * 2:
             return self._jump_toward(me, goal, direction)
-        if not level_ground_ahead(self.stage, me.pos, direction, self._edge_lookahead):
+        if not level_ground_ahead(self.live, me.pos, direction, self._edge_lookahead):
             ahead = me.pos.xy + direction * self._edge_lookahead
-            below = ground_below(self.stage, ahead.x, ahead.y, me.pos.z)
+            below = ground_below(self.live, ahead.x, ahead.y, me.pos.z)
             if (
                 below is not None
                 and below < me.pos.z
@@ -799,7 +803,7 @@ class CpuController:
                 self.plan = Plan("move", "step down")
                 return InputFrame(move=direction)
             reach = knowledge.full_hop_rise + knowledge.air_jump_rise
-            if over_ground(self.stage, goal) and distance <= reach + config.CPU_WALK_RANGE:
+            if over_ground(self.live, goal) and distance <= reach + config.CPU_WALK_RANGE:
                 return self._jump_toward(me, goal, direction)
             self.plan = Plan("wait", "edge")
             return NEUTRAL_INPUT
@@ -812,7 +816,7 @@ class CpuController:
         """If ``goal`` is on other ground, the takeoff and landing points of the first jump
         of the way there."""
         here = region_of(self.stage, me.pos)
-        floor = ground_below(self.stage, goal.x, goal.y, goal.z)
+        floor = ground_below(self.live, goal.x, goal.y, goal.z)
         if here is None or floor is None:
             return None
         there = region_of(self.stage, Vec3(goal.x, goal.y, floor))

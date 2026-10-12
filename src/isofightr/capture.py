@@ -13,7 +13,7 @@ Imports ``arcade`` (through the app), so it needs a display.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, replace
 
 import arcade
 from PIL import Image, ImageDraw
@@ -352,12 +352,10 @@ def _label(image: Image.Image, text: str) -> None:
     draw.text((4, 3), text, fill=LABEL_COLOUR)
 
 
-def _hazard_rules(hazards: bool) -> MatchRules | None:
-    """Return the rules for a stage sheet. Stage hazards are a rule from M14 group 4 on;
-    before that every stage is plain ground and the switch changes nothing."""
-    if "stage_hazards" not in {field.name for field in fields(MatchRules)}:
-        return None
-    return replace(MatchRules(), **{"stage_hazards": hazards})
+def _hazard_rules(hazards: bool) -> MatchRules:
+    """Return the rules for a stage sheet: the sandbox's, with the stage's mechanics on or
+    off (decision D-063)."""
+    return replace(MatchRules(), stage_hazards=hazards)
 
 
 def capture_stage_sheet(

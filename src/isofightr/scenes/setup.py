@@ -64,6 +64,9 @@ class MatchSetup:
     parry: bool = False
     air_dodge_helpless: bool = False
     short_hop_macro: bool = True
+    stage_hazards: bool = True
+    """Whether stages' mechanics are on: moving platforms, hazards, ice, conveyors and
+    springs (decision D-063). On by default in the game; off, every stage is plain."""
     start_damage: int = 0
     """Percent every fighter starts and respawns with (0 to 300 in steps of 10)."""
     hud_display: bool = True
@@ -96,7 +99,7 @@ class MatchSetup:
     def rules(self) -> MatchRules:
         """Return the sim rules for this setup. Training has no stocks, clock or countdown."""
         if self.training:
-            return MatchRules(stocks=None)
+            return MatchRules(stocks=None, stage_hazards=self.stage_hazards)
         stock_on = self.stock_on or not self.time_on
         return MatchRules(
             stocks=self.stocks if stock_on else None,
@@ -108,6 +111,7 @@ class MatchSetup:
             parry=self.parry,
             air_dodge_helpless=self.air_dodge_helpless,
             short_hop_macro=self.short_hop_macro,
+            stage_hazards=self.stage_hazards,
             start_damage=float(self.start_damage),
         )
 

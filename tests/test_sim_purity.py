@@ -96,6 +96,8 @@ WINDOWLESS_MODULES = (
     "isofightr.render.underside",
     "isofightr.render.props",
     "isofightr.render.ambient",
+    "isofightr.render.hazard_art",
+    "isofightr.render.hazard_look",
     "isofightr.data.tileset_art",
     "isofightr.render.ground_items",
     "isofightr.render.projectile_art",

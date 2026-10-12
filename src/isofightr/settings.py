@@ -184,6 +184,7 @@ class SavedRules:
     parry: bool = False
     short_hop_macro: bool = True
     air_dodge_helpless: bool = False
+    stage_hazards: bool = True
     hud_display: bool = True
     score_display: bool = False
     player_tags: bool = False
@@ -198,6 +199,7 @@ RULE_FLAGS: Final[tuple[str, ...]] = (
     "parry",
     "short_hop_macro",
     "air_dodge_helpless",
+    "stage_hazards",
     "hud_display",
     "score_display",
     "player_tags",

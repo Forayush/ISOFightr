@@ -89,6 +89,22 @@ FRAMES_PER_MINUTE: Final[int] = 3600
 SUDDEN_DEATH_DAMAGE: Final[float] = 300.0
 """Damage every fighter starts a sudden death on."""
 
+# --- Stage mechanics (decision D-063) ----------------------------------------------------
+HAZARD_SAFE_FRAMES: Final[int] = 240
+"""No hazard may be active over a spawn before this frame of a match (4 seconds)."""
+HAZARD_KINDS: Final[tuple[str, ...]] = ("geyser", "lightning", "wind")
+MOTION_KINDS: Final[tuple[str, ...]] = ("ping_pong", "loop", "bob")
+MIN_MOTION_PERIOD: Final[int] = 60
+"""A moving platform's whole trip takes at least this many frames."""
+MAX_PLATFORM_SPEED: Final[float] = 0.08
+"""The fastest a platform may move, in units per frame: slower than any fighter walks."""
+PATH_SAMPLES: Final[int] = 48
+"""How many moments of a platform's trip its clearance over the ground is checked at."""
+HAZARD_SHIELDSTUN_MULT: Final[float] = 0.5
+"""A hazard blocked with a shield stuns less than a direct attack, like a projectile."""
+MAX_BOUNCE: Final[float] = 0.6
+"""The most a spring cell may throw a fighter upward, in units per frame."""
+
 KO_CREDIT_FRAMES: Final[int] = 480
 """A KO is credited to the last fighter that hit the victim within this many frames;
 otherwise it is a self-destruct."""

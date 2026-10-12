@@ -656,6 +656,97 @@ length = 0.34
 release = 0.2
 volume = 0.8
 
+# --- stage hazards (decision D-063) --------------------------------------------------------------
+
+# A warning: the ground rumbles before a geyser or a strike, the air stirs before a gust.
+[[hazard_warn.layers]]
+wave = "noise"
+freq = 420
+length = 0.5
+attack = 0.12
+lowpass = 0.12
+release = 0.25
+volume = 0.5
+[[hazard_warn.layers]]
+wave = "sine"
+freq = 58
+freq_end = 74
+length = 0.5
+attack = 0.1
+vibrato_depth = 0.6
+vibrato_rate = 14
+release = 0.2
+volume = 0.55
+
+[[geyser.layers]]
+wave = "noise"
+freq = 900
+freq_end = 3600
+length = 0.6
+attack = 0.03
+lowpass = 0.3
+release = 0.35
+volume = 0.6
+[[geyser.layers]]
+wave = "sine"
+freq = 96
+freq_end = 40
+length = 0.3
+release = 0.18
+volume = 0.8
+
+[[thunder.layers]]
+wave = "noise"
+freq = 7000
+freq_end = 1800
+length = 0.12
+release = 0.08
+volume = 0.7
+[[thunder.layers]]
+wave = "noise"
+freq = 500
+freq_end = 160
+length = 0.85
+delay = 0.04
+lowpass = 0.1
+release = 0.6
+volume = 0.75
+[[thunder.layers]]
+wave = "sine"
+freq = 66
+freq_end = 38
+length = 0.6
+delay = 0.03
+release = 0.4
+volume = 0.7
+
+[[gust.layers]]
+wave = "noise"
+freq = 1500
+freq_end = 2600
+length = 0.75
+attack = 0.25
+lowpass = 0.18
+release = 0.4
+volume = 0.5
+
+[[spring.layers]]
+wave = "sine"
+freq = "E4"
+freq_end = "B5"
+length = 0.2
+vibrato_depth = 0.5
+vibrato_rate = 22
+release = 0.1
+volume = 0.5
+[[spring.layers]]
+wave = "triangle"
+freq = "E3"
+freq_end = "E4"
+length = 0.1
+release = 0.06
+volume = 0.4
+
 # --- menus -------------------------------------------------------------------------------------
 
 [[ui_move.layers]]

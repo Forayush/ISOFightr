@@ -15,7 +15,13 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from isofightr.sim.constants import KO_CREDIT_FRAMES, SUDDEN_DEATH_DAMAGE
-from isofightr.sim.events import HitEvent, KoEvent, MatchEndEvent, SuddenDeathEvent
+from isofightr.sim.events import (
+    HazardHitEvent,
+    HitEvent,
+    KoEvent,
+    MatchEndEvent,
+    SuddenDeathEvent,
+)
 from isofightr.sim.fighter import NO_PARTNER, NO_TEAM, Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.math3d import ZERO2, ZERO3
@@ -89,6 +95,10 @@ def track_hits(match: Match) -> None:
             target.combo_by = event.attacker
         stats = match.stats[event.attacker]
         stats.longest_combo = max(stats.longest_combo, target.combo_hits)
+    for event in match.events:
+        # A stage hazard's damage is taken from nobody: it changes no KO credit or combo.
+        if isinstance(event, HazardHitEvent) and not event.blocked and event.damage > 0.0:
+            match.stats[event.target].damage_taken += event.damage
     for fighter in match.fighters:
         stats = match.stats[fighter.player_index]
         stats.peak_damage = max(stats.peak_damage, fighter.damage)

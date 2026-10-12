@@ -151,13 +151,14 @@ def test_setup_carries_teams_and_the_optional_rules_into_the_match_rules() -> No
         parry=True,
         air_dodge_helpless=True,
         short_hop_macro=False,
+        stage_hazards=True,
     )
     assert MatchSetup().rules().short_hop_macro, "the macro is on unless the Rules screen says"
     free = replace(setup, team_play=False)
     assert free.rules().teams is None, "team numbers are ignored in a free-for-all"
     timed = replace(setup, stock_on=False, time_on=True, minutes=5)
     assert timed.rules().time_frames == 5 * 3600 and timed.rules().stocks is None
-    assert replace(setup, training=True).rules() == MatchRules(stocks=None)
+    assert replace(setup, training=True).rules() == MatchRules(stocks=None, stage_hazards=True)
 
 
 def test_when_a_match_can_start() -> None:

@@ -15,7 +15,7 @@ from typing import Final
 from isofightr.config import TILE_H, TILE_W, Z_PX
 from isofightr.render.underside import lowest_point
 from isofightr.sim.math3d import Vec3
-from isofightr.sim.stage import Stage
+from isofightr.sim.stage import Stage, path_extent
 
 HALF_TILE_W: Final[float] = TILE_W / 2
 HALF_TILE_H: Final[float] = TILE_H / 2
@@ -56,8 +56,9 @@ def stage_screen_centre(stage: Stage) -> tuple[float, float]:
                 points.append(project(x, y, cell.top))
                 points.append(project(x, y, bottom))
     for platform in stage.soft_platforms:
-        for x, y in ((platform.x0, platform.y0), (platform.x1, platform.y1)):
-            points.append(project(x, y, platform.z))
+        reach = path_extent(platform)  # everywhere the deck goes, if it moves
+        for x, y in ((reach.x_min, reach.y_min), (reach.x_max, reach.y_max)):
+            points.append(project(x, y, reach.z_max))
     if not points:
         return (0.0, 0.0)
     xs, ys = [point[0] for point in points], [point[1] for point in points]

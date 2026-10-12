@@ -28,9 +28,9 @@ from isofightr.ui.widgets import Button, Checkbox, Picture, Stepper, Toggle, add
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-ROW_HEIGHT = 18
+ROW_HEIGHT = 17
 ROW_GAP = 1
-PANEL = Rect(48, 86, NATIVE_W - 96, len(RULE_ROWS) * ROW_HEIGHT + 2 * theme.GAP)
+PANEL = Rect(48, 82, NATIVE_W - 96, len(RULE_ROWS) * ROW_HEIGHT + 2 * theme.GAP)
 STEPPER_WIDTH = 92
 SWITCH_WIDTH = 52
 BUTTONS_BOTTOM = 56

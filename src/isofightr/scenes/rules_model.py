@@ -94,6 +94,12 @@ RULE_ROWS: Final[tuple[RuleRow, ...]] = (
         help="A directional air dodge leaves you falling helpless.",
     ),
     RuleRow(
+        "stage_hazards",
+        "STAGE HAZARDS",
+        "burst",
+        help="Moving platforms, geysers, wind, ice, springs. Off: plain stages.",
+    ),
+    RuleRow(
         "hud_display",
         "HUD DISPLAY",
         "hud",

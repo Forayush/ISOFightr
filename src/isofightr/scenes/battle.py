@@ -31,7 +31,7 @@ import arcade
 from isofightr.ai.controller import CpuController
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
 from isofightr.ai.view import observe
-from isofightr.audio.cues import MatchSounds, event_cues
+from isofightr.audio.cues import MatchSounds, event_cues, hazard_cues
 from isofightr.config import (
     CPU_DEFAULT_LEVEL,
     CPU_MAX_LEVEL,
@@ -58,6 +58,8 @@ from isofightr.render.effect_renderer import EffectRenderer
 from isofightr.render.effects import BattleEffects
 from isofightr.render.fighter_look import costume_for, fighter_look
 from isofightr.render.ground_items import GroundItem, decal_items, projectile_items
+from isofightr.render.hazard_look import ground_marks, hazard_sprites
+from isofightr.render.hazard_renderer import HazardRenderer
 from isofightr.render.hitbox_overlay import HitboxOverlay
 from isofightr.render.iso import project, project_point
 from isofightr.render.pixel_buffer import PixelBuffer
@@ -186,6 +188,7 @@ MENU_INFO = "info"
 MENU_RESET = "reset"
 BATTLE_FADE_TICKS = 20
 MENU_DUMMY_LEVEL = "dummy_level"
+MENU_HAZARDS = "stage_hazards"
 CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
@@ -295,6 +298,7 @@ class BattleView(TickedView):
         self.camera.snap_to(self._camera_targets())
         self.effects = BattleEffects()
         self.effect_renderer = EffectRenderer()
+        self.hazard_renderer = HazardRenderer()
         self.effect_renderer.plain_projectiles = placeholder_art
         self.hitboxes = HitboxOverlay()
         self.show_hitboxes = False
@@ -422,6 +426,9 @@ class BattleView(TickedView):
                     "Dummy CPU level",
                     CPU_LEVEL_CHOICES,
                     CPU_LEVEL_CHOICES.index(str(self.dummy_level)),
+                ),
+                MenuItem(
+                    MENU_HAZARDS, "Stage hazards", ON_OFF, int(self.match.rules.stage_hazards)
                 ),
             ]
         items.append(MenuItem(MENU_MOVES, "Move list"))
@@ -616,6 +623,7 @@ class BattleView(TickedView):
             menu.item(MENU_HITBOXES).index = int(self.show_hitboxes)
             menu.item(MENU_INFO).index = int(self.show_fighter_info)
             menu.item(MENU_DUMMY_LEVEL).index = CPU_LEVEL_CHOICES.index(str(self.dummy_level))
+            menu.item(MENU_HAZARDS).index = int(self.match.rules.stage_hazards)
             dummies = self.match.fighters[FIRST_DUMMY:]
             damage = dummies[0].damage if dummies else 0.0
             menu.item(MENU_DAMAGE).label = f"Dummy damage: < {damage:.0f}% >"
@@ -650,6 +658,9 @@ class BattleView(TickedView):
             self.show_hitboxes = bool(menu.item(MENU_HITBOXES).index)
             self.show_fighter_info = bool(menu.item(MENU_INFO).index)
             self.dummy_level = int(menu.item(MENU_DUMMY_LEVEL).value)
+            hazards = bool(menu.item(MENU_HAZARDS).index)
+            if hazards != self.match.rules.stage_hazards:
+                self.match.set_stage_hazards(hazards)  # one of the sim's own training tools
         self._sync_pause_menu()
 
     def quit_match(self) -> None:
@@ -884,11 +895,13 @@ class BattleView(TickedView):
         self.hud_state.step(
             self.match.fighters, self.match.events, self.match.phase is MatchPhase.OVER
         )
-        self.effects.observe(self.match.fighters, self.stage)
+        self.effects.observe(self.match.fighters, self.match.stage)
         looks = self.effect_renderer.projectile_looks
         looks.learn(self.characters)
         self.effects.observe_projectiles(self.match.projectiles, looks)
         cues = event_cues(self.match.events) + self._sounds.observe(self.match)
+        if self.match.rules.stage_hazards:
+            cues += hazard_cues(self.match.stage, self.match.frame)
         self.audio.play_cues(cues, self._pan_of)
         targets = self._camera_targets()
         if targets:
@@ -1058,7 +1071,9 @@ class BattleView(TickedView):
         if not self.placeholder_art:
             projectile_looks = self.effect_renderer.projectile_looks
             projectile_looks.learn(self.characters)
-            ground = projectile_items(self.stage, self.match.projectiles, projectile_looks, colors)
+            ground = projectile_items(
+                self.match.stage, self.match.projectiles, projectile_looks, colors
+            )
             ground += decal_items(
                 self.stage,
                 [
@@ -1066,8 +1081,15 @@ class BattleView(TickedView):
                     for d in self.effects.decals
                 ],
             )
-        self.renderer.calm = self.settings.reduce_flashing
-        self.renderer.sync(fighters, frame, looks, ground)
+        calm = self.settings.reduce_flashing
+        hazards_on = self.match.rules.stage_hazards and bool(self.match.stage.hazards)
+        if hazards_on:
+            ground += ground_marks(self.match.stage, frame, calm)
+        self.hazard_renderer.sync(
+            hazard_sprites(self.match.stage, frame, calm) if hazards_on else []
+        )
+        self.renderer.calm = calm
+        self.renderer.sync(fighters, frame, looks, ground, self.match.stage)
         # A move that has its own animation shows its swing in the sprite (a smear), so its
         # hitboxes are only drawn by the F1 overlay.
         animated = {
@@ -1112,7 +1134,7 @@ class BattleView(TickedView):
             self._place_tags(fighters)
         self._update_text()
 
-        overlays: list[Overlay] = [self.effect_renderer]
+        overlays: list[Overlay] = [self.hazard_renderer, self.effect_renderer]
         if self.show_hitboxes:
             overlays.append(self.hitboxes)
         if self.show_overlay:

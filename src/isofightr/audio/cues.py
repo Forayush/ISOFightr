@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import Final
 
 from isofightr import config
 from isofightr.sim import events as ev
@@ -20,6 +21,7 @@ from isofightr.sim.match import Match
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import Effect, MoveKind
 from isofightr.sim.rules import MatchPhase
+from isofightr.sim.stage import Stage
 
 PUMMEL_MOVE = "pummel"
 HIT_TIER_NAMES = ("hit_light", "hit_medium", "hit_heavy", "hit_ko")
@@ -112,10 +114,34 @@ def event_cues(events: Sequence[object]) -> list[Cue]:
             cues.append(Cue("shockwave", event.position))
         elif isinstance(event, ev.CounterEvent):
             cues.append(Cue("counter", event.position))
+        elif isinstance(event, ev.HazardHitEvent):
+            name = "shield_hit" if event.blocked else hit_sound(event.knockback, event.effect)
+            cues.append(Cue(name, event.position, vary=True))
+        elif isinstance(event, ev.BounceEvent):
+            cues.append(Cue("spring", event.position, vary=True))
         elif isinstance(event, ev.SuddenDeathEvent):
             cues.append(Cue("sudden_death"))
         elif isinstance(event, ev.MatchEndEvent):
             cues.append(Cue("game", duck=True))
+    return cues
+
+
+HAZARD_WARNING: Final[str] = "hazard_warn"
+HAZARD_SOUNDS: Final[dict[str, str]] = {"geyser": "geyser", "lightning": "thunder", "wind": "gust"}
+"""The sound of each kind of stage hazard going off (decision D-063)."""
+
+
+def hazard_cues(stage: Stage, frame: int) -> list[Cue]:
+    """The sounds of a stage's hazards on a frame: one as a warning begins, one as the
+    hazard goes off. Call it only while the match's stage hazards are on."""
+    cues = []
+    for hazard in stage.hazards:
+        phase, into, _ = hazard.moment(frame)
+        if into != 0 or phase == "rest":
+            continue
+        position = Vec3(hazard.x, hazard.y, hazard.z)
+        name = HAZARD_WARNING if phase == "warn" else HAZARD_SOUNDS[hazard.kind]
+        cues.append(Cue(name, position))
     return cues
 
 
@@ -183,7 +209,7 @@ def required_sounds() -> set[str]:
     names = {"pummel", "double_jump", "jump", "land_heavy", "land_light", "ko_blast"}
     names |= {"respawn", "clank", "parry", "shield_hit", "shield_break", "grab", "ledge_grab"}
     names |= {"tech", "wall_bounce", "shoot", "shockwave", "counter", "sudden_death", "game"}
-    names |= {"countdown", "go"}
+    names |= {"countdown", "go", "spring", HAZARD_WARNING} | set(HAZARD_SOUNDS.values())
     names |= set(SWING_BY_KIND.values()) | set(STATE_SOUNDS.values())
     for tier in HIT_TIER_NAMES:
         names.add(tier)

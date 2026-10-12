@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 from isofightr.config import (
@@ -28,7 +28,17 @@ from isofightr.config import (
     SURFACE_EPSILON,
     UNDERSIDE_MAX_DEPTH,
 )
-from isofightr.sim.math3d import Box3, Vec2, Vec3
+from isofightr.sim.constants import (
+    HAZARD_KINDS,
+    HAZARD_SAFE_FRAMES,
+    MAX_BOUNCE,
+    MAX_PLATFORM_SPEED,
+    MIN_MOTION_PERIOD,
+    MOTION_KINDS,
+    PATH_SAMPLES,
+)
+from isofightr.sim.math3d import ZERO2, ZERO3, Box3, Vec2, Vec3
+from isofightr.sim.move_def import DirectionMode, Effect, HitboxDef
 
 VOID_SYMBOL: Final[str] = "."
 DEFAULT_TILE: Final[str] = "default"
@@ -58,17 +68,80 @@ class Cell:
     """Tile name the renderer uses to pick art."""
     ledge: bool = True
     """Whether this cell's exposed sides can be grabbed as ledges."""
+    traction: float = 1.0
+    """Multiplier on the traction of whoever stands here (ice is about 0.25). Like the two
+    below, it only counts while the match's stage hazards are on (decision D-063)."""
+    drive: Vec2 = ZERO2
+    """A conveyor: how far the cell carries a fighter standing on it, per frame."""
+    bounce: float = 0.0
+    """A spring: the upward speed it throws a fighter that touches it (0 = none)."""
+
+    @property
+    def plain(self) -> bool:
+        """Whether the cell is ordinary ground (no surface modifier)."""
+        return self.traction == 1.0 and self.drive == ZERO2 and self.bounce == 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class PlatformMotion:
+    """How a soft platform moves: a trip through ``points`` that repeats every ``period``
+    frames. Where it is on a frame is a fixed function of the frame, so nothing is stored."""
+
+    kind: str
+    """``"ping_pong"`` (out through the points and back the same way), ``"loop"`` (through
+    the points and straight home) or ``"bob"`` (up by its amplitude and down again)."""
+    points: tuple[Vec3, ...]
+    """Where it goes, as offsets from where it rests."""
+    period: int
+    phase: int = 0
+    """Frames it is ahead: two platforms with the same trip need not move together."""
+
+    def _stops(self) -> tuple[Vec3, ...]:
+        if self.kind == "loop":
+            return (ZERO3, *self.points)
+        return (ZERO3, *self.points, *reversed(self.points[:-1]))
+
+    def offset(self, frame: int) -> Vec3:
+        """Return how far the platform is from its rest position on a frame. It eases out of
+        each stop and into the next, so it never jerks."""
+        stops = self._stops()
+        leg = self.period / len(stops)
+        moment = (frame + self.phase) % self.period
+        index = min(int(moment // leg), len(stops) - 1)
+        along = (moment - index * leg) / leg
+        eased = along * along * (3.0 - 2.0 * along)
+        start, end = stops[index], stops[(index + 1) % len(stops)]
+        return start + (end - start) * eased
 
 
 @dataclass(frozen=True, slots=True)
 class SoftPlatform:
     """A thin deck you can land on from above and pass through from below."""
 
-    x0: int
-    y0: int
-    x1: int
-    y1: int
+    x0: float
+    y0: float
+    x1: float
+    y1: float
     z: float
+    motion: PlatformMotion | None = None
+    step: Vec3 = ZERO3
+    """How far it moved since the frame before (set on the copies :meth:`Stage.at` makes):
+    whoever stands on it is carried this far, and a landing is swept against it."""
+
+    def at(self, frame: int) -> SoftPlatform:
+        """Return the platform where it is on a frame (itself if it does not move)."""
+        if self.motion is None:
+            return self
+        now, before = self.motion.offset(frame), self.motion.offset(frame - 1)
+        return SoftPlatform(
+            self.x0 + now.x,
+            self.y0 + now.y,
+            self.x1 + now.x,
+            self.y1 + now.y,
+            self.z + now.z,
+            self.motion,
+            now - before,
+        )
 
     def contains(self, x: float, y: float) -> bool:
         """Return whether a ground position is over the deck (far edges exclusive, like cells)."""
@@ -90,6 +163,93 @@ class LedgeLine:
     def length(self) -> float:
         """Length of the ledge line in units."""
         return (self.end - self.start).length()
+
+
+@dataclass(frozen=True, slots=True)
+class Hazard:
+    """A stage's own danger (decision D-063): an upright cylinder at a fixed place that is
+    quiet for ``rest`` frames, warns for ``warn`` frames, then is active for ``active``
+    frames, round and round. A ``geyser`` or ``lightning`` hits whoever is in it, once per
+    time it goes off; a ``wind`` pushes them while it blows."""
+
+    kind: str
+    x: float
+    y: float
+    radius: float
+    z: float
+    """Height of its foot."""
+    height: float
+    rest: int
+    warn: int
+    active: int
+    phase: int = 0
+    """Frames it is ahead in its cycle."""
+    hitbox: HitboxDef | None = None
+    """What a geyser or lightning hits with."""
+    push: Vec3 = ZERO3
+    """How far a wind carries a fighter, per frame."""
+
+    @property
+    def cycle(self) -> int:
+        """Frames from one activation to the next."""
+        return self.rest + self.warn + self.active
+
+    def moment(self, frame: int) -> tuple[str, int, int]:
+        """Return what the hazard is doing on a frame: ``("rest" | "warn" | "active", how
+        many frames into that, which activation this is, counted from the match's start)``."""
+        turn, inside = divmod(frame + self.phase, self.cycle)
+        if inside < self.rest:
+            return ("rest", inside, turn)
+        if inside < self.rest + self.warn:
+            return ("warn", inside - self.rest, turn)
+        return ("active", inside - self.rest - self.warn, turn)
+
+    def is_active(self, frame: int) -> bool:
+        """Return whether the hazard hits or blows on a frame."""
+        return (frame + self.phase) % self.cycle >= self.rest + self.warn
+
+    def first_active(self) -> int:
+        """Return the first frame of a match the hazard is active on."""
+        inside = self.phase % self.cycle
+        start = self.rest + self.warn
+        return 0 if inside >= start else start - inside
+
+    def covers(self, x: float, y: float, reach: float = 0.0) -> bool:
+        """Return whether a ground position is within ``reach`` of the hazard's circle."""
+        return (Vec2(x, y) - Vec2(self.x, self.y)).length() <= self.radius + reach
+
+    def touches(self, pos: Vec3, radius: float, height: float) -> bool:
+        """Return whether a body (feet at ``pos``) overlaps the hazard's cylinder."""
+        return (
+            self.covers(pos.x, pos.y, radius)
+            and pos.z < self.z + self.height
+            and pos.z + height > self.z
+        )
+
+
+def hazard_hitbox(damage: float, angle: float, bkb: float, kbg: float, effect: Effect) -> HitboxDef:
+    """Return the hit a hazard deals, as the same kind of hitbox a move has: it launches
+    away from the hazard's middle."""
+    return HitboxDef(
+        id=0,
+        group=0,
+        offset=ZERO3,
+        radius=0.0,
+        damage=damage,
+        angle=angle,
+        yaw=0.0,
+        direction_mode=DirectionMode.RADIAL,
+        bkb=bkb,
+        kbg=kbg,
+        fkb=0.0,
+        hitlag_mult=1.0,
+        sdi_mult=1.0,
+        effect=effect,
+        hits_ground=True,
+        hits_air=True,
+        rehit=0,
+        clank=False,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +327,33 @@ class Stage:
     props: tuple[Prop, ...] = ()
     ambient: Ambient | None = None
     underside_art: Underside | None = None
+    hazards: tuple[Hazard, ...] = ()
+
+    @property
+    def moves(self) -> bool:
+        """Whether any of the stage's platforms moves."""
+        return any(platform.motion is not None for platform in self.soft_platforms)
+
+    @property
+    def has_mechanics(self) -> bool:
+        """Whether the stage has anything the "stage hazards" rule switches off: a moving
+        platform, a hazard, or ground that is not plain."""
+        return (
+            self.moves
+            or bool(self.hazards)
+            or any(cell is not None and not cell.plain for row in self.cells for cell in row)
+        )
+
+    def at(self, frame: int) -> Stage:
+        """Return the stage as it is on a frame of a match: itself, unless a platform moves.
+
+        The copy differs only in where its soft platforms are, so everything that reads
+        platforms (collision, shadows, projectiles) sees them where they are now."""
+        if not self.moves:
+            return self
+        return replace(
+            self, soft_platforms=tuple(platform.at(frame) for platform in self.soft_platforms)
+        )
 
     @property
     def size_x(self) -> int:
@@ -255,6 +442,7 @@ def build_stage(
     props: Sequence[Prop] = (),
     ambient: Ambient | None = None,
     underside_art: Underside | None = None,
+    hazards: Sequence[Hazard] = (),
 ) -> Stage:
     """Validate parsed stage values and derive ledges, bounds, blast zone and camera bounds.
 
@@ -289,10 +477,12 @@ def build_stage(
         props=tuple(props),
         ambient=ambient,
         underside_art=underside_art,
+        hazards=tuple(hazards),
     )
     _validate_platforms(stage)
     _validate_spawns(stage)
     _validate_decor(stage)
+    _validate_mechanics(stage)
     if not blast_bottom < bounds.z_min or not blast_top > bounds.z_max:
         raise StageError("blast zone top and bottom must enclose every cell top")
     return stage
@@ -393,13 +583,29 @@ def _solid_bounds(cells: Sequence[Sequence[Cell | None]]) -> Box3:
     )
 
 
-def _camera_bounds(bounds: Box3, platforms: Sequence[SoftPlatform], margin: float) -> Box3:
-    highest = max([bounds.z_max, *(platform.z for platform in platforms)])
+def path_extent(platform: SoftPlatform) -> Box3:
+    """Return the box a platform's deck stays inside over its whole trip (its own rectangle
+    if it does not move)."""
+    stops = (ZERO3,) if platform.motion is None else (ZERO3, *platform.motion.points)
     return Box3(
-        bounds.x_min - margin,
-        bounds.x_max + margin,
-        bounds.y_min - margin,
-        bounds.y_max + margin,
+        platform.x0 + min(stop.x for stop in stops),
+        platform.x1 + max(stop.x for stop in stops),
+        platform.y0 + min(stop.y for stop in stops),
+        platform.y1 + max(stop.y for stop in stops),
+        platform.z + min(stop.z for stop in stops),
+        platform.z + max(stop.z for stop in stops),
+    )
+
+
+def _camera_bounds(bounds: Box3, platforms: Sequence[SoftPlatform], margin: float) -> Box3:
+    """The camera may frame everything solid and everywhere a platform ever goes."""
+    extents = [path_extent(platform) for platform in platforms]
+    highest = max([bounds.z_max, *(extent.z_max for extent in extents)])
+    return Box3(
+        min([bounds.x_min, *(extent.x_min for extent in extents)]) - margin,
+        max([bounds.x_max, *(extent.x_max for extent in extents)]) + margin,
+        min([bounds.y_min, *(extent.y_min for extent in extents)]) - margin,
+        max([bounds.y_max, *(extent.y_max for extent in extents)]) + margin,
         bounds.z_min - margin,
         highest + margin,
     )
@@ -417,8 +623,8 @@ def _validate_platforms(stage: Stage) -> None:
             or platform.y1 > stage.size_y
         ):
             raise StageError(f"{where}: rect lies outside the grid")
-        for cy in range(platform.y0, platform.y1):
-            for cx in range(platform.x0, platform.x1):
+        for cy in range(int(platform.y0), int(platform.y1)):
+            for cx in range(int(platform.x0), int(platform.x1)):
                 cell = stage.cell(cx, cy)
                 if cell is not None and platform.z < cell.top + MIN_PLATFORM_CLEARANCE:
                     raise StageError(
@@ -460,3 +666,86 @@ def _validate_decor(stage: Stage) -> None:
     under = stage.underside_art
     if under is not None and not 0.0 < under.depth <= UNDERSIDE_MAX_DEPTH:
         raise StageError(f"underside: depth must be above 0 and at most {UNDERSIDE_MAX_DEPTH}")
+
+
+def _validate_motion(stage: Stage, index: int, platform: SoftPlatform) -> None:
+    """Check a moving platform: a sane trip, never too fast for a fighter to ride, and
+    always clear of the ground it passes over."""
+    motion = platform.motion
+    if motion is None:
+        return
+    where = f"soft platform {index}"
+    if motion.kind not in MOTION_KINDS:
+        raise StageError(f"{where}: motion kind must be one of {', '.join(MOTION_KINDS)}")
+    if not motion.points or all(point == ZERO3 for point in motion.points):
+        raise StageError(f"{where}: its motion goes nowhere")
+    if motion.period < MIN_MOTION_PERIOD:
+        raise StageError(f"{where}: motion period must be at least {MIN_MOTION_PERIOD} frames")
+    if motion.phase < 0:
+        raise StageError(f"{where}: motion phase must be 0 or more")
+    blast = stage.blast_zone
+    for sample in range(PATH_SAMPLES):
+        frame = sample * motion.period // PATH_SAMPLES
+        moved = platform.at(frame)
+        if moved.step.length() > MAX_PLATFORM_SPEED:
+            raise StageError(
+                f"{where}: it moves {moved.step.length():.3f} units a frame, "
+                f"more than {MAX_PLATFORM_SPEED} (lengthen the period)"
+            )
+        if not (
+            blast.x_min < moved.x0
+            and moved.x1 < blast.x_max
+            and blast.y_min < moved.y0
+            and moved.y1 < blast.y_max
+            and blast.z_min < moved.z < blast.z_max
+        ):
+            raise StageError(f"{where}: its trip leaves the blast zone")
+        for cy in range(math.floor(moved.y0), math.ceil(moved.y1)):
+            for cx in range(math.floor(moved.x0), math.ceil(moved.x1)):
+                cell = stage.cell(cx, cy)
+                if cell is not None and moved.z < cell.top + MIN_PLATFORM_CLEARANCE:
+                    raise StageError(
+                        f"{where}: on its trip it comes within {MIN_PLATFORM_CLEARANCE} of "
+                        f"the cell at ({cx}, {cy}) with top {cell.top}"
+                    )
+
+
+def _validate_mechanics(stage: Stage) -> None:
+    """Check everything the "stage hazards" rule governs (decision D-063)."""
+    for index, platform in enumerate(stage.soft_platforms):
+        _validate_motion(stage, index, platform)
+    spawns = [*stage.spawns, stage.respawn]
+    for cy, row in enumerate(stage.cells):
+        for cx, cell in enumerate(row):
+            if cell is None or cell.plain:
+                continue
+            where = f"cell ({cx}, {cy})"
+            if not 0.0 < cell.traction <= 2.0:
+                raise StageError(f"{where}: traction must be above 0 and at most 2")
+            if not 0.0 <= cell.bounce <= MAX_BOUNCE:
+                raise StageError(f"{where}: bounce must be 0 to {MAX_BOUNCE}")
+            pushes = cell.drive != ZERO2 or cell.bounce > 0.0
+            if pushes and any((int(spawn.x), int(spawn.y)) == (cx, cy) for spawn in spawns):
+                raise StageError(f"{where}: a spawn stands on a conveyor or a spring")
+    for index, hazard in enumerate(stage.hazards):
+        where = f"hazard {index} ({hazard.kind})"
+        if hazard.kind not in HAZARD_KINDS:
+            raise StageError(f"{where}: kind must be one of {', '.join(HAZARD_KINDS)}")
+        if hazard.radius <= 0.0 or hazard.height <= 0.0:
+            raise StageError(f"{where}: radius and height must be above 0")
+        if hazard.warn < 1 or hazard.active < 1 or hazard.rest < 0 or hazard.phase < 0:
+            raise StageError(
+                f"{where}: warn and active must be 1 or more, rest and phase 0 or more"
+            )
+        if hazard.kind == "wind":
+            if hazard.push == ZERO3:
+                raise StageError(f"{where}: a wind needs a push")
+        elif hazard.hitbox is None or hazard.hitbox.damage <= 0.0:
+            raise StageError(f"{where}: it needs damage")
+        if hazard.first_active() < HAZARD_SAFE_FRAMES:
+            for spawn in spawns:
+                if hazard.covers(spawn.x, spawn.y):
+                    raise StageError(
+                        f"{where}: it is active over a spawn on frame {hazard.first_active()}, "
+                        f"before frame {HAZARD_SAFE_FRAMES} (give it more rest or less phase)"
+                    )
