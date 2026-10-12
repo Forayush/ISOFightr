@@ -1,0 +1,84 @@
+# arrow_west: an arrow running along a conveyor (3 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "c0a"
+joint = "origin"
+shape = "box"
+low = [-0.260, 0.375, 0.008]
+high = [0.260, 0.445, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c0b"
+joint = "origin"
+shape = "box"
+low = [-0.170, 0.265, 0.008]
+high = [0.170, 0.335, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c0c"
+joint = "origin"
+shape = "box"
+low = [-0.080, 0.155, 0.008]
+high = [0.080, 0.225, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c1a"
+joint = "origin"
+shape = "box"
+low = [-0.260, 0.075, 0.008]
+high = [0.260, 0.145, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c1b"
+joint = "origin"
+shape = "box"
+low = [-0.170, -0.035, 0.008]
+high = [0.170, 0.035, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c1c"
+joint = "origin"
+shape = "box"
+low = [-0.080, -0.145, 0.008]
+high = [0.080, -0.075, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c2a"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.225, 0.008]
+high = [0.260, -0.155, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c2b"
+joint = "origin"
+shape = "box"
+low = [-0.170, -0.335, 0.008]
+high = [0.170, -0.265, 0.020]
+material = "cyan"
+
+[[smears]]
+name = "c2c"
+joint = "origin"
+shape = "box"
+low = [-0.080, -0.445, 0.008]
+high = [0.080, -0.375, 0.020]
+material = "cyan"
+
+[[poses]]
+show = ["c0a", "c0b", "c0c"]
+
+[[poses]]
+show = ["c1a", "c1b", "c1c"]
+
+[[poses]]
+show = ["c2a", "c2b", "c2c"]

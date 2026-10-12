@@ -65,6 +65,7 @@ CPU_SOAK_STAGES = (
     "lily_pads",
     "ember_forge",
     "frostpeak",
+    "neon_circuit",
 )
 CPU_SOAK_MAX_TICKS = 10 * 60 * TICK_RATE
 

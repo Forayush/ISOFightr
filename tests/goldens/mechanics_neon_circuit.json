@@ -1,0 +1,19 @@
+{
+  "description": "All four characters on Neon Circuit with the stage hazards rule on (two conveyors and two bumper pads), starting at 60%, driven by 6000 ticks of seeded random input (decision D-063).",
+  "stage": "neon_circuit",
+  "characters": [
+    "rook",
+    "bramble",
+    "zephyr",
+    "mote"
+  ],
+  "seed": 13,
+  "stocks": null,
+  "start_damage": 60.0,
+  "input_seed": 44,
+  "ticks": 6000,
+  "rules": {
+    "stage_hazards": true
+  },
+  "hash": "4c662ed73b96d20cf5597cceeae6a981"
+}

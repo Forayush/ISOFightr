@@ -1,0 +1,45 @@
+# Cable: a loop of cable hanging under the roof.
+loop = true
+fps = 1
+
+[[parts]]
+name = "cable0"
+joint = "origin"
+shape = "rod"
+a = [-0.240, 0.000, 0.020]
+b = [-0.160, 0.000, -0.500]
+r1 = 0.035
+r2 = 0.035
+material = "metal_dark"
+
+[[parts]]
+name = "cable1"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.000, -0.500]
+b = [0.000, 0.000, -0.700]
+r1 = 0.035
+r2 = 0.035
+material = "metal_dark"
+
+[[parts]]
+name = "cable2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.700]
+b = [0.160, 0.000, -0.500]
+r1 = 0.035
+r2 = 0.035
+material = "metal_dark"
+
+[[parts]]
+name = "cable3"
+joint = "origin"
+shape = "rod"
+a = [0.160, 0.000, -0.500]
+b = [0.240, 0.000, 0.020]
+r1 = 0.035
+r2 = 0.035
+material = "metal_dark"
+
+[[poses]]

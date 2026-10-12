@@ -1,0 +1,287 @@
+# Sign: a big neon sign on two posts; its ring flickers (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "post0"
+joint = "origin"
+shape = "rod"
+a = [-0.900, 0.000, 0.000]
+b = [-0.900, 0.000, 1.000]
+r1 = 0.050
+r2 = 0.050
+material = "metal"
+
+[[parts]]
+name = "post1"
+joint = "origin"
+shape = "rod"
+a = [0.900, 0.000, 0.000]
+b = [0.900, 0.000, 1.000]
+r1 = 0.050
+r2 = 0.050
+material = "metal"
+
+[[parts]]
+name = "board"
+joint = "origin"
+shape = "box"
+low = [-1.000, -0.050, 1.000]
+high = [1.000, 0.050, 2.000]
+material = "metal_dark"
+
+[[parts]]
+name = "frame0"
+joint = "origin"
+shape = "rod"
+a = [-0.920, 0.080, 1.080]
+b = [0.920, 0.080, 1.080]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[parts]]
+name = "frame1"
+joint = "origin"
+shape = "rod"
+a = [-0.920, 0.080, 1.920]
+b = [0.920, 0.080, 1.920]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[parts]]
+name = "bolt0"
+joint = "origin"
+shape = "rod"
+a = [-0.750, 0.080, 1.800]
+b = [-0.500, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "yellow"
+
+[[parts]]
+name = "bolt1"
+joint = "origin"
+shape = "rod"
+a = [-0.500, 0.080, 1.500]
+b = [-0.680, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "yellow"
+
+[[parts]]
+name = "bolt2"
+joint = "origin"
+shape = "rod"
+a = [-0.680, 0.080, 1.500]
+b = [-0.420, 0.080, 1.200]
+r1 = 0.045
+r2 = 0.045
+material = "yellow"
+
+[[smears]]
+name = "ring_on0"
+joint = "origin"
+shape = "rod"
+a = [0.260, 0.080, 1.500]
+b = [0.184, 0.080, 1.684]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off0"
+joint = "origin"
+shape = "rod"
+a = [0.260, 0.080, 1.500]
+b = [0.184, 0.080, 1.684]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on1"
+joint = "origin"
+shape = "rod"
+a = [0.184, 0.080, 1.684]
+b = [0.000, 0.080, 1.760]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off1"
+joint = "origin"
+shape = "rod"
+a = [0.184, 0.080, 1.684]
+b = [0.000, 0.080, 1.760]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.080, 1.760]
+b = [-0.184, 0.080, 1.684]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.080, 1.760]
+b = [-0.184, 0.080, 1.684]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on3"
+joint = "origin"
+shape = "rod"
+a = [-0.184, 0.080, 1.684]
+b = [-0.260, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off3"
+joint = "origin"
+shape = "rod"
+a = [-0.184, 0.080, 1.684]
+b = [-0.260, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on4"
+joint = "origin"
+shape = "rod"
+a = [-0.260, 0.080, 1.500]
+b = [-0.184, 0.080, 1.316]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off4"
+joint = "origin"
+shape = "rod"
+a = [-0.260, 0.080, 1.500]
+b = [-0.184, 0.080, 1.316]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on5"
+joint = "origin"
+shape = "rod"
+a = [-0.184, 0.080, 1.316]
+b = [-0.000, 0.080, 1.240]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off5"
+joint = "origin"
+shape = "rod"
+a = [-0.184, 0.080, 1.316]
+b = [-0.000, 0.080, 1.240]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on6"
+joint = "origin"
+shape = "rod"
+a = [-0.000, 0.080, 1.240]
+b = [0.184, 0.080, 1.316]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off6"
+joint = "origin"
+shape = "rod"
+a = [-0.000, 0.080, 1.240]
+b = [0.184, 0.080, 1.316]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[smears]]
+name = "ring_on7"
+joint = "origin"
+shape = "rod"
+a = [0.184, 0.080, 1.316]
+b = [0.260, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "magenta"
+
+[[smears]]
+name = "ring_off7"
+joint = "origin"
+shape = "rod"
+a = [0.184, 0.080, 1.316]
+b = [0.260, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "magenta_dim"
+
+[[parts]]
+name = "cross0"
+joint = "origin"
+shape = "rod"
+a = [0.440, 0.080, 1.500]
+b = [0.840, 0.080, 1.500]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[parts]]
+name = "cross1"
+joint = "origin"
+shape = "rod"
+a = [0.640, 0.080, 1.280]
+b = [0.640, 0.080, 1.720]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[parts]]
+name = "cross2"
+joint = "origin"
+shape = "rod"
+a = [0.500, 0.080, 1.360]
+b = [0.780, 0.080, 1.640]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[parts]]
+name = "cross3"
+joint = "origin"
+shape = "rod"
+a = [0.500, 0.080, 1.640]
+b = [0.780, 0.080, 1.360]
+r1 = 0.045
+r2 = 0.045
+material = "cyan"
+
+[[poses]]
+show = ["ring_on0", "ring_on1", "ring_on2", "ring_on3", "ring_on4", "ring_on5", "ring_on6", "ring_on7"]
+
+[[poses]]
+show = ["ring_off0", "ring_off1", "ring_off2", "ring_off3", "ring_off4", "ring_off5", "ring_off6", "ring_off7"]

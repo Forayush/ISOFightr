@@ -106,6 +106,14 @@ DAWN: Final[Mood] = Mood(
     ruin="ffffff",
 )
 """A cold, clear dawn: blue overhead paling to peach at the horizon (Frostpeak)."""
+GLOW: Final[Mood] = Mood(
+    sky=("2e222f", "323353", "6b3e75", "a24b6f", "f04f78"),
+    cloud=("6b3e75", "484a77", "323353"),
+    island_top="484a77",
+    island_side=("6b3e75", "323353"),
+    ruin="f04f78",
+)
+"""A city's night: dark overhead, the streets' light staining the horizon (Neon Circuit)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -115,6 +123,7 @@ MOODS: Final[dict[str, Mood]] = {
     "void": VOID,
     "ember": EMBER,
     "dawn": DAWN,
+    "glow": GLOW,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -1017,3 +1026,85 @@ def paint_peaks(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["peaks"] = paint_peaks
+
+
+# --- the city at night (Neon Circuit) ------------------------------------------------------
+
+FAR_TOWERS: Final[tuple[str, str]] = ("484a77", "6b3e75")
+NEAR_TOWERS: Final[tuple[str, str]] = ("2e222f", "323353")
+"""A row of towers: their walls, and the edge the city's glow catches."""
+WINDOW_COLOURS: Final[tuple[str, ...]] = ("f9c22b", "f9c22b", "8ff8e2", "f04f78")
+CITY_FRAMES: Final[int] = 2
+TRAFFIC_COLOURS: Final[tuple[str, str]] = ("f04f78", "8ff8e2")
+TRAFFIC: Final[int] = 9
+
+
+def skyline(
+    colours: tuple[str, str],
+    seed: int,
+    crest: int,
+    tall: int,
+    lit: float,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
+) -> Image.Image:
+    """Return a row of towers as ``CITY_FRAMES`` frames stacked top to bottom: flat roofs
+    about ``crest`` pixels down, up to ``tall`` higher, some with a mast; a share ``lit`` of
+    their windows are on, and a few of those go off on the second frame. It wraps."""
+    rng = random.Random(seed)
+    wall, edge = (hex_rgb(value) for value in colours)
+    panes = [hex_rgb(value) for value in WINDOW_COLOURS]
+    image = Image.new("RGBA", (width, height * CITY_FRAMES))
+    draw = ImageDraw.Draw(image)
+    towers = []
+    x = 0
+    while x < width:
+        wide = rng.randint(22, 58)
+        towers.append((x, min(wide, width - x), crest - rng.randint(0, tall), rng.random() < 0.25))
+        x += wide
+    for frame in range(CITY_FRAMES):
+        top = frame * height
+        flicker = random.Random(seed * 7 + 1)
+        for left, wide, roof, mast in towers:
+            draw.rectangle((left, top + roof, left + wide - 1, top + height), fill=wall)
+            draw.line(((left, top + roof), (left, top + height)), fill=edge)
+            draw.line(((left, top + roof), (left + wide - 1, top + roof)), fill=edge)
+            if mast:
+                middle = left + wide // 2
+                draw.line(((middle, top + roof - 14), (middle, top + roof)), fill=edge)
+            colour = panes[(left // 7) % len(panes)]
+            for wy in range(roof + 5, height - 4, 6):
+                for wx in range(left + 4, left + wide - 4, 5):
+                    on = flicker.random() < lit
+                    blinks = flicker.random() < 0.08
+                    if on and not (blinks and frame == 1):
+                        draw.rectangle((wx, top + wy, wx + 1, top + wy + 2), fill=colour)
+    return image
+
+
+def traffic(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return a few lights crossing the sky (a layer that scrolls by itself): each a bright
+    pixel with a short tail."""
+    rng = random.Random(seed)
+    image = Image.new("RGBA", (width, height))
+    for number in range(TRAFFIC):
+        x, y = rng.randrange(width), rng.randint(30, 150)
+        colour = hex_rgb(TRAFFIC_COLOURS[number % len(TRAFFIC_COLOURS)])
+        for tail in range(5):
+            if tail in (0, 1, 3):
+                image.putpixel(((x - tail) % width, y), (*colour, 255))
+    return image
+
+
+def paint_city(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Neon Circuit: a night sky glowing at the horizon, lights crossing it, and two rows of
+    towers whose windows go on and off."""
+    return {
+        "bg_0_sky.png": sky(mood),
+        "bg_1_traffic.png": traffic(seed),
+        "bg_2_far_towers.png": skyline(FAR_TOWERS, seed + 1, 190, 60, 0.18),
+        "bg_3_near_towers.png": skyline(NEAR_TOWERS, seed + 2, 262, 70, 0.3),
+    }
+
+
+PAINTERS["city"] = paint_city

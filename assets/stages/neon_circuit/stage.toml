@@ -1,0 +1,184 @@
+# Neon Circuit: a rooftop arcade at night (decision D-063, new in M14). One long roof with
+# a platform of dark glass on poles at either end.
+# Mechanics: two conveyors carry whoever stands on them toward the roof's two ends, and two
+# bumper pads either side of the middle throw whoever lands on them into the air (not a
+# fighter who is reeling from a hit). With the "stage hazards" rule off the belts stand still
+# and the pads are plain floor.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "neon_circuit"
+display_name = "Neon Circuit"
+description = "A rooftop arcade: two conveyors and two bumper pads."
+tileset = "neon"
+music = "neon_circuit"            # a song in assets/audio/music
+
+# Legend: '.' = void. 'n' roof panel, 'w' the conveyor running west (toward -x), 'e' the one
+# running east, 'B' a bumper pad.
+grid = """
+nnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnn
+nwwwwnnnnneeeen
+nwwwwnBnBneeeen
+nwwwwnnnnneeeen
+nnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnn
+"""
+
+[legend]
+"n" = { height = 0, tile = "panel" }
+"w" = { height = 0, tile = "belt", drive = [-0.025, 0.0] }
+"e" = { height = 0, tile = "belt", drive = [0.025, 0.0] }
+"B" = { height = 0, tile = "bumper", bounce = 0.4 }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [1, 5, 4, 7]          # the left platform
+z = 2.5
+[[soft_platforms]]
+rect = [11, 0, 14, 2]        # the right platform
+z = 2.5
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [5.0, 5.8]
+p2 = [9.0, 1.0]
+p3 = [4.8, 1.0]
+p4 = [9.5, 5.8]
+respawn = [7.5, 3.5]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py neon_circuit --theme city --mood glow --seed 8).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_traffic.png"   # lights crossing the sky
+parallax = 0.02
+scroll = 0.25
+
+[[background]]
+image = "bg_2_far_towers.png"   # two frames: windows go on and off
+parallax = 0.08
+frames = 2
+frame_ticks = 50
+
+[[background]]
+image = "bg_3_near_towers.png"
+parallax = 0.2
+frames = 2
+frame_ticks = 37
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 2.0
+hang = ["cable", "lamp"]
+
+[ambient]
+kind = "sparks"
+count = 10
+front = 3
+
+[[props]]                    # flat on the belts: arrows stepping the way each one runs
+sprite = "arrow_west"
+at = [2.0, 2.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_west"
+at = [4.0, 2.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_west"
+at = [3.0, 3.5]
+layer = "ground"
+period = 10
+phase = 5
+[[props]]
+sprite = "arrow_west"
+at = [2.0, 4.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_west"
+at = [4.0, 4.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_east"
+at = [11.0, 2.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_east"
+at = [13.0, 2.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_east"
+at = [12.0, 3.5]
+layer = "ground"
+period = 10
+phase = 5
+[[props]]
+sprite = "arrow_east"
+at = [11.0, 4.5]
+layer = "ground"
+period = 10
+[[props]]
+sprite = "arrow_east"
+at = [13.0, 4.5]
+layer = "ground"
+period = 10
+
+[[props]]                    # flat on the bumper pads: a ring of light pulsing outward
+sprite = "ring"
+at = [6.5, 3.5]
+layer = "ground"
+period = 8
+[[props]]
+sprite = "ring"
+at = [8.5, 3.5]
+layer = "ground"
+period = 8
+phase = 16
+
+[[props]]                    # along the far edge: the tall things
+sprite = "sign"
+at = [7.5, 0.3]
+period = 34
+[[props]]
+sprite = "antenna"
+at = [0.5, 0.5]
+period = 30
+[[props]]
+sprite = "vending"
+at = [3.0, 0.5]
+period = 45
+[[props]]
+sprite = "aircon"
+at = [1.6, 0.5]
+[[props]]
+sprite = "crates"
+at = [14.4, 3.5]
+[[props]]
+sprite = "aircon"
+at = [0.5, 3.5]
+
+[[props]]                    # the platforms' poles
+sprite = "pole"
+at = [1.5, 5.5]
+[[props]]
+sprite = "pole"
+at = [3.5, 6.5]
+[[props]]
+sprite = "pole"
+at = [11.5, 0.5]
+[[props]]
+sprite = "pole"
+at = [13.5, 1.5]

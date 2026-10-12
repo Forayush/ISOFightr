@@ -1,0 +1,133 @@
+# neon tileset materials (Neon Circuit; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "floor"
+outline = false
+
+[[materials]]
+name = "floor_dark"
+outline = false
+
+[[materials]]
+name = "seam"
+outline = false
+
+[[materials]]
+name = "wall"
+outline = false
+
+[[materials]]
+name = "wall_dark"
+outline = false
+
+[[materials]]
+name = "belt"
+outline = false
+
+[[materials]]
+name = "belt_rib"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "window"
+outline = false
+lit = false
+
+[[materials]]
+name = "window_dim"
+outline = false
+lit = false
+
+[[materials]]
+name = "window_off"
+outline = false
+lit = false
+
+[[materials]]
+name = "magenta"
+outline = false
+lit = false
+
+[[materials]]
+name = "magenta_dim"
+outline = false
+lit = false
+
+[[materials]]
+name = "cyan"
+outline = false
+lit = false
+
+[[materials]]
+name = "cyan_dim"
+outline = false
+lit = false
+
+[[materials]]
+name = "yellow"
+outline = false
+lit = false
+
+[[materials]]
+name = "white"
+outline = false
+lit = false
+
+[[materials]]
+name = "red_on"
+outline = false
+lit = false
+
+[[materials]]
+name = "red_off"
+outline = false
+lit = false
+
+[[materials]]
+name = "metal"
+
+[[materials]]
+name = "metal_dark"
+
+[[costumes]]
+name = "light"
+floor = ["7f708a", "484a77", "323353", "2e222f", "2e222f"]
+floor_dark = ["484a77", "323353", "2e222f", "2e222f", "2e222f"]
+seam = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+wall = ["484a77", "3e3546", "323353", "2e222f", "2e222f"]
+wall_dark = ["3e3546", "323353", "2e222f", "2e222f", "2e222f"]
+belt = ["625565", "3e3546", "2e222f", "2e222f", "2e222f"]
+belt_rib = ["7f708a", "625565", "3e3546", "2e222f", "2e222f"]
+deep = ["323353", "2e222f", "2e222f", "2e222f", "2e222f"]
+deep_dark = ["2e222f", "2e222f", "2e222f", "2e222f", "2e222f"]
+window = ["f9c22b", "f9c22b", "f79617", "cd683d", "7a3045"]
+window_dim = ["cd683d", "cd683d", "9e4539", "7a3045", "45293f"]
+window_off = ["323353", "323353", "2e222f", "2e222f", "2e222f"]
+magenta = ["f04f78", "f04f78", "c32454", "831c5d", "45293f"]
+magenta_dim = ["831c5d", "831c5d", "6b3e75", "45293f", "2e222f"]
+cyan = ["8ff8e2", "8ff8e2", "30e1b9", "0eaf9b", "0b5e65"]
+cyan_dim = ["0b8a8f", "0b8a8f", "0b5e65", "313638", "2e222f"]
+yellow = ["fbff86", "fbff86", "f9c22b", "f79617", "cd683d"]
+white = ["ffffff", "ffffff", "eaaded", "a884f3", "905ea9"]
+red_on = ["e83b3b", "e83b3b", "ae2334", "6e2727", "2e222f"]
+red_off = ["6e2727", "6e2727", "45293f", "2e222f", "2e222f"]
+metal = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+metal_dark = ["625565", "3e3546", "323353", "2e222f", "2e222f"]
+
+[[costumes]]
+name = "dark"
+floor = ["625565", "3e3546", "2e222f", "2e222f", "2e222f"]

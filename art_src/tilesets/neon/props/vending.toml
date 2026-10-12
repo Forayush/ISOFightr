@@ -1,0 +1,89 @@
+# Vending: a drinks machine, its front lit; a button blinks (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "body"
+joint = "origin"
+shape = "box"
+low = [-0.300, -0.300, 0.000]
+high = [0.300, 0.300, 1.200]
+material = "metal"
+
+[[parts]]
+name = "top"
+joint = "origin"
+shape = "box"
+low = [-0.320, -0.320, 1.200]
+high = [0.320, 0.320, 1.260]
+material = "metal_dark"
+
+[[parts]]
+name = "glass_x"
+joint = "origin"
+shape = "box"
+low = [0.300, -0.220, 0.500]
+high = [0.315, 0.220, 1.100]
+material = "cyan"
+
+[[parts]]
+name = "glass_y"
+joint = "origin"
+shape = "box"
+low = [-0.220, 0.300, 0.500]
+high = [0.220, 0.315, 1.100]
+material = "cyan_dim"
+
+[[parts]]
+name = "can_x0"
+joint = "origin"
+shape = "box"
+low = [0.310, -0.160, 0.580]
+high = [0.325, 0.160, 0.680]
+material = "magenta"
+
+[[parts]]
+name = "can_x1"
+joint = "origin"
+shape = "box"
+low = [0.310, -0.160, 0.760]
+high = [0.325, 0.160, 0.860]
+material = "yellow"
+
+[[parts]]
+name = "can_x2"
+joint = "origin"
+shape = "box"
+low = [0.310, -0.160, 0.940]
+high = [0.325, 0.160, 1.040]
+material = "white"
+
+[[parts]]
+name = "slot_x"
+joint = "origin"
+shape = "box"
+low = [0.300, -0.160, 0.120]
+high = [0.315, 0.160, 0.300]
+material = "metal_dark"
+
+[[smears]]
+name = "button_on"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.160, 0.360]
+high = [0.320, 0.240, 0.440]
+material = "yellow"
+
+[[smears]]
+name = "button_off"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.160, 0.360]
+high = [0.320, 0.240, 0.440]
+material = "magenta_dim"
+
+[[poses]]
+show = ["button_on"]
+
+[[poses]]
+show = ["button_off"]

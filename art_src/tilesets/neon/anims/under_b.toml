@@ -1,0 +1,269 @@
+# Under: the building going on down, fewer windows lit.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, 0.000]
+material = "deep"
+
+[[parts]]
+name = "wall_x"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.010, 1.000, 0.000]
+material = "deep"
+
+[[parts]]
+name = "win_x_0_0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.120, -0.560]
+high = [1.016, 0.280, -0.300]
+material = "window_dim"
+
+[[parts]]
+name = "win_x_0_1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.410, -0.560]
+high = [1.016, 0.570, -0.300]
+material = "window_off"
+
+[[parts]]
+name = "win_x_0_2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.700, -0.560]
+high = [1.016, 0.860, -0.300]
+material = "window_off"
+
+[[parts]]
+name = "win_x_1_0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.120, -1.080]
+high = [1.016, 0.280, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_x_1_1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.410, -1.080]
+high = [1.016, 0.570, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_x_1_2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.700, -1.080]
+high = [1.016, 0.860, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_x_2_0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.120, -1.600]
+high = [1.016, 0.280, -1.340]
+material = "window_dim"
+
+[[parts]]
+name = "win_x_2_1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.410, -1.600]
+high = [1.016, 0.570, -1.340]
+material = "window_off"
+
+[[parts]]
+name = "win_x_2_2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.700, -1.600]
+high = [1.016, 0.860, -1.340]
+material = "window_off"
+
+[[parts]]
+name = "win_x_3_0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.120, -2.120]
+high = [1.016, 0.280, -1.860]
+material = "window_off"
+
+[[parts]]
+name = "win_x_3_1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.410, -2.120]
+high = [1.016, 0.570, -1.860]
+material = "window_off"
+
+[[parts]]
+name = "win_x_3_2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.700, -2.120]
+high = [1.016, 0.860, -1.860]
+material = "window_off"
+
+[[parts]]
+name = "win_x_4_0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.120, -2.640]
+high = [1.016, 0.280, -2.380]
+material = "window_off"
+
+[[parts]]
+name = "win_x_4_1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.410, -2.640]
+high = [1.016, 0.570, -2.380]
+material = "window_dim"
+
+[[parts]]
+name = "win_x_4_2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.700, -2.640]
+high = [1.016, 0.860, -2.380]
+material = "window_off"
+
+[[parts]]
+name = "wall_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.982]
+high = [1.000, 1.010, 0.000]
+material = "deep_dark"
+
+[[parts]]
+name = "win_y_0_0"
+joint = "origin"
+shape = "box"
+low = [0.120, 1.000, -0.560]
+high = [0.280, 1.016, -0.300]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_0_1"
+joint = "origin"
+shape = "box"
+low = [0.410, 1.000, -0.560]
+high = [0.570, 1.016, -0.300]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_0_2"
+joint = "origin"
+shape = "box"
+low = [0.700, 1.000, -0.560]
+high = [0.860, 1.016, -0.300]
+material = "window_off"
+
+[[parts]]
+name = "win_y_1_0"
+joint = "origin"
+shape = "box"
+low = [0.120, 1.000, -1.080]
+high = [0.280, 1.016, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_y_1_1"
+joint = "origin"
+shape = "box"
+low = [0.410, 1.000, -1.080]
+high = [0.570, 1.016, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_y_1_2"
+joint = "origin"
+shape = "box"
+low = [0.700, 1.000, -1.080]
+high = [0.860, 1.016, -0.820]
+material = "window_off"
+
+[[parts]]
+name = "win_y_2_0"
+joint = "origin"
+shape = "box"
+low = [0.120, 1.000, -1.600]
+high = [0.280, 1.016, -1.340]
+material = "window_off"
+
+[[parts]]
+name = "win_y_2_1"
+joint = "origin"
+shape = "box"
+low = [0.410, 1.000, -1.600]
+high = [0.570, 1.016, -1.340]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_2_2"
+joint = "origin"
+shape = "box"
+low = [0.700, 1.000, -1.600]
+high = [0.860, 1.016, -1.340]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_3_0"
+joint = "origin"
+shape = "box"
+low = [0.120, 1.000, -2.120]
+high = [0.280, 1.016, -1.860]
+material = "window_off"
+
+[[parts]]
+name = "win_y_3_1"
+joint = "origin"
+shape = "box"
+low = [0.410, 1.000, -2.120]
+high = [0.570, 1.016, -1.860]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_3_2"
+joint = "origin"
+shape = "box"
+low = [0.700, 1.000, -2.120]
+high = [0.860, 1.016, -1.860]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_4_0"
+joint = "origin"
+shape = "box"
+low = [0.120, 1.000, -2.640]
+high = [0.280, 1.016, -2.380]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_4_1"
+joint = "origin"
+shape = "box"
+low = [0.410, 1.000, -2.640]
+high = [0.570, 1.016, -2.380]
+material = "window_dim"
+
+[[parts]]
+name = "win_y_4_2"
+joint = "origin"
+shape = "box"
+low = [0.700, 1.000, -2.640]
+high = [0.860, 1.016, -2.380]
+material = "window_dim"
+
+[[poses]]

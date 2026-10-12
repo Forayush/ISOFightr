@@ -1,0 +1,43 @@
+# Lamp: a small sign hanging under the roof; it flickers (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "cord"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.300]
+r1 = 0.012
+r2 = 0.012
+material = "metal_dark"
+
+[[parts]]
+name = "box"
+joint = "origin"
+shape = "box"
+low = [-0.200, 0.200, -0.620]
+high = [0.200, -0.200, -0.300]
+material = "metal_dark"
+
+[[smears]]
+name = "on"
+joint = "origin"
+shape = "box"
+low = [-0.140, 0.200, -0.560]
+high = [0.200, -0.140, -0.360]
+material = "magenta"
+
+[[smears]]
+name = "off"
+joint = "origin"
+shape = "box"
+low = [-0.140, 0.200, -0.560]
+high = [0.200, -0.140, -0.360]
+material = "magenta_dim"
+
+[[poses]]
+show = ["on"]
+
+[[poses]]
+show = ["off"]

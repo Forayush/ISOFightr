@@ -1,0 +1,84 @@
+# Antenna: a mast with dishes; its lamp blinks (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.200, 0.000]
+high = [0.200, 0.200, 0.100]
+material = "metal_dark"
+
+[[parts]]
+name = "mast"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.100]
+b = [0.000, 0.000, 2.300]
+r1 = 0.040
+r2 = 0.025
+material = "metal"
+
+[[parts]]
+name = "bar0"
+joint = "origin"
+shape = "rod"
+a = [-0.300, 0.300, 0.900]
+b = [0.300, -0.300, 0.900]
+r1 = 0.020
+r2 = 0.020
+material = "metal"
+
+[[parts]]
+name = "bar1"
+joint = "origin"
+shape = "rod"
+a = [-0.240, 0.240, 1.400]
+b = [0.240, -0.240, 1.400]
+r1 = 0.020
+r2 = 0.020
+material = "metal"
+
+[[parts]]
+name = "bar2"
+joint = "origin"
+shape = "rod"
+a = [-0.180, 0.180, 1.900]
+b = [0.180, -0.180, 1.900]
+r1 = 0.020
+r2 = 0.020
+material = "metal"
+
+[[parts]]
+name = "dish"
+joint = "origin"
+shape = "ball"
+centre = [0.160, 0.160, 1.150]
+radius = 0.160
+scale = [1.000, 1.000, 0.500]
+material = "metal"
+
+[[smears]]
+name = "lamp_on"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 2.360]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "red_on"
+
+[[smears]]
+name = "lamp_off"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 2.360]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "red_off"
+
+[[poses]]
+show = ["lamp_on"]
+
+[[poses]]
+show = ["lamp_off"]

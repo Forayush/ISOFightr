@@ -1,0 +1,63 @@
+# Aircon: a cooling unit with a grille.
+loop = true
+fps = 1
+
+[[parts]]
+name = "body"
+joint = "origin"
+shape = "box"
+low = [-0.340, -0.260, 0.000]
+high = [0.340, 0.260, 0.460]
+material = "metal"
+
+[[parts]]
+name = "lid"
+joint = "origin"
+shape = "box"
+low = [-0.360, -0.280, 0.460]
+high = [0.360, 0.280, 0.500]
+material = "metal_dark"
+
+[[parts]]
+name = "slat_y0"
+joint = "origin"
+shape = "box"
+low = [-0.280, 0.260, 0.080]
+high = [0.280, 0.275, 0.120]
+material = "metal_dark"
+
+[[parts]]
+name = "slat_y1"
+joint = "origin"
+shape = "box"
+low = [-0.280, 0.260, 0.170]
+high = [0.280, 0.275, 0.210]
+material = "metal_dark"
+
+[[parts]]
+name = "slat_y2"
+joint = "origin"
+shape = "box"
+low = [-0.280, 0.260, 0.260]
+high = [0.280, 0.275, 0.300]
+material = "metal_dark"
+
+[[parts]]
+name = "slat_y3"
+joint = "origin"
+shape = "box"
+low = [-0.280, 0.260, 0.350]
+high = [0.280, 0.275, 0.390]
+material = "metal_dark"
+
+[[parts]]
+name = "fan"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.500]
+b = [0.000, 0.000, 0.530]
+r1 = 0.200
+r2 = 0.200
+material = "metal_dark"
+
+[[poses]]

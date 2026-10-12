@@ -1,0 +1,61 @@
+# Pole: a post holding up a platform, ringed with light (2.25 units tall).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.180, -0.180, 0.000]
+high = [0.180, 0.180, 0.100]
+material = "metal_dark"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.100]
+b = [0.000, 0.000, 2.150]
+r1 = 0.070
+r2 = 0.070
+material = "metal"
+
+[[parts]]
+name = "ring0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.600]
+b = [0.000, 0.000, 0.680]
+r1 = 0.100
+r2 = 0.100
+material = "cyan"
+
+[[parts]]
+name = "ring1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.200]
+b = [0.000, 0.000, 1.280]
+r1 = 0.100
+r2 = 0.100
+material = "magenta"
+
+[[parts]]
+name = "ring2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.800]
+b = [0.000, 0.000, 1.880]
+r1 = 0.100
+r2 = 0.100
+material = "cyan"
+
+[[parts]]
+name = "head"
+joint = "origin"
+shape = "box"
+low = [-0.180, -0.180, 2.150]
+high = [0.180, 0.180, 2.250]
+material = "metal_dark"
+
+[[poses]]

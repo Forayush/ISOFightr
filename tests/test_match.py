@@ -224,6 +224,7 @@ def test_goldens_exist() -> None:
         "combat_training_grid",
         "mechanics_ember_forge",
         "mechanics_frostpeak",
+        "mechanics_neon_circuit",
         "mechanics_twin_isles",
         "movement_sky_ruins",
         "movement_training_grid",

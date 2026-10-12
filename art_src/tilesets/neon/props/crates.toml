@@ -1,0 +1,29 @@
+# Crates: two boxes of parts.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.200, 0.000]
+high = [0.140, 0.200, 0.360]
+material = "metal"
+
+[[parts]]
+name = "band"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.210, 0.140]
+high = [0.150, 0.210, 0.200]
+material = "yellow"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "box"
+low = [0.160, -0.140, 0.000]
+high = [0.420, 0.120, 0.220]
+material = "metal_dark"
+
+[[poses]]

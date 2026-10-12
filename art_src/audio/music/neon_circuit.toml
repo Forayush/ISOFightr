@@ -1,0 +1,341 @@
+# Rooftop Run: Neon Circuit (decision D-063). Fast synthwave in F# minor: a muffled saw
+# running sixteenths through each chord, a square lead with a wide vibrato, a sine bass
+# pumping eighths, a wash of detuned saws, and drums with a long snare. Rendered by
+# tools/build_audio.py; written with build/scratch/m14_song_neon.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
+id = "neon_circuit"
+title = "Rooftop Run"
+tempo = 152
+steps_per_beat = 4
+key = "F#"
+mode = "minor"
+meter = "4/4"
+form = ["intro", "verse", "chorus", "drop", "chorus2"]
+
+[echo]
+beats = 0.75
+feedback = 0.4
+mix = 0.3
+lowpass = 0.6
+
+[sections.intro]              # 4 bars: F#m F#m D E; the arpeggio opens up, the kick comes in
+level = 0.6
+to = 1.0
+play = ["arp_i", "wash_i_low", "wash_i_high", "kick", "hat*0.6"]
+
+[sections.verse]              # 8 bars: F#m D A E, twice
+level = 0.9
+play = ["verse", "arp_v*0.8", "wash_v_low", "wash_v_high", "bass_v", "kick", "snare", "hat"]
+
+[sections.chorus]             # 8 bars: D E F#m F#m, D E C#m F#m
+play = ["chorus", "arp_c*0.8", "wash_c_low", "wash_c_high", "bass_c", "kick", "snare", "hat",
+        "open"]
+
+[sections.drop]               # 4 bars: Bm D E E; the drums fall away, then roll back
+kind = "break"
+level = 0.6
+to = 1.0
+play = ["arp_b", "wash_b_low", "wash_b_high", "bass_b*0.8", "roll"]
+
+[sections.chorus2]            # the chorus again, the lead doubled an octave down
+kind = "chorus"
+play = ["chorus", "chorus-12*0.5", "arp_c*0.8", "wash_c_low", "wash_c_high", "bass_c", "kick",
+        "snare", "hat", "open"]
+
+[instruments.lead]            # a square with a wide, slow vibrato
+wave = "square"
+duty = 0.5
+attack = 0.01
+decay = 0.1
+sustain = 0.7
+release = 0.1
+lowpass = 0.7
+vibrato_depth = 0.3
+vibrato_rate = 5.5
+volume = 0.2
+send = 0.35
+
+[instruments.arp]             # a saw with the top taken off, plucked
+wave = "saw"
+attack = 0.002
+decay = 0.07
+sustain = 0.2
+release = 0.04
+lowpass = 0.45
+volume = 0.3
+send = 0.3
+
+[instruments.wash]            # detuned saws, far back
+wave = "pad"
+detune = 14
+attack = 0.2
+release = 0.3
+lowpass = 0.3
+volume = 0.22
+send = 0.2
+
+[instruments.bass]            # a sine, pumping
+wave = "sine"
+attack = 0.004
+decay = 0.08
+sustain = 0.6
+release = 0.03
+volume = 0.4
+
+[instruments.kick]
+wave = "drum"
+freq = 104
+freq_end = 42
+length = 0.16
+noise = 0.05
+release = 0.06
+volume = 0.4
+
+[instruments.snare]           # long: the "gated" snare, cut off by its own length
+wave = "noise"
+freq = 2800
+length = 0.22
+release = 0.02
+lowpass = 0.9
+volume = 0.16
+
+[instruments.hat]
+wave = "noise"
+freq = 7400
+length = 0.03
+release = 0.02
+volume = 0.12
+
+[instruments.open]            # an open hat on the off-beat
+wave = "noise"
+freq = 6200
+length = 0.12
+release = 0.06
+lowpass = 0.95
+volume = 0.08
+
+[patterns.verse]
+instrument = "lead"
+steps = """
+C#5 - - - A4 - C#5 - F#5 - - - E5 - C#5 -
+D5 - - - - - A4 - F#4 - - - A4 - - -
+C#5 - - - E5 - A5 - - - G#5 - E5 - - -
+B4 - - - - - - - G#4 - B4 - E5 - - -
+C#5 - - - A4 - C#5 - F#5 - - - G#5 - A5 -
+A5 - - - F#5 - - - D5 - - - F#5 - - -
+E5 - - - A5 - C#6 - - - B5 - A5 - - -
+G#5 - - - - - - - E5 - - - . . . .
+"""
+
+[patterns.chorus]
+instrument = "lead"
+steps = """
+F#5 - - - - - A5 - D6 - - - C#6 - A5 -
+B5 - - - - - G#5 - E5 - - - G#5 - B5 -
+C#6 - - - - - - - A5 - F#5 - A5 - - -
+C#6 - B5 - A5 - - - - - - - . . . .
+F#5 - - - - - A5 - D6 - - - F#6 - - -
+E6 - - - - - B5 - G#5 - - - B5 - E6 -
+C#6 - - - G#5 - E5 - G#5 - - - C#6 - - -
+F#5 - - - - - - - - - - - . . . .
+"""
+
+[patterns.arp_i]
+instrument = "arp"
+steps = """
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+"""
+
+[patterns.wash_i_low]
+instrument = "wash"
+steps = """
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.wash_i_high]
+instrument = "wash"
+steps = """
+C#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.arp_v]
+instrument = "arp"
+steps = """
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 A4 C#5 E5 C#5 A4 E4 A4 C#5 E5 C#5 A4 E4 A4 C#5 E5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 A4 C#5 E5 C#5 A4 E4 A4 C#5 E5 C#5 A4 E4 A4 C#5 E5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+"""
+
+[patterns.wash_v_low]
+instrument = "wash"
+steps = """
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.wash_v_high]
+instrument = "wash"
+steps = """
+C#4 - - - - - - - - - - - - - - -
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.arp_c]
+instrument = "arp"
+steps = """
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+E4 G#4 C#5 E5 C#5 G#4 E4 G#4 C#5 E5 C#5 G#4 E4 G#4 C#5 E5
+F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5 C#5 A4 F#4 A4 C#5 F#5
+"""
+
+[patterns.wash_c_low]
+instrument = "wash"
+steps = """
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.wash_c_high]
+instrument = "wash"
+steps = """
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+C#4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.arp_b]
+instrument = "arp"
+steps = """
+F#4 B4 D5 F#5 D5 B4 F#4 B4 D5 F#5 D5 B4 F#4 B4 D5 F#5
+F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5 D5 A4 F#4 A4 D5 F#5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5 B4 G#4 E4 G#4 B4 E5
+"""
+
+[patterns.wash_b_low]
+instrument = "wash"
+steps = """
+B3 - - - - - - - - - - - - - - -
+A3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+G#3 - - - - - - - - - - - - - - -
+"""
+
+[patterns.wash_b_high]
+instrument = "wash"
+steps = """
+D4 - - - - - - - - - - - - - - -
+D4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+E4 - - - - - - - - - - - - - - -
+"""
+
+[patterns.bass_v]
+instrument = "bass"
+steps = """
+F#2 . F#2 . F#2 . F#2 . F#2 . F#2 . F#3 . F#2 .
+D2 . D2 . D2 . D2 . D2 . D2 . D3 . D2 .
+A2 . A2 . A2 . A2 . A2 . A2 . A3 . A2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+F#2 . F#2 . F#2 . F#2 . F#2 . F#2 . F#3 . F#2 .
+D2 . D2 . D2 . D2 . D2 . D2 . D3 . D2 .
+A2 . A2 . A2 . A2 . A2 . A2 . A3 . A2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+"""
+
+[patterns.bass_c]
+instrument = "bass"
+steps = """
+D2 . D2 . D2 . D2 . D2 . D2 . D3 . D2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+F#2 . F#2 . F#2 . F#2 . F#2 . F#2 . F#3 . F#2 .
+F#2 . F#2 . F#2 . F#2 . F#2 . F#2 . F#3 . F#2 .
+D2 . D2 . D2 . D2 . D2 . D2 . D3 . D2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+C#3 . C#3 . C#3 . C#3 . C#3 . C#3 . C#4 . C#3 .
+F#2 . F#2 . F#2 . F#2 . F#2 . F#2 . F#3 . F#2 .
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+B2 . B2 . B2 . B2 . B2 . B2 . B3 . B2 .
+D2 . D2 . D2 . D2 . D2 . D2 . D3 . D2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+E2 . E2 . E2 . E2 . E2 . E2 . E3 . E2 .
+"""
+
+[patterns.kick]
+instrument = "kick"
+steps = """
+x . . . x . . . x . . . x . . .
+"""
+
+[patterns.snare]
+instrument = "snare"
+steps = """
+. . . . x . . . . . . . x . . .
+"""
+
+[patterns.hat]
+instrument = "hat"
+steps = """
+. . x . . . x . . . x . . . x x
+"""
+
+[patterns.open]
+instrument = "open"
+steps = """
+. . x . . . . . . . x . . . . .
+"""
+
+[patterns.roll]
+instrument = "snare"
+steps = """
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . x . . .
+. . . . x . . . . . . . x . . .
+x . . . x . . . x . x . x x x x
+"""
