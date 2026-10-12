@@ -88,6 +88,18 @@ def test_a_panels_hint_uses_that_panels_own_keys() -> None:
     assert text.panel_line(text.CPU_EDIT_LINE, settings, ARROWS) == "X: done  C: remove"
 
 
+def test_a_players_panel_names_every_button_in_that_players_keys() -> None:
+    """Decision D-064: one job per button, each written on the panel."""
+    settings = user_settings()
+    assert text.options_line(settings, ARROWS) == "S: costume  V: CPU"
+    assert text.options_line(settings, SOLO) == "U: costume  L: CPU"
+    assert text.options_line(settings, ARROWS, team="RED TEAM") == "S: RED TEAM  V: CPU"
+    assert text.options_line(settings, ARROWS, training=True) == "S: costume"
+    assert text.options_line(settings, ARROWS, "RED TEAM", training=True) == "S: RED TEAM"
+    assert text.add_lines(settings, ARROWS) == ["ADD A CPU?", "X: add", "C: back"]
+    assert text.add_lines(settings, PAD0) == ["ADD A CPU?", "A: add", "B: back"]
+
+
 def test_the_join_list_names_every_free_device_and_its_own_join_key() -> None:
     settings = user_settings()
     lines = text.join_lines(settings, [SOLO, PAD0], cpu_device=ARROWS)
@@ -107,8 +119,15 @@ def test_no_panel_line_is_wider_than_its_panel(case: tuple[str, Settings, str]) 
     lines = text.join_lines(settings, [device, *others], cpu_device=device)
     for template in text.PANEL_LINES:
         lines.append(text.panel_line(template, settings, device))
+    lines += text.add_lines(settings, device)
+    for team in ("RED TEAM", "YELLOW TEAM"):
+        lines.append(text.panel_line(text.CPU_TEAM_LINE.replace("{team}", team), settings, device))
     for line in lines:
         assert width(line) <= text.PANEL_TEXT_WIDTH, line
+    for team in ("", "RED TEAM", "YELLOW TEAM"):
+        for training in (False, True):
+            small = text.options_line(settings, device, team, training)
+            assert small and font.text_width(small, text.OPTIONS_SIZE) <= text.PANEL_TEXT_WIDTH
 
 
 # --- the footer -----------------------------------------------------------------------------
@@ -119,21 +138,30 @@ def test_no_panel_line_is_wider_than_its_panel(case: tuple[str, Settings, str]) 
 def test_the_footer_always_fits_the_screen(case: tuple[str, Settings, str], state: str) -> None:
     _, settings, device = case
     for training in (False, True):
-        line = text.footer_line(state, settings, device, training)
-        assert line and width(line) <= text.FOOTER_WIDTH <= NATIVE_W, line
+        for teams in (False, True):
+            line = text.footer_line(state, settings, device, training, teams=teams)
+            assert line and width(line) <= text.FOOTER_WIDTH <= NATIVE_W, line
 
 
 def test_the_footer_shows_the_devices_own_keys_and_drops_the_least_important_first() -> None:
     settings = user_settings()
     line = text.footer_line("roster", settings, ARROWS)
-    assert "X: ready" in line and "V: add CPU" in line and "arrows: pick" in line
+    assert "X: ready" in line and "V: CPUs" in line and "arrows: fighter" in line
+    assert "S: costume" in line and "C: back" in line
+    assert "S: team" in text.footer_line("roster", settings, ARROWS, teams=True)
     assert "J:" not in line and "MOTION" not in line
     assert "A: ready" in text.footer_line("roster", settings, PAD0)
     tight = text.footer_line("roster", long_settings(), SOLO)
-    assert "costume" not in tight and "ready" in tight and "back" in tight
-    assert "add CPU" not in text.footer_line("roster", settings, ARROWS, training=True)
-    assert "done" in text.footer_line("cpu", settings, ARROWS)
-    assert "controls" in text.footer_line("controls", settings, ARROWS)
+    assert "rules" not in tight and "fighter" not in tight, "the least important go first"
+    assert "ready" in tight and "CPUs" in tight and "back" in tight
+    solo = text.footer_line("roster", settings, ARROWS, training=True)
+    assert "CPU" not in solo and "rules" not in solo, "training has neither"
+    setting_up = text.footer_line("cpu", settings, ARROWS)
+    assert "X: done" in setting_up and "C: remove" in setting_up and "level" in setting_up
+    assert "X: add a CPU" in text.footer_line("empty", settings, ARROWS)
+    assert "controls" not in "".join(template for template, _ in text.FOOTERS.values()), (
+        "no footer sends anyone to a controls row: there is none (decision D-064)"
+    )
 
 
 def test_fit_hint_drops_named_items_in_order_then_shortens() -> None:
@@ -166,7 +194,7 @@ def test_every_message_is_one_line_in_the_players_own_keys(
         text.start_problem(can_start(training, 0), settings, device),
         text.join_first(settings, device),
         text.joined(3, device),
-        text.switched(3, device),
+        text.NO_SLOT,
         text.shared_message(long_settings(), SOLO, ARROWS),
         text.shared_message(user_settings(), SOLO, ARROWS),
     ]
@@ -182,7 +210,6 @@ def test_messages_say_what_happened() -> None:
     assert text.join_first(settings, SOLO) == "PRESS J TO JOIN FIRST"
     assert text.join_first(settings, PAD0) == "PRESS A TO JOIN FIRST"
     assert text.joined(1, SOLO) == "P2 JOINED ON WASD KEYS"
-    assert text.switched(0, SOLO) == "P1 NOW USES WASD KEYS"
     assert text.start_problem("", settings, ARROWS) == ""
 
 

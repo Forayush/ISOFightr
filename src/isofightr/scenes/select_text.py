@@ -1,9 +1,10 @@
 """What character select writes: prompts, the footer and messages, each in the keys of the
 device it is about.
 
-Plan note "13 - Game Modes UI and Flow" ("Character select screen", decision D-062). A
-panel's text uses **that panel's own device** (a CPU's uses its owner's), so a player on the
-arrows keyboard is never told to press the WASD keyboard's keys. An empty panel lists how to
+Plan note "13 - Game Modes UI and Flow" ("Character select screen", decisions D-062 and
+D-064). A panel's text uses **that panel's own device** (a CPU's uses the keys of whoever is
+setting it up), so a player on the arrows keyboard is never told to press the WASD
+keyboard's keys. An empty panel lists how to
 join on every free device. The footer follows the device that acted last, is measured, and
 drops its least important items before it would overflow. Messages are one line, written to
 fit the bottom band.
@@ -34,34 +35,47 @@ DEVICE_NAMES: Final[dict[str, str]] = {
 JOIN_HEADING: Final[str] = "PRESS TO JOIN"
 READY_LINE: Final[str] = "{attack}: ready"
 CANCEL_LINE: Final[str] = "{special}: cancel"
+OPTIONS_LINE: Final[str] = "{strong}: costume  {grab}: CPU"
+"""A player's second hint line: the costume button and the CPU button."""
+TEAM_OPTIONS_LINE: Final[str] = "{strong}: {team}  {grab}: CPU"
+"""The same in a team match, where the button changes team (``{team}`` is its name)."""
+OPTIONS_SIZE: Final[font.TextSize] = font.TextSize.SMALL
+"""The font those two hints are written in: two of them do not fit a panel in the body font."""
 CPU_EDIT_LINE: Final[str] = "{attack}: done  {special}: remove"
 """What attack and special do while a player sets up a CPU (on the CPU's panel)."""
+CPU_TEAM_LINE: Final[str] = "{strong}: {team}"
+"""A CPU's team while it is set up in a team match, with the button that changes it."""
 CPU_ADD_LINE: Final[str] = "{grab}: ADD A CPU"
-PANEL_LINES: Final[tuple[str, ...]] = (READY_LINE, CANCEL_LINE, CPU_EDIT_LINE, CPU_ADD_LINE)
+ADD_HEADING: Final[str] = "ADD A CPU?"
+ADD_LINES: Final[tuple[str, ...]] = ("{attack}: add", "{special}: back")
+"""What an empty panel says to the player who has stepped onto it with grab."""
+PANEL_LINES: Final[tuple[str, ...]] = (
+    READY_LINE,
+    CANCEL_LINE,
+    CPU_EDIT_LINE,
+    CPU_ADD_LINE,
+    *ADD_LINES,
+)
 """Every template a panel fills in with a device's keys."""
 OWNER_WAITS: Final[str] = "SETTING UP A CPU"
-"""What a player's own panel says while that player is setting up a CPU."""
-CONTROLS_HINT: Final[str] = "↓ CONTROLS"
+"""What a player's own panel says while that player is on another slot."""
+NO_SLOT: Final[str] = "NO SLOT FOR A CPU"
 
-_DROP: Final[tuple[str, ...]] = ("strong", "controls", "team", "stick")
 FOOTERS: Final[dict[str, tuple[str, tuple[str, ...]]]] = {
     "unjoined": ("{attack}: join   {special}: back", ()),
     "roster": (
-        "{attack}: ready   {stick}: pick   ↓: controls   {strong}: costume   "
-        "{grab}: add CPU   {special}: back",
-        _DROP,
-    ),
-    "team": ("{attack}: ready   ←→: team   ↑↓: fighter, controls   {special}: back", _DROP),
-    "controls": (
-        "←→: change controls   {attack}: ready   ↑: fighter   {special}: back",
-        ("fighter",),
+        "{attack}: ready   {stick}: fighter   {strong}: costume   {grab}: CPUs   "
+        "↑: rules   {special}: back",
+        ("rules", "stick", "strong"),
     ),
     "chip": ("{attack}: open the rules   ↓: fighters   {special}: back", ()),
     "ready": ("{special}: cancel   waiting for everyone", ("waiting",)),
     "cpu": (
-        "{attack}: done   {special}: remove   {stick}: fighter, level   {strong}: costume",
-        ("strong", "stick"),
+        "←→: fighter   ↑↓: level   {strong}: costume   {attack}: done   "
+        "{special}: remove   {grab}: next slot",
+        ("next", "strong"),
     ),
+    "empty": ("{attack}: add a CPU   {grab}: next slot   {special}: back", ()),
 }
 """The footer for each thing a player can be doing: its template, and which items to drop
 first (named by a placeholder or a word in the item) when it would not fit."""
@@ -109,15 +123,20 @@ def join_lines(
 
 
 def footer_template(
-    state: str, training: bool = False, device: str = ""
+    state: str, training: bool = False, device: str = "", teams: bool = False
 ) -> tuple[str, tuple[str, ...]]:
     """Return the footer's template and its drop order for what the acting player is doing
-    (a key of :data:`FOOTERS`). Training has no CPUs to add. With ``device`` the footer
-    starts with that device's name: for when several people are in, so each can tell whose
-    keys it shows."""
+    (a key of :data:`FOOTERS`). Training has no CPUs to add and no rules to open. In a team
+    match (``teams``) the costume button changes team. With ``device`` the footer starts
+    with that device's name: for when several people are in, so each can tell whose keys it
+    shows."""
     template, drop = FOOTERS.get(state, FOOTERS["roster"])
     if training:
-        template = "   ".join(item for item in template.split("   ") if "{grab}" not in item)
+        template = "   ".join(
+            item for item in template.split("   ") if "{grab}" not in item and "rules" not in item
+        )
+    if teams:
+        template = template.replace("{strong}: costume", "{strong}: team")
     if device:
         template = f"{device_name(device)}   {template}"
     return template, drop
@@ -130,11 +149,12 @@ def footer_line(
     training: bool = False,
     width: int = FOOTER_WIDTH,
     named: bool = False,
+    teams: bool = False,
 ) -> str:
     """Return the footer for what the acting player is doing, in that device's keys
     (starting with the device's name if ``named``), dropping its least important items
     until it fits ``width``."""
-    template, drop = footer_template(state, training, device if named else "")
+    template, drop = footer_template(state, training, device if named else "", teams)
     return fit_hint(template, device_labels(settings, device), width, drop)
 
 
@@ -155,9 +175,24 @@ def joined(index: int, device: str) -> str:
     return f"P{index + 1} JOINED ON {device_name(device)}"
 
 
-def switched(index: int, device: str) -> str:
-    """Return the message for a player who has just changed controls."""
-    return f"P{index + 1} NOW USES {device_name(device)}"
+def options_line(settings: Settings, device: str, team: str = "", training: bool = False) -> str:
+    """Return a player's second hint line in their own keys: the costume button (the team
+    button, with the team's name, in a team match) and the CPU button (not in training). It
+    is written in the small font (:data:`OPTIONS_SIZE`); if both hints do not fit even so,
+    the CPU button's goes (the footer still has it)."""
+    template = TEAM_OPTIONS_LINE.replace("{team}", team) if team else OPTIONS_LINE
+    first = template.split("  ")[0]
+    labels = device_labels(settings, device)
+    both = hint_text(template, labels)
+    if training or font.text_width(both, OPTIONS_SIZE) > PANEL_TEXT_WIDTH:
+        return font.fit(hint_text(first, labels), PANEL_TEXT_WIDTH, OPTIONS_SIZE)
+    return both
+
+
+def add_lines(settings: Settings, device: str) -> list[str]:
+    """Return what an empty panel says to the player who stepped onto it: a heading, then
+    what attack and special do there, in that player's keys."""
+    return [ADD_HEADING, *(panel_line(line, settings, device) for line in ADD_LINES)]
 
 
 def shared_message(settings: Settings, first: str, second: str) -> str:

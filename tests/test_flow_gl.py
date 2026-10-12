@@ -191,14 +191,17 @@ def test_one_player_and_a_cpu_can_play_versus(window: Any) -> None:
     press(window, keys().ENTER)
     css = window.current_view
     assert name(window) == "CharacterSelectView"
-    press(window, keys().L)  # grab adds a CPU in the next free slot
+    press(window, keys().L)  # grab steps onto the next free slot
+    assert css.focus == {"keyboard:solo": 1} and not css.slots[1].taken
+    press(window, keys().J)  # attack adds a CPU there
     assert css.slots[1].cpu == 5 and css.slots[1].owner == "keyboard:solo"
     assert css.focus == {"keyboard:solo": 1}
-    press(window, keys().S)  # to the level row
-    press(window, keys().D)
-    press(window, keys().D)
+    press(window, keys().W)  # up and down are its level
+    press(window, keys().W)
     assert css.slots[1].cpu == 7
-    press(window, keys().L)  # a second CPU, then remove it again
+    press(window, keys().L)  # on to the next free slot: a second CPU, then remove it again
+    assert css.focus == {"keyboard:solo": 2}
+    press(window, keys().J)
     assert css.slots[2].cpu == 5
     press(window, keys().K)
     assert not css.slots[2].taken and "keyboard:solo" not in css.focus
@@ -215,15 +218,23 @@ def test_one_player_and_a_cpu_can_play_versus(window: Any) -> None:
     assert battle.match.fighters[1].pos != battle.match.stage.spawn_point(1), "the CPU moved"
 
 
-def test_leaving_takes_your_cpus_with_you(window: Any) -> None:
+def test_leaving_keeps_the_cpus_for_whoever_is_here(window: Any) -> None:
+    """Decision D-064: leaving used to delete every CPU the player had added."""
     to_main_menu(window)
     press(window, keys().ENTER)
     css = window.current_view
     press(window, keys().L)
+    press(window, keys().J)  # add a CPU
     press(window, keys().J)  # back to P1's own slot
     assert css.slots[1].cpu and not css.focus
     press(window, keys().K)  # leave
-    assert not any(slot.taken for slot in css.slots)
+    assert not css.slots[0].taken and css.slots[1].cpu == 5, "the CPU stays"
+    press(window, keys().J)  # join again
+    assert css.slots[0].device == "keyboard:solo"
+    press(window, keys().L)  # and the CPU can still be set up
+    assert css.focus == {"keyboard:solo": 1}
+    press(window, keys().W)
+    assert css.slots[1].cpu == 6
 
 
 def two_players_to_stage_select(window: Any) -> None:
@@ -492,19 +503,16 @@ def test_team_match_from_the_menus(window: Any, pads: list[FakeController]) -> N
     press(window, keys().NUM_4)
     tap_pad(window, pads[0])
     assert [slot.team for slot in css.slots[:3]] == [0, 1, 2]
-    # Player 3 moves to the red team: down to the team row, then left twice.
+    # Player 3 moves to the red team: the costume button is the team button here.
     pads[0].move_stick(0.0, -1.0)
     step(window, 2)
     pads[0].move_stick(0.0, 0.0)
     step(window, 2)
-    assert css.slots[2].row == 1
+    assert css.slots[2].row == 0, "down never leaves the fighters (decision D-064)"
     for _ in range(2):
-        pads[0].move_stick(-1.0, 0.0)
-        step(window, 2)
-        pads[0].move_stick(0.0, 0.0)
-        step(window, 2)
+        tap_pad(window, pads[0], "leftshoulder")
     assert css.slots[2].team == 0
-    assert css.panels[2].line1.text == "\u2190 RED TEAM \u2192", "the team row, under the cursor"
+    assert "RED TEAM" in css.panels[2].options.text, "the team, beside the button that changes it"
     press(window, keys().J)
     press(window, keys().NUM_4)
     tap_pad(window, pads[0])
@@ -1661,7 +1669,7 @@ def test_the_rules_chip_opens_the_rules_and_everyone_is_still_there_after(window
     step(window, 2)
     assert css.setup.stocks == 4 and css.setup.team_play
     assert css.chip.label.text == "STOCK 4  1.0x  TEAMS ON"
-    assert css.panels[1].line1.text == "BLUE TEAM", "team rows appeared"
+    assert css.panels[1].options.text == "NUM_7: BLUE TEAM  NUM_6: CPU", "the team button"
     assert not any(swatch.sprite.visible for swatch in css.panels[0].swatches), (
         "team colours, not costumes, in a team match"
     )
@@ -1684,6 +1692,9 @@ def test_training_has_no_rules_chip_and_no_cpus(window: Any) -> None:
 def test_a_cpu_gets_a_cursor_while_it_is_set_up(window: Any) -> None:
     _, css = open_select(window)
     press(window, keys().L)
+    assert not css.cursors[1].sprite.visible, "an empty slot has no cursor"
+    assert css.visit_frames[0]._sprite.visible, "a frame shows where player 1 has stepped"
+    press(window, keys().J)
     cpu = css.slots[1]
     assert cpu.cpu == 5 and css.cursor_tags[1].text == "CPU" and css.cursors[1].sprite.visible
     assert css.panels[1].tag.text == "P2  CPU 5" and css.detail_slot == 1
@@ -1694,11 +1705,15 @@ def test_a_cpu_gets_a_cursor_while_it_is_set_up(window: Any) -> None:
     costume = cpu.costume
     press(window, keys().U)
     assert cpu.costume != costume, "strong changes the CPU's costume while it is set up"
-    press(window, keys().S)
-    assert cpu.row == 1 and css.panels[1].line1.text == "\u2190 LEVEL 5 \u2192"
+    press(window, keys().W)
+    assert cpu.cpu == 6 and css.panels[1].line1.text == "\u2191\u2193 LEVEL 6"
+    for _ in range(12):
+        press(window, keys().S)
+    assert cpu.cpu == 1, "the level stops at its ends"
     press(window, keys().J)
     assert not css.focus and not css.cursors[1].sprite.visible, "done: its cursor goes"
-    assert css.panels[1].line1.text == "LEVEL 5"
+    assert css.panels[1].line1.text == "LEVEL 1"
+    assert not css.visit_frames[0]._sprite.visible
 
 
 def test_the_mouse_picks_fighters_costumes_and_the_rules(window: Any) -> None:
@@ -2143,15 +2158,18 @@ def test_every_prompt_shows_the_keys_of_the_device_it_is_about(window: Any) -> N
     assert devices(css) == [ARROWS, "", "", ""] and css.active_device == ARROWS
     assert css.panels[0].tag.text == "P1  ARROW KEYS"
     assert css.panels[0].line2.text == "X: ready", "the arrows layout's attack, not J"
+    assert css.panels[0].options.text == "S: costume  V: CPU", "and its other two buttons"
     assert prompts(css.panels[1]) == ["PRESS TO JOIN", "J  WASD KEYS", "", "V: ADD A CPU"]
     assert prompts(css.panels[2]) == ["OPEN"] == prompts(css.panels[3])
     footer = css._footer.text
-    assert "X: ready" in footer and "arrows: pick" in footer and "V: add CPU" in footer
+    assert "X: ready" in footer and "arrows: fighter" in footer and "V: CPUs" in footer
     assert "J:" not in footer and "MOTION" not in footer
     assert font.text_width(footer) <= select_text.FOOTER_WIDTH
     for panel in css.panels:
         for label in (*panel.prompt, panel.line1, panel.line2, panel.tag):
             assert font.text_width(label.text) <= panel.rect.width, label.text
+        small = font.text_width(panel.options.text, select_text.OPTIONS_SIZE)
+        assert small <= select_text.PANEL_TEXT_WIDTH, panel.options.text
 
 
 def test_a_gamepads_panel_shows_the_gamepads_buttons(
@@ -2167,68 +2185,78 @@ def test_a_gamepads_panel_shows_the_gamepads_buttons(
     assert "A: ready" in css._footer.text, "the footer follows the device that acted last"
 
 
-def test_the_users_sequence_switch_to_wasd_then_j_readies_and_l_adds_a_cpu(window: Any) -> None:
+def test_the_users_sequence_move_to_wasd_then_j_readies_and_l_reaches_a_cpu(window: Any) -> None:
+    """Decision D-064: there is no controls row. A player changes keys by leaving and
+    joining on the other keyboard, which the empty panel spells out."""
     flow, css = open_user_select(window)
     slot = css.slots[0]
-    character, costume = slot.character, slot.costume
+    character = slot.character
     press(window, keys().DOWN)  # the arrows device's own key
-    assert slot.row == css.controls_row and "controls" in css._footer.text
-    assert css.panels[0].line2.text == "← ARROW KEYS →"
+    assert slot.row == 0 and devices(css) == [ARROWS, "", "", ""], "down goes nowhere"
     press(window, keys().RIGHT)
+    assert devices(css) == [ARROWS, "", "", ""], "sideways only picks a fighter"
+    assert slot.character != character
+    press(window, keys().C)  # the arrows layout's special: leave
+    assert devices(css) == ["", "", "", ""]
+    assert prompts(css.panels[0])[:3] == ["PRESS TO JOIN", "J  WASD KEYS", "X  ARROW KEYS"]
+    press(window, keys().J)
     assert devices(css) == [SOLO, "", "", ""], "player 1 now plays on the WASD keyboard"
     assert css.active_device == SOLO and css.panels[0].tag.text == "P1  WASD KEYS"
-    assert css.panels[0].line2.text == "← WASD KEYS →"
-    assert (slot.character, slot.costume) == (character, costume), "nothing else changed"
-    assert flow.settings.slot_devices[0] == SOLO, "remembered at once"
-    assert css.message == "P1 NOW USES WASD KEYS"
-    press(window, keys().W)
-    assert slot.row == 0 and css.panels[0].line2.text == "J: ready"
+    assert css.panels[0].line2.text == "J: ready"
+    assert css.panels[0].options.text == "U: costume  L: CPU"
     press(window, keys().L)
-    assert css.slots[1].cpu and css.slots[1].owner == SOLO, "L adds a CPU"
     press(window, keys().J)
-    assert not css.focus and not slot.ready, "the first attack finishes the CPU"
+    assert css.slots[1].cpu and css.slots[1].owner == SOLO, "L, then J, adds a CPU"
+    press(window, keys().J)
+    assert not css.focus and not slot.ready, "the next attack finishes the CPU"
     press(window, keys().J)
     assert name(window) == "StageSelectView", "J readies: everyone is ready"
     assert window.current_view.setup.devices == (SOLO, "")
+    assert flow.settings.slot_devices[0] == SOLO, "remembered"
 
 
-def test_switching_controls_keeps_cpus_and_goes_back_with_the_new_devices_keys(
+def test_moving_to_other_keys_keeps_cpus_and_their_hints_follow_the_new_keys(
     window: Any,
 ) -> None:
-    flow, css = open_user_select(window)
-    press(window, keys().V)  # arrows grab: a CPU, owned by the arrows device
+    _, css = open_user_select(window)
+    press(window, keys().V)  # arrows grab, then attack: a CPU, set up by the arrows device
     press(window, keys().X)
     assert css.slots[1].owner == ARROWS
+    assert css.panels[1].line2.text == "X: done  C: remove"
+    press(window, keys().X)
+    press(window, keys().C)  # leave
+    assert devices(css)[0] == "" and css.slots[1].cpu, "the CPU stays"
+    press(window, keys().J)  # join on the WASD keyboard
+    assert devices(css)[0] == SOLO
     press(window, keys().DOWN)
-    press(window, keys().LEFT)
-    assert devices(css)[0] == SOLO and css.slots[1].owner == SOLO, "its CPU follows"
-    assert not css.slots[0].ready
-    press(window, keys().RIGHT)
-    assert devices(css)[0] == SOLO, "the arrows keyboard no longer drives player 1"
-    press(window, keys().D)  # the WASD keyboard's own key switches back
-    assert devices(css)[0] == ARROWS and css.slots[1].owner == ARROWS
-    assert flow.settings.slot_devices[0] == ARROWS
+    press(window, keys().X)
+    assert devices(css) == [SOLO, "", "", ""] or devices(css)[1] == "", (
+        "the arrows keyboard no longer drives player 1"
+    )
+    press(window, keys().L)
+    assert css.focus == {SOLO: 1} and css.slots[1].owner == SOLO
+    assert css.panels[1].line2.text == "J: done  K: remove", "in the new keys"
 
 
-def test_the_chooser_skips_devices_other_players_hold(
+def test_no_direction_ever_changes_a_players_controls(
     window: Any, pads: list[FakeController]
 ) -> None:
+    """Decision D-064: down then sideways used to hand a player to another device."""
     _, css = open_user_select(window)
     press(window, keys().J)  # the WASD keyboard joins as player 2
     assert devices(css)[:2] == [ARROWS, SOLO]
-    press(window, keys().DOWN)
-    press(window, keys().RIGHT)
-    assert devices(css)[0] == "pad:0", "the WASD keyboard is taken: the next free device"
+    for key in (keys().DOWN, keys().RIGHT, keys().DOWN, keys().LEFT, keys().LEFT):
+        press(window, key)
+        assert devices(css) == [ARROWS, SOLO, "", ""] and css.slots[0].row == 0
+    for key in (keys().S, keys().D, keys().S, keys().A):
+        press(window, key)
+        assert devices(css) == [ARROWS, SOLO, "", ""] and css.slots[1].row == 0
     pads[0].move_stick(1.0, 0.0)
     step(window, 2)
     pads[0].move_stick(0.0, 0.0)
     step(window, 2)
-    assert devices(css)[0] == "pad:1"
-    pads[1].move_stick(1.0, 0.0)
-    step(window, 2)
-    pads[1].move_stick(0.0, 0.0)
-    step(window, 2)
-    assert devices(css)[0] == ARROWS, "round to where it started, never the WASD keyboard"
+    assert devices(css) == [ARROWS, SOLO, "", ""], "a device that has not joined moves nobody"
+    assert not hasattr(css, "switch_device") and not hasattr(css, "controls_row")
 
 
 def test_enter_and_the_mouse_act_for_player_one_not_for_the_wasd_keyboard(window: Any) -> None:
@@ -2244,7 +2272,7 @@ def test_enter_and_the_mouse_act_for_player_one_not_for_the_wasd_keyboard(window
     strip = css.panels[0].strip_rect
     click(window, strip.left + 40, strip.bottom + 6)
     step(window, 1)
-    assert devices(css)[0] == SOLO, "a click on the strip steps the controls"
+    assert devices(css)[0] == ARROWS, "a click on the strip changes nothing (decision D-064)"
 
 
 def test_a_key_two_layouts_share_does_not_join_the_other_layout(window: Any) -> None:
@@ -2280,13 +2308,60 @@ def test_an_unjoined_device_is_told_to_join_and_a_join_is_announced(window: Any)
 def test_setting_up_a_cpu_says_what_attack_does(window: Any) -> None:
     _, css = open_user_select(window)
     press(window, keys().V)
-    assert css.focus == {ARROWS: 1}
-    assert css.panels[1].line2.text == "X: done  C: remove"
+    assert css.focus == {ARROWS: 1} and not css.slots[1].taken
+    assert prompts(css.panels[1]) == ["ADD A CPU?", "X: add", "C: back"]
     assert css.panels[0].line2.text == "SETTING UP A CPU"
+    assert "X: add a CPU" in css._footer.text and "C: back" in css._footer.text
+    press(window, keys().X)
+    assert css.slots[1].cpu == 5 and css.focus == {ARROWS: 1}
+    assert css.panels[1].line2.text == "X: done  C: remove"
+    assert css.panels[1].line1.text == "\u2191\u2193 LEVEL 5"
     assert "X: done" in css._footer.text and "C: remove" in css._footer.text
     press(window, keys().X)
     assert not css.focus and css.panels[0].line2.text == "X: ready"
     assert css.panels[1].line2.text == "CPU"
+
+
+def test_a_finished_cpu_can_be_set_up_again_and_removed(window: Any) -> None:
+    """Decision D-064: after "done" there used to be no way back to a CPU."""
+    _, css = open_user_select(window)
+    for key in (keys().V, keys().X, keys().X):  # add a CPU and go home
+        press(window, key)
+    assert not css.focus and css.slots[1].cpu == 5
+    assert css.visit_order(0) == [1, 2], "its CPU, then the first empty slot"
+    press(window, keys().V)
+    assert css.focus == {ARROWS: 1}, "grab steps back onto it"
+    press(window, keys().UP)
+    press(window, keys().RIGHT)
+    assert css.slots[1].cpu == 6 and css.character_of(css.slots[1]) != "random"
+    press(window, keys().V)
+    assert css.focus == {ARROWS: 2} and not css.slots[2].taken, "then the empty slot"
+    press(window, keys().V)
+    assert not css.focus and len([slot for slot in css.slots if slot.cpu]) == 1, (
+        "then home, and stepping past an empty slot adds nothing"
+    )
+    press(window, keys().V)
+    press(window, keys().C)
+    assert not css.slots[1].taken and not css.focus, "special removes the CPU"
+    assert css.slots[0].device == ARROWS, "and never the player"
+
+
+def test_back_on_an_empty_slot_only_goes_home(window: Any) -> None:
+    _, css = open_user_select(window)
+    press(window, keys().V)
+    press(window, keys().C)
+    assert not css.focus and devices(css) == [ARROWS, "", "", ""]
+    assert not any(slot.cpu for slot in css.slots)
+
+
+def test_grab_with_no_slot_left_says_so(window: Any, pads: list[FakeController]) -> None:
+    _, css = open_user_select(window)
+    press(window, keys().J)
+    tap_pad(window, pads[0])
+    tap_pad(window, pads[1])
+    assert all(slot.device for slot in css.slots)
+    press(window, keys().V)
+    assert not css.focus and css.message == "NO SLOT FOR A CPU"
 
 
 def test_the_message_is_in_the_bottom_band_and_covers_no_panel(window: Any) -> None:
@@ -2305,7 +2380,9 @@ def test_the_message_is_in_the_bottom_band_and_covers_no_panel(window: Any) -> N
 
 def test_the_next_screen_keeps_the_players_device(window: Any) -> None:
     open_user_select(window)
-    press(window, keys().V)
+    for _ in range(1):
+        press(window, keys().V)
+    press(window, keys().X)
     press(window, keys().X)
     press(window, keys().X)
     sss = window.current_view
