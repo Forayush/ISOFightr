@@ -1,0 +1,45 @@
+# Plate: a scorched brass plate under a lightning rod (flat).
+loop = true
+fps = 1
+
+[[parts]]
+name = "scorch"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.004]
+b = [0.000, 0.000, 0.010]
+r1 = 0.460
+r2 = 0.460
+material = "scorch"
+
+[[parts]]
+name = "plate"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.004]
+b = [0.000, 0.000, 0.016]
+r1 = 0.300
+r2 = 0.300
+material = "plate"
+
+[[parts]]
+name = "ring"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.004]
+b = [0.000, 0.000, 0.020]
+r1 = 0.200
+r2 = 0.200
+material = "plate_dark"
+
+[[parts]]
+name = "boss"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.004]
+b = [0.000, 0.000, 0.024]
+r1 = 0.100
+r2 = 0.100
+material = "plate"
+
+[[poses]]

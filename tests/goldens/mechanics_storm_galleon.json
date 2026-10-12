@@ -1,0 +1,19 @@
+{
+  "description": "All four characters on Storm Galleon with the stage hazards rule on (a swaying crow's nest and three lightning rods), starting at 60%, driven by 6000 ticks of seeded random input (decision D-063).",
+  "stage": "storm_galleon",
+  "characters": [
+    "rook",
+    "bramble",
+    "zephyr",
+    "mote"
+  ],
+  "seed": 19,
+  "stocks": null,
+  "start_damage": 60.0,
+  "input_seed": 61,
+  "ticks": 6000,
+  "rules": {
+    "stage_hazards": true
+  },
+  "hash": "524e3711f66bfdc253c672e1509faab5"
+}

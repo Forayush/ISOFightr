@@ -1,0 +1,47 @@
+# Rod: a brass lightning rod; its tip glints (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.080]
+r1 = 0.100
+r2 = 0.070
+material = "brass"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.080]
+b = [0.000, 0.000, 0.800]
+r1 = 0.030
+r2 = 0.020
+material = "brass"
+
+[[smears]]
+name = "tip_hi"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.850]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "glow"
+
+[[smears]]
+name = "tip_lo"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.850]
+radius = 0.060
+scale = [1.000, 1.000, 1.000]
+material = "brass"
+
+[[poses]]
+show = ["tip_lo"]
+
+[[poses]]
+show = ["tip_hi"]

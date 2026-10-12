@@ -40,6 +40,7 @@ STAGES = (
     "neon_circuit",
     "dune_bazaar",
     "glowcap_grove",
+    "storm_galleon",
 )
 
 

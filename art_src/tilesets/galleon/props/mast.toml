@@ -1,0 +1,201 @@
+# Mast: the main mast with two furled sails and a pennant (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.200]
+r1 = 0.200
+r2 = 0.160
+material = "wood_dark"
+
+[[parts]]
+name = "lower"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 3.000]
+r1 = 0.130
+r2 = 0.110
+material = "wood"
+
+[[parts]]
+name = "upper"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 3.000]
+b = [0.000, 0.000, 5.400]
+r1 = 0.100
+r2 = 0.060
+material = "wood"
+
+[[parts]]
+name = "band0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.900]
+b = [0.000, 0.000, 0.980]
+r1 = 0.140
+r2 = 0.140
+material = "iron"
+
+[[parts]]
+name = "band1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.700]
+b = [0.000, 0.000, 1.780]
+r1 = 0.140
+r2 = 0.140
+material = "iron"
+
+[[parts]]
+name = "band2"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 2.500]
+b = [0.000, 0.000, 2.580]
+r1 = 0.140
+r2 = 0.140
+material = "iron"
+
+[[parts]]
+name = "main_yard"
+joint = "origin"
+shape = "rod"
+a = [0.850, -0.850, 3.300]
+b = [-0.850, 0.850, 3.300]
+r1 = 0.045
+r2 = 0.045
+material = "wood_dark"
+
+[[parts]]
+name = "main_sail"
+joint = "origin"
+shape = "rod"
+a = [0.765, -0.765, 3.160]
+b = [-0.765, 0.765, 3.160]
+r1 = 0.130
+r2 = 0.130
+material = "sail"
+
+[[parts]]
+name = "main_tie0"
+joint = "origin"
+shape = "rod"
+a = [-0.510, 0.510, 3.000]
+b = [-0.510, 0.510, 3.340]
+r1 = 0.142
+r2 = 0.142
+material = "cord"
+
+[[parts]]
+name = "main_tie1"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.000, 3.000]
+b = [0.000, -0.000, 3.340]
+r1 = 0.142
+r2 = 0.142
+material = "cord"
+
+[[parts]]
+name = "main_tie2"
+joint = "origin"
+shape = "rod"
+a = [0.510, -0.510, 3.000]
+b = [0.510, -0.510, 3.340]
+r1 = 0.142
+r2 = 0.142
+material = "cord"
+
+[[parts]]
+name = "top_yard"
+joint = "origin"
+shape = "rod"
+a = [0.550, -0.550, 4.700]
+b = [-0.550, 0.550, 4.700]
+r1 = 0.045
+r2 = 0.045
+material = "wood_dark"
+
+[[parts]]
+name = "top_sail"
+joint = "origin"
+shape = "rod"
+a = [0.495, -0.495, 4.560]
+b = [-0.495, 0.495, 4.560]
+r1 = 0.100
+r2 = 0.100
+material = "sail"
+
+[[parts]]
+name = "top_tie0"
+joint = "origin"
+shape = "rod"
+a = [-0.330, 0.330, 4.400]
+b = [-0.330, 0.330, 4.740]
+r1 = 0.112
+r2 = 0.112
+material = "cord"
+
+[[parts]]
+name = "top_tie1"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.000, 4.400]
+b = [0.000, -0.000, 4.740]
+r1 = 0.112
+r2 = 0.112
+material = "cord"
+
+[[parts]]
+name = "top_tie2"
+joint = "origin"
+shape = "rod"
+a = [0.330, -0.330, 4.400]
+b = [0.330, -0.330, 4.740]
+r1 = 0.112
+r2 = 0.112
+material = "cord"
+
+[[smears]]
+name = "flag_a"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.000, 5.100]
+high = [0.020, 0.500, 5.360]
+material = "cloth"
+
+[[smears]]
+name = "flag_a2"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.500, 5.140]
+high = [0.020, 0.720, 5.300]
+material = "cloth"
+
+[[smears]]
+name = "flag_b"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.000, 5.060]
+high = [0.020, 0.440, 5.320]
+material = "cloth"
+
+[[smears]]
+name = "flag_b2"
+joint = "origin"
+shape = "box"
+low = [-0.020, 0.440, 5.000]
+high = [0.020, 0.680, 5.180]
+material = "cloth"
+
+[[poses]]
+show = ["flag_a", "flag_a2"]
+
+[[poses]]
+show = ["flag_b", "flag_b2"]

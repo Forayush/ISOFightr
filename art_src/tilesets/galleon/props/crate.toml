@@ -1,0 +1,49 @@
+# Crate: a lashed crate with a coil of rope on it.
+loop = true
+fps = 1
+
+[[parts]]
+name = "box"
+joint = "origin"
+shape = "box"
+low = [-0.260, -0.240, 0.000]
+high = [0.260, 0.240, 0.400]
+material = "crate"
+
+[[parts]]
+name = "slat0"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.250, 0.060]
+high = [0.270, 0.250, 0.120]
+material = "wood_dark"
+
+[[parts]]
+name = "slat1"
+joint = "origin"
+shape = "box"
+low = [-0.270, -0.250, 0.280]
+high = [0.270, 0.250, 0.340]
+material = "wood_dark"
+
+[[parts]]
+name = "coil0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.400]
+b = [0.000, 0.000, 0.470]
+r1 = 0.170
+r2 = 0.170
+material = "cord"
+
+[[parts]]
+name = "coil1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.470]
+b = [0.000, 0.000, 0.520]
+r1 = 0.120
+r2 = 0.120
+material = "cord"
+
+[[poses]]

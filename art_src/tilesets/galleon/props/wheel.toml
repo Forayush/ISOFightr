@@ -1,0 +1,142 @@
+# Wheel: the ship's wheel on its stand.
+loop = true
+fps = 1
+
+[[parts]]
+name = "stand"
+joint = "origin"
+shape = "box"
+low = [-0.100, -0.140, 0.000]
+high = [0.100, 0.140, 0.600]
+material = "wood_dark"
+
+[[parts]]
+name = "rim0"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.340, 0.740]
+b = [0.140, 0.240, 0.980]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim1"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.240, 0.980]
+b = [0.140, 0.000, 1.080]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim2"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.000, 1.080]
+b = [0.140, -0.240, 0.980]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim3"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.240, 0.980]
+b = [0.140, -0.340, 0.740]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim4"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.340, 0.740]
+b = [0.140, -0.240, 0.500]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim5"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.240, 0.500]
+b = [0.140, -0.000, 0.400]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim6"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.000, 0.400]
+b = [0.140, 0.240, 0.500]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "rim7"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.240, 0.500]
+b = [0.140, 0.340, 0.740]
+r1 = 0.040
+r2 = 0.040
+material = "wood"
+
+[[parts]]
+name = "spoke0"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.440, 0.740]
+b = [0.140, -0.440, 0.740]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "spoke1"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.311, 1.051]
+b = [0.140, -0.311, 0.429]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "spoke2"
+joint = "origin"
+shape = "rod"
+a = [0.140, 0.000, 1.180]
+b = [0.140, -0.000, 0.300]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "spoke3"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.311, 1.051]
+b = [0.140, 0.311, 0.429]
+r1 = 0.022
+r2 = 0.022
+material = "wood"
+
+[[parts]]
+name = "hub"
+joint = "origin"
+shape = "ball"
+centre = [0.160, 0.000, 0.740]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "brass"
+
+[[poses]]

@@ -1,0 +1,289 @@
+# All Hands: Storm Galleon (decision D-063). A storm shanty in B minor, fast: a fiddle
+# saws out the tune, an accordion pushes on every off-beat over a bass that walks from root
+# to fifth, with a deep drum, a snare of spray and the ship's bell.
+# Rendered by tools/build_audio.py; written with build/scratch/m14_song_galleon.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar of eight
+# quavers.
+id = "storm_galleon"
+title = "All Hands"
+tempo = 172
+steps_per_beat = 2
+key = "B"
+mode = "minor"
+meter = "4/4"
+form = ["intro", "tune", "turn", "tune2", "turn2"]
+
+[echo]
+beats = 0.75
+feedback = 0.25
+mix = 0.2
+lowpass = 0.5
+
+[sections.intro]              # 4 bars: the accordion and the bell, the fiddle answering
+level = 0.7
+to = 0.95
+play = ["call", "acc_i_root", "acc_i_third", "acc_i_fifth", "bass_i", "boom*0.8", "ring"]
+
+[sections.tune]               # 8 bars: Bm Bm G A, Bm D G F#m
+kind = "verse"
+level = 0.9
+play = ["tune_a", "acc_a_root", "acc_a_third", "acc_a_fifth", "bass_a", "boom", "spray"]
+
+[sections.turn]               # 8 bars: D A Bm G, D A Em F#m
+kind = "chorus"
+play = ["tune_b", "acc_b_root", "acc_b_third", "acc_b_fifth", "bass_b", "boom", "spray", "ring"]
+
+[sections.tune2]              # the tune again, the fiddle doubled an octave down
+kind = "verse"
+play = ["tune_a", "tune_a-12*0.6", "acc_a_root", "acc_a_third", "acc_a_fifth", "bass_a", "boom",
+        "spray"]
+
+[sections.turn2]              # and the turn with everything
+kind = "chorus"
+play = ["tune_b", "tune_b-12*0.5", "acc_b_root", "acc_b_third", "acc_b_fifth", "bass_b", "boom",
+        "spray", "ring"]
+
+[instruments.fiddle]          # a bowed string: a muffled saw with a quick vibrato
+wave = "saw"
+attack = 0.02
+decay = 0.05
+sustain = 0.8
+release = 0.06
+lowpass = 0.6
+vibrato_depth = 0.3
+vibrato_rate = 6.5
+volume = 0.3
+send = 0.25
+
+[instruments.accordion]       # reeds, bright and short
+wave = "reed"
+attack = 0.01
+release = 0.04
+lowpass = 0.9
+volume = 0.18
+
+[instruments.bass]
+wave = "triangle"
+attack = 0.004
+release = 0.05
+volume = 0.3
+
+[instruments.boom]            # a deep drum
+wave = "drum"
+freq = 78
+freq_end = 48
+length = 0.2
+noise = 0.3
+release = 0.08
+volume = 0.38
+
+[instruments.spray]           # a snare like spray on the deck
+wave = "noise"
+freq = 2600
+length = 0.09
+release = 0.05
+lowpass = 0.4
+volume = 0.2
+
+[instruments.ring]            # the ship's bell
+wave = "bell"
+mod_ratio = 2.76
+mod_index = 2.0
+length = 1.2
+release = 0.4
+volume = 0.2
+send = 0.4
+
+[patterns.call]
+instrument = "fiddle"
+steps = """
+. . . . . . . .
+. . . . F#5 - B5 -
+. . . . . . . .
+. . . . E5 - C#5 -
+"""
+
+[patterns.tune_a]
+instrument = "fiddle"
+steps = """
+B4 - D5 - F#5 - E5 D5
+C#5 - B4 - B4 - - .
+D5 - G5 - B5 - A5 G5
+A5 - E5 - C#5 - - .
+B4 - D5 - F#5 - B5 -
+A5 - F#5 - D5 - F#5 A5
+G5 - E5 - D5 - C#5 -
+C#5 - - - F#5 - - .
+"""
+
+[patterns.tune_b]
+instrument = "fiddle"
+steps = """
+F#5 - - A5 - - D6 -
+C#6 - - A5 - - E5 -
+D5 - F#5 - B5 - F#5 -
+G5 - - - B5 - D6 .
+A5 - - F#5 - - D5 -
+E5 - - A5 - - C#6 -
+B5 - G5 - E5 - G5 B5
+A5 - - - F#5 - - .
+"""
+
+[patterns.acc_i_root]
+instrument = "accordion"
+steps = """
+. B3 . B3 . B3 . B3
+. B3 . B3 . B3 . B3
+. G3 . G3 . G3 . G3
+. A3 . A3 . A3 . A3
+"""
+
+[patterns.acc_i_third]
+instrument = "accordion"
+steps = """
+. D4 . D4 . D4 . D4
+. D4 . D4 . D4 . D4
+. B3 . B3 . B3 . B3
+. C#4 . C#4 . C#4 . C#4
+"""
+
+[patterns.acc_i_fifth]
+instrument = "accordion"
+steps = """
+. F#4 . F#4 . F#4 . F#4
+. F#4 . F#4 . F#4 . F#4
+. D4 . D4 . D4 . D4
+. E4 . E4 . E4 . E4
+"""
+
+[patterns.bass_i]
+instrument = "bass"
+steps = """
+B2 - . . F#2 - . .
+B2 - . . F#2 - . .
+G2 - . . D3 - . .
+A2 - . . E3 - . .
+"""
+
+[patterns.acc_a_root]
+instrument = "accordion"
+steps = """
+. B3 . B3 . B3 . B3
+. B3 . B3 . B3 . B3
+. G3 . G3 . G3 . G3
+. A3 . A3 . A3 . A3
+. B3 . B3 . B3 . B3
+. D4 . D4 . D4 . D4
+. G3 . G3 . G3 . G3
+. F#3 . F#3 . F#3 . F#3
+"""
+
+[patterns.acc_a_third]
+instrument = "accordion"
+steps = """
+. D4 . D4 . D4 . D4
+. D4 . D4 . D4 . D4
+. B3 . B3 . B3 . B3
+. C#4 . C#4 . C#4 . C#4
+. D4 . D4 . D4 . D4
+. F#4 . F#4 . F#4 . F#4
+. B3 . B3 . B3 . B3
+. A3 . A3 . A3 . A3
+"""
+
+[patterns.acc_a_fifth]
+instrument = "accordion"
+steps = """
+. F#4 . F#4 . F#4 . F#4
+. F#4 . F#4 . F#4 . F#4
+. D4 . D4 . D4 . D4
+. E4 . E4 . E4 . E4
+. F#4 . F#4 . F#4 . F#4
+. A4 . A4 . A4 . A4
+. D4 . D4 . D4 . D4
+. C#4 . C#4 . C#4 . C#4
+"""
+
+[patterns.bass_a]
+instrument = "bass"
+steps = """
+B2 - . . F#2 - . .
+B2 - . . F#2 - . .
+G2 - . . D3 - . .
+A2 - . . E3 - . .
+B2 - . . F#2 - . .
+D3 - . . A2 - . .
+G2 - . . D3 - . .
+F#2 - . . C#3 - . .
+"""
+
+[patterns.acc_b_root]
+instrument = "accordion"
+steps = """
+. D4 . D4 . D4 . D4
+. A3 . A3 . A3 . A3
+. B3 . B3 . B3 . B3
+. G3 . G3 . G3 . G3
+. D4 . D4 . D4 . D4
+. A3 . A3 . A3 . A3
+. E4 . E4 . E4 . E4
+. F#3 . F#3 . F#3 . F#3
+"""
+
+[patterns.acc_b_third]
+instrument = "accordion"
+steps = """
+. F#4 . F#4 . F#4 . F#4
+. C#4 . C#4 . C#4 . C#4
+. D4 . D4 . D4 . D4
+. B3 . B3 . B3 . B3
+. F#4 . F#4 . F#4 . F#4
+. C#4 . C#4 . C#4 . C#4
+. G4 . G4 . G4 . G4
+. A3 . A3 . A3 . A3
+"""
+
+[patterns.acc_b_fifth]
+instrument = "accordion"
+steps = """
+. A4 . A4 . A4 . A4
+. E4 . E4 . E4 . E4
+. F#4 . F#4 . F#4 . F#4
+. D4 . D4 . D4 . D4
+. A4 . A4 . A4 . A4
+. E4 . E4 . E4 . E4
+. B4 . B4 . B4 . B4
+. C#4 . C#4 . C#4 . C#4
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+D3 - . . A2 - . .
+A2 - . . E3 - . .
+B2 - . . F#2 - . .
+G2 - . . D3 - . .
+D3 - . . A2 - . .
+A2 - . . E3 - . .
+E3 - . . B2 - . .
+F#2 - . . C#3 - . .
+"""
+
+[patterns.boom]
+instrument = "boom"
+steps = """
+x . . x x . . .
+"""
+
+[patterns.spray]
+instrument = "spray"
+steps = """
+. . x . . . x .
+"""
+
+[patterns.ring]
+instrument = "ring"
+steps = """
+F#5 - - - - - - -
+. . . . . . . .
+"""

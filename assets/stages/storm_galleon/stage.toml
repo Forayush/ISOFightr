@@ -1,0 +1,192 @@
+# Storm Galleon: the deck of a sailing ship in a storm at night (decision D-063, new in
+# M14). One long deck with a raised step at each end (the stern and the bow), a platform on
+# two posts toward the stern, and a crow's nest high over the middle.
+# Mechanics: the crow's nest sways along the deck and back, carrying whoever stands on it,
+# and lightning strikes three brass rods on the deck in turn: a rod crackles for a second
+# and a half, then the bolt throws whoever is close into the air. With the "stage hazards"
+# rule off the nest hangs still and no lightning strikes.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "storm_galleon"
+display_name = "Storm Galleon"
+description = "A ship in a storm: a swaying crow's nest, and lightning."
+tileset = "galleon"
+music = "storm_galleon"            # a song in assets/audio/music
+
+# Legend: '.' = void. 'd' the deck, 'S' the stern and 'B' the bow (both one unit up).
+grid = """
+SSSddddddddddBBB
+SSSddddddddddBBB
+SSSddddddddddBBB
+SSSddddddddddBBB
+SSSddddddddddBBB
+SSSddddddddddBBB
+"""
+
+[legend]
+"d" = { height = 0, tile = "plank" }
+"S" = { height = 1, tile = "plank" }
+"B" = { height = 1, tile = "plank" }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [3, 4, 6, 6]          # the platform on its posts
+z = 2.5
+[[soft_platforms]]
+rect = [7, 2, 9, 4]          # the crow's nest: three units along the deck and back, 7 seconds
+z = 4.5
+motion = { kind = "ping_pong", to = [3.0, 0.0, 0.0], period = 420 }
+
+[[hazards]]                  # the stern rod: struck last
+kind = "lightning"
+at = [4.5, 1.5]
+radius = 1.2
+rest = 600                   # 10 seconds quiet,
+warn = 90                    # 1.5 crackling,
+active = 20                  # then the bolt
+damage = 14.0
+angle = 80.0
+bkb = 80.0
+kbg = 80.0
+[[hazards]]                  # the middle rod: it is struck first
+kind = "lightning"
+at = [8.5, 4.5]
+radius = 1.2
+rest = 600
+warn = 90
+active = 20
+phase = 440
+damage = 14.0
+angle = 80.0
+bkb = 80.0
+kbg = 80.0
+[[hazards]]                  # the bow rod: struck second
+kind = "lightning"
+at = [12.0, 1.5]
+radius = 1.2
+rest = 600
+warn = 90
+active = 20
+phase = 225
+damage = 14.0
+angle = 80.0
+bkb = 80.0
+kbg = 80.0
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [1.2, 1.5]
+p2 = [14.5, 2.5]
+p3 = [6.0, 3.6]
+p4 = [10.5, 3.0]
+respawn = [8.0, 3.0]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py storm_galleon --theme storm --mood squall --seed 4).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_storm.png"     # five frames: on one, far lightning lights the clouds
+parallax = 0.03
+scroll = 0.05
+frames = 5
+frame_ticks = 26
+
+[[background]]
+image = "bg_2_far_swell.png"
+parallax = 0.05
+scroll = 0.08
+
+[[background]]
+image = "bg_3_near_swell.png"
+parallax = 0.26
+scroll = 0.2
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 1.5
+hang = ["kelp", "anchor"]
+
+[ambient]
+kind = "rain"
+count = 16
+front = 5
+
+[[props]]                    # under each lightning rod: a scorched brass plate
+sprite = "plate"
+at = [4.5, 1.5]
+layer = "ground"
+[[props]]
+sprite = "plate"
+at = [8.5, 4.5]
+layer = "ground"
+[[props]]
+sprite = "plate"
+at = [12.0, 1.5]
+layer = "ground"
+[[props]]                    # and the rods themselves
+sprite = "rod"
+at = [4.5, 1.5]
+period = 40
+[[props]]
+sprite = "rod"
+at = [8.5, 4.5]
+period = 40
+phase = 13
+[[props]]
+sprite = "rod"
+at = [12.0, 1.5]
+period = 40
+phase = 27
+
+[[props]]                    # the platform's posts
+sprite = "post"
+at = [3.5, 4.5]
+[[props]]
+sprite = "post"
+at = [5.5, 5.5]
+
+[[props]]                    # along the far rail: the tall things
+sprite = "mast"
+at = [10.5, 0.5]
+period = 16
+[[props]]
+sprite = "wheel"
+at = [0.6, 0.6]
+[[props]]
+sprite = "lantern"
+at = [2.5, 0.4]
+period = 22
+[[props]]
+sprite = "barrels"
+at = [6.6, 0.5]
+[[props]]
+sprite = "crate"
+at = [12.5, 0.5]
+[[props]]
+sprite = "lantern"
+at = [15.5, 0.5]
+period = 22
+phase = 11
+[[props]]
+sprite = "cannon"
+at = [14.5, 0.5]
+
+[[props]]                    # the near rail: low things only
+sprite = "coil"
+at = [9.5, 5.6]
+[[props]]
+sprite = "cannon"
+at = [0.5, 4.5]
+[[props]]
+sprite = "coil"
+at = [15.5, 4.5]
+[[props]]
+sprite = "crate"
+at = [0.5, 5.5]

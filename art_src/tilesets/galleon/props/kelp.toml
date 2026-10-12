@@ -1,0 +1,65 @@
+# Kelp: weed trailing under the hull.
+loop = true
+fps = 1
+
+[[parts]]
+name = "kelp0a"
+joint = "origin"
+shape = "rod"
+a = [-0.120, 0.050, 0.020]
+b = [-0.070, 0.050, -0.420]
+r1 = 0.040
+r2 = 0.030
+material = "weed"
+
+[[parts]]
+name = "kelp0b"
+joint = "origin"
+shape = "rod"
+a = [-0.070, 0.050, -0.420]
+b = [-0.140, 0.050, -0.700]
+r1 = 0.030
+r2 = 0.010
+material = "weed"
+
+[[parts]]
+name = "kelp1a"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.060, 0.020]
+b = [0.150, -0.060, -0.270]
+r1 = 0.040
+r2 = 0.030
+material = "weed"
+
+[[parts]]
+name = "kelp1b"
+joint = "origin"
+shape = "rod"
+a = [0.150, -0.060, -0.270]
+b = [0.080, -0.060, -0.450]
+r1 = 0.030
+r2 = 0.010
+material = "weed"
+
+[[parts]]
+name = "kelp2a"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.120, 0.020]
+b = [0.250, 0.120, -0.180]
+r1 = 0.040
+r2 = 0.030
+material = "weed"
+
+[[parts]]
+name = "kelp2b"
+joint = "origin"
+shape = "rod"
+a = [0.250, 0.120, -0.180]
+b = [0.180, 0.120, -0.300]
+r1 = 0.030
+r2 = 0.010
+material = "weed"
+
+[[poses]]

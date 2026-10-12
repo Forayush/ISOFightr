@@ -1,0 +1,33 @@
+# Post: a stout post holding up the platform (2.25 units tall).
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "box"
+low = [-0.160, -0.160, 0.000]
+high = [0.160, 0.160, 0.120]
+material = "wood_dark"
+
+[[parts]]
+name = "shaft"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.120]
+b = [0.000, 0.000, 2.200]
+r1 = 0.080
+r2 = 0.070
+material = "wood"
+
+[[parts]]
+name = "lash"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.800]
+b = [0.000, 0.000, 1.950]
+r1 = 0.100
+r2 = 0.100
+material = "cord"
+
+[[poses]]

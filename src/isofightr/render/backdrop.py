@@ -130,6 +130,14 @@ MIST: Final[Mood] = Mood(
     ruin="8ff8e2",
 )
 """A forest at night: black under the canopy, blue mist toward the ground (Glowcap Grove)."""
+SQUALL: Final[Mood] = Mood(
+    sky=("2e222f", "2e222f", "3e3546", "3e3546", "625565"),
+    cloud=("625565", "3e3546", "2e222f"),
+    island_top="3e3546",
+    island_side=("625565", "2e222f"),
+    ruin="c7dcd0",
+)
+"""A storm at night: black overhead, a grey light low over the sea (Storm Galleon)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -142,6 +150,7 @@ MOODS: Final[dict[str, Mood]] = {
     "glow": GLOW,
     "haze": HAZE,
     "mist": MIST,
+    "squall": SQUALL,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -1335,3 +1344,76 @@ def paint_grove(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["grove"] = paint_grove
+
+
+# --- a storm at sea (Storm Galleon) --------------------------------------------------------
+
+SEA_LINE: Final[int] = 214
+SEA_COLOURS: Final[tuple[str, str, str]] = ("625565", "323353", "2e222f")
+"""The sea at night: the pale line of the horizon, the water near it, the water close by."""
+FAR_SWELL: Final[tuple[str, str]] = ("7f708a", "323353")
+NEAR_SWELL: Final[tuple[str, str]] = ("9babb2", "2e222f")
+"""A line of waves: its foaming crest, then its face."""
+STORM_FRAMES: Final[int] = 5
+STORM_LIT_FRAME: Final[int] = 3
+"""The storm clouds are drawn this many times; on one of them far lightning lights them."""
+STORM_LIT: Final[tuple[str, str, str]] = ("c7dcd0", "7f708a", "3e3546")
+BOLT_COLOUR: Final[str] = "eaaded"
+
+
+def storm_sky(mood: Mood) -> Image.Image:
+    """Return the sky with the sea under it: a pale horizon line, then water darkening
+    toward the viewer."""
+    image = sky(mood)
+    line, far, near = (hex_rgb(value) for value in SEA_COLOURS)
+    pixels = image.load()
+    assert pixels is not None
+    deep = NATIVE_H - SEA_LINE
+    for y in range(SEA_LINE, NATIVE_H):
+        blend = (y - SEA_LINE) / deep
+        for x in range(NATIVE_W):
+            pick = near if blend * 24 > BAYER_4[y % 4][x % 4] else far
+            pixels[x, y] = (*(line if y == SEA_LINE else pick), 255)
+    return image
+
+
+def storm_clouds(
+    mood: Mood, seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H
+) -> Image.Image:
+    """Return the storm clouds as ``STORM_FRAMES`` frames stacked top to bottom: two ranks of
+    heavy cloud, and on one frame the lower rank is lit from inside and a thin bolt drops to
+    the sea."""
+    rng = random.Random(seed)
+    lit = Mood(mood.sky, STORM_LIT, mood.island_top, mood.island_side, mood.ruin)
+    high = clouds(mood, seed, 7, (34, 70), (24, 36), width, height)
+    low = clouds(mood, seed + 1, 6, (104, 140), (18, 28), width, height)
+    low_lit = clouds(lit, seed + 1, 6, (104, 140), (18, 28), width, height)
+    bolt_x = rng.randrange(width // 4, width * 3 // 4)
+    path = [(bolt_x, 150)]
+    while path[-1][1] < SEA_LINE:
+        x, y = path[-1]
+        path.append((x + rng.randint(-7, 7), min(SEA_LINE, y + rng.randint(8, 16))))
+    image = Image.new("RGBA", (width, height * STORM_FRAMES))
+    for frame in range(STORM_FRAMES):
+        flash = frame == STORM_LIT_FRAME
+        layer = Image.new("RGBA", (width, height))
+        if flash:
+            ImageDraw.Draw(layer).line(path, fill=(*hex_rgb(BOLT_COLOUR), 255))
+        layer.alpha_composite(low_lit if flash else low)
+        layer.alpha_composite(high)
+        image.paste(layer, (0, frame * height))
+    return image
+
+
+def paint_storm(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Storm Galleon: a black sky over a night sea, heavy clouds that far lightning lights now
+    and then, and two lines of waves."""
+    return {
+        "bg_0_sky.png": storm_sky(mood),
+        "bg_1_storm.png": storm_clouds(mood, seed),
+        "bg_2_far_swell.png": hills(FAR_SWELL, seed + 2, 236, 7),
+        "bg_3_near_swell.png": hills(NEAR_SWELL, seed + 3, 306, 16),
+    }
+
+
+PAINTERS["storm"] = paint_storm

@@ -1,0 +1,35 @@
+# Coil: a coil of rope and a belaying pin.
+loop = true
+fps = 1
+
+[[parts]]
+name = "coil0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.080]
+r1 = 0.240
+r2 = 0.240
+material = "cord"
+
+[[parts]]
+name = "coil1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.080]
+b = [0.000, 0.000, 0.140]
+r1 = 0.180
+r2 = 0.180
+material = "cord"
+
+[[parts]]
+name = "pin"
+joint = "origin"
+shape = "rod"
+a = [0.220, 0.100, 0.000]
+b = [0.220, 0.100, 0.300]
+r1 = 0.030
+r2 = 0.040
+material = "wood"
+
+[[poses]]

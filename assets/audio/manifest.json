@@ -170,6 +170,15 @@
       "mode": "major",
       "meter": "4/4"
     },
+    "storm_galleon": {
+      "source": "069ddce80b0de1cc",
+      "title": "All Hands",
+      "seconds": 50.233,
+      "tempo": 172.0,
+      "key": "B",
+      "mode": "minor",
+      "meter": "4/4"
+    },
     "training_grid": {
       "source": "77996eecbed59cad",
       "title": "Practice Makes",

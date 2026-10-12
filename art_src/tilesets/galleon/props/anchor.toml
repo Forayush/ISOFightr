@@ -1,0 +1,58 @@
+# Anchor: an anchor on its chain under the hull, swinging (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "chain"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.700]
+r1 = 0.025
+r2 = 0.025
+material = "iron"
+
+[[parts]]
+name = "shank"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -0.700]
+b = [0.000, 0.000, -1.150]
+r1 = 0.035
+r2 = 0.035
+material = "iron"
+
+[[parts]]
+name = "stock"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.140, -0.760]
+b = [-0.140, 0.140, -0.760]
+r1 = 0.025
+r2 = 0.025
+material = "iron"
+
+[[parts]]
+name = "arm0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.150]
+b = [0.200, -0.200, -1.000]
+r1 = 0.035
+r2 = 0.020
+material = "iron"
+
+[[parts]]
+name = "arm1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, -1.150]
+b = [-0.200, 0.200, -1.000]
+r1 = 0.035
+r2 = 0.020
+material = "iron"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 5.000, 0.000]

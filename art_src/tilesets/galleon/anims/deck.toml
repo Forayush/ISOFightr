@@ -1,0 +1,61 @@
+# Deck: a platform of pale boards with a rope along its edge (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "frame"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.100]
+material = "hull"
+
+[[parts]]
+name = "boards"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.100]
+high = [1.000, 1.000, 0.000]
+material = "deckwood"
+
+[[parts]]
+name = "seam0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.010]
+high = [0.030, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "seam1"
+joint = "origin"
+shape = "box"
+low = [0.340, 0.000, -0.010]
+high = [0.370, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "seam2"
+joint = "origin"
+shape = "box"
+low = [0.680, 0.000, -0.010]
+high = [0.710, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "rope_x"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.000, -0.100]
+high = [1.016, 1.000, -0.020]
+material = "rope"
+
+[[parts]]
+name = "rope_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.990, -0.100]
+high = [1.000, 1.016, -0.020]
+material = "rope"
+
+[[poses]]

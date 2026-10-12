@@ -1,0 +1,421 @@
+# Plank, variant b: rain shining on the boards, a porthole below.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.030]
+material = "hull_dark"
+
+[[parts]]
+name = "boards"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.030]
+high = [1.000, 1.000, 0.000]
+material = "plank"
+
+[[parts]]
+name = "seam0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.010]
+high = [0.030, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "seam1"
+joint = "origin"
+shape = "box"
+low = [0.250, 0.000, -0.010]
+high = [0.280, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "seam2"
+joint = "origin"
+shape = "box"
+low = [0.500, 0.000, -0.010]
+high = [0.530, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "seam3"
+joint = "origin"
+shape = "box"
+low = [0.750, 0.000, -0.010]
+high = [0.780, 1.000, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "end0"
+joint = "origin"
+shape = "box"
+low = [0.030, 0.214, -0.010]
+high = [0.250, 0.244, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "end1"
+joint = "origin"
+shape = "box"
+low = [0.530, 0.735, -0.010]
+high = [0.750, 0.765, 0.004]
+material = "plank_dark"
+
+[[parts]]
+name = "wet0"
+joint = "origin"
+shape = "box"
+low = [0.300, 0.200, -0.010]
+high = [0.470, 0.750, 0.006]
+material = "plank_wet"
+
+[[parts]]
+name = "wet1"
+joint = "origin"
+shape = "box"
+low = [0.550, 0.400, -0.010]
+high = [0.720, 0.900, 0.006]
+material = "plank_wet"
+
+[[parts]]
+name = "wale_x"
+joint = "origin"
+shape = "box"
+low = [0.960, 0.000, -0.280]
+high = [1.018, 1.000, -0.080]
+material = "stripe"
+
+[[parts]]
+name = "wale_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.960, -0.280]
+high = [1.000, 1.018, -0.080]
+material = "stripe"
+
+[[parts]]
+name = "line_x"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.000, -0.340]
+high = [1.022, 1.000, -0.280]
+material = "gold"
+
+[[parts]]
+name = "line_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.990, -0.340]
+high = [1.000, 1.022, -0.280]
+material = "gold"
+
+[[parts]]
+name = "strake_x0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.635]
+high = [1.012, 1.000, -0.360]
+material = "hull"
+
+[[parts]]
+name = "strake_y0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.635]
+high = [1.000, 1.012, -0.360]
+material = "hull"
+
+[[parts]]
+name = "butt_x0"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.652, -0.635]
+high = [1.016, 0.682, -0.360]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y0"
+joint = "origin"
+shape = "box"
+low = [0.602, 1.000, -0.635]
+high = [0.632, 1.016, -0.360]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.935]
+high = [1.012, 1.000, -0.660]
+material = "hull_dark"
+
+[[parts]]
+name = "strake_y1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.935]
+high = [1.000, 1.012, -0.660]
+material = "hull_dark"
+
+[[parts]]
+name = "butt_x1"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.331, -0.935]
+high = [1.016, 0.361, -0.660]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y1"
+joint = "origin"
+shape = "box"
+low = [0.554, 1.000, -0.935]
+high = [0.584, 1.016, -0.660]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x2"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.235]
+high = [1.012, 1.000, -0.960]
+material = "hull"
+
+[[parts]]
+name = "strake_y2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.235]
+high = [1.000, 1.012, -0.960]
+material = "hull"
+
+[[parts]]
+name = "butt_x2"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.555, -1.235]
+high = [1.016, 0.585, -0.960]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y2"
+joint = "origin"
+shape = "box"
+low = [0.536, 1.000, -1.235]
+high = [0.566, 1.016, -0.960]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x3"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.535]
+high = [1.012, 1.000, -1.260]
+material = "hull_dark"
+
+[[parts]]
+name = "strake_y3"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.535]
+high = [1.000, 1.012, -1.260]
+material = "hull_dark"
+
+[[parts]]
+name = "butt_x3"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.219, -1.535]
+high = [1.016, 0.249, -1.260]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y3"
+joint = "origin"
+shape = "box"
+low = [0.423, 1.000, -1.535]
+high = [0.453, 1.016, -1.260]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.835]
+high = [1.012, 1.000, -1.560]
+material = "hull"
+
+[[parts]]
+name = "strake_y4"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.835]
+high = [1.000, 1.012, -1.560]
+material = "hull"
+
+[[parts]]
+name = "butt_x4"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.395, -1.835]
+high = [1.016, 0.425, -1.560]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y4"
+joint = "origin"
+shape = "box"
+low = [0.642, 1.000, -1.835]
+high = [0.672, 1.016, -1.560]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.135]
+high = [1.012, 1.000, -1.860]
+material = "hull_dark"
+
+[[parts]]
+name = "strake_y5"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.135]
+high = [1.000, 1.012, -1.860]
+material = "hull_dark"
+
+[[parts]]
+name = "butt_x5"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.846, -2.135]
+high = [1.016, 0.876, -1.860]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y5"
+joint = "origin"
+shape = "box"
+low = [0.812, 1.000, -2.135]
+high = [0.842, 1.016, -1.860]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x6"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.435]
+high = [1.012, 1.000, -2.160]
+material = "hull"
+
+[[parts]]
+name = "strake_y6"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.435]
+high = [1.000, 1.012, -2.160]
+material = "hull"
+
+[[parts]]
+name = "butt_x6"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.508, -2.435]
+high = [1.016, 0.538, -2.160]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y6"
+joint = "origin"
+shape = "box"
+low = [0.434, 1.000, -2.435]
+high = [0.464, 1.016, -2.160]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x7"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.735]
+high = [1.012, 1.000, -2.460]
+material = "hull_dark"
+
+[[parts]]
+name = "strake_y7"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.735]
+high = [1.000, 1.012, -2.460]
+material = "hull_dark"
+
+[[parts]]
+name = "butt_x7"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.301, -2.735]
+high = [1.016, 0.331, -2.460]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y7"
+joint = "origin"
+shape = "box"
+low = [0.127, 1.000, -2.735]
+high = [0.157, 1.016, -2.460]
+material = "deep_dark"
+
+[[parts]]
+name = "strake_x8"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.957]
+high = [1.012, 1.000, -2.760]
+material = "hull"
+
+[[parts]]
+name = "strake_y8"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.957]
+high = [1.000, 1.012, -2.760]
+material = "hull"
+
+[[parts]]
+name = "butt_x8"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.121, -2.957]
+high = [1.016, 0.151, -2.760]
+material = "deep_dark"
+
+[[parts]]
+name = "butt_y8"
+joint = "origin"
+shape = "box"
+low = [0.449, 1.000, -2.957]
+high = [0.479, 1.016, -2.760]
+material = "deep_dark"
+
+[[parts]]
+name = "port_frame"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.300, -1.020]
+high = [1.020, 0.700, -0.620]
+material = "gold"
+
+[[parts]]
+name = "port"
+joint = "origin"
+shape = "box"
+low = [1.000, 0.360, -0.960]
+high = [1.026, 0.640, -0.680]
+material = "port"
+
+[[poses]]

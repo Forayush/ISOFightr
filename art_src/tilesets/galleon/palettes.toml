@@ -1,0 +1,144 @@
+# galleon tileset materials (Storm Galleon; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "plank"
+outline = false
+
+[[materials]]
+name = "plank_dark"
+outline = false
+
+[[materials]]
+name = "plank_wet"
+outline = false
+
+[[materials]]
+name = "hull"
+outline = false
+
+[[materials]]
+name = "hull_dark"
+outline = false
+
+[[materials]]
+name = "stripe"
+outline = false
+
+[[materials]]
+name = "gold"
+outline = false
+
+[[materials]]
+name = "port"
+outline = false
+lit = false
+
+[[materials]]
+name = "deckwood"
+outline = false
+
+[[materials]]
+name = "rope"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "weed"
+outline = false
+
+[[materials]]
+name = "plate"
+outline = false
+lit = false
+
+[[materials]]
+name = "plate_dark"
+outline = false
+lit = false
+
+[[materials]]
+name = "scorch"
+outline = false
+lit = false
+
+[[materials]]
+name = "wood"
+
+[[materials]]
+name = "wood_dark"
+
+[[materials]]
+name = "sail"
+
+[[materials]]
+name = "cord"
+
+[[materials]]
+name = "barrel"
+
+[[materials]]
+name = "iron"
+
+[[materials]]
+name = "brass"
+
+[[materials]]
+name = "cloth"
+
+[[materials]]
+name = "crate"
+
+[[materials]]
+name = "glow"
+lit = false
+
+[[materials]]
+name = "glow_dim"
+lit = false
+
+[[costumes]]
+name = "light"
+plank = ["ab947a", "ab947a", "966c6c", "694f62", "45293f"]
+plank_dark = ["694f62", "694f62", "45293f", "2e222f", "2e222f"]
+plank_wet = ["c7dcd0", "c7dcd0", "ab947a", "966c6c", "694f62"]
+hull = ["9e4539", "9e4539", "7a3045", "45293f", "2e222f"]
+hull_dark = ["7a3045", "7a3045", "45293f", "2e222f", "2e222f"]
+stripe = ["e83b3b", "e83b3b", "ae2334", "6e2727", "45293f"]
+gold = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+port = ["f9c22b", "f9c22b", "f79617", "cd683d", "7a3045"]
+deckwood = ["fdcbb0", "fbb954", "e6904e", "cd683d", "9e4539"]
+rope = ["fdcbb0", "ab947a", "ab947a", "966c6c", "694f62"]
+deep = ["3e3546", "3e3546", "323353", "2e222f", "2e222f"]
+deep_dark = ["323353", "2e222f", "2e222f", "2e222f", "2e222f"]
+weed = ["239063", "239063", "165a4c", "374e4a", "313638"]
+plate = ["f9c22b", "f9c22b", "f79617", "cd683d", "7a3045"]
+plate_dark = ["cd683d", "cd683d", "9e4539", "7a3045", "45293f"]
+scorch = ["45293f", "45293f", "2e222f", "2e222f", "2e222f"]
+wood = ["e6904e", "cd683d", "9e4539", "7a3045", "2e222f"]
+wood_dark = ["9e4539", "7a3045", "45293f", "2e222f", "2e222f"]
+sail = ["ffffff", "fdcbb0", "ab947a", "966c6c", "2e222f"]
+cord = ["fdcbb0", "ab947a", "966c6c", "694f62", "2e222f"]
+barrel = ["cd683d", "9e4539", "7a3045", "45293f", "2e222f"]
+iron = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+brass = ["fbff86", "f9c22b", "f79617", "cd683d", "2e222f"]
+cloth = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+crate = ["fbb954", "e6904e", "cd683d", "9e4539", "2e222f"]
+glow = ["fbff86", "fbff86", "f9c22b", "f79617", "2e222f"]
+glow_dim = ["f9c22b", "f9c22b", "f79617", "cd683d", "2e222f"]
+
+[[costumes]]
+name = "dark"
+plank = ["966c6c", "966c6c", "694f62", "45293f", "2e222f"]

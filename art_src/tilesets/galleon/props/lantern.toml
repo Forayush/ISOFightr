@@ -1,0 +1,67 @@
+# Lantern: a storm lantern on a post; it gutters (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "pole"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 1.200]
+r1 = 0.040
+r2 = 0.035
+material = "wood_dark"
+
+[[parts]]
+name = "arm"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.160]
+b = [0.200, -0.200, 1.220]
+r1 = 0.020
+r2 = 0.020
+material = "iron"
+
+[[parts]]
+name = "cap"
+joint = "origin"
+shape = "rod"
+a = [0.200, -0.200, 1.120]
+b = [0.200, -0.200, 1.180]
+r1 = 0.050
+r2 = 0.090
+material = "iron"
+
+[[smears]]
+name = "glass_hi"
+joint = "origin"
+shape = "ball"
+centre = [0.200, -0.200, 1.020]
+radius = 0.100
+scale = [1.000, 1.000, 1.200]
+material = "glow"
+
+[[smears]]
+name = "glass_lo"
+joint = "origin"
+shape = "ball"
+centre = [0.200, -0.200, 1.020]
+radius = 0.100
+scale = [1.000, 1.000, 1.200]
+material = "glow_dim"
+
+[[parts]]
+name = "base"
+joint = "origin"
+shape = "rod"
+a = [0.200, -0.200, 0.870]
+b = [0.200, -0.200, 0.920]
+r1 = 0.080
+r2 = 0.060
+material = "iron"
+
+[[poses]]
+show = ["glass_hi"]
+
+[[poses]]
+show = ["glass_lo"]

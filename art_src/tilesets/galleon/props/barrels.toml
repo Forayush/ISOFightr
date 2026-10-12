@@ -1,0 +1,75 @@
+# Barrels: two barrels, one on its side.
+loop = true
+fps = 1
+
+[[parts]]
+name = "up0"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.000, 0.000]
+b = [-0.160, 0.000, 0.250]
+r1 = 0.190
+r2 = 0.230
+material = "barrel"
+
+[[parts]]
+name = "up1"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.000, 0.250]
+b = [-0.160, 0.000, 0.500]
+r1 = 0.230
+r2 = 0.190
+material = "barrel"
+
+[[parts]]
+name = "hoop0"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.000, 0.080]
+b = [-0.160, 0.000, 0.130]
+r1 = 0.225
+r2 = 0.225
+material = "iron"
+
+[[parts]]
+name = "hoop1"
+joint = "origin"
+shape = "rod"
+a = [-0.160, 0.000, 0.400]
+b = [-0.160, 0.000, 0.450]
+r1 = 0.225
+r2 = 0.225
+material = "iron"
+
+[[parts]]
+name = "side0"
+joint = "origin"
+shape = "rod"
+a = [0.300, -0.260, 0.200]
+b = [0.300, 0.000, 0.200]
+r1 = 0.170
+r2 = 0.200
+material = "barrel"
+
+[[parts]]
+name = "side1"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.200]
+b = [0.300, 0.260, 0.200]
+r1 = 0.200
+r2 = 0.170
+material = "barrel"
+
+[[parts]]
+name = "side_hoop"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.200, 0.200]
+b = [0.300, 0.240, 0.200]
+r1 = 0.190
+r2 = 0.190
+material = "iron"
+
+[[poses]]

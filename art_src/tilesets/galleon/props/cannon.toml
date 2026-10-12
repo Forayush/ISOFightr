@@ -1,0 +1,52 @@
+# Cannon: a small deck gun on a wooden carriage.
+loop = true
+fps = 1
+
+[[parts]]
+name = "carriage"
+joint = "origin"
+shape = "box"
+low = [-0.200, -0.300, 0.000]
+high = [0.200, 0.240, 0.200]
+material = "wood_dark"
+
+[[parts]]
+name = "barrel0"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.340, 0.300]
+b = [0.000, 0.100, 0.320]
+r1 = 0.120
+r2 = 0.100
+material = "iron"
+
+[[parts]]
+name = "barrel1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.100, 0.320]
+b = [0.000, 0.460, 0.340]
+r1 = 0.100
+r2 = 0.085
+material = "iron"
+
+[[parts]]
+name = "muzzle"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.440, 0.340]
+b = [0.000, 0.500, 0.340]
+r1 = 0.105
+r2 = 0.105
+material = "iron"
+
+[[parts]]
+name = "knob"
+joint = "origin"
+shape = "ball"
+centre = [0.000, -0.380, 0.300]
+radius = 0.060
+scale = [1.000, 1.000, 1.000]
+material = "iron"
+
+[[poses]]
