@@ -1,36 +1,55 @@
 # Twin Isles: a recovery-focused stage. Two islands side by side on screen, split by a gap
-# three cells wide, with one soft platform bridging above the gap (plan note "11 - Stages").
+# three cells wide, with one soft platform above the gap (plan note "11 - Stages"). Its look
+# and mechanics (decision D-063): golden-hour meadows with a windmill and a waterfall; the
+# platform is a rope bridge that drifts from isle to isle, and now and then a gust blows
+# across the gap. With the "stage hazards" rule off the bridge rests in the middle and no
+# wind blows: the layout the stage always had.
 # Islands side by side on SCREEN differ in x - y and share x + y (decision D-023), so in this
 # top-down grid the gap runs diagonally.
 id = "twin_isles"
 display_name = "Twin Isles"
-description = "Two isles split by a gap, one platform above it."
-tileset = "grass_stone"
+description = "Two isles, a drifting bridge, and a gust across the gap."
+tileset = "meadow"
 music = "twin_isles"            # a song in assets/audio/music
 
-# Legend: '.' = void, '0'..'9' = solid cell with that top height in units (0 = main floor).
+# Legend: '.' = void; every other symbol is a solid cell at height 0 (the symbols only
+# choose the tile: 'p' is the trodden path to each end of the bridge).
 grid = """
-......000....
-.....00000...
-....0000000..
-.....0000000.
-..0...0000000
-.000...000000
-00000...00000
-000000...000.
-0000000...0..
-.0000000.....
-..0000000....
-...00000.....
-....000......
+......ggg....
+.....ggggg...
+....ggggggg..
+.....ggggggg.
+..g...gppgggg
+.ggg...pggggg
+ggggg...ggggg
+ggggpp...ggg.
+gggppgg...g..
+.ggggggg.....
+..ggggggg....
+...ggggg.....
+....ggg......
 """
 
 [legend]
-"0" = { height = 0, tile = "grass" }
+"g" = { height = 0, tile = "meadow" }
+"p" = { height = 0, tile = "path" }
 
 [[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
-rect = [5, 5, 8, 8]          # over the gap, between the islands
+rect = [5, 5, 8, 8]          # the rope bridge; it rests over the gap, between the islands
 z = 2.5
+# It drifts to the right isle, across to the left one, and back to the middle: 10 seconds.
+motion = { kind = "loop", points = [[2.0, -2.0, 0.0], [-2.0, 2.0, 0.0]], period = 600 }
+
+[[hazards]]                  # a gust across the gap, toward the screen's right
+kind = "wind"
+at = [6.5, 6.5]
+radius = 3.2
+z = -3.0
+height = 10.0
+rest = 540                   # 9 seconds of calm,
+warn = 90                    # 1.5 of streaks gathering,
+active = 150                 # 2.5 of wind
+push = [0.014, -0.014, 0.0]
 
 [spawns]                     # world (x, y); z = surface height
 p1 = [5.0, 10.0]
@@ -47,24 +66,27 @@ bottom = -8.0
 [camera]
 bounds_margin = 4.0
 
-# Parallax backdrop (tools/build_backdrop.py twin_isles --mood day).
+# Parallax backdrop (tools/build_backdrop.py twin_isles --theme meadow --mood golden --seed 4).
 [[background]]
 image = "bg_0_sky.png"
 parallax = 0.0
 
 [[background]]
 image = "bg_1_far_clouds.png"
-parallax = 0.08
+parallax = 0.06
 scroll = 0.02
 
 [[background]]
 image = "bg_2_islands.png"
-parallax = 0.18
+parallax = 0.12
 
 [[background]]
-image = "bg_3_near_clouds.png"
-parallax = 0.35
-scroll = 0.06
+image = "bg_3_far_hills.png"
+parallax = 0.2
+
+[[background]]
+image = "bg_4_near_hills.png"
+parallax = 0.38
 
 # Looks only (decision D-063): none of this collides or changes how the stage plays.
 [underside]
@@ -76,35 +98,69 @@ kind = "petals"
 count = 12
 front = 4
 
+[[props]]                    # behind the fighting ground: the tall things
+sprite = "windmill"
+at = [7.5, 0.6]
+period = 9
 [[props]]
-sprite = "sapling"
-at = [1.5, 7.5]
+sprite = "tree"
+at = [1.4, 7.4]
 [[props]]
-sprite = "pillar"
-at = [0.6, 6.4]
+sprite = "tree"
+at = [11.5, 3.4]
+phase = 8
 [[props]]
-sprite = "column"
-at = [7.5, 0.5]
+sprite = "hay"
+at = [2.5, 4.5]
 [[props]]
-sprite = "pennant"
-at = [11.5, 3.5]
+sprite = "waterfall"         # pours off the right isle's lower tip, into the gap
+at = [10.5, 8.95]
+period = 7
+
+[[props]]                    # a post either side of where the bridge comes in
+sprite = "post"
+at = [5.6, 7.2]
+[[props]]
+sprite = "post"
+at = [4.6, 8.3]
+[[props]]
+sprite = "post"
+at = [7.3, 5.6]
+[[props]]
+sprite = "post"
+at = [8.3, 4.6]
+
+[[props]]
+sprite = "hay"
+at = [0.6, 6.5]
+[[props]]
+sprite = "hay"
+at = [12.4, 5.5]
 [[props]]
 sprite = "bush"
 at = [3.5, 11.5]
 [[props]]
 sprite = "rock"
-at = [9.5, 6.6]
+at = [9.5, 2.4]
 [[props]]
 sprite = "flowers"
 at = [2.5, 9.5]
 [[props]]
 sprite = "flowers"
-at = [8.5, 2.5]
+at = [8.5, 1.5]
 phase = 7
+[[props]]
+sprite = "flowers"
+at = [11.6, 6.5]
+phase = 3
 [[props]]
 sprite = "tall_grass"
 at = [6.5, 10.6]
 [[props]]
 sprite = "tall_grass"
-at = [11.5, 5.5]
+at = [4.5, 12.5]
 phase = 5
+[[props]]
+sprite = "tall_grass"
+at = [12.5, 4.4]
+phase = 9

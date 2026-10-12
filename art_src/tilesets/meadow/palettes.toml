@@ -1,0 +1,157 @@
+# meadow tileset materials (Twin Isles; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "turf"
+outline = false
+
+[[materials]]
+name = "turf_dark"
+outline = false
+
+[[materials]]
+name = "turf_light"
+outline = false
+
+[[materials]]
+name = "bloom"
+outline = false
+
+[[materials]]
+name = "bloom_gold"
+outline = false
+
+[[materials]]
+name = "bloom_red"
+outline = false
+
+[[materials]]
+name = "soil"
+outline = false
+
+[[materials]]
+name = "soil_dark"
+outline = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "dirt"
+outline = false
+
+[[materials]]
+name = "dirt_dark"
+outline = false
+
+[[materials]]
+name = "wood"
+outline = false
+
+[[materials]]
+name = "wood_dark"
+outline = false
+
+[[materials]]
+name = "rope"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "leaf"
+
+[[materials]]
+name = "leaf_dark"
+
+[[materials]]
+name = "bark"
+
+[[materials]]
+name = "root"
+
+[[materials]]
+name = "petal"
+
+[[materials]]
+name = "plaster"
+
+[[materials]]
+name = "roof"
+
+[[materials]]
+name = "sail"
+
+[[materials]]
+name = "timber"
+
+[[materials]]
+name = "hay"
+
+[[materials]]
+name = "rope_prop"
+
+[[materials]]
+name = "rock"
+
+[[materials]]
+name = "water"
+outline = false
+lit = false
+
+[[materials]]
+name = "foam"
+outline = false
+lit = false
+
+[[costumes]]
+name = "light"
+turf = ["fbff86", "cddf6c", "91db69", "1ebc73", "239063"]
+turf_dark = ["91db69", "1ebc73", "239063", "165a4c", "313638"]
+turf_light = ["ffffff", "fbff86", "cddf6c", "91db69", "1ebc73"]
+bloom = ["ffffff", "ffffff", "fdcbb0", "fca790", "f68181"]
+bloom_gold = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+bloom_red = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+soil = ["fbb954", "e6904e", "cd683d", "9e4539", "7a3045"]
+soil_dark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+stone = ["ffffff", "c7dcd0", "9babb2", "7f708a", "625565"]
+dirt = ["fdcbb0", "fbb954", "e6904e", "cd683d", "9e4539"]
+dirt_dark = ["fbb954", "e6904e", "cd683d", "9e4539", "7a3045"]
+wood = ["fbb954", "e6904e", "cd683d", "9e4539", "7a3045"]
+wood_dark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+rope = ["ffffff", "fdcbb0", "ab947a", "966c6c", "694f62"]
+deep = ["9e4539", "7a3045", "45293f", "2e222f", "2e222f"]
+deep_dark = ["7a3045", "45293f", "2e222f", "2e222f", "2e222f"]
+leaf = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+leaf_dark = ["91db69", "1ebc73", "239063", "165a4c", "2e222f"]
+bark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+root = ["fdcbb0", "ab947a", "966c6c", "694f62", "2e222f"]
+petal = ["ffffff", "fdcbb0", "fca790", "f68181", "753c54"]
+plaster = ["ffffff", "ffffff", "fdcbb0", "fdcbb0", "694f62"]
+roof = ["f68181", "e83b3b", "ae2334", "6e2727", "2e222f"]
+sail = ["ffffff", "ffffff", "ffffff", "c7dcd0", "625565"]
+timber = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]
+hay = ["fbff86", "f9c22b", "f79617", "cd683d", "7a3045"]
+rope_prop = ["ffffff", "fdcbb0", "ab947a", "966c6c", "45293f"]
+rock = ["ffffff", "c7dcd0", "9babb2", "7f708a", "3e3546"]
+water = ["8fd3ff", "8fd3ff", "4d9be6", "4d65b4", "323353"]
+foam = ["ffffff", "ffffff", "c7dcd0", "8fd3ff", "4d9be6"]
+
+[[costumes]]
+name = "dark"
+turf = ["cddf6c", "91db69", "1ebc73", "239063", "165a4c"]
+turf_dark = ["1ebc73", "239063", "165a4c", "374e4a", "313638"]
+turf_light = ["fbff86", "cddf6c", "91db69", "1ebc73", "239063"]
+dirt = ["fbb954", "e6904e", "cd683d", "9e4539", "7a3045"]
+dirt_dark = ["e6904e", "cd683d", "9e4539", "7a3045", "45293f"]

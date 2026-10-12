@@ -1,0 +1,25 @@
+# The meadow tileset has no rig: each tile's geometry is in its own file ([[parts]]).
+# Blender space, like the fighters: a cell spans x, y in 0..1, its top at z = 0.
+
+[[joints]]
+name = "origin"
+parent = ""
+at = [0.0, 0.0, 0.0]
+
+# Props (decision D-063): a prop stands on, or hangs from, the origin. `crown` lets a tree's
+# top sway. The windmill's sails turn about an axis that points at the camera: every pose
+# turns `hub_yaw` 45 degrees about z, and `sails` then spins about its own x.
+[[joints]]
+name = "crown"
+parent = "origin"
+at = [0.0, 0.0, 1.25]
+
+[[joints]]
+name = "hub_yaw"
+parent = "origin"
+at = [0.0, 0.0, 2.15]
+
+[[joints]]
+name = "sails"
+parent = "hub_yaw"
+at = [0.42, 0.0, 0.0]

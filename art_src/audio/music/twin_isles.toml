@@ -1,175 +1,342 @@
-# Hop the Gap: Twin Isles; F major, I vi IV V, bouncy (decision D-055). Rendered by tools/build_audio.py.
+# Hop the Gap: Twin Isles (decision D-063). A folk jig in F major: six quavers to the bar,
+# felt as two beats (126 of those a minute, which is 189 crotchets: the tempo below). A
+# plucked string carries the tune, a whistle doubles it and sings over the second part, an
+# accordion pushes on each beat, with a shaker, a wood block and a frame drum.
+# Rendered by tools/build_audio.py; written with build/scratch/m14_song_twin.py.
 # Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
 id = "twin_isles"
 title = "Hop the Gap"
-tempo = 140
-steps_per_beat = 4
-# Sections in order; the patterns in one section play together.
-sequence = [
-  ["bass", "kick", "hat"],
-  ["lead_a", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_a", "echo_a-12", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "bass", "major", "minor", "kick", "snare", "hat"],
-  ["lead_b", "echo_b-12", "bass", "major", "minor", "kick", "snare", "hat"],
-]
+tempo = 189
+steps_per_beat = 2
+key = "F"
+mode = "major"
+meter = "6/8"
+form = ["intro", "tune", "tune2", "turn", "tune3", "turn2", "outro"]
 
-[instruments.lead]
-wave = "square"
-duty = 0.25
-attack = 0.004
-decay = 0.07
-sustain = 0.55
-release = 0.04
-volume = 0.28
-vibrato_depth = 0.12
-vibrato_rate = 5.5
+[echo]
+beats = 1.5
+feedback = 0.25
+mix = 0.3
+lowpass = 0.5
 
-[instruments.harmony]
-wave = "square"
-duty = 0.5
-attack = 0.004
-decay = 0.08
-sustain = 0.5
-release = 0.04
-volume = 0.13
+[sections.intro]              # 4 bars: the accordion sets the beat, the whistle calls
+level = 0.7
+to = 1.0
+play = ["call", "acc_i_root", "acc_i_third", "acc_i_fifth", "bass_i", "shaker*0.7"]
+
+[sections.tune]               # 8 bars: the tune, plucked
+kind = "verse"
+level = 0.9
+play = ["tune_a", "acc_a_root", "acc_a_third", "acc_a_fifth", "bass_a", "drum", "shaker"]
+
+[sections.tune2]              # again, the whistle an octave above
+kind = "verse"
+play = ["tune_a", "whistle_a+12*0.8", "acc_a_root", "acc_a_third", "acc_a_fifth", "bass_a",
+        "drum", "shaker", "block"]
+
+[sections.turn]               # 8 bars: the second part, the whistle holding long notes over it
+kind = "chorus"
+play = ["tune_b", "air_b", "acc_b_root", "acc_b_third", "acc_b_fifth", "bass_b", "drum",
+        "shaker", "block"]
+
+[sections.tune3]              # the tune once more, quieter: pluck and bass, the drum off
+kind = "break"
+level = 0.75
+play = ["tune_a", "bass_a", "shaker*0.8", "block"]
+
+[sections.turn2]              # and the second part with everything
+kind = "chorus"
+play = ["tune_b", "whistle_b+12*0.7", "air_b*0.8", "acc_b_root", "acc_b_third", "acc_b_fifth",
+        "bass_b", "drum", "shaker", "block"]
+
+[sections.outro]              # 4 bars home
+to = 0.8
+play = ["call", "acc_i_root", "acc_i_third", "acc_i_fifth", "bass_i", "drum", "shaker"]
+
+[instruments.string]          # a plucked string, bright
+wave = "pluck"
+damp = 0.5
+release = 0.2
+volume = 0.6
+send = 0.15
+
+[instruments.whistle]
+wave = "sine"
+attack = 0.03
+decay = 0.05
+sustain = 0.8
+release = 0.06
+vibrato_depth = 0.3
+vibrato_rate = 6.0
+volume = 0.22
+send = 0.4
+
+[instruments.accordion]       # a reed, muffled a little
+wave = "reed"
+attack = 0.015
+release = 0.05
+lowpass = 0.7
+volume = 0.16
 
 [instruments.bass]
 wave = "triangle"
-attack = 0.003
-release = 0.03
-volume = 0.5
-
-[instruments.chord_major]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 4, 7, 12]
-arpeggio_rate = 18
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.chord_minor]
-wave = "square"
-duty = 0.125
-arpeggio = [0, 3, 7, 12]
-arpeggio_rate = 18
-attack = 0.01
-release = 0.08
-volume = 0.1
-
-[instruments.kick]
-wave = "sine"
-freq = 150
-freq_end = 45
-length = 0.11
+attack = 0.004
 release = 0.04
-volume = 0.85
+volume = 0.3
 
-[instruments.snare]
-wave = "noise"
-freq = 3600
-length = 0.1
-decay = 0.07
-sustain = 0.25
-lowpass = 0.7
+[instruments.drum]            # a frame drum
+wave = "drum"
+freq = 112
+freq_end = 84
+length = 0.16
+noise = 0.25
+release = 0.08
+volume = 0.42
+
+[instruments.block]           # a wood block
+wave = "ping"
+freq = 1150
+length = 0.07
+lowpass = 0.6
 release = 0.04
-volume = 0.36
+volume = 0.3
 
-[instruments.hat]
+[instruments.shaker]
 wave = "noise"
-freq = 9000
+freq = 6500
 length = 0.035
 release = 0.02
-volume = 0.14
+lowpass = 0.7
+volume = 0.1
 
-[patterns.lead_a]
-instrument = "lead"
-stride = 2
+[patterns.call]
+instrument = "whistle"
 steps = """
-F5 A5 C6 A5 F5 A5 C6 -
-D5 F5 A5 F5 D5 F5 A5 -
-Bb4 D5 F5 D5 Bb4 D5 F5 -
-C5 E5 G5 E5 C5 E5 G5 Bb5
+C5 - - F5 - -
+A5 - - - - .
+D5 - - F5 - -
+G5 - - E5 - C5
 """
 
-[patterns.lead_b]
-instrument = "lead"
-stride = 2
+[patterns.tune_a]
+instrument = "string"
 steps = """
-C6 - A5 - F5 - A5 -
-A5 - F5 - D5 - F5 -
-F5 - D5 - Bb4 - D5 F5
-G5 - E5 - C5 - - -
+F4 A4 C5 F5 C5 A4
+C5 - A4 F4 - A4
+Bb4 D5 F5 D5 Bb4 D5
+C5 - E5 G5 - E5
+F5 - C5 A4 C5 F5
+D5 - F5 A5 - F5
+Bb4 D5 F5 E5 C5 G4
+F4 - - F4 - .
 """
 
-[patterns.echo_a]
-instrument = "harmony"
-stride = 2
+[patterns.tune_b]
+instrument = "string"
 steps = """
-F5 A5 C6 A5 F5 A5 C6 -
-D5 F5 A5 F5 D5 F5 A5 -
-Bb4 D5 F5 D5 Bb4 D5 F5 -
-C5 E5 G5 E5 C5 E5 G5 Bb5
+D5 - F5 Bb5 - F5
+C5 - F5 A5 - F5
+G5 E5 C5 E5 G5 Bb5
+A5 - F5 C5 - A4
+D5 F5 Bb5 D6 Bb5 F5
+C5 F5 A5 C6 A5 F5
+Bb5 - G5 E5 - C5
+F5 - - F5 - .
 """
 
-[patterns.echo_b]
-instrument = "harmony"
-stride = 2
+[patterns.whistle_a]
+instrument = "whistle"
 steps = """
-C6 - A5 - F5 - A5 -
-A5 - F5 - D5 - F5 -
-F5 - D5 - Bb4 - D5 F5
-G5 - E5 - C5 - - -
+F4 A4 C5 F5 C5 A4
+C5 - A4 F4 - A4
+Bb4 D5 F5 D5 Bb4 D5
+C5 - E5 G5 - E5
+F5 - C5 A4 C5 F5
+D5 - F5 A5 - F5
+Bb4 D5 F5 E5 C5 G4
+F4 - - F4 - .
 """
 
-[patterns.bass]
+[patterns.whistle_b]
+instrument = "whistle"
+steps = """
+D5 - F5 Bb5 - F5
+C5 - F5 A5 - F5
+G5 E5 C5 E5 G5 Bb5
+A5 - F5 C5 - A4
+D5 F5 Bb5 D6 Bb5 F5
+C5 F5 A5 C6 A5 F5
+Bb5 - G5 E5 - C5
+F5 - - F5 - .
+"""
+
+[patterns.air_b]
+instrument = "whistle"
+steps = """
+F5 - - - - -
+A5 - - - - -
+G5 - - - - -
+F5 - - A5 - -
+Bb5 - - - - -
+A5 - - - - -
+G5 - - E5 - -
+F5 - - - - .
+"""
+
+[patterns.acc_i_root]
+instrument = "accordion"
+steps = """
+F3 - . F3 - .
+F3 - . F3 - .
+Bb3 - . Bb3 - .
+C4 - . C4 - .
+"""
+
+[patterns.acc_i_third]
+instrument = "accordion"
+steps = """
+A3 - . A3 - .
+A3 - . A3 - .
+D4 - . D4 - .
+E4 - . E4 - .
+"""
+
+[patterns.acc_i_fifth]
+instrument = "accordion"
+steps = """
+C4 - . C4 - .
+C4 - . C4 - .
+F4 - . F4 - .
+G4 - . G4 - .
+"""
+
+[patterns.bass_i]
 instrument = "bass"
-stride = 2
 steps = """
-F2 . F3 . F2 . F3 C3
-D2 . D3 . D2 . D3 A2
-Bb2 . Bb3 . Bb2 . Bb3 F3
-C3 . C4 . C3 . C4 G3
+F2 - . C3 - F2
+F2 - . C3 - F2
+Bb2 - . F3 - Bb2
+C3 - . G3 - C3
 """
 
-[patterns.major]
-instrument = "chord_major"
-stride = 2
+[patterns.acc_a_root]
+instrument = "accordion"
 steps = """
-F3 - - - - - - -
-. . . . . . . .
-Bb3 - - - - - - -
-C4 - - - - - - -
+F3 - . F3 - .
+F3 - . F3 - .
+Bb3 - . Bb3 - .
+C4 - . C4 - .
+F3 - . F3 - .
+D4 - . D4 - .
+Bb3 - . C4 - .
+F3 - . F3 - .
 """
 
-[patterns.minor]
-instrument = "chord_minor"
-stride = 2
+[patterns.acc_a_third]
+instrument = "accordion"
 steps = """
-. . . . . . . .
-D4 - - - - - - -
-. . . . . . . .
-. . . . . . . .
+A3 - . A3 - .
+A3 - . A3 - .
+D4 - . D4 - .
+E4 - . E4 - .
+A3 - . A3 - .
+F4 - . F4 - .
+D4 - . E4 - .
+A3 - . A3 - .
 """
 
-[patterns.kick]
-instrument = "kick"
-stride = 1
+[patterns.acc_a_fifth]
+instrument = "accordion"
 steps = """
-x . . . . . x . . . x . . . . .
+C4 - . C4 - .
+C4 - . C4 - .
+F4 - . F4 - .
+G4 - . G4 - .
+C4 - . C4 - .
+A4 - . A4 - .
+F4 - . G4 - .
+C4 - . C4 - .
 """
 
-[patterns.snare]
-instrument = "snare"
-stride = 1
+[patterns.bass_a]
+instrument = "bass"
 steps = """
-. . . . x . . . . . . . x . x .
+F2 - . C3 - F2
+F2 - . C3 - F2
+Bb2 - . F3 - Bb2
+C3 - . G3 - C3
+F2 - . C3 - F2
+D3 - . A3 - D3
+Bb2 - . G3 - C3
+F2 - . C3 - F2
 """
 
-[patterns.hat]
-instrument = "hat"
-stride = 1
+[patterns.acc_b_root]
+instrument = "accordion"
 steps = """
-x . x x x . x x x . x x x . x x
+Bb3 - . Bb3 - .
+F3 - . F3 - .
+C4 - . C4 - .
+F3 - . F3 - .
+Bb3 - . Bb3 - .
+F3 - . F3 - .
+G3 - . C4 - .
+F3 - . F3 - .
 """
 
+[patterns.acc_b_third]
+instrument = "accordion"
+steps = """
+D4 - . D4 - .
+A3 - . A3 - .
+E4 - . E4 - .
+A3 - . A3 - .
+D4 - . D4 - .
+A3 - . A3 - .
+Bb3 - . E4 - .
+A3 - . A3 - .
+"""
+
+[patterns.acc_b_fifth]
+instrument = "accordion"
+steps = """
+F4 - . F4 - .
+C4 - . C4 - .
+G4 - . G4 - .
+C4 - . C4 - .
+F4 - . F4 - .
+C4 - . C4 - .
+D4 - . G4 - .
+C4 - . C4 - .
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+Bb2 - . F3 - Bb2
+F2 - . C3 - F2
+C3 - . G3 - C3
+F2 - . C3 - F2
+Bb2 - . F3 - Bb2
+F2 - . C3 - F2
+G2 - . G3 - C3
+F2 - . C3 - F2
+"""
+
+[patterns.drum]
+instrument = "drum"
+steps = """
+x . . x . x
+"""
+
+[patterns.block]
+instrument = "block"
+steps = """
+. . x . . .
+"""
+
+[patterns.shaker]
+instrument = "shaker"
+steps = """
+x . x x . x
+"""

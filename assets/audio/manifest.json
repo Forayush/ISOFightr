@@ -135,13 +135,13 @@
       "meter": "4/4"
     },
     "twin_isles": {
-      "source": "4557f16b70d15d3d",
+      "source": "2c226fa99f4931c8",
       "title": "Hop the Gap",
-      "seconds": 34.286,
-      "tempo": 140.0,
-      "key": "",
-      "mode": "",
-      "meter": "4/4"
+      "seconds": 45.714,
+      "tempo": 189.0,
+      "key": "F",
+      "mode": "major",
+      "meter": "6/8"
     },
     "victory": {
       "source": "874a965e988d531b",

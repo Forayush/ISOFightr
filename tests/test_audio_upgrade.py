@@ -45,7 +45,6 @@ LEGACY = {
     "lily_pads",
     "menu",
     "training_grid",
-    "twin_isles",
     "victory",
 }
 """Songs from before D-063, which state no key: each is replaced when its stage is rebuilt

@@ -1,0 +1,55 @@
+# Fence: three posts and two rails, across the screen.
+loop = true
+fps = 1
+
+[[parts]]
+name = "post0"
+joint = "origin"
+shape = "rod"
+a = [-0.700, 0.700, 0.000]
+b = [-0.700, 0.700, 0.550]
+r1 = 0.050
+r2 = 0.050
+material = "timber"
+
+[[parts]]
+name = "post1"
+joint = "origin"
+shape = "rod"
+a = [0.000, -0.000, 0.000]
+b = [0.000, -0.000, 0.550]
+r1 = 0.050
+r2 = 0.050
+material = "timber"
+
+[[parts]]
+name = "post2"
+joint = "origin"
+shape = "rod"
+a = [0.700, -0.700, 0.000]
+b = [0.700, -0.700, 0.550]
+r1 = 0.050
+r2 = 0.050
+material = "timber"
+
+[[parts]]
+name = "rail0"
+joint = "origin"
+shape = "rod"
+a = [-0.700, 0.700, 0.420]
+b = [0.700, -0.700, 0.420]
+r1 = 0.030
+r2 = 0.030
+material = "timber"
+
+[[parts]]
+name = "rail1"
+joint = "origin"
+shape = "rod"
+a = [-0.700, 0.700, 0.220]
+b = [0.700, -0.700, 0.220]
+r1 = 0.030
+r2 = 0.030
+material = "timber"
+
+[[poses]]

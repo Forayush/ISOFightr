@@ -1,0 +1,35 @@
+# Hay: a round bale.
+loop = true
+fps = 1
+
+[[parts]]
+name = "bale"
+joint = "origin"
+shape = "rod"
+a = [-0.220, 0.220, 0.300]
+b = [0.220, -0.220, 0.300]
+r1 = 0.300
+r2 = 0.300
+material = "hay"
+
+[[parts]]
+name = "band0"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.100, 0.300]
+b = [-0.060, 0.060, 0.300]
+r1 = 0.310
+r2 = 0.310
+material = "timber"
+
+[[parts]]
+name = "band1"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.060, 0.300]
+b = [0.100, -0.100, 0.300]
+r1 = 0.310
+r2 = 0.310
+material = "timber"
+
+[[poses]]

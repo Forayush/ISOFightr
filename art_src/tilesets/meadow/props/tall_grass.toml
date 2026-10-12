@@ -1,0 +1,78 @@
+# Tall grass: blades that sway (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "blade0"
+joint = "origin"
+shape = "rod"
+a = [0.061, 0.073, 0.000]
+b = [0.115, 0.073, 0.499]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade1"
+joint = "origin"
+shape = "rod"
+a = [0.120, 0.127, 0.000]
+b = [0.116, 0.127, 0.307]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade2"
+joint = "origin"
+shape = "rod"
+a = [0.222, 0.045, 0.000]
+b = [0.175, 0.045, 0.525]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade3"
+joint = "origin"
+shape = "rod"
+a = [-0.015, -0.076, 0.000]
+b = [-0.007, -0.076, 0.436]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade4"
+joint = "origin"
+shape = "rod"
+a = [-0.243, -0.085, 0.000]
+b = [-0.193, -0.085, 0.370]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade5"
+joint = "origin"
+shape = "rod"
+a = [0.133, -0.102, 0.000]
+b = [0.090, -0.102, 0.499]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[parts]]
+name = "blade6"
+joint = "origin"
+shape = "rod"
+a = [0.059, -0.112, 0.000]
+b = [0.103, -0.112, 0.300]
+r1 = 0.045
+r2 = 0.012
+material = "leaf"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 9.000, 0.000]

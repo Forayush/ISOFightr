@@ -1,0 +1,88 @@
+# Roots: hang under the island and sway (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "root0a"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.020]
+b = [-0.266, 0.000, -0.495]
+r1 = 0.060
+r2 = 0.040
+material = "root"
+
+[[parts]]
+name = "root0b"
+joint = "origin"
+shape = "rod"
+a = [-0.266, 0.000, -0.495]
+b = [-0.226, 0.000, -0.900]
+r1 = 0.040
+r2 = 0.012
+material = "root"
+
+[[parts]]
+name = "root1a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.100, 0.020]
+b = [0.111, 0.100, -0.770]
+r1 = 0.060
+r2 = 0.040
+material = "root"
+
+[[parts]]
+name = "root1b"
+joint = "origin"
+shape = "rod"
+a = [0.111, 0.100, -0.770]
+b = [0.044, 0.100, -1.400]
+r1 = 0.040
+r2 = 0.012
+material = "root"
+
+[[parts]]
+name = "root2a"
+joint = "origin"
+shape = "rod"
+a = [0.200, -0.050, 0.020]
+b = [0.110, -0.050, -0.385]
+r1 = 0.060
+r2 = 0.040
+material = "root"
+
+[[parts]]
+name = "root2b"
+joint = "origin"
+shape = "rod"
+a = [0.110, -0.050, -0.385]
+b = [0.164, -0.050, -0.700]
+r1 = 0.040
+r2 = 0.012
+material = "root"
+
+[[parts]]
+name = "root3a"
+joint = "origin"
+shape = "rod"
+a = [0.080, -0.150, 0.020]
+b = [0.129, -0.150, -0.578]
+r1 = 0.060
+r2 = 0.040
+material = "root"
+
+[[parts]]
+name = "root3b"
+joint = "origin"
+shape = "rod"
+a = [0.129, -0.150, -0.578]
+b = [0.100, -0.150, -1.050]
+r1 = 0.040
+r2 = 0.012
+material = "root"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 5.000, 0.000]

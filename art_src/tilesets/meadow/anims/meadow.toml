@@ -1,0 +1,381 @@
+# Meadow: sunlit turf over layers of earth.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, -0.190]
+material = "soil_dark"
+
+[[parts]]
+name = "turf"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.190]
+high = [1.000, 1.000, 0.000]
+material = "turf"
+
+[[parts]]
+name = "tuft0"
+joint = "origin"
+shape = "box"
+low = [0.177, 0.690, -0.020]
+high = [0.300, 0.740, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "tuft1"
+joint = "origin"
+shape = "box"
+low = [0.437, 0.404, -0.020]
+high = [0.552, 0.475, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "tuft2"
+joint = "origin"
+shape = "box"
+low = [0.148, 0.100, -0.020]
+high = [0.276, 0.158, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "tuft3"
+joint = "origin"
+shape = "box"
+low = [0.629, 0.082, -0.020]
+high = [0.730, 0.150, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "tuft4"
+joint = "origin"
+shape = "box"
+low = [0.245, 0.761, -0.020]
+high = [0.378, 0.802, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "tuft5"
+joint = "origin"
+shape = "box"
+low = [0.098, 0.470, -0.020]
+high = [0.234, 0.525, 0.004]
+material = "turf_dark"
+
+[[parts]]
+name = "lip0"
+joint = "origin"
+shape = "box"
+low = [0.815, 0.990, -0.454]
+high = [0.937, 1.026, -0.160]
+material = "turf"
+
+[[parts]]
+name = "lip1"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.646, -0.505]
+high = [1.026, 0.770, -0.160]
+material = "turf"
+
+[[parts]]
+name = "lip2"
+joint = "origin"
+shape = "box"
+low = [0.303, 0.990, -0.442]
+high = [0.444, 1.026, -0.160]
+material = "turf"
+
+[[parts]]
+name = "lip3"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.801, -0.502]
+high = [1.026, 0.914, -0.160]
+material = "turf"
+
+[[parts]]
+name = "lip4"
+joint = "origin"
+shape = "box"
+low = [0.771, 0.990, -0.501]
+high = [0.859, 1.026, -0.160]
+material = "turf"
+
+[[parts]]
+name = "earth0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.591]
+high = [1.012, 0.589, -0.190]
+material = "soil_dark"
+
+[[parts]]
+name = "earth1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.589, -0.591]
+high = [1.012, 1.000, -0.190]
+material = "soil"
+
+[[parts]]
+name = "earth2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.591]
+high = [0.689, 1.012, -0.190]
+material = "soil"
+
+[[parts]]
+name = "earth3"
+joint = "origin"
+shape = "box"
+low = [0.689, 0.950, -0.591]
+high = [1.000, 1.012, -0.190]
+material = "soil"
+
+[[parts]]
+name = "earth4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.036]
+high = [1.012, 0.376, -0.591]
+material = "soil_dark"
+
+[[parts]]
+name = "earth5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.376, -1.036]
+high = [1.012, 1.000, -0.591]
+material = "soil"
+
+[[parts]]
+name = "earth6"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.036]
+high = [0.676, 1.012, -0.591]
+material = "soil_dark"
+
+[[parts]]
+name = "earth7"
+joint = "origin"
+shape = "box"
+low = [0.676, 0.950, -1.036]
+high = [1.000, 1.012, -0.591]
+material = "soil"
+
+[[parts]]
+name = "earth8"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.455]
+high = [1.012, 0.462, -1.036]
+material = "soil"
+
+[[parts]]
+name = "earth9"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.462, -1.455]
+high = [1.012, 1.000, -1.036]
+material = "soil"
+
+[[parts]]
+name = "earth10"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.455]
+high = [0.610, 1.012, -1.036]
+material = "soil"
+
+[[parts]]
+name = "earth11"
+joint = "origin"
+shape = "box"
+low = [0.610, 0.950, -1.455]
+high = [1.000, 1.012, -1.036]
+material = "soil"
+
+[[parts]]
+name = "earth12"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.773]
+high = [1.012, 0.365, -1.455]
+material = "soil"
+
+[[parts]]
+name = "earth13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.365, -1.773]
+high = [1.012, 0.814, -1.455]
+material = "soil"
+
+[[parts]]
+name = "earth14"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.814, -1.773]
+high = [1.012, 1.000, -1.455]
+material = "soil_dark"
+
+[[parts]]
+name = "earth15"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.773]
+high = [0.639, 1.012, -1.455]
+material = "soil"
+
+[[parts]]
+name = "earth16"
+joint = "origin"
+shape = "box"
+low = [0.639, 0.950, -1.773]
+high = [1.000, 1.012, -1.455]
+material = "soil"
+
+[[parts]]
+name = "earth17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.100]
+high = [1.012, 0.391, -1.773]
+material = "stone"
+
+[[parts]]
+name = "earth18"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.391, -2.100]
+high = [1.012, 0.771, -1.773]
+material = "soil"
+
+[[parts]]
+name = "earth19"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.771, -2.100]
+high = [1.012, 1.000, -1.773]
+material = "soil_dark"
+
+[[parts]]
+name = "earth20"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.100]
+high = [0.438, 1.012, -1.773]
+material = "soil"
+
+[[parts]]
+name = "earth21"
+joint = "origin"
+shape = "box"
+low = [0.438, 0.950, -2.100]
+high = [1.000, 1.012, -1.773]
+material = "soil"
+
+[[parts]]
+name = "earth22"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.505]
+high = [1.012, 0.544, -2.100]
+material = "soil"
+
+[[parts]]
+name = "earth23"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.544, -2.505]
+high = [1.012, 1.000, -2.100]
+material = "soil"
+
+[[parts]]
+name = "earth24"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.505]
+high = [0.682, 1.012, -2.100]
+material = "soil"
+
+[[parts]]
+name = "earth25"
+joint = "origin"
+shape = "box"
+low = [0.682, 0.950, -2.505]
+high = [1.000, 1.012, -2.100]
+material = "soil_dark"
+
+[[parts]]
+name = "earth26"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.929]
+high = [1.012, 0.382, -2.505]
+material = "soil"
+
+[[parts]]
+name = "earth27"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.382, -2.929]
+high = [1.012, 1.000, -2.505]
+material = "soil_dark"
+
+[[parts]]
+name = "earth28"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.929]
+high = [0.522, 1.012, -2.505]
+material = "soil"
+
+[[parts]]
+name = "earth29"
+joint = "origin"
+shape = "box"
+low = [0.522, 0.950, -2.929]
+high = [1.000, 1.012, -2.505]
+material = "soil"
+
+[[parts]]
+name = "earth30"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.012, 0.301, -2.929]
+material = "soil"
+
+[[parts]]
+name = "earth31"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.301, -2.982]
+high = [1.012, 1.000, -2.929]
+material = "soil_dark"
+
+[[parts]]
+name = "earth32"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.982]
+high = [0.540, 1.012, -2.929]
+material = "soil"
+
+[[parts]]
+name = "earth33"
+joint = "origin"
+shape = "box"
+low = [0.540, 0.950, -2.982]
+high = [1.000, 1.012, -2.929]
+material = "soil"
+
+[[poses]]

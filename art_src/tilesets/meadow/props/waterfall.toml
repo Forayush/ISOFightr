@@ -1,0 +1,174 @@
+# Waterfall: pours off a +y edge of the island (3 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stream"
+joint = "origin"
+shape = "box"
+low = [-0.900, -0.120, -0.020]
+high = [0.020, 0.120, 0.012]
+material = "water"
+
+[[parts]]
+name = "lip"
+joint = "origin"
+shape = "box"
+low = [0.000, -0.240, -0.100]
+high = [0.060, 0.240, 0.020]
+material = "foam"
+
+[[parts]]
+name = "sheet"
+joint = "origin"
+shape = "box"
+low = [0.020, -0.200, -3.600]
+high = [0.060, 0.200, -0.080]
+material = "water"
+
+[[parts]]
+name = "mist0"
+joint = "origin"
+shape = "ball"
+centre = [0.100, -0.120, -3.600]
+radius = 0.200
+scale = [1.000, 1.000, 1.000]
+material = "foam"
+
+[[parts]]
+name = "mist1"
+joint = "origin"
+shape = "ball"
+centre = [0.080, 0.140, -3.700]
+radius = 0.160
+scale = [1.000, 1.000, 1.000]
+material = "foam"
+
+[[smears]]
+name = "streak00"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.130, -0.580]
+high = [0.075, -0.080, -0.300]
+material = "foam"
+
+[[smears]]
+name = "streak01"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.240]
+high = [0.075, 0.100, -0.960]
+material = "foam"
+
+[[smears]]
+name = "streak02"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.020, -1.900]
+high = [0.075, 0.030, -1.620]
+material = "foam"
+
+[[smears]]
+name = "streak03"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.120, -2.560]
+high = [0.075, 0.170, -2.280]
+material = "foam"
+
+[[smears]]
+name = "streak04"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.080, -3.220]
+high = [0.075, -0.030, -2.940]
+material = "foam"
+
+[[smears]]
+name = "streak10"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.130, -0.800]
+high = [0.075, -0.080, -0.520]
+material = "foam"
+
+[[smears]]
+name = "streak11"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.460]
+high = [0.075, 0.100, -1.180]
+material = "foam"
+
+[[smears]]
+name = "streak12"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.020, -2.120]
+high = [0.075, 0.030, -1.840]
+material = "foam"
+
+[[smears]]
+name = "streak13"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.120, -2.780]
+high = [0.075, 0.170, -2.500]
+material = "foam"
+
+[[smears]]
+name = "streak14"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.080, -3.440]
+high = [0.075, -0.030, -3.160]
+material = "foam"
+
+[[smears]]
+name = "streak20"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.130, -1.020]
+high = [0.075, -0.080, -0.740]
+material = "foam"
+
+[[smears]]
+name = "streak21"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.050, -1.680]
+high = [0.075, 0.100, -1.400]
+material = "foam"
+
+[[smears]]
+name = "streak22"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.020, -2.340]
+high = [0.075, 0.030, -2.060]
+material = "foam"
+
+[[smears]]
+name = "streak23"
+joint = "origin"
+shape = "box"
+low = [0.050, 0.120, -3.000]
+high = [0.075, 0.170, -2.720]
+material = "foam"
+
+[[smears]]
+name = "streak24"
+joint = "origin"
+shape = "box"
+low = [0.050, -0.080, -3.660]
+high = [0.075, -0.030, -3.380]
+material = "foam"
+
+[[poses]]
+show = ["streak00", "streak01", "streak02", "streak03", "streak04"]
+
+[[poses]]
+show = ["streak10", "streak11", "streak12", "streak13", "streak14"]
+
+[[poses]]
+show = ["streak20", "streak21", "streak22", "streak23", "streak24"]

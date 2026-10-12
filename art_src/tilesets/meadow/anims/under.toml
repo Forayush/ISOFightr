@@ -1,0 +1,285 @@
+# Under: the earth hanging below the island.
+loop = true
+fps = 1
+
+[[parts]]
+name = "core"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -3.000]
+high = [1.000, 1.000, 0.000]
+material = "deep_dark"
+
+[[parts]]
+name = "earth0"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.322]
+high = [1.012, 0.345, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "earth1"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.345, -0.322]
+high = [1.012, 1.000, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "earth2"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.322]
+high = [0.345, 1.012, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "earth3"
+joint = "origin"
+shape = "box"
+low = [0.345, 0.950, -0.322]
+high = [1.000, 1.012, -0.020]
+material = "deep_dark"
+
+[[parts]]
+name = "earth4"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -0.740]
+high = [1.012, 0.565, -0.322]
+material = "deep_dark"
+
+[[parts]]
+name = "earth5"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.565, -0.740]
+high = [1.012, 1.000, -0.322]
+material = "deep_dark"
+
+[[parts]]
+name = "earth6"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -0.740]
+high = [0.465, 1.012, -0.322]
+material = "deep"
+
+[[parts]]
+name = "earth7"
+joint = "origin"
+shape = "box"
+low = [0.465, 0.950, -0.740]
+high = [0.802, 1.012, -0.322]
+material = "stone"
+
+[[parts]]
+name = "earth8"
+joint = "origin"
+shape = "box"
+low = [0.802, 0.950, -0.740]
+high = [1.000, 1.012, -0.322]
+material = "deep_dark"
+
+[[parts]]
+name = "earth9"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.072]
+high = [1.012, 0.432, -0.740]
+material = "deep_dark"
+
+[[parts]]
+name = "earth10"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.432, -1.072]
+high = [1.012, 1.000, -0.740]
+material = "deep_dark"
+
+[[parts]]
+name = "earth11"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.072]
+high = [0.387, 1.012, -0.740]
+material = "deep"
+
+[[parts]]
+name = "earth12"
+joint = "origin"
+shape = "box"
+low = [0.387, 0.950, -1.072]
+high = [1.000, 1.012, -0.740]
+material = "deep"
+
+[[parts]]
+name = "earth13"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.506]
+high = [1.012, 0.442, -1.072]
+material = "deep_dark"
+
+[[parts]]
+name = "earth14"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.442, -1.506]
+high = [1.012, 1.000, -1.072]
+material = "deep"
+
+[[parts]]
+name = "earth15"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.506]
+high = [0.312, 1.012, -1.072]
+material = "deep"
+
+[[parts]]
+name = "earth16"
+joint = "origin"
+shape = "box"
+low = [0.312, 0.950, -1.506]
+high = [1.000, 1.012, -1.072]
+material = "deep"
+
+[[parts]]
+name = "earth17"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -1.841]
+high = [1.012, 0.619, -1.506]
+material = "deep"
+
+[[parts]]
+name = "earth18"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.619, -1.841]
+high = [1.012, 1.000, -1.506]
+material = "deep"
+
+[[parts]]
+name = "earth19"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -1.841]
+high = [0.388, 1.012, -1.506]
+material = "stone"
+
+[[parts]]
+name = "earth20"
+joint = "origin"
+shape = "box"
+low = [0.388, 0.950, -1.841]
+high = [0.822, 1.012, -1.506]
+material = "deep_dark"
+
+[[parts]]
+name = "earth21"
+joint = "origin"
+shape = "box"
+low = [0.822, 0.950, -1.841]
+high = [1.000, 1.012, -1.506]
+material = "deep"
+
+[[parts]]
+name = "earth22"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.275]
+high = [1.012, 0.685, -1.841]
+material = "deep"
+
+[[parts]]
+name = "earth23"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.685, -2.275]
+high = [1.012, 1.000, -1.841]
+material = "deep"
+
+[[parts]]
+name = "earth24"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.275]
+high = [0.423, 1.012, -1.841]
+material = "deep_dark"
+
+[[parts]]
+name = "earth25"
+joint = "origin"
+shape = "box"
+low = [0.423, 0.950, -2.275]
+high = [1.000, 1.012, -1.841]
+material = "deep"
+
+[[parts]]
+name = "earth26"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.683]
+high = [1.012, 0.337, -2.275]
+material = "deep_dark"
+
+[[parts]]
+name = "earth27"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.337, -2.683]
+high = [1.012, 1.000, -2.275]
+material = "deep"
+
+[[parts]]
+name = "earth28"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.683]
+high = [0.578, 1.012, -2.275]
+material = "stone"
+
+[[parts]]
+name = "earth29"
+joint = "origin"
+shape = "box"
+low = [0.578, 0.950, -2.683]
+high = [1.000, 1.012, -2.275]
+material = "deep"
+
+[[parts]]
+name = "earth30"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.000, -2.982]
+high = [1.012, 0.697, -2.683]
+material = "deep_dark"
+
+[[parts]]
+name = "earth31"
+joint = "origin"
+shape = "box"
+low = [0.950, 0.697, -2.982]
+high = [1.012, 1.000, -2.683]
+material = "deep"
+
+[[parts]]
+name = "earth32"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.950, -2.982]
+high = [0.478, 1.012, -2.683]
+material = "deep"
+
+[[parts]]
+name = "earth33"
+joint = "origin"
+shape = "box"
+low = [0.478, 0.950, -2.982]
+high = [1.000, 1.012, -2.683]
+material = "stone"
+
+[[poses]]

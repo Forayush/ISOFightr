@@ -1,0 +1,19 @@
+{
+  "description": "All four characters on Twin Isles with the stage hazards rule on (the drifting bridge and the gust across the gap), starting at 60%, driven by 6000 ticks of seeded random input. The first golden on a stage with mechanics (decision D-063).",
+  "stage": "twin_isles",
+  "characters": [
+    "rook",
+    "bramble",
+    "zephyr",
+    "mote"
+  ],
+  "seed": 7,
+  "stocks": null,
+  "start_damage": 60.0,
+  "input_seed": 12,
+  "ticks": 6000,
+  "rules": {
+    "stage_hazards": true
+  },
+  "hash": "3be153a17f5b74515d35deb70c724d38"
+}

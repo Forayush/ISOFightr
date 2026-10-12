@@ -473,11 +473,16 @@ def test_the_stage_name_fades_in_and_is_gone_by_go() -> None:
     assert hud_layout.PLAY_AREA.bottom < hud_layout.INTRO_BOTTOM < hud_layout.PLAY_AREA.top - 25
 
 
-@pytest.mark.parametrize(("stage_id", "theme", "seed"), [("sky_ruins", "cloud_sea", 5)])
-def test_a_painter_reproduces_its_stages_backdrop(stage_id: str, theme: str, seed: int) -> None:
+@pytest.mark.parametrize(
+    ("stage_id", "theme", "mood", "seed"),
+    [("sky_ruins", "cloud_sea", "day", 5), ("twin_isles", "meadow", "golden", 4)],
+)
+def test_a_painter_reproduces_its_stages_backdrop(
+    stage_id: str, theme: str, mood: str, seed: int
+) -> None:
     from isofightr.render.backdrop import MOODS, PAINTERS
 
-    layers = PAINTERS[theme](MOODS["day"], seed)
+    layers = PAINTERS[theme](MOODS[mood], seed)
     assert list(layers) == [layer.image for layer in load_stage(stage_id).backgrounds]
     for name, image in layers.items():
         committed = Image.open(Path("assets/stages") / stage_id / name).convert("RGBA")

@@ -38,7 +38,7 @@ from isofightr.scenes.setup import MatchSetup
 from isofightr.settings import SavedRules, Settings, rules_from_data
 from isofightr.sim.events import BounceEvent, HazardHitEvent
 from isofightr.sim.fighter import StateId
-from isofightr.sim.input_frame import Button, Dir8
+from isofightr.sim.input_frame import Button, Dir8, InputFrame
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import Effect
@@ -317,6 +317,8 @@ def test_everyone_recovers_on_every_stage_with_its_mechanics_on(stage_id: str) -
     stage = load_stage(stage_id)
     periods = [p.motion.period for p in stage.soft_platforms if p.motion is not None]
     starts = [0] if not periods else [0, *(max(periods) * part // 4 for part in (1, 2, 3))]
+    # ...and with every hazard going off as the fighter starts back (a wind against it).
+    starts += [hazard.first_active() for hazard in stage.hazards]
     tested = 0
     for character in ROSTER:
         for ledge in stage.ledges:
@@ -336,10 +338,20 @@ def test_everyone_recovers_on_every_stage_with_its_mechanics_on(stage_id: str) -
                 place(match, rival, stage.respawn.x, stage.respawn.y)
                 out = middle + ledge.normal * 3.0
                 place(match, fighter, out.x, out.y, z=ledge.z - 1.0, facing=way)
-                held = hold(way, frames=1)
-                run(match, hold(way, Button.JUMP, frames=1) + held * 12)
-                run(match, hold(way, Button.SPECIAL, frames=1, vertical=VERTICAL_UP))
-                run(match, hold(way, frames=10, vertical=VERTICAL_UP))
+                aim = middle - ledge.normal * 0.5
+
+                def steer(buttons: int = 0, vertical: int = 0) -> list[InputFrame]:
+                    """One frame of stick toward the ledge from where the fighter is now: a
+                    gust that blows it sideways is steered against, as a player would."""
+                    gap = aim - fighter.pos.xy  # noqa: B023 (used at once, in this loop turn)
+                    return hold(toward(-gap.x, -gap.y), buttons, frames=1, vertical=vertical)
+
+                run(match, steer(Button.JUMP))
+                for _ in range(12):
+                    run(match, steer())
+                run(match, steer(Button.SPECIAL, VERTICAL_UP))
+                for _ in range(10):
+                    run(match, steer(vertical=VERTICAL_UP))
                 back = False
                 for _ in range(150):
                     # Back means on the ground, on the ledge, or above the stage's ground
@@ -350,7 +362,7 @@ def test_everyone_recovers_on_every_stage_with_its_mechanics_on(stage_id: str) -
                     if fighter.state is StateId.LEDGE_HANG or fighter.grounded or above:
                         back = True
                         break
-                    run(match, held)
+                    run(match, steer())
                 assert back, f"{character.id} fell at {stage_id} ledge {middle} from frame {first}"
     assert tested >= 4 * len(ROSTER), "every side of the stage was tried"
 

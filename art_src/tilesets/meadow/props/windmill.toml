@@ -1,0 +1,147 @@
+# Windmill: its sails turn (4 frames, then they look the same again).
+loop = true
+fps = 1
+
+[[parts]]
+name = "tower"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 2.300]
+r1 = 0.500
+r2 = 0.340
+material = "plaster"
+
+[[parts]]
+name = "band"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.900]
+b = [0.000, 0.000, 1.000]
+r1 = 0.450
+r2 = 0.440
+material = "timber"
+
+[[parts]]
+name = "roof"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 2.300]
+b = [0.000, 0.000, 2.950]
+r1 = 0.440
+r2 = 0.040
+material = "roof"
+
+[[parts]]
+name = "door"
+joint = "origin"
+shape = "box"
+low = [0.300, -0.120, 0.000]
+high = [0.520, 0.120, 0.500]
+material = "timber"
+
+[[parts]]
+name = "window"
+joint = "origin"
+shape = "box"
+low = [0.260, -0.080, 1.300]
+high = [0.460, 0.080, 1.560]
+material = "timber"
+
+[[parts]]
+name = "axle"
+joint = "hub_yaw"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.420, 0.000, 0.000]
+r1 = 0.070
+r2 = 0.070
+material = "timber"
+
+[[parts]]
+name = "arm0"
+joint = "sails"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 1.250]
+r1 = 0.035
+r2 = 0.030
+material = "timber"
+
+[[parts]]
+name = "sail0"
+joint = "sails"
+shape = "box"
+low = [-0.015, 0.000, 0.300]
+high = [0.015, 0.300, 1.200]
+material = "sail"
+
+[[parts]]
+name = "arm1"
+joint = "sails"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 1.250, 0.000]
+r1 = 0.035
+r2 = 0.030
+material = "timber"
+
+[[parts]]
+name = "sail1"
+joint = "sails"
+shape = "box"
+low = [-0.015, 0.300, -0.300]
+high = [0.015, 1.200, 0.000]
+material = "sail"
+
+[[parts]]
+name = "arm2"
+joint = "sails"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, -1.250]
+r1 = 0.035
+r2 = 0.030
+material = "timber"
+
+[[parts]]
+name = "sail2"
+joint = "sails"
+shape = "box"
+low = [-0.015, -0.300, -1.200]
+high = [0.015, 0.000, -0.300]
+material = "sail"
+
+[[parts]]
+name = "arm3"
+joint = "sails"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, -1.250, 0.000]
+r1 = 0.035
+r2 = 0.030
+material = "timber"
+
+[[parts]]
+name = "sail3"
+joint = "sails"
+shape = "box"
+low = [-0.015, -1.200, 0.000]
+high = [0.015, -0.300, 0.300]
+material = "sail"
+
+[[poses]]
+hub_yaw = [0.000, 0.000, 45.000]
+sails = [0.000, 0.000, 0.000]
+
+[[poses]]
+hub_yaw = [0.000, 0.000, 45.000]
+sails = [22.500, 0.000, 0.000]
+
+[[poses]]
+hub_yaw = [0.000, 0.000, 45.000]
+sails = [45.000, 0.000, 0.000]
+
+[[poses]]
+hub_yaw = [0.000, 0.000, 45.000]
+sails = [67.500, 0.000, 0.000]

@@ -1,0 +1,77 @@
+# Deck: the planks of a rope bridge (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "beam0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.060, -0.250]
+high = [1.000, 0.140, -0.170]
+material = "wood_dark"
+
+[[parts]]
+name = "beam1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.860, -0.250]
+high = [1.000, 0.940, -0.170]
+material = "wood_dark"
+
+[[parts]]
+name = "plank0"
+joint = "origin"
+shape = "box"
+low = [0.010, 0.000, -0.170]
+high = [0.190, 1.000, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "plank1"
+joint = "origin"
+shape = "box"
+low = [0.210, 0.000, -0.170]
+high = [0.390, 1.000, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank2"
+joint = "origin"
+shape = "box"
+low = [0.410, 0.000, -0.170]
+high = [0.590, 1.000, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "plank3"
+joint = "origin"
+shape = "box"
+low = [0.610, 0.000, -0.170]
+high = [0.790, 1.000, 0.000]
+material = "wood"
+
+[[parts]]
+name = "plank4"
+joint = "origin"
+shape = "box"
+low = [0.810, 0.000, -0.170]
+high = [0.990, 1.000, 0.000]
+material = "wood_dark"
+
+[[parts]]
+name = "rope0"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.060]
+high = [1.000, 0.045, 0.020]
+material = "rope"
+
+[[parts]]
+name = "rope1"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.955, -0.060]
+high = [1.000, 1.000, 0.020]
+material = "rope"
+
+[[poses]]

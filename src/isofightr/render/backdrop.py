@@ -10,6 +10,7 @@ Pure Python plus Pillow (no ``arcade``).
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -57,7 +58,15 @@ SUNSET: Final[Mood] = Mood(
     island_side=("cf657f", "753c54"),
     ruin="fdcbb0",
 )
-MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET}
+GOLDEN: Final[Mood] = Mood(
+    sky=("4d9be6", "8fd3ff", "fdcbb0", "fbb954"),
+    cloud=("ffffff", "fdcbb0", "fca790"),
+    island_top="a2a947",
+    island_side=("fbb954", "cd683d"),
+    ruin="ffffff",
+)
+"""Golden hour: a blue sky warming to peach and gold at the horizon (Twin Isles)."""
+MOODS: Final[dict[str, Mood]] = {"day": DAY, "sunset": SUNSET, "golden": GOLDEN}
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
     (12, 4, 14, 6),
@@ -225,13 +234,13 @@ BIRDS: Final[int] = 9
 BIRD_BAND: Final[tuple[int, int]] = (58, 150)
 
 
-def sunny_sky(mood: Mood) -> Image.Image:
-    """Return the mood's sky with a small sun and a dithered halo around it."""
+def sunny_sky(mood: Mood, centre: tuple[int, int] = SUN_CENTRE) -> Image.Image:
+    """Return the mood's sky with a small sun at ``centre`` and a dithered halo around it."""
     image = sky(mood)
     pixels = image.load()
     assert pixels is not None
     disc, glow = (hex_rgb(value) for value in SUN_COLOURS)
-    centre_x, centre_y = SUN_CENTRE
+    centre_x, centre_y = centre
     for y in range(centre_y - SUN_HALO, centre_y + SUN_HALO + 1):
         for x in range(centre_x - SUN_HALO, centre_x + SUN_HALO + 1):
             distance = ((x - centre_x) ** 2 + (y - centre_y) ** 2) ** 0.5
@@ -326,3 +335,60 @@ def paint_cloud_sea(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["cloud_sea"] = paint_cloud_sea
+
+
+# --- meadow hills (Twin Isles) -------------------------------------------------------------
+
+LOW_SUN: Final[tuple[int, int]] = (432, 150)
+FAR_HILLS: Final[tuple[str, str]] = ("92a984", "547e64")
+NEAR_HILLS: Final[tuple[str, str]] = ("a2a947", "676633")
+"""A range of hills: the colour of its sunlit crest, then of its slopes."""
+
+
+def hills(
+    colours: tuple[str, str],
+    seed: int,
+    crest: int,
+    swell: int,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
+) -> Image.Image:
+    """Return a range of rolling hills along the bottom of the picture: the ridge is a few
+    long waves about ``crest`` pixels down, ``swell`` pixels high, lit along its top. Whole
+    waves fit the width, so the layer wraps."""
+    rng = random.Random(seed)
+    lit, slope = (hex_rgb(value) for value in colours)
+    image = Image.new("RGBA", (width, height))
+    pixels = image.load()
+    assert pixels is not None
+    waves = [
+        (rng.randint(2, 4), rng.uniform(0.0, 6.28), 1.0),
+        (rng.randint(5, 9), rng.uniform(0.0, 6.28), 0.4),
+    ]
+    for x in range(width):
+        turn = 2.0 * math.pi * x / width
+        ridge = sum(math.sin(turn * count + shift) * weight for count, shift, weight in waves)
+        top = crest + round(ridge * swell / 1.4)
+        for y in range(max(top, 0), height):
+            # The crest is lit; a dithered band below it fades into the slope.
+            depth = y - top
+            sunlit = depth < 2 or (
+                depth < 12 and (12 - depth) * 16 / 12 > BAYER_4[y % 4][x % 4] + 4
+            )
+            pixels[x, y] = (*(lit if sunlit else slope), 255)
+    return image
+
+
+def paint_meadow(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Twin Isles: a low sun in a golden-hour sky, lit clouds, far islands, and two ranges
+    of hills rolling away below."""
+    return {
+        "bg_0_sky.png": sunny_sky(mood, LOW_SUN),
+        "bg_1_far_clouds.png": clouds(mood, seed, 7, (60, 150), (9, 15)),
+        "bg_2_islands.png": islands(mood, seed + 1, 5, (110, 190), (10, 18)),
+        "bg_3_far_hills.png": hills(FAR_HILLS, seed + 2, 262, 12),
+        "bg_4_near_hills.png": hills(NEAR_HILLS, seed + 3, 300, 16),
+    }
+
+
+PAINTERS["meadow"] = paint_meadow
