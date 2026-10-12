@@ -1,0 +1,178 @@
+# Glowcap Grove: a night forest of giant glowing mushrooms (decision D-063, new in M14).
+# Three mossy islands at three heights: a wide one in the middle, a smaller one a step up on
+# the left and another two steps up on the right, with two giant mushroom caps over the
+# middle one to stand on.
+# Mechanic: bounce caps. Four springy mushrooms set into the moss, two on the middle island
+# and one on each side island, throw whoever lands on them into the air, the side ones
+# higher (not a fighter who is reeling from a hit). With the "stage hazards" rule off they
+# are plain ground.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+id = "glowcap_grove"
+display_name = "Glowcap Grove"
+description = "Three mossy isles and four mushrooms that bounce."
+tileset = "glowcap"
+music = "glowcap_grove"            # a song in assets/audio/music
+
+# Legend: '.' = void. 'm' moss on the middle island, 'l' on the left one (a step up), 'r' on
+# the right one (two steps up); 'b', 'L' and 'R' are their bounce caps.
+grid = """
+...........rrrr
+...........rrrr
+...........rRrr
+...........rrrr
+...............
+...............
+......mmmmmmmm.
+......mmmmmbmm.
+......mmmmmmmm.
+llll..mmmmmmmm.
+llLl..mmbmmmmm.
+llll..mmmmmmmm.
+llll...........
+"""
+
+[legend]
+"m" = { height = 0, tile = "moss" }
+"l" = { height = 1, tile = "moss" }
+"r" = { height = 2, tile = "moss" }
+"b" = { height = 0, tile = "cap", bounce = 0.3 }
+"L" = { height = 1, tile = "cap_big", bounce = 0.36 }
+"R" = { height = 2, tile = "cap_big", bounce = 0.36 }
+
+[[soft_platforms]]           # rect = x0, y0, x1, y1 in cell coordinates; z = deck height
+rect = [6, 6, 9, 8]          # the far giant cap
+z = 2.5
+[[soft_platforms]]
+rect = [11, 10, 14, 12]      # the near giant cap
+z = 2.5
+
+[spawns]                     # world (x, y); z = surface height
+p1 = [1.5, 11.5]
+p2 = [13.5, 1.5]
+p3 = [7.0, 9.5]
+p4 = [13.0, 7.5]
+respawn = [10.0, 9.0]
+
+[blast_zone]                 # margins from the stage's solid bounding box
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py glowcap_grove --theme grove --mood mist --seed 9).
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_grove.png"
+parallax = 0.04
+
+[[background]]
+image = "bg_2_mist.png"      # a bank of mist drifting through the trunks
+parallax = 0.06
+scroll = 0.03
+
+[[background]]
+image = "bg_3_mid_grove.png"   # two frames: the caps' glow changes colour
+parallax = 0.12
+frames = 2
+frame_ticks = 70
+
+[[background]]
+image = "bg_4_near_grove.png"
+parallax = 0.28
+
+# Looks only (decision D-063): none of this collides or changes how the stage plays.
+[underside]
+depth = 1.5
+hang = ["roots", "glowdrop"]
+
+[ambient]
+kind = "spores"
+count = 12
+front = 4
+
+[[props]]                    # flat on the bounce caps: a ring of light pulsing outward
+sprite = "pulse"
+at = [8.5, 10.5]
+layer = "ground"
+period = 8
+[[props]]
+sprite = "pulse"
+at = [11.5, 7.5]
+layer = "ground"
+period = 8
+phase = 16
+[[props]]
+sprite = "pulse_big"
+at = [2.5, 10.5]
+layer = "ground"
+period = 8
+phase = 8
+[[props]]
+sprite = "pulse_big"
+at = [12.5, 2.5]
+layer = "ground"
+period = 8
+phase = 24
+
+[[props]]                    # the giant caps' stems
+sprite = "stalk"
+at = [7.5, 7.0]
+[[props]]
+sprite = "stalk"
+at = [12.5, 11.0]
+
+[[props]]                    # the middle island: tall things along its far edges
+sprite = "glowcap"
+at = [10.5, 6.4]
+[[props]]
+sprite = "fern"
+at = [13.5, 6.5]
+[[props]]
+sprite = "violetcap"
+at = [6.4, 8.6]
+[[props]]
+sprite = "lantern"
+at = [6.5, 11.5]
+period = 30
+[[props]]
+sprite = "cluster"
+at = [13.5, 9.4]
+[[props]]
+sprite = "rock"
+at = [9.5, 11.5]
+[[props]]
+sprite = "fern"
+at = [10.5, 11.6]
+phase = 7
+
+[[props]]                    # the left island
+sprite = "glowcap"
+at = [0.5, 9.5]
+[[props]]
+sprite = "fern"
+at = [3.5, 9.5]
+phase = 4
+[[props]]
+sprite = "cluster"
+at = [0.5, 12.5]
+
+[[props]]                    # the right island
+sprite = "lantern"
+at = [11.5, 0.5]
+period = 30
+phase = 15
+[[props]]
+sprite = "violetcap"
+at = [14.5, 0.5]
+[[props]]
+sprite = "log"
+at = [11.5, 3.4]
+[[props]]
+sprite = "fern"
+at = [14.5, 3.5]
+phase = 9

@@ -1,0 +1,158 @@
+# glowcap tileset materials (Glowcap Grove; decisions D-045 and D-063). Tile materials
+# have no outline (tiles tessellate); the props' have. Costume 0 colours the light cells
+# of the board's checker pattern, costume 1 the dark ones. New materials go at the END,
+# and there may be 31 at most.
+
+master = "resurrect64"
+bands = [0.86, 0.50, 0.16]
+
+[[materials]]
+name = "moss"
+outline = false
+
+[[materials]]
+name = "moss_dark"
+outline = false
+
+[[materials]]
+name = "glowmoss"
+outline = false
+lit = false
+
+[[materials]]
+name = "stone"
+outline = false
+
+[[materials]]
+name = "stone_dark"
+outline = false
+
+[[materials]]
+name = "root"
+outline = false
+
+[[materials]]
+name = "cap_teal"
+outline = false
+lit = false
+
+[[materials]]
+name = "cap_pink"
+outline = false
+lit = false
+
+[[materials]]
+name = "cap_violet"
+outline = false
+
+[[materials]]
+name = "cap_violet_dark"
+outline = false
+
+[[materials]]
+name = "spot"
+outline = false
+lit = false
+
+[[materials]]
+name = "gill"
+outline = false
+
+[[materials]]
+name = "deep"
+outline = false
+
+[[materials]]
+name = "deep_dark"
+outline = false
+
+[[materials]]
+name = "pulse"
+outline = false
+lit = false
+
+[[materials]]
+name = "pulse_dim"
+outline = false
+lit = false
+
+[[materials]]
+name = "pulse_pink"
+outline = false
+lit = false
+
+[[materials]]
+name = "pulse_pink_dim"
+outline = false
+lit = false
+
+[[materials]]
+name = "stem"
+
+[[materials]]
+name = "pcap_teal"
+
+[[materials]]
+name = "pcap_violet"
+
+[[materials]]
+name = "pcap_pink"
+
+[[materials]]
+name = "fern"
+
+[[materials]]
+name = "fern_dark"
+
+[[materials]]
+name = "log"
+
+[[materials]]
+name = "log_dark"
+
+[[materials]]
+name = "lamp"
+lit = false
+
+[[materials]]
+name = "lamp_dim"
+lit = false
+
+[[materials]]
+name = "rock"
+
+[[costumes]]
+name = "light"
+moss = ["1ebc73", "239063", "165a4c", "374e4a", "313638"]
+moss_dark = ["165a4c", "165a4c", "374e4a", "313638", "2e222f"]
+glowmoss = ["8ff8e2", "8ff8e2", "30e1b9", "0eaf9b", "0b5e65"]
+stone = ["966c6c", "966c6c", "694f62", "45293f", "2e222f"]
+stone_dark = ["694f62", "694f62", "45293f", "3e3546", "2e222f"]
+root = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+cap_teal = ["30e1b9", "30e1b9", "0eaf9b", "0b8a8f", "0b5e65"]
+cap_pink = ["ed8099", "ed8099", "cf657f", "a24b6f", "753c54"]
+cap_violet = ["a884f3", "905ea9", "6b3e75", "45293f", "2e222f"]
+cap_violet_dark = ["905ea9", "6b3e75", "45293f", "2e222f", "2e222f"]
+spot = ["ffffff", "ffffff", "eaaded", "c7dcd0", "9babb2"]
+gill = ["fdcbb0", "eaaded", "a884f3", "905ea9", "6b3e75"]
+deep = ["45293f", "45293f", "3e3546", "2e222f", "2e222f"]
+deep_dark = ["3e3546", "2e222f", "2e222f", "2e222f", "2e222f"]
+pulse = ["8ff8e2", "8ff8e2", "30e1b9", "0eaf9b", "0b5e65"]
+pulse_dim = ["0eaf9b", "0eaf9b", "0b8a8f", "0b5e65", "313638"]
+pulse_pink = ["fdcbb0", "fdcbb0", "ed8099", "cf657f", "a24b6f"]
+pulse_pink_dim = ["cf657f", "cf657f", "a24b6f", "753c54", "45293f"]
+stem = ["ffffff", "ffffff", "c7dcd0", "9babb2", "2e222f"]
+pcap_teal = ["8ff8e2", "30e1b9", "0eaf9b", "0b8a8f", "2e222f"]
+pcap_violet = ["eaaded", "a884f3", "905ea9", "6b3e75", "2e222f"]
+pcap_pink = ["fdcbb0", "ed8099", "cf657f", "a24b6f", "2e222f"]
+fern = ["91db69", "1ebc73", "239063", "165a4c", "2e222f"]
+fern_dark = ["1ebc73", "239063", "165a4c", "374e4a", "2e222f"]
+log = ["ab947a", "966c6c", "694f62", "45293f", "2e222f"]
+log_dark = ["694f62", "45293f", "2e222f", "2e222f", "2e222f"]
+lamp = ["fbff86", "fbff86", "d5e04b", "a2a947", "2e222f"]
+lamp_dim = ["d5e04b", "d5e04b", "a2a947", "676633", "2e222f"]
+rock = ["9babb2", "7f708a", "625565", "3e3546", "2e222f"]
+
+[[costumes]]
+name = "dark"
+moss = ["239063", "239063", "165a4c", "374e4a", "313638"]

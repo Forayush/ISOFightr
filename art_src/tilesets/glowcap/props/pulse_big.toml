@@ -1,0 +1,415 @@
+# Pulse, big: the ring of a springier cap (4 frames, flat).
+loop = true
+fps = 1
+
+[[smears]]
+name = "r0_0"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.000, 0.030]
+b = [0.162, 0.118, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_1"
+joint = "origin"
+shape = "rod"
+a = [0.162, 0.118, 0.030]
+b = [0.062, 0.190, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_2"
+joint = "origin"
+shape = "rod"
+a = [0.062, 0.190, 0.030]
+b = [-0.062, 0.190, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_3"
+joint = "origin"
+shape = "rod"
+a = [-0.062, 0.190, 0.030]
+b = [-0.162, 0.118, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_4"
+joint = "origin"
+shape = "rod"
+a = [-0.162, 0.118, 0.030]
+b = [-0.200, 0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_5"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.030]
+b = [-0.162, -0.118, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_6"
+joint = "origin"
+shape = "rod"
+a = [-0.162, -0.118, 0.030]
+b = [-0.062, -0.190, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_7"
+joint = "origin"
+shape = "rod"
+a = [-0.062, -0.190, 0.030]
+b = [0.062, -0.190, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_8"
+joint = "origin"
+shape = "rod"
+a = [0.062, -0.190, 0.030]
+b = [0.162, -0.118, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r0_9"
+joint = "origin"
+shape = "rod"
+a = [0.162, -0.118, 0.030]
+b = [0.200, -0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "spot"
+
+[[smears]]
+name = "r1_0"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.030]
+b = [0.243, 0.176, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_1"
+joint = "origin"
+shape = "rod"
+a = [0.243, 0.176, 0.030]
+b = [0.093, 0.285, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_2"
+joint = "origin"
+shape = "rod"
+a = [0.093, 0.285, 0.030]
+b = [-0.093, 0.285, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_3"
+joint = "origin"
+shape = "rod"
+a = [-0.093, 0.285, 0.030]
+b = [-0.243, 0.176, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_4"
+joint = "origin"
+shape = "rod"
+a = [-0.243, 0.176, 0.030]
+b = [-0.300, 0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_5"
+joint = "origin"
+shape = "rod"
+a = [-0.300, 0.000, 0.030]
+b = [-0.243, -0.176, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_6"
+joint = "origin"
+shape = "rod"
+a = [-0.243, -0.176, 0.030]
+b = [-0.093, -0.285, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_7"
+joint = "origin"
+shape = "rod"
+a = [-0.093, -0.285, 0.030]
+b = [0.093, -0.285, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_8"
+joint = "origin"
+shape = "rod"
+a = [0.093, -0.285, 0.030]
+b = [0.243, -0.176, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r1_9"
+joint = "origin"
+shape = "rod"
+a = [0.243, -0.176, 0.030]
+b = [0.300, -0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_0"
+joint = "origin"
+shape = "rod"
+a = [0.400, 0.000, 0.030]
+b = [0.324, 0.235, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_1"
+joint = "origin"
+shape = "rod"
+a = [0.324, 0.235, 0.030]
+b = [0.124, 0.380, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_2"
+joint = "origin"
+shape = "rod"
+a = [0.124, 0.380, 0.030]
+b = [-0.124, 0.380, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_3"
+joint = "origin"
+shape = "rod"
+a = [-0.124, 0.380, 0.030]
+b = [-0.324, 0.235, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_4"
+joint = "origin"
+shape = "rod"
+a = [-0.324, 0.235, 0.030]
+b = [-0.400, 0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_5"
+joint = "origin"
+shape = "rod"
+a = [-0.400, 0.000, 0.030]
+b = [-0.324, -0.235, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_6"
+joint = "origin"
+shape = "rod"
+a = [-0.324, -0.235, 0.030]
+b = [-0.124, -0.380, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_7"
+joint = "origin"
+shape = "rod"
+a = [-0.124, -0.380, 0.030]
+b = [0.124, -0.380, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_8"
+joint = "origin"
+shape = "rod"
+a = [0.124, -0.380, 0.030]
+b = [0.324, -0.235, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r2_9"
+joint = "origin"
+shape = "rod"
+a = [0.324, -0.235, 0.030]
+b = [0.400, -0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink"
+
+[[smears]]
+name = "r3_0"
+joint = "origin"
+shape = "rod"
+a = [0.460, 0.000, 0.030]
+b = [0.372, 0.270, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_1"
+joint = "origin"
+shape = "rod"
+a = [0.372, 0.270, 0.030]
+b = [0.142, 0.437, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_2"
+joint = "origin"
+shape = "rod"
+a = [0.142, 0.437, 0.030]
+b = [-0.142, 0.437, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_3"
+joint = "origin"
+shape = "rod"
+a = [-0.142, 0.437, 0.030]
+b = [-0.372, 0.270, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_4"
+joint = "origin"
+shape = "rod"
+a = [-0.372, 0.270, 0.030]
+b = [-0.460, 0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_5"
+joint = "origin"
+shape = "rod"
+a = [-0.460, 0.000, 0.030]
+b = [-0.372, -0.270, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_6"
+joint = "origin"
+shape = "rod"
+a = [-0.372, -0.270, 0.030]
+b = [-0.142, -0.437, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_7"
+joint = "origin"
+shape = "rod"
+a = [-0.142, -0.437, 0.030]
+b = [0.142, -0.437, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_8"
+joint = "origin"
+shape = "rod"
+a = [0.142, -0.437, 0.030]
+b = [0.372, -0.270, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[smears]]
+name = "r3_9"
+joint = "origin"
+shape = "rod"
+a = [0.372, -0.270, 0.030]
+b = [0.460, -0.000, 0.030]
+r1 = 0.035
+r2 = 0.035
+material = "pulse_pink_dim"
+
+[[poses]]
+show = ["r0_0", "r0_1", "r0_2", "r0_3", "r0_4", "r0_5", "r0_6", "r0_7", "r0_8", "r0_9"]
+
+[[poses]]
+show = ["r1_0", "r1_1", "r1_2", "r1_3", "r1_4", "r1_5", "r1_6", "r1_7", "r1_8", "r1_9"]
+
+[[poses]]
+show = ["r2_0", "r2_1", "r2_2", "r2_3", "r2_4", "r2_5", "r2_6", "r2_7", "r2_8", "r2_9"]
+
+[[poses]]
+show = ["r3_0", "r3_1", "r3_2", "r3_3", "r3_4", "r3_5", "r3_6", "r3_7", "r3_8", "r3_9"]

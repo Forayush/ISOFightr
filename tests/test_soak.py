@@ -67,6 +67,7 @@ CPU_SOAK_STAGES = (
     "frostpeak",
     "neon_circuit",
     "dune_bazaar",
+    "glowcap_grove",
 )
 CPU_SOAK_MAX_TICKS = 10 * 60 * TICK_RATE
 

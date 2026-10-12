@@ -1,0 +1,72 @@
+# Violetcap: a stout mushroom with a violet cap.
+loop = true
+fps = 1
+
+[[parts]]
+name = "stem"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.800]
+r1 = 0.130
+r2 = 0.100
+material = "stem"
+
+[[parts]]
+name = "cap_gill"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.740]
+b = [0.000, 0.000, 0.780]
+r1 = 0.396
+r2 = 0.422
+material = "gill"
+
+[[parts]]
+name = "cap_low"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.780]
+b = [0.000, 0.000, 0.942]
+r1 = 0.440
+r2 = 0.352
+material = "pcap_violet"
+
+[[parts]]
+name = "cap_high"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.942]
+b = [0.000, 0.000, 1.140]
+r1 = 0.352
+r2 = 0.110
+material = "pcap_violet"
+
+[[parts]]
+name = "cap_spot0"
+joint = "origin"
+shape = "ball"
+centre = [0.305, 0.176, 0.888]
+radius = 0.060
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[parts]]
+name = "cap_spot1"
+joint = "origin"
+shape = "ball"
+centre = [0.025, 0.285, 0.996]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[parts]]
+name = "cap_spot2"
+joint = "origin"
+shape = "ball"
+centre = [-0.305, 0.176, 0.888]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[poses]]

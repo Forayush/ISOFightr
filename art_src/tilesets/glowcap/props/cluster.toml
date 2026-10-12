@@ -1,0 +1,125 @@
+# Cluster: three little pink mushrooms.
+loop = true
+fps = 1
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.080, 0.000]
+b = [-0.200, 0.080, 0.340]
+r1 = 0.050
+r2 = 0.040
+material = "stem"
+
+[[parts]]
+name = "cap0_gill"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.080, 0.280]
+b = [-0.200, 0.080, 0.320]
+r1 = 0.153
+r2 = 0.163
+material = "gill"
+
+[[parts]]
+name = "cap0_low"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.080, 0.320]
+b = [-0.200, 0.080, 0.389]
+r1 = 0.170
+r2 = 0.136
+material = "pcap_pink"
+
+[[parts]]
+name = "cap0_high"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.080, 0.389]
+b = [-0.200, 0.080, 0.473]
+r1 = 0.136
+r2 = 0.043
+material = "pcap_pink"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.100, 0.000]
+b = [0.060, -0.100, 0.500]
+r1 = 0.050
+r2 = 0.040
+material = "stem"
+
+[[parts]]
+name = "cap1_gill"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.100, 0.440]
+b = [0.060, -0.100, 0.480]
+r1 = 0.180
+r2 = 0.192
+material = "gill"
+
+[[parts]]
+name = "cap1_low"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.100, 0.480]
+b = [0.060, -0.100, 0.561]
+r1 = 0.200
+r2 = 0.160
+material = "pcap_pink"
+
+[[parts]]
+name = "cap1_high"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.100, 0.561]
+b = [0.060, -0.100, 0.660]
+r1 = 0.160
+r2 = 0.050
+material = "pcap_pink"
+
+[[parts]]
+name = "stem2"
+joint = "origin"
+shape = "rod"
+a = [0.280, 0.140, 0.000]
+b = [0.280, 0.140, 0.240]
+r1 = 0.050
+r2 = 0.040
+material = "stem"
+
+[[parts]]
+name = "cap2_gill"
+joint = "origin"
+shape = "rod"
+a = [0.280, 0.140, 0.180]
+b = [0.280, 0.140, 0.220]
+r1 = 0.117
+r2 = 0.125
+material = "gill"
+
+[[parts]]
+name = "cap2_low"
+joint = "origin"
+shape = "rod"
+a = [0.280, 0.140, 0.220]
+b = [0.280, 0.140, 0.273]
+r1 = 0.130
+r2 = 0.104
+material = "pcap_pink"
+
+[[parts]]
+name = "cap2_high"
+joint = "origin"
+shape = "rod"
+a = [0.280, 0.140, 0.273]
+b = [0.280, 0.140, 0.337]
+r1 = 0.104
+r2 = 0.033
+material = "pcap_pink"
+
+[[poses]]

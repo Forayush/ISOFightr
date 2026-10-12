@@ -116,6 +116,15 @@
       "mode": "lydian",
       "meter": "4/4"
     },
+    "glowcap_grove": {
+      "source": "bce3ce323a61d315",
+      "title": "Capering",
+      "seconds": 50.0,
+      "tempo": 144.0,
+      "key": "E",
+      "mode": "dorian",
+      "meter": "6/8"
+    },
     "lily_pads": {
       "source": "5ce7ddf74896de37",
       "title": "Dusk on the Water",

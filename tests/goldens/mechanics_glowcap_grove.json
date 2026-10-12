@@ -1,0 +1,19 @@
+{
+  "description": "All four characters on Glowcap Grove with the stage hazards rule on (four bounce caps), starting at 60%, driven by 6000 ticks of seeded random input (decision D-063).",
+  "stage": "glowcap_grove",
+  "characters": [
+    "rook",
+    "bramble",
+    "zephyr",
+    "mote"
+  ],
+  "seed": 17,
+  "stocks": null,
+  "start_damage": 60.0,
+  "input_seed": 52,
+  "ticks": 6000,
+  "rules": {
+    "stage_hazards": true
+  },
+  "hash": "e0eeb75a11e3519c2e0b11af46322e39"
+}

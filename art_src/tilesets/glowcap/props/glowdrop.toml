@@ -1,0 +1,36 @@
+# Glowdrop: a glowing pod on a thread under the grove, swinging (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "thread"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.020]
+b = [0.000, 0.000, -0.700]
+r1 = 0.012
+r2 = 0.012
+material = "fern_dark"
+
+[[parts]]
+name = "pod"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, -0.820]
+radius = 0.120
+scale = [1.000, 1.000, 1.300]
+material = "pcap_teal"
+
+[[parts]]
+name = "tip"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, -0.950]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 6.000, 0.000]

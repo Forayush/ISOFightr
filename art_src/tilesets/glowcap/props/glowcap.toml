@@ -1,0 +1,110 @@
+# Glowcap: a tall mushroom with a glowing teal cap.
+loop = true
+fps = 1
+
+[[parts]]
+name = "foot"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.080]
+radius = 0.160
+scale = [1.000, 1.000, 0.700]
+material = "stem"
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.050, 0.000, 0.800]
+r1 = 0.110
+r2 = 0.085
+material = "stem"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.050, 0.000, 0.800]
+b = [0.000, 0.000, 1.500]
+r1 = 0.085
+r2 = 0.070
+material = "stem"
+
+[[parts]]
+name = "skirt"
+joint = "origin"
+shape = "rod"
+a = [0.020, 0.000, 1.100]
+b = [0.020, 0.000, 1.200]
+r1 = 0.150
+r2 = 0.080
+material = "stem"
+
+[[parts]]
+name = "cap_gill"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.440]
+b = [0.000, 0.000, 1.480]
+r1 = 0.504
+r2 = 0.538
+material = "gill"
+
+[[parts]]
+name = "cap_low"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.480]
+b = [0.000, 0.000, 1.669]
+r1 = 0.560
+r2 = 0.448
+material = "pcap_teal"
+
+[[parts]]
+name = "cap_high"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 1.669]
+b = [0.000, 0.000, 1.900]
+r1 = 0.448
+r2 = 0.140
+material = "pcap_teal"
+
+[[parts]]
+name = "cap_spot0"
+joint = "origin"
+shape = "ball"
+centre = [0.421, 0.153, 1.606]
+radius = 0.070
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[parts]]
+name = "cap_spot1"
+joint = "origin"
+shape = "ball"
+centre = [0.098, 0.365, 1.711]
+radius = 0.060
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[parts]]
+name = "cap_spot2"
+joint = "origin"
+shape = "ball"
+centre = [-0.354, 0.297, 1.585]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[parts]]
+name = "cap_spot3"
+joint = "origin"
+shape = "ball"
+centre = [0.218, 0.218, 1.816]
+radius = 0.050
+scale = [1.000, 1.000, 1.000]
+material = "spot"
+
+[[poses]]

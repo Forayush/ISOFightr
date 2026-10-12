@@ -1,0 +1,343 @@
+# Capering: Glowcap Grove (decision D-063). Playful and a little
+# eerie, in E dorian (a minor scale with a bright sixth, C#): six quavers to the bar, felt
+# as two beats (96 of those a minute, which is 144 crotchets: the tempo below). A marimba
+# ripples through each chord, a glassy bell carries the tune, a soft pad holds the harmony,
+# with a hand drum, a seed shaker and a wooden click.
+# Rendered by tools/build_audio.py; written with build/scratch/m14_song_glowcap.py.
+# Steps: a note, '-' holds it, '.' rests, 'x' hits a drum; one line is one bar.
+id = "glowcap_grove"
+title = "Capering"
+tempo = 144
+steps_per_beat = 2
+key = "E"
+mode = "dorian"
+meter = "6/8"
+form = ["intro", "tune", "tune2", "turn", "hush", "outro"]
+
+[echo]
+beats = 1.5
+feedback = 0.35
+mix = 0.3
+lowpass = 0.5
+
+[sections.intro]              # 4 bars: the marimba alone, the bell answering
+level = 0.7
+to = 0.9
+play = ["call", "ripple_i", "pad_i_root", "click*0.7"]
+
+[sections.tune]               # 8 bars: Em A Em A, G D A Em
+kind = "verse"
+level = 0.9
+play = ["tune_a", "ripple_a", "pad_a_root", "pad_a_third", "bass_a", "drum", "seeds"]
+
+[sections.tune2]              # again, the bell doubled an octave up
+kind = "verse"
+play = ["tune_a", "tune_a+12*0.45", "ripple_a", "pad_a_root", "pad_a_third", "bass_a", "drum",
+        "seeds", "click"]
+
+[sections.turn]               # 8 bars: G D Em Em, G D A Bm
+kind = "chorus"
+play = ["tune_b", "ripple_b", "pad_b_root", "pad_b_third", "bass_b", "drum", "seeds", "click"]
+
+[sections.hush]               # the tune once more, quiet: marimba, pad and bell, no drum
+kind = "break"
+level = 0.7
+play = ["tune_a*0.9", "ripple_a", "pad_a_root", "pad_a_third", "seeds*0.7"]
+
+[sections.outro]              # 4 bars home
+to = 0.75
+play = ["last", "ripple_o", "pad_o_root", "pad_o_third", "bass_o", "drum", "seeds"]
+
+[instruments.marimba]         # a wooden bar: a pluck damped hard and muffled
+wave = "pluck"
+damp = 0.9
+lowpass = 0.6
+release = 0.12
+volume = 0.6
+send = 0.15
+
+[instruments.glass]           # a glassy bell
+wave = "bell"
+mod_ratio = 5.0
+mod_index = 1.2
+length = 0.9
+release = 0.3
+volume = 0.24
+send = 0.45
+
+[instruments.pad]             # soft and slow
+wave = "pad"
+detune = 12
+attack = 0.25
+release = 0.3
+lowpass = 0.4
+volume = 0.22
+
+[instruments.bass]
+wave = "triangle"
+attack = 0.004
+release = 0.05
+volume = 0.26
+
+[instruments.drum]            # a hand drum, low and round
+wave = "drum"
+freq = 140
+freq_end = 90
+length = 0.16
+noise = 0.5
+release = 0.08
+volume = 0.36
+
+[instruments.seeds]           # a seed shaker
+wave = "noise"
+freq = 4400
+length = 0.035
+release = 0.02
+lowpass = 0.5
+volume = 0.1
+
+[instruments.click]           # a wooden click
+wave = "ping"
+freq = 1700
+length = 0.05
+lowpass = 0.4
+release = 0.03
+volume = 0.4
+
+[patterns.call]
+instrument = "glass"
+steps = """
+. . . . . .
+. . . B5 - E6
+. . . . . .
+. . . C#6 - A5
+"""
+
+[patterns.last]
+instrument = "glass"
+steps = """
+E5 - - B5 - -
+C#5 - - A5 - -
+E5 - - G5 - B5
+E6 - - - - .
+"""
+
+[patterns.tune_a]
+instrument = "glass"
+steps = """
+E5 - G5 B5 - G5
+C#5 - E5 A5 - E5
+B5 - G5 E5 - F#5
+E5 - - C#5 - .
+D5 - G5 B5 - G5
+A5 - F#5 D5 - F#5
+E5 - C#5 A4 C#5 E5
+E5 - - - - .
+"""
+
+[patterns.tune_b]
+instrument = "glass"
+steps = """
+B5 - - D6 - B5
+A5 - - F#5 - A5
+G5 - E5 G5 - B5
+E6 - - B5 - .
+D6 - B5 G5 - B5
+A5 - F#5 D5 - F#5
+E5 - A5 C#6 - A5
+B5 - - F#5 - .
+"""
+
+[patterns.ripple_i]
+instrument = "marimba"
+steps = """
+E3 B3 G3 B3 E3 B3
+E3 B3 G3 B3 E3 B3
+A3 E4 C#4 E4 A3 E4
+A3 E4 C#4 E4 A3 E4
+"""
+
+[patterns.pad_i_root]
+instrument = "pad"
+steps = """
+E3 - - - - -
+E3 - - - - -
+A3 - - - - -
+A3 - - - - -
+"""
+
+[patterns.pad_i_third]
+instrument = "pad"
+steps = """
+G3 - - - - -
+G3 - - - - -
+C#4 - - - - -
+C#4 - - - - -
+"""
+
+[patterns.bass_i]
+instrument = "bass"
+steps = """
+E2 - . B2 - E2
+E2 - . B2 - E2
+A2 - . E3 - A2
+A2 - . E3 - A2
+"""
+
+[patterns.ripple_a]
+instrument = "marimba"
+steps = """
+E3 B3 G3 B3 E3 B3
+A3 E4 C#4 E4 A3 E4
+E3 B3 G3 B3 E3 B3
+A3 E4 C#4 E4 A3 E4
+G3 D4 B3 D4 G3 D4
+D4 A4 F#4 A4 D4 A4
+A3 E4 C#4 E4 A3 E4
+E3 B3 G3 B3 E3 B3
+"""
+
+[patterns.pad_a_root]
+instrument = "pad"
+steps = """
+E3 - - - - -
+A3 - - - - -
+E3 - - - - -
+A3 - - - - -
+G3 - - - - -
+D4 - - - - -
+A3 - - - - -
+E3 - - - - -
+"""
+
+[patterns.pad_a_third]
+instrument = "pad"
+steps = """
+G3 - - - - -
+C#4 - - - - -
+G3 - - - - -
+C#4 - - - - -
+B3 - - - - -
+F#4 - - - - -
+C#4 - - - - -
+G3 - - - - -
+"""
+
+[patterns.bass_a]
+instrument = "bass"
+steps = """
+E2 - . B2 - E2
+A2 - . E3 - A2
+E2 - . B2 - E2
+A2 - . E3 - A2
+G2 - . D3 - G2
+D3 - . A3 - D3
+A2 - . E3 - A2
+E2 - . B2 - E2
+"""
+
+[patterns.ripple_b]
+instrument = "marimba"
+steps = """
+G3 D4 B3 D4 G3 D4
+D4 A4 F#4 A4 D4 A4
+E3 B3 G3 B3 E3 B3
+E3 B3 G3 B3 E3 B3
+G3 D4 B3 D4 G3 D4
+D4 A4 F#4 A4 D4 A4
+A3 E4 C#4 E4 A3 E4
+B3 F#4 D4 F#4 B3 F#4
+"""
+
+[patterns.pad_b_root]
+instrument = "pad"
+steps = """
+G3 - - - - -
+D4 - - - - -
+E3 - - - - -
+E3 - - - - -
+G3 - - - - -
+D4 - - - - -
+A3 - - - - -
+B3 - - - - -
+"""
+
+[patterns.pad_b_third]
+instrument = "pad"
+steps = """
+B3 - - - - -
+F#4 - - - - -
+G3 - - - - -
+G3 - - - - -
+B3 - - - - -
+F#4 - - - - -
+C#4 - - - - -
+D4 - - - - -
+"""
+
+[patterns.bass_b]
+instrument = "bass"
+steps = """
+G2 - . D3 - G2
+D3 - . A3 - D3
+E2 - . B2 - E2
+E2 - . B2 - E2
+G2 - . D3 - G2
+D3 - . A3 - D3
+A2 - . E3 - A2
+B2 - . F#3 - B2
+"""
+
+[patterns.ripple_o]
+instrument = "marimba"
+steps = """
+E3 B3 G3 B3 E3 B3
+A3 E4 C#4 E4 A3 E4
+E3 B3 G3 B3 E3 B3
+E3 B3 G3 B3 E3 B3
+"""
+
+[patterns.pad_o_root]
+instrument = "pad"
+steps = """
+E3 - - - - -
+A3 - - - - -
+E3 - - - - -
+E3 - - - - -
+"""
+
+[patterns.pad_o_third]
+instrument = "pad"
+steps = """
+G3 - - - - -
+C#4 - - - - -
+G3 - - - - -
+G3 - - - - -
+"""
+
+[patterns.bass_o]
+instrument = "bass"
+steps = """
+E2 - . B2 - E2
+A2 - . E3 - A2
+E2 - . B2 - E2
+E2 - . B2 - E2
+"""
+
+[patterns.drum]
+instrument = "drum"
+steps = """
+x . . x . x
+"""
+
+[patterns.seeds]
+instrument = "seeds"
+steps = """
+. x x . x x
+"""
+
+[patterns.click]
+instrument = "click"
+steps = """
+. . x . . .
+"""

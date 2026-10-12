@@ -1,0 +1,121 @@
+# Deck: the top of a giant mushroom's cap (the soft platforms).
+loop = true
+fps = 1
+
+[[parts]]
+name = "flesh"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.250]
+high = [1.000, 1.000, -0.100]
+material = "gill"
+
+[[parts]]
+name = "skin"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.000, -0.100]
+high = [1.000, 1.000, 0.000]
+material = "cap_violet"
+
+[[parts]]
+name = "spot0"
+joint = "origin"
+shape = "rod"
+a = [0.301, 0.563, -0.010]
+b = [0.301, 0.563, 0.006]
+r1 = 0.118
+r2 = 0.118
+material = "spot"
+
+[[parts]]
+name = "spot1"
+joint = "origin"
+shape = "rod"
+a = [0.467, 0.336, -0.010]
+b = [0.467, 0.336, 0.006]
+r1 = 0.128
+r2 = 0.128
+material = "spot"
+
+[[parts]]
+name = "edge_x"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.000, -0.100]
+high = [1.014, 1.000, 0.000]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "edge_y"
+joint = "origin"
+shape = "box"
+low = [0.000, 0.990, -0.100]
+high = [1.000, 1.014, 0.000]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_x0"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.060, -0.250]
+high = [1.012, 0.160, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_y0"
+joint = "origin"
+shape = "box"
+low = [0.060, 0.990, -0.250]
+high = [0.160, 1.012, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_x1"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.310, -0.250]
+high = [1.012, 0.410, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_y1"
+joint = "origin"
+shape = "box"
+low = [0.310, 0.990, -0.250]
+high = [0.410, 1.012, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_x2"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.560, -0.250]
+high = [1.012, 0.660, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_y2"
+joint = "origin"
+shape = "box"
+low = [0.560, 0.990, -0.250]
+high = [0.660, 1.012, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_x3"
+joint = "origin"
+shape = "box"
+low = [0.990, 0.810, -0.250]
+high = [1.012, 0.910, -0.100]
+material = "cap_violet_dark"
+
+[[parts]]
+name = "gill_y3"
+joint = "origin"
+shape = "box"
+low = [0.810, 0.990, -0.250]
+high = [0.910, 1.012, -0.100]
+material = "cap_violet_dark"
+
+[[poses]]

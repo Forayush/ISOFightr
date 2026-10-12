@@ -63,6 +63,7 @@ SAND: Final[dict[str, Rgba]] = {"a": _rgba("fbb954"), "b": _rgba("e6904e")}
 RAIN: Final[dict[str, Rgba]] = {"a": _rgba("8fd3ff"), "b": _rgba("4d9be6")}
 SPARK: Final[dict[str, Rgba]] = {"a": _rgba("8ff8e2"), "b": _rgba("30e1b9")}
 MOTE: Final[dict[str, Rgba]] = {"a": _rgba("ffffff"), "b": _rgba("8fd3ff")}
+SPORE: Final[dict[str, Rgba]] = {"a": _rgba("8ff8e2"), "b": _rgba("30e1b9")}
 
 STYLES: Final[dict[str, Style]] = {
     "leaves": Style(-0.35, -0.22, 6.0, 150, (("ab.", ".ab"), (".a", "ab", "b."), ("aab",)), LEAF),
@@ -74,6 +75,7 @@ STYLES: Final[dict[str, Style]] = {
     "sand": Style(-0.9, -0.04, 2.0, 90, (("ab",), ("aab",)), SAND),
     "rain": Style(-0.6, -2.4, 0.0, 60, ((".a", ".a", "b.", "b."),), RAIN),
     "sparks": Style(-0.1, -0.5, 3.0, 80, (("a",), ("b",)), SPARK, 6, True),
+    "spores": Style(0.03, 0.14, 7.0, 220, (("a",), ("b",), (".b.", "bab", ".b.")), SPORE, 30),
 }
 """One style per name in ``config.AMBIENT_KINDS`` (a test checks they match)."""
 BLINK_CYCLE: Final[int] = 5

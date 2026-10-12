@@ -1,0 +1,65 @@
+# Roots: roots hanging under the grove.
+loop = true
+fps = 1
+
+[[parts]]
+name = "root0a"
+joint = "origin"
+shape = "rod"
+a = [-0.140, 0.060, 0.020]
+b = [-0.100, 0.060, -0.480]
+r1 = 0.045
+r2 = 0.030
+material = "root"
+
+[[parts]]
+name = "root0b"
+joint = "origin"
+shape = "rod"
+a = [-0.100, 0.060, -0.480]
+b = [-0.160, 0.080, -0.800]
+r1 = 0.030
+r2 = 0.010
+material = "root"
+
+[[parts]]
+name = "root1a"
+joint = "origin"
+shape = "rod"
+a = [0.100, -0.080, 0.020]
+b = [0.140, -0.080, -0.330]
+r1 = 0.045
+r2 = 0.030
+material = "root"
+
+[[parts]]
+name = "root1b"
+joint = "origin"
+shape = "rod"
+a = [0.140, -0.080, -0.330]
+b = [0.080, -0.060, -0.550]
+r1 = 0.030
+r2 = 0.010
+material = "root"
+
+[[parts]]
+name = "root2a"
+joint = "origin"
+shape = "rod"
+a = [0.200, 0.140, 0.020]
+b = [0.240, 0.140, -0.204]
+r1 = 0.045
+r2 = 0.030
+material = "root"
+
+[[parts]]
+name = "root2b"
+joint = "origin"
+shape = "rod"
+a = [0.240, 0.140, -0.204]
+b = [0.180, 0.160, -0.340]
+r1 = 0.030
+r2 = 0.010
+material = "root"
+
+[[poses]]

@@ -1,0 +1,155 @@
+# Log: a hollow log with mushrooms growing on it.
+loop = true
+fps = 1
+
+[[parts]]
+name = "trunk"
+joint = "origin"
+shape = "rod"
+a = [-0.600, 0.000, 0.200]
+b = [0.600, 0.000, 0.200]
+r1 = 0.200
+r2 = 0.200
+material = "log"
+
+[[parts]]
+name = "hollow"
+joint = "origin"
+shape = "rod"
+a = [0.590, 0.000, 0.200]
+b = [0.620, 0.000, 0.200]
+r1 = 0.140
+r2 = 0.140
+material = "log_dark"
+
+[[parts]]
+name = "stub"
+joint = "origin"
+shape = "rod"
+a = [-0.200, 0.000, 0.300]
+b = [-0.260, 0.200, 0.500]
+r1 = 0.060
+r2 = 0.040
+material = "log"
+
+[[parts]]
+name = "stem0"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.360]
+b = [0.300, 0.000, 0.500]
+r1 = 0.030
+r2 = 0.030
+material = "stem"
+
+[[parts]]
+name = "cap0_gill"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.440]
+b = [0.300, 0.000, 0.480]
+r1 = 0.099
+r2 = 0.106
+material = "gill"
+
+[[parts]]
+name = "cap0_low"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.480]
+b = [0.300, 0.000, 0.529]
+r1 = 0.110
+r2 = 0.088
+material = "pcap_teal"
+
+[[parts]]
+name = "cap0_high"
+joint = "origin"
+shape = "rod"
+a = [0.300, 0.000, 0.529]
+b = [0.300, 0.000, 0.590]
+r1 = 0.088
+r2 = 0.028
+material = "pcap_teal"
+
+[[parts]]
+name = "stem1"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.000, 0.360]
+b = [0.080, 0.000, 0.500]
+r1 = 0.030
+r2 = 0.030
+material = "stem"
+
+[[parts]]
+name = "cap1_gill"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.000, 0.440]
+b = [0.080, 0.000, 0.480]
+r1 = 0.072
+r2 = 0.077
+material = "gill"
+
+[[parts]]
+name = "cap1_low"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.000, 0.480]
+b = [0.080, 0.000, 0.516]
+r1 = 0.080
+r2 = 0.064
+material = "pcap_teal"
+
+[[parts]]
+name = "cap1_high"
+joint = "origin"
+shape = "rod"
+a = [0.080, 0.000, 0.516]
+b = [0.080, 0.000, 0.560]
+r1 = 0.064
+r2 = 0.020
+material = "pcap_teal"
+
+[[parts]]
+name = "stem2"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.360]
+b = [-0.420, 0.000, 0.500]
+r1 = 0.030
+r2 = 0.030
+material = "stem"
+
+[[parts]]
+name = "cap2_gill"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.440]
+b = [-0.420, 0.000, 0.480]
+r1 = 0.090
+r2 = 0.096
+material = "gill"
+
+[[parts]]
+name = "cap2_low"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.480]
+b = [-0.420, 0.000, 0.525]
+r1 = 0.100
+r2 = 0.080
+material = "pcap_teal"
+
+[[parts]]
+name = "cap2_high"
+joint = "origin"
+shape = "rod"
+a = [-0.420, 0.000, 0.525]
+b = [-0.420, 0.000, 0.580]
+r1 = 0.080
+r2 = 0.025
+material = "pcap_teal"
+
+[[poses]]

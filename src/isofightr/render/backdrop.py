@@ -122,6 +122,14 @@ HAZE: Final[Mood] = Mood(
     ruin="ffffff",
 )
 """A hot afternoon: blue overhead, bleached and dusty toward the ground (Dune Bazaar)."""
+MIST: Final[Mood] = Mood(
+    sky=("2e222f", "323353", "323353", "484a77", "4d65b4"),
+    cloud=("4d65b4", "484a77", "323353"),
+    island_top="165a4c",
+    island_side=("374e4a", "313638"),
+    ruin="8ff8e2",
+)
+"""A forest at night: black under the canopy, blue mist toward the ground (Glowcap Grove)."""
 MOODS: Final[dict[str, Mood]] = {
     "day": DAY,
     "sunset": SUNSET,
@@ -133,6 +141,7 @@ MOODS: Final[dict[str, Mood]] = {
     "dawn": DAWN,
     "glow": GLOW,
     "haze": HAZE,
+    "mist": MIST,
 }
 BAYER_4: Final[tuple[tuple[int, ...], ...]] = (
     (0, 8, 2, 10),
@@ -1196,3 +1205,133 @@ def paint_dunes(mood: Mood, seed: int) -> dict[str, Image.Image]:
 
 
 PAINTERS["dunes"] = paint_dunes
+
+
+# --- a forest of giant mushrooms in the mist (Glowcap Grove) -------------------------------
+
+GROVE_FRAMES: Final[int] = 2
+FAR_GROVE: Final[tuple[str, str, str, str]] = ("484a77", "484a77", "4d65b4", "4d65b4")
+MID_GROVE: Final[tuple[str, str, str, str]] = ("323353", "2e222f", "0eaf9b", "0b8a8f")
+NEAR_GROVE: Final[tuple[str, str, str, str]] = ("2e222f", "2e222f", "30e1b9", "a884f3")
+"""A rank of giant mushrooms: its colour, its shaded side, and the two colours its caps'
+spots and gills glow in."""
+MIST_COLOUR: Final[str] = "4d65b4"
+
+
+def giant_mushrooms(
+    colours: tuple[str, str, str, str],
+    seed: int,
+    count: int,
+    base: int,
+    tall: tuple[int, int],
+    cap: tuple[int, int],
+    frames: int = 1,
+    width: int = LAYER_WIDTH,
+    height: int = NATIVE_H,
+) -> Image.Image:
+    """Return a rank of giant mushrooms standing on a line ``base`` pixels down, as ``frames``
+    frames stacked top to bottom: trunks ``tall`` pixels high under caps ``cap`` pixels across
+    (half that, really: the range is the cap's radius), with a glowing line of gills under
+    each cap and glowing spots on it. On the second frame every other mushroom glows in the
+    other colour, which reads as a slow pulse. It wraps."""
+    rng = random.Random(seed)
+    body, shade, glow, other = (hex_rgb(value) for value in colours)
+    image = Image.new("RGBA", (width, height * frames))
+    draw = ImageDraw.Draw(image)
+    for frame in range(frames):
+        draw.rectangle((0, frame * height + base, width, (frame + 1) * height - 1), fill=body)
+    for index in range(count):
+        x = int((index + rng.uniform(0.15, 0.85)) * width / count)
+        rise = rng.randint(*tall)
+        radius = rng.randint(*cap)
+        thick = max(3, radius // 5)
+        lean = rng.randint(-6, 6)
+        dots = [
+            (rng.uniform(-0.7, 0.7), rng.uniform(0.25, 0.8), rng.randint(1, max(1, radius // 12)))
+            for _ in range(3 + radius // 14)
+        ]
+        for frame in range(frames):
+            lit = other if (frame + index) % 2 else glow
+            for shift in (-width, 0, width):
+                at = x + shift
+                foot = frame * height + base
+                top = foot - rise
+                draw.polygon(
+                    (
+                        (at - thick, foot),
+                        (at + lean - thick * 2 // 3, top),
+                        (at + lean + thick * 2 // 3, top),
+                        (at + thick, foot),
+                    ),
+                    fill=body,
+                )
+                draw.polygon(
+                    (
+                        (at + thick // 3, foot),
+                        (at + lean + thick // 4, top),
+                        (at + lean + thick * 2 // 3, top),
+                        (at + thick, foot),
+                    ),
+                    fill=shade,
+                )
+                middle = at + lean
+                bulge = radius * 6 // 10
+                draw.pieslice(
+                    (middle - radius, top - bulge, middle + radius, top + bulge),
+                    180,
+                    360,
+                    fill=body,
+                )
+                draw.line(((middle - radius + 3, top), (middle + radius - 3, top)), fill=lit)
+                draw.line(
+                    ((middle - radius + 8, top + 1), (middle + radius - 8, top + 1)), fill=shade
+                )
+                for along, up, size in dots:
+                    # Keep each spot inside the dome: lower spots may sit further out.
+                    reach = radius * (1.0 - up * up) ** 0.5 * 0.8
+                    cx = middle + int(along * reach)
+                    cy = top - int(up * bulge)
+                    draw.ellipse((cx - size, cy - size // 2, cx + size, cy + size // 2), fill=lit)
+    return image
+
+
+def mist(
+    seed: int, middle: int, deep: int, width: int = LAYER_WIDTH, height: int = NATIVE_H
+) -> Image.Image:
+    """Return a bank of mist: a dithered band about ``middle`` pixels down and ``deep`` pixels
+    thick, thicker in some places than others. Whole waves fit the width, so it wraps."""
+    rng = random.Random(seed)
+    colour = hex_rgb(MIST_COLOUR)
+    waves = [
+        (rng.randint(2, 3), rng.uniform(0.0, 6.28)),
+        (rng.randint(5, 7), rng.uniform(0.0, 6.28)),
+    ]
+    image = Image.new("RGBA", (width, height))
+    pixels = image.load()
+    assert pixels is not None
+    for x in range(width):
+        turn = 2.0 * math.pi * x / width
+        thick = 0.55 + 0.3 * math.sin(turn * waves[0][0] + waves[0][1])
+        thick += 0.15 * math.sin(turn * waves[1][0] + waves[1][1])
+        for y in range(max(0, middle - deep), min(height, middle + deep)):
+            fade = 1.0 - abs(y - middle) / deep
+            if fade * thick * 12 > BAYER_4[y % 4][x % 4] + 1:
+                pixels[x, y] = (*colour, 255)
+    return image
+
+
+def paint_grove(mood: Mood, seed: int) -> dict[str, Image.Image]:
+    """Glowcap Grove: three ranks of giant mushrooms fading into blue mist, the nearer ones
+    glowing."""
+    return {
+        "bg_0_sky.png": sky(mood),
+        "bg_1_far_grove.png": giant_mushrooms(FAR_GROVE, seed, 9, 262, (90, 180), (30, 58)),
+        "bg_2_mist.png": mist(seed + 1, 232, 54),
+        "bg_3_mid_grove.png": giant_mushrooms(
+            MID_GROVE, seed + 2, 6, 300, (120, 215), (42, 72), GROVE_FRAMES
+        ),
+        "bg_4_near_grove.png": giant_mushrooms(NEAR_GROVE, seed + 3, 5, 344, (40, 96), (26, 44)),
+    }
+
+
+PAINTERS["grove"] = paint_grove

@@ -1,0 +1,148 @@
+# Fern: a fern whose fronds sway (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "frond0a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.256, 0.045, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern"
+
+[[parts]]
+name = "frond0b"
+joint = "origin"
+shape = "rod"
+a = [0.256, 0.045, 0.360]
+b = [0.512, 0.090, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern"
+
+[[parts]]
+name = "frond1a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.126, 0.227, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern_dark"
+
+[[parts]]
+name = "frond1b"
+joint = "origin"
+shape = "rod"
+a = [0.126, 0.227, 0.360]
+b = [0.252, 0.455, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern_dark"
+
+[[parts]]
+name = "frond2a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.097, 0.241, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern"
+
+[[parts]]
+name = "frond2b"
+joint = "origin"
+shape = "rod"
+a = [-0.097, 0.241, 0.360]
+b = [-0.195, 0.482, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern"
+
+[[parts]]
+name = "frond3a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.249, 0.076, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern_dark"
+
+[[parts]]
+name = "frond3b"
+joint = "origin"
+shape = "rod"
+a = [-0.249, 0.076, 0.360]
+b = [-0.497, 0.152, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern_dark"
+
+[[parts]]
+name = "frond4a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.216, -0.145, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern"
+
+[[parts]]
+name = "frond4b"
+joint = "origin"
+shape = "rod"
+a = [-0.216, -0.145, 0.360]
+b = [-0.431, -0.291, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern"
+
+[[parts]]
+name = "frond5a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [-0.023, -0.259, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern_dark"
+
+[[parts]]
+name = "frond5b"
+joint = "origin"
+shape = "rod"
+a = [-0.023, -0.259, 0.360]
+b = [-0.045, -0.518, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern_dark"
+
+[[parts]]
+name = "frond6a"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.187, -0.181, 0.360]
+r1 = 0.050
+r2 = 0.045
+material = "fern"
+
+[[parts]]
+name = "frond6b"
+joint = "origin"
+shape = "rod"
+a = [0.187, -0.181, 0.360]
+b = [0.374, -0.361, 0.200]
+r1 = 0.045
+r2 = 0.012
+material = "fern"
+
+[[poses]]
+
+[[poses]]
+origin = [0.000, 4.000, 0.000]

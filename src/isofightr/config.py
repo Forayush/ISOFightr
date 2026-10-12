@@ -87,6 +87,7 @@ AMBIENT_KINDS: Final[tuple[str, ...]] = (
     "sand",
     "rain",
     "sparks",
+    "spores",
 )
 """What a stage's ``[ambient]`` table may drift across the screen (decision D-063)."""
 AMBIENT_MAX: Final[int] = 16

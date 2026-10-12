@@ -1,0 +1,67 @@
+# Lantern: a stalk bent over a glowing spore pod; it pulses (2 frames).
+loop = true
+fps = 1
+
+[[parts]]
+name = "stalk0"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.000]
+b = [0.000, 0.000, 0.700]
+r1 = 0.045
+r2 = 0.040
+material = "fern_dark"
+
+[[parts]]
+name = "stalk1"
+joint = "origin"
+shape = "rod"
+a = [0.000, 0.000, 0.700]
+b = [0.060, -0.060, 1.150]
+r1 = 0.039
+r2 = 0.034
+material = "fern_dark"
+
+[[parts]]
+name = "stalk2"
+joint = "origin"
+shape = "rod"
+a = [0.060, -0.060, 1.150]
+b = [0.200, -0.200, 1.300]
+r1 = 0.033
+r2 = 0.028
+material = "fern_dark"
+
+[[parts]]
+name = "stalk3"
+joint = "origin"
+shape = "rod"
+a = [0.200, -0.200, 1.300]
+b = [0.300, -0.300, 1.180]
+r1 = 0.027
+r2 = 0.022
+material = "fern_dark"
+
+[[smears]]
+name = "pod_hi"
+joint = "origin"
+shape = "ball"
+centre = [0.300, -0.300, 1.020]
+radius = 0.140
+scale = [1.000, 1.000, 1.250]
+material = "lamp"
+
+[[smears]]
+name = "pod_lo"
+joint = "origin"
+shape = "ball"
+centre = [0.300, -0.300, 1.020]
+radius = 0.120
+scale = [1.000, 1.000, 1.250]
+material = "lamp_dim"
+
+[[poses]]
+show = ["pod_hi"]
+
+[[poses]]
+show = ["pod_lo"]

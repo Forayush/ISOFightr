@@ -39,6 +39,7 @@ STAGES = (
     "frostpeak",
     "neon_circuit",
     "dune_bazaar",
+    "glowcap_grove",
 )
 
 

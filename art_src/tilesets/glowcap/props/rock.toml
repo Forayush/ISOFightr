@@ -1,0 +1,32 @@
+# Rock: a mossy stone.
+loop = true
+fps = 1
+
+[[parts]]
+name = "big"
+joint = "origin"
+shape = "ball"
+centre = [0.000, 0.000, 0.140]
+radius = 0.260
+scale = [1.100, 0.900, 0.750]
+material = "rock"
+
+[[parts]]
+name = "small"
+joint = "origin"
+shape = "ball"
+centre = [0.260, -0.120, 0.080]
+radius = 0.140
+scale = [1.000, 1.000, 0.800]
+material = "rock"
+
+[[parts]]
+name = "moss"
+joint = "origin"
+shape = "ball"
+centre = [-0.040, 0.020, 0.300]
+radius = 0.140
+scale = [1.200, 1.000, 0.450]
+material = "fern_dark"
+
+[[poses]]
