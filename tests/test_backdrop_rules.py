@@ -34,11 +34,8 @@ NOT_YET_REPAINTED = {
     "ember_forge",
     "final_plateau",
     "frostpeak",
-    "lily_pads",
     "neon_circuit",
-    "sky_ruins",
     "training_grid",
-    "twin_isles",
 }
 """Stages whose backdrops still break a rule: M15 group 2 repaints them in three batches and
 takes each off this list as it passes. Never add a stage here."""
@@ -163,3 +160,29 @@ def test_an_animated_layer_is_measured_on_one_frame() -> None:
     stars = next(layer for layer in stage.backgrounds if layer.frames > 1)
     report = next(each for each in check_stage(stage) if each.image == stars.image)
     assert report.cover < 0.05, "one frame's worth of stars over one frame's area"
+
+
+MAX_PARALLAX = 0.35
+
+
+@pytest.mark.parametrize("stage_id", sorted(set(list_stage_ids()) - NOT_YET_REPAINTED))
+def test_a_repainted_backdrop_moves_apart_from_the_stage(stage_id: str) -> None:
+    """Decision D-065: no layer follows the camera by more than 0.35, and at least two move by
+    themselves (they drift, or they are animated), so the backdrop never moves like the
+    stage."""
+    layers = load_stage(stage_id).backgrounds
+    assert all(layer.parallax <= MAX_PARALLAX for layer in layers)
+    assert sum(layer.scroll != 0.0 or layer.frames > 1 for layer in layers) >= 2
+
+
+def test_things_that_look_like_ground_keep_out_of_the_stages_columns() -> None:
+    from isofightr.render.backdrop import LAYER_SHIFT, LAYER_WIDTH, STAGE_COLUMNS, clear_of_stage
+
+    left, right = STAGE_COLUMNS
+    for x in range(0, LAYER_WIDTH, 7):
+        for half in (4, 18, 40):
+            moved = clear_of_stage(x, half)
+            screen = (moved + LAYER_SHIFT) % LAYER_WIDTH
+            assert screen + half <= left or screen - half >= right, (x, half)
+    far_off = (700 - LAYER_SHIFT) % LAYER_WIDTH
+    assert clear_of_stage(far_off, 10) == far_off, "already clear: left where it was"

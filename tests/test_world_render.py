@@ -550,7 +550,7 @@ def test_keyboard_presets_do_not_collide(window: Any) -> None:
 def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
     view = make_view(window, load_stage("sky_ruins"))
     renderer = view.renderer
-    assert [layer.parallax for layer, _, _ in renderer._layers] == [0.0, 0.06, 0.1, 0.14, 0.2, 0.4]
+    assert [layer.parallax for layer, _, _ in renderer._layers] == [0.0, 0.06, 0.1, 0.14, 0.2, 0.35]
     renderer._tick = 0  # the layers' own drift is tested with the stage decor
     reference = tuple(round(value) for value in renderer._backdrop_reference)
     renderer._place_backdrop(reference)
@@ -561,7 +561,7 @@ def test_backdrop_layers_scroll_by_their_parallax(window: Any) -> None:
     moved = [
         round(start - end) % width for start, end, width in zip(before, after, widths, strict=True)
     ]
-    assert moved == [0, 6, 10, 14, 20, 40], "nearer layers move further, the sky not at all"
+    assert moved == [0, 6, 10, 14, 20, 35], "nearer layers move further, the sky not at all"
     renderer._place_backdrop((reference[0] + 100_000, reference[1]))
     for _, _, copies in renderer._layers:
         lefts = [sprite.left for sprite in copies]

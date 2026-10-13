@@ -81,6 +81,7 @@ parallax = 0.03
 [[background]]
 image = "bg_3_glints.png"    # the light on the ripples: three frames
 parallax = 0.0
+scroll = 0.02
 frames = 3
 frame_ticks = 16
 

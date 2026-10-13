@@ -46,11 +46,13 @@ class Mood:
 
 DAY: Final[Mood] = Mood(
     sky=("4d9be6", "8fd3ff", "c7dcd0"),
-    cloud=("ffffff", "c7dcd0", "9babb2"),
-    island_top="b2ba90",
-    island_side=("c7dcd0", "9babb2"),
+    cloud=("ffffff", "8fd3ff", "eaaded"),
+    island_top="eaaded",
+    island_side=("a884f3", "905ea9"),
     ruin="ffffff",
 )
+"""A clear day (Sky Ruins). Since D-065 nothing behind the stage is in the marble's own
+greys: the clouds shade into the sky's blue and a far-off violet."""
 SUNSET: Final[Mood] = Mood(
     sky=("6b3e75", "cf657f", "f68181", "fbb954"),
     cloud=("fca790", "f68181", "cf657f"),
@@ -60,9 +62,9 @@ SUNSET: Final[Mood] = Mood(
 )
 GOLDEN: Final[Mood] = Mood(
     sky=("4d9be6", "8fd3ff", "fdcbb0", "fbb954"),
-    cloud=("ffffff", "fdcbb0", "fca790"),
-    island_top="a2a947",
-    island_side=("fbb954", "cd683d"),
+    cloud=("ffffff", "eaaded", "8fd3ff"),
+    island_top="b2ba90",
+    island_side=("9babb2", "92a984"),
     ruin="ffffff",
 )
 """Golden hour: a blue sky warming to peach and gold at the horizon (Twin Isles)."""
@@ -227,6 +229,27 @@ def clouds(
     return image
 
 
+STAGE_COLUMNS: Final[tuple[int, int]] = (110, 530)
+"""The screen columns the stage stands in with the camera at rest. Things in a backdrop that
+look like ground (far islands, lily pads) keep out of them (decision D-065), so none is ever
+drawn against the stage's edge as if it were part of it."""
+LAYER_SHIFT: Final[int] = NATIVE_W // 2
+"""A layer's column ``x`` is drawn at screen column ``(x + LAYER_SHIFT) % width`` with the
+camera at rest."""
+
+
+def clear_of_stage(x: int, half: int, width: int = LAYER_WIDTH) -> int:
+    """Return ``x`` moved, if need be, so that something ``half`` pixels wide either side of
+    it is not drawn in the stage's columns with the camera at rest."""
+    left, right = STAGE_COLUMNS
+    screen = (x + LAYER_SHIFT) % width
+    if screen + half <= left or screen - half >= right:
+        return x
+    nearer_left = screen - left < right - screen
+    target = left - half - 1 if nearer_left else right + half + 1
+    return (target - LAYER_SHIFT) % width
+
+
 def islands(
     mood: Mood,
     seed: int,
@@ -235,9 +258,11 @@ def islands(
     sizes: tuple[int, int],
     width: int = LAYER_WIDTH,
     height: int = NATIVE_H,
+    clear: bool = False,
 ) -> Image.Image:
     """Return a layer of small, hazy floating islands with rocky undersides; some carry
-    ruined pillars."""
+    ruined pillars. With ``clear`` none of them stands in the stage's columns
+    (:func:`clear_of_stage`): a stage's backdrop asks for that, the menus' does not."""
     rng = random.Random(seed)
     image = Image.new("RGBA", (width, height))
     draw = ImageDraw.Draw(image)
@@ -248,6 +273,8 @@ def islands(
         cx = int((index + rng.uniform(0.2, 0.8)) * width / count)
         cy = rng.randint(*band)
         half = rng.randint(*sizes)
+        if clear:
+            cx = clear_of_stage(cx, half, width)
         quarter = half // 2
         lip = max(2, half // 6)
         # The rocky underside: a jagged outline from the left corner to the right one.
@@ -413,7 +440,7 @@ def paint_cloud_sea(mood: Mood, seed: int) -> dict[str, Image.Image]:
         "bg_0_sky.png": sunny_sky(mood),
         "bg_1_far_clouds.png": clouds(mood, seed, 7, (70, 150), (8, 13)),
         "bg_2_birds.png": birds(seed + 2),
-        "bg_3_islands.png": islands(mood, seed + 1, 6, (120, 205), (10, 20)),
+        "bg_3_islands.png": islands(mood, seed + 1, 6, (120, 205), (10, 20), clear=True),
         "bg_4_far_bank.png": cloud_bank(mood, seed + 3, 236, 14, 22),
         "bg_5_near_bank.png": cloud_bank(mood, seed + 4, 286, 18, 34),
     }
@@ -425,9 +452,10 @@ PAINTERS["cloud_sea"] = paint_cloud_sea
 # --- meadow hills (Twin Isles) -------------------------------------------------------------
 
 LOW_SUN: Final[tuple[int, int]] = (432, 150)
-FAR_HILLS: Final[tuple[str, str]] = ("92a984", "547e64")
-NEAR_HILLS: Final[tuple[str, str]] = ("a2a947", "676633")
-"""A range of hills: the colour of its sunlit crest, then of its slopes."""
+FAR_HILLS: Final[tuple[str, str]] = ("eaaded", "b2ba90")
+NEAR_HILLS: Final[tuple[str, str]] = ("b2ba90", "9babb2")
+"""A range of hills: the colour of its sunlit crest, then of its slopes. Pale and greyed by
+distance (decision D-065): none of the meadow's own greens."""
 
 
 def hills(
@@ -470,9 +498,10 @@ def paint_meadow(mood: Mood, seed: int) -> dict[str, Image.Image]:
     return {
         "bg_0_sky.png": sunny_sky(mood, LOW_SUN),
         "bg_1_far_clouds.png": clouds(mood, seed, 7, (60, 150), (9, 15)),
-        "bg_2_islands.png": islands(mood, seed + 1, 5, (110, 190), (10, 18)),
-        "bg_3_far_hills.png": hills(FAR_HILLS, seed + 2, 262, 12),
-        "bg_4_near_hills.png": hills(NEAR_HILLS, seed + 3, 300, 16),
+        "bg_2_birds.png": birds(seed + 4),
+        "bg_3_islands.png": islands(mood, seed + 1, 5, (110, 190), (10, 18), clear=True),
+        "bg_4_far_hills.png": hills(FAR_HILLS, seed + 2, 262, 12),
+        "bg_5_near_hills.png": hills(NEAR_HILLS, seed + 3, 300, 16),
     }
 
 
@@ -490,12 +519,12 @@ MOON_COLOURS: Final[tuple[str, str, str]] = ("ffffff", "fdcbb0", "eaaded")
 """The moon's face, its seas, and its halo."""
 STAR_COLOURS: Final[tuple[str, str]] = ("ffffff", "eaaded")
 STARS: Final[int] = 46
-TREE_COLOURS: Final[tuple[str, str]] = ("484a77", "323353")
+TREE_COLOURS: Final[tuple[str, str]] = ("a24b6f", "905ea9")
 """The far shore's trees: their tops against the sky, then the dark under them."""
-PAD_COLOURS: Final[tuple[str, str, str]] = ("239063", "165a4c", "0b5e65")
+PAD_COLOURS: Final[tuple[str, str, str]] = ("547e64", "547e64", "374e4a")
 """A far lily pad: its lit rim, its leaf, its shadow on the water."""
-FLOWER_COLOURS: Final[tuple[str, str]] = ("ffffff", "ed8099")
-REED_COLOURS: Final[tuple[str, str]] = ("2e222f", "3e3546")
+FLOWER_COLOURS: Final[tuple[str, str]] = ("fdcbb0", "cf657f")
+REED_COLOURS: Final[tuple[str, str]] = ("2e222f", "45293f")
 GLINT_COLOURS: Final[tuple[str, str]] = ("fdcbb0", "fca790")
 GLINT_FRAMES: Final[int] = 3
 GLINTS: Final[int] = 90
@@ -594,6 +623,7 @@ def far_pads(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Ima
             x = rng.randrange(width)
             wide = int(size * rng.uniform(0.8, 1.3))
             tall = max(2, wide * 3 // 8)
+            x = clear_of_stage(x, wide)
             for shift in (-width, 0, width):
                 at = x + shift
                 draw.ellipse((at - wide, y - tall + 2, at + wide, y + tall + 2), fill=shade)

@@ -77,16 +77,23 @@ parallax = 0.06
 scroll = 0.02
 
 [[background]]
-image = "bg_2_islands.png"
+image = "bg_2_birds.png"     # a far flock: two frames, drifting
+parallax = 0.1
+scroll = 0.09
+frames = 2
+frame_ticks = 13
+
+[[background]]
+image = "bg_3_islands.png"
 parallax = 0.12
 
 [[background]]
-image = "bg_3_far_hills.png"
+image = "bg_4_far_hills.png"
 parallax = 0.2
 
 [[background]]
-image = "bg_4_near_hills.png"
-parallax = 0.38
+image = "bg_5_near_hills.png"
+parallax = 0.35
 
 # Looks only (decision D-063): none of this collides or changes how the stage plays.
 [underside]

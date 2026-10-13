@@ -201,7 +201,10 @@ def test_off_draws_the_world_as_it_was(window: Any) -> None:
     assert ghost.texture is found[Part.BODY].texture, "the same picture, faint (D-025)"
 
     standard = make_view(window)
-    assert show(standard, ON_GROUND).tobytes() == standing.tobytes()
+    with_halo = show(standard, ON_GROUND)
+    assert with_halo.tobytes() != standing.tobytes(), "standard also rims the island"
+    standard.renderer._separation.clear()
+    assert show(standard, ON_GROUND).tobytes() == standing.tobytes(), "and nothing else differs"
 
 
 def test_the_training_menu_changes_the_depth_aids(window: Any) -> None:

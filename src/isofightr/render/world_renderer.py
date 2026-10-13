@@ -55,6 +55,13 @@ from isofightr.render.props import (
     ground_props,
     placed_props,
 )
+from isofightr.render.separation import (
+    HALO_REACH,
+    WATER_STAGES,
+    build_cast_shadow,
+    build_halo,
+    halo_colours,
+)
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
 from isofightr.render.stage_art import DECK_TILE, Edges, StageArt, cell_edges, tile_variant
@@ -256,6 +263,11 @@ class WorldRenderer:
         self._backdrop_reference = project(columns / 2, rows / 2, 0.0)
         """The camera centre at which every backdrop layer sits centred on the screen."""
 
+        # What keeps the stage apart from its backdrop (decision D-065): a halo round the
+        # island and, over water, its shadow. World-anchored, drawn before the world.
+        self._separation: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
+        self._build_separation()
+
     # --- per-frame -------------------------------------------------------------------------
 
     def sync(
@@ -396,6 +408,8 @@ class WorldRenderer:
         self.camera.position = camera_centre
         self.camera.zoom = zoom
         with self.camera.activate():
+            if self.depth_aids != DEPTH_OFF:
+                self._separation.draw(pixelated=True)
             self.sprites.draw(pixelated=True)
             self._covered.draw(pixelated=True)
             if OCCLUDED_FIGHTER_ALPHA > 0:
@@ -404,6 +418,55 @@ class WorldRenderer:
                 self._motes_front.draw(pixelated=True)
             for overlay in overlays:
                 overlay.draw()
+
+    # --- separation from the backdrop --------------------------------------------------------
+
+    def stage_picture(self) -> tuple[Image.Image, tuple[int, int]] | None:
+        """Return a picture of the stage's own geometry (cells, undersides, resting decks),
+        drawn in order, and the world pixel of its top left corner; ``None`` for a stage
+        with nothing solid."""
+        entries = [entry for entry in self.sorter.draw_order([]) if entry.is_static]
+        sprites = [self._static_sprites[entry.index] for entry in entries]
+        if not sprites:
+            return None
+        left = min(round(sprite.center_x - sprite.texture.width / 2) for sprite in sprites)
+        top = max(round(sprite.center_y + sprite.texture.height / 2) for sprite in sprites)
+        right = max(round(sprite.center_x + sprite.texture.width / 2) for sprite in sprites)
+        bottom = min(round(sprite.center_y - sprite.texture.height / 2) for sprite in sprites)
+        picture = Image.new("RGBA", (right - left, top - bottom))
+        for sprite in sprites:
+            image = sprite.texture.image
+            at = (
+                round(sprite.center_x - image.width / 2) - left,
+                top - round(sprite.center_y + image.height / 2),
+            )
+            picture.alpha_composite(image, at)
+        return picture, (left, top)
+
+    def _build_separation(self) -> None:
+        """Make the halo (and, over water, the cast shadow) from the stage and its sky."""
+        found = self.stage_picture()
+        if found is None or not self._layers:
+            return
+        picture, (left, top) = found
+        light, dark = halo_colours(self._layers[0][1][0].image)
+        if self.stage.id in WATER_STAGES:
+            shadow, (shadow_left, shadow_top) = build_cast_shadow(self.stage, dark)
+            self._separation.append(
+                arcade.Sprite(
+                    arcade.Texture(shadow),
+                    center_x=shadow_left + shadow.width / 2,
+                    center_y=shadow_top - shadow.height / 2,
+                )
+            )
+        halo = build_halo(picture, light, dark)
+        self._separation.append(
+            arcade.Sprite(
+                arcade.Texture(halo),
+                center_x=left - HALO_REACH + halo.width / 2,
+                center_y=top + HALO_REACH - halo.height / 2,
+            )
+        )
 
     # --- statics ---------------------------------------------------------------------------
 

@@ -86,7 +86,7 @@ scroll = 0.03
 
 [[background]]
 image = "bg_5_near_bank.png"
-parallax = 0.4
+parallax = 0.35
 scroll = 0.07
 
 # Looks only (decision D-063): none of this collides or changes how the stage plays.
