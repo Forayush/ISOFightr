@@ -30,7 +30,7 @@ Pure Python plus Pillow (no ``arcade``), so the report runs in a test without a 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 from pathlib import Path
 from typing import Final
@@ -59,6 +59,11 @@ TILE_TOP: Final[tuple[int, int]] = (32, 16)
 SKY_WINDOW: Final[tuple[int, int, int, int]] = (160, 80, 480, 280)
 """The part of the sky picture the island stands in front of (left, top, right, bottom)."""
 RULES: Final[tuple[str, ...]] = ("colours", "contrast", "haze")
+EXCUSED: Final[dict[str, tuple[str, ...]]] = {"frostpeak": ("colours",)}
+"""Rules a stage is excused from, with the reason in the Decision Log (D-065). Frostpeak:
+every pale blue and grey of the palette is its own snow and ice, so mountains and cloud
+behind it cannot avoid them and still look like mountains and cloud. It still has to pass
+contrast and haze."""
 Table = dict[Rgb, int]
 
 
@@ -179,6 +184,8 @@ class LayerReport:
     haze_limit: float
     failed: tuple[str, ...]
     """The rules it breaks (names from :data:`RULES`)."""
+    excused: tuple[str, ...] = ()
+    """Rules it breaks that its stage is excused from (:data:`EXCUSED`)."""
 
     @property
     def passed(self) -> bool:
@@ -237,9 +244,18 @@ def check_stage(
             whole = picture.convert("RGBA")
         pictures.append(whole.crop((0, 0, whole.width, whole.height // layer.frames)))
     haze = haze_colour(pictures[0])
-    return [
+    excused = EXCUSED.get(stage.id, ())
+    reports = [
         check_layer(picture, layer.image, layer.parallax, playfield, haze, sky=index == 0)
         for index, (layer, picture) in enumerate(zip(stage.backgrounds, pictures, strict=True))
+    ]
+    return [
+        replace(
+            each,
+            failed=tuple(rule for rule in each.failed if rule not in excused),
+            excused=tuple(rule for rule in each.failed if rule in excused),
+        )
+        for each in reports
     ]
 
 
@@ -255,7 +271,7 @@ def report_lines(reports: list[LayerReport]) -> list[str]:
         if each.sky:
             verdict = "sky"
         elif each.passed:
-            verdict = "pass"
+            verdict = "pass" + (f" (excused: {', '.join(each.excused)})" if each.excused else "")
         else:
             verdict = "FAIL " + ", ".join(each.failed)
         measures = f"shared {each.shared:4.0%}  "

@@ -78,10 +78,10 @@ DUSK: Final[Mood] = Mood(
 """Dusk: indigo overhead, the last orange along the horizon (Lily Pads)."""
 NIGHT: Final[Mood] = Mood(
     sky=("2e222f", "323353", "323353", "484a77"),
-    cloud=("625565", "3e3546", "2e222f"),
+    cloud=("625565", "45293f", "2e222f"),
     island_top="484a77",
-    island_side=("3e3546", "2e222f"),
-    ruin="7f708a",
+    island_side=("45293f", "2e222f"),
+    ruin="625565",
 )
 """Night: near black overhead, a deep blue toward the horizon (Final Plateau)."""
 VOID: Final[Mood] = Mood(
@@ -102,7 +102,7 @@ EMBER: Final[Mood] = Mood(
 """Smoke lit from below: black overhead, red and orange toward the ground (Ember Forge)."""
 DAWN: Final[Mood] = Mood(
     sky=("4d9be6", "8fd3ff", "c7dcd0", "fdcbb0"),
-    cloud=("ffffff", "fdcbb0", "c7dcd0"),
+    cloud=("ffffff", "fdcbb0", "eaaded"),
     island_top="ffffff",
     island_side=("9babb2", "7f708a"),
     ruin="ffffff",
@@ -833,10 +833,10 @@ PAINTERS["aurora"] = paint_aurora
 # --- the holo-room (Training Grid) ---------------------------------------------------------
 
 LATTICE_FAR: Final[tuple[str, int]] = ("3e3546", 160)
-LATTICE_NEAR: Final[tuple[str, int]] = ("484a77", 320)
+LATTICE_NEAR: Final[tuple[str, int]] = ("625565", 320)
 """A lattice of the room's walls: the colour of its lines and the width of one diamond in
 pixels (it must divide the layer's width, so the layer wraps)."""
-PANEL_COLOURS: Final[tuple[str, str, str]] = ("4d65b4", "484a77", "4d9be6")
+PANEL_COLOURS: Final[tuple[str, str, str]] = ("0b5e65", "374e4a", "0b8a8f")
 """Read-outs floating in the room: their frames, their dim bars, their lit bars."""
 PANEL_FRAMES: Final[int] = 2
 PANELS: Final[int] = 14
@@ -902,11 +902,14 @@ PAINTERS["holo"] = paint_holo
 
 # --- the volcano (Ember Forge) -------------------------------------------------------------
 
-CONE_COLOURS: Final[tuple[str, str, str]] = ("6e2727", "45293f", "2e222f")
+CONE_COLOURS: Final[tuple[str, str, str]] = ("7a3045", "6e2727", "45293f")
 """The volcano: the side its crater lights, its flank, its far side."""
 LAVA_COLOURS: Final[tuple[str, str, str]] = ("fbff86", "f79617", "ea4f36")
 """Molten rock: white-hot, flowing, cooling."""
-RIDGE_COLOURS: Final[tuple[str, str]] = ("45293f", "2e222f")
+RIDGE_COLOURS: Final[tuple[str, str]] = ("7a3045", "6e2727")
+PLAIN_LAVA: Final[tuple[str, str, str]] = ("f57d4a", "b33831", "ae2334")
+"""The far river of lava: its few bright glints, its flow, its cooler near bank. Deep reds,
+not the forge's own orange and yellow (decision D-065)."""
 LAVA_FRAMES: Final[int] = 2
 CRATER: Final[tuple[int, int]] = (184, 96)
 """Where the crater's lip is on the volcano's layer."""
@@ -1011,7 +1014,7 @@ def lava_plain(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> I
     jagged ridge of black rock with a river of lava beyond it, whose glints move. It wraps."""
     rng = random.Random(seed)
     rock, shade = (hex_rgb(value) for value in RIDGE_COLOURS)
-    hot, flow, cool = (hex_rgb(value) for value in LAVA_COLOURS)
+    hot, flow, cool = (hex_rgb(value) for value in PLAIN_LAVA)
     image = Image.new("RGBA", (width, height * LAVA_FRAMES))
     draw = ImageDraw.Draw(image)
     river = 296
@@ -1024,6 +1027,7 @@ def lava_plain(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> I
     glints = [
         (rng.randrange(width), river + rng.randint(3, 20), rng.randint(4, 12)) for _ in range(60)
     ]
+    # Every other glint is the bright one; the rest are the near bank's colour.
     for frame in range(LAVA_FRAMES):
         top = frame * height
         draw.rectangle((0, top + river, width, top + river + 26), fill=flow)
@@ -1065,9 +1069,42 @@ PAINTERS["volcano"] = paint_volcano
 # --- snowy peaks at dawn (Frostpeak) -------------------------------------------------------
 
 DAWN_SUN: Final[tuple[int, int]] = (150, 176)
-FAR_SNOW_PEAKS: Final[tuple[str, str, str]] = ("ffffff", "c7dcd0", "9babb2")
-NEAR_SNOW_PEAKS: Final[tuple[str, str, str]] = ("ffffff", "9babb2", "7f708a")
-"""A range of snowy mountains: their sunlit snow, their rock, their rock in shadow."""
+Blend = tuple[str, str, int]
+"""Two colours and how many sixteenths of the first: an ordered dither of them."""
+FAR_SNOW_PEAKS: Final[tuple[str, str, str]] = ("ffffff", "c7dcd0", "8fd3ff")
+"""The far range at dawn: its snow, its lit flank, its shaded one, which is the sky's own
+blue: distance has all but swallowed it."""
+NEAR_SNOW_PEAKS: Final[tuple[str, str, Blend]] = ("ffffff", "8fd3ff", ("8fd3ff", "9babb2", 8))
+"""The nearer range: a little bluer and, in shadow, a blend of the sky's blue and a grey.
+
+**Frostpeak is the one stage excused from the colours rule** (``backdrop_rules.EXCUSED``):
+every pale blue and grey of the palette is its own snow and ice, and mountains blended from
+the two pale colours that are left (aqua and lavender) came out pink and mint, which was
+worse. So its peaks are in the snow's colours, but nearer the sky's colour than before and
+flatter (decision D-065)."""
+VALLEY_CLOUD: Final[tuple[str, str, str]] = ("ffffff", "c7dcd0", "8fd3ff")
+_FIRST: Final[str] = "010203"
+"""A stand-in a picture is drawn in before that tone is replaced by a blend."""
+
+
+def blended(image: Image.Image, tones: dict[str, Blend]) -> Image.Image:
+    """Return a picture with each stand-in colour replaced by its blend: an ordered dither of
+    two palette colours, so no new colour appears."""
+    wanted = {
+        hex_rgb(stand_in): (hex_rgb(first), hex_rgb(second), share)
+        for stand_in, (first, second, share) in tones.items()
+    }
+    result = image.copy()
+    pixels = result.load()
+    assert pixels is not None
+    for y in range(result.height):
+        for x in range(result.width):
+            red, green, blue, alpha = pixels[x, y]
+            found = wanted.get((red, green, blue))
+            if found is not None and alpha:
+                first, second, share = found
+                pixels[x, y] = (*(first if BAYER_4[y % 4][x % 4] < share else second), alpha)
+    return result
 
 
 def paint_peaks(mood: Mood, seed: int) -> dict[str, Image.Image]:
@@ -1077,8 +1114,17 @@ def paint_peaks(mood: Mood, seed: int) -> dict[str, Image.Image]:
         "bg_0_sky.png": sunny_sky(mood, DAWN_SUN),
         "bg_1_far_clouds.png": clouds(mood, seed, 6, (50, 130), (10, 16)),
         "bg_2_far_peaks.png": peaks(seed + 1, 150, 90, FAR_SNOW_PEAKS),
-        "bg_3_near_peaks.png": peaks(seed + 2, 200, 100, NEAR_SNOW_PEAKS),
-        "bg_4_bank.png": cloud_bank(mood, seed + 3, 304, 12, 30),
+        "bg_3_near_peaks.png": blended(
+            peaks(seed + 2, 200, 100, (NEAR_SNOW_PEAKS[0], NEAR_SNOW_PEAKS[1], _FIRST)),
+            {_FIRST: NEAR_SNOW_PEAKS[2]},
+        ),
+        "bg_4_bank.png": cloud_bank(
+            Mood(mood.sky, VALLEY_CLOUD, mood.island_top, mood.island_side, mood.ruin),
+            seed + 3,
+            304,
+            12,
+            30,
+        ),
     }
 
 

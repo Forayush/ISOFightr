@@ -31,11 +31,7 @@ from isofightr.data.stage_loader import list_stage_ids, load_stage
 
 NOT_YET_REPAINTED = {
     "dune_bazaar",
-    "ember_forge",
-    "final_plateau",
-    "frostpeak",
     "neon_circuit",
-    "training_grid",
 }
 """Stages whose backdrops still break a rule: M15 group 2 repaints them in three batches and
 takes each off this list as it passes. Never add a stage here."""
@@ -186,3 +182,30 @@ def test_things_that_look_like_ground_keep_out_of_the_stages_columns() -> None:
             assert screen + half <= left or screen - half >= right, (x, half)
     far_off = (700 - LAYER_SHIFT) % LAYER_WIDTH
     assert clear_of_stage(far_off, 10) == far_off, "already clear: left where it was"
+
+
+def test_frostpeak_is_excused_from_the_colours_rule_and_from_nothing_else() -> None:
+    """Every pale blue and grey of the palette is Frostpeak's own snow (decision D-065), so
+    its mountains may share them; they still have to be flat and near the sky's colour."""
+    from isofightr.data.backdrop_rules import EXCUSED
+
+    assert EXCUSED == {"frostpeak": ("colours",)}
+    reports = check_stage(load_stage("frostpeak"))
+    peaks = [each for each in reports if "peaks" in each.image]
+    assert len(peaks) == 2 and all(each.excused == ("colours",) for each in peaks)
+    assert all(each.passed and each.shared > 0.9 for each in peaks)
+    assert all(each.contrast <= MAX_CONTRAST and each.haze <= each.haze_limit for each in peaks)
+    assert "excused: colours" in "\n".join(report_lines(reports))
+    assert not any(each.excused for each in check_stage(load_stage("sky_ruins")))
+
+
+def test_a_blend_is_an_ordered_dither_of_two_palette_colours() -> None:
+    from isofightr.render.backdrop import blended
+
+    flat = picture(((1, 2, 3), 8), ((9, 9, 9), 8), size=16)
+    mixed = blended(flat, {"010203": ("8fd3ff", "9babb2", 8)})
+    top = colour_table(mixed.crop((0, 0, 16, 8)))
+    assert top == {(0x8F, 0xD3, 0xFF): 64, (0x9B, 0xAB, 0xB2): 64}, "half and half"
+    assert colour_table(mixed.crop((0, 8, 16, 16))) == {(9, 9, 9): 128}, "the rest untouched"
+    mostly = blended(flat, {"010203": ("8fd3ff", "9babb2", 12)})
+    assert colour_table(mostly)[(0x8F, 0xD3, 0xFF)] == 96

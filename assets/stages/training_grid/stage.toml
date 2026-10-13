@@ -49,6 +49,7 @@ parallax = 0.0
 [[background]]
 image = "bg_1_far_lattice.png"
 parallax = 0.06
+scroll = 0.01
 
 [[background]]
 image = "bg_2_readouts.png"  # two frames: a bar of each read-out moves
