@@ -85,21 +85,26 @@ parallax = 0.04
 scroll = 0.03
 
 [[background]]
-image = "bg_2_volcano.png"   # two frames: beads of lava slide down the cone
+image = "bg_2_volcano.png"   # two frames: beads of lava slide down the cone to the lake
 parallax = 0.0
 frames = 2
 frame_ticks = 18
 
 [[background]]
 image = "bg_3_near_smoke.png"
-parallax = 0.1
+parallax = 0.06
 scroll = 0.05
 
 [[background]]
-image = "bg_4_plain.png"     # two frames: the river's glints move
-parallax = 0.25
+image = "bg_4_lake.png"      # crust drifting on the lake; two frames: its glints move
+parallax = 0.12
+scroll = 0.02
 frames = 2
 frame_ticks = 14
+
+[[background]]
+image = "bg_5_rim.png"       # the caldera's near rim
+parallax = 0.3
 
 # Looks only (decision D-063): none of this collides or changes how the stage plays.
 [underside]

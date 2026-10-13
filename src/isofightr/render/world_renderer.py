@@ -57,10 +57,13 @@ from isofightr.render.props import (
 )
 from isofightr.render.separation import (
     HALO_REACH,
+    POURS,
     WATER_STAGES,
     build_cast_shadow,
     build_halo,
+    build_pour,
     halo_colours,
+    surface_level,
 )
 from isofightr.render.shadows import FULL_MASK, apply_mask, shadow_mask
 from isofightr.render.sprite_bank import SpriteBank, Tint
@@ -470,6 +473,22 @@ class WorldRenderer:
                     center_y=shadow_top - shadow.height / 2,
                 )
             )
+        pouring = POURS.get(self.stage.id)
+        for prop in self.props:
+            # What pours off the island is carried on down to the surface below it.
+            if prop.art.name != pouring:
+                continue
+            land_x, land_y = project(prop.x, prop.y, surface_level(self.stage))
+            length = round(prop.rect.bottom - land_y)
+            if length > 0:
+                pour = build_pour(length)
+                self._separation.append(
+                    arcade.Sprite(
+                        arcade.Texture(pour),
+                        center_x=snap(land_x) + (pour.width % 2) / 2,
+                        center_y=snap(land_y) + length - pour.height / 2,
+                    )
+                )
         halo = build_halo(picture, light, dark)
         self._separation.append(
             arcade.Sprite(

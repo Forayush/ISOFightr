@@ -58,4 +58,24 @@ def test_the_cast_shadow_is_the_footprint_on_the_water_below() -> None:
     )
     assert top < highest, "below the stage's lowest point on the screen"
     assert left < 0 < left + shadow.width
-    assert {"lily_pads", "storm_galleon"} == WATER_STAGES
+    assert {"lily_pads", "storm_galleon", "ember_forge"} == WATER_STAGES
+
+
+def test_a_pour_is_carried_down_to_a_ring_on_the_surface_below() -> None:
+    """Ember Forge: the lava that runs off the forge's corner reaches the lake under it, so
+    the island is joined to what lies below."""
+    from isofightr.render.separation import POUR_COLOURS, POURS, SPLASH, build_pour, surface_level
+    from isofightr.render.underside import lowest_point
+
+    pour = build_pour(40)
+    assert pour.size == (SPLASH[0], 40 + SPLASH[1] // 2)
+    colours = {pixel[:3] for pixel in pour.getdata() if pixel[3]}
+    assert colours == set(POUR_COLOURS), "the forge's own lava colours"
+    middle = SPLASH[0] // 2
+    assert all(pour.getpixel((middle, y))[3] == 255 for y in range(40)), "an unbroken fall"
+    assert pour.getpixel((0, 5))[3] == 0, "thin: nothing beside it above the ring"
+    assert pour.getpixel((1, 40))[3] == 255 or pour.getpixel((0, 40))[3] == 255, "the ring"
+    forge = load_stage("ember_forge")
+    assert POURS == {"ember_forge": "lavafall"}
+    assert any(prop.sprite == "lavafall" for prop in forge.props)
+    assert surface_level(forge) == lowest_point(forge) - 1.0

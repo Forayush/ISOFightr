@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from isofightr.config import TILE_H, TILE_W
 from isofightr.data.backdrop_rules import colour_table, oklab
@@ -34,11 +34,29 @@ HALO_MIN_SHARE: Final[float] = 0.01
 """A sky colour must cover this much of the sky to be one of the halo's two."""
 DARK_EDGE: Final[float] = 0.55
 """An edge of the island darker than this (OKLab lightness) gets the light rim."""
-SHADOW_DROP: Final[float] = 0.75
-"""How far below the island's lowest point the water lies that its shadow falls on (units)."""
-WATER_STAGES: Final[frozenset[str]] = frozenset({"lily_pads", "storm_galleon"})
-"""The stages that float over a surface a shadow can fall on. Over open sky a shadow would
-have nothing to lie on, and would slide against whatever cloud drifted under it."""
+SURFACE_BELOW: Final[dict[str, float]] = {
+    "lily_pads": 0.75,
+    "storm_galleon": 0.75,
+    "ember_forge": 1.0,
+}
+"""The stages that hang over a surface a shadow can fall on (a pond, the sea, a lake of
+lava), and how far below the island's lowest point that surface lies, in units. Over open
+sky a shadow would have nothing to lie on, and would slide against whatever cloud drifted
+under it."""
+POURS: Final[dict[str, str]] = {"ember_forge": "lavafall"}
+"""Stages where something pours off the island, by the prop that pours: it is carried on
+down to the surface below, so the island is joined to what lies under it."""
+POUR_COLOURS: Final[tuple[Rgb, Rgb, Rgb]] = (
+    (0xFB, 0xFF, 0x86),
+    (0xF7, 0x96, 0x17),
+    (0xEA, 0x4F, 0x36),
+)
+"""A pour of lava: its white-hot core, its flow, its cooling edge (the forge's own lava)."""
+POUR_WIDTH: Final[int] = 5
+SPLASH: Final[tuple[int, int]] = (26, 12)
+"""The ring where a pour meets the surface: its width and height in pixels."""
+WATER_STAGES: Final[frozenset[str]] = frozenset(SURFACE_BELOW)
+"""The stages with a surface below them (the name is from when both were water)."""
 
 
 def halo_colours(sky: Image.Image) -> tuple[Rgb, Rgb]:
@@ -94,11 +112,36 @@ def build_halo(picture: Image.Image, light: Rgb, dark: Rgb, reach: int = HALO_RE
     return halo
 
 
+def surface_level(stage: Stage) -> float:
+    """Return the height of the surface below a stage (its pond, sea or lake)."""
+    return lowest_point(stage) - SURFACE_BELOW.get(stage.id, 0.75)
+
+
+def build_pour(length: int) -> Image.Image:
+    """Return a pour carried on down to the surface: a thin fall ``length`` pixels long with
+    a ring where it lands (the ring's middle is the picture's bottom middle, less half the
+    ring's height)."""
+    hot, flow, cool = POUR_COLOURS
+    wide, tall = SPLASH
+    image = Image.new("RGBA", (wide, length + tall // 2))
+    draw = ImageDraw.Draw(image)
+    middle = wide // 2
+    draw.ellipse((0, length - tall // 2, wide - 1, length + tall // 2 - 1), outline=cool)
+    draw.ellipse((5, length - tall // 4, wide - 6, length + tall // 4 - 1), fill=flow, outline=flow)
+    draw.ellipse((9, length - 2, wide - 10, length + 1), fill=hot)
+    half = POUR_WIDTH // 2
+    draw.rectangle((middle - half, 0, middle + half, length), fill=cool)
+    draw.rectangle((middle - half + 1, 0, middle + half - 1, length), fill=flow)
+    for y in range(0, length, 5):
+        draw.line(((middle, y), (middle, y + 2)), fill=hot)
+    return image
+
+
 def build_cast_shadow(stage: Stage, colour: Rgb) -> tuple[Image.Image, tuple[float, float]]:
-    """Return the island's shadow on the water below it, and the world pixel of the picture's
-    top left corner: every solid cell's diamond, dithered, on a plane ``SHADOW_DROP`` units
-    under the stage's lowest point."""
-    level = lowest_point(stage) - SHADOW_DROP
+    """Return the island's shadow on the surface below it, and the world pixel of the
+    picture's top left corner: every solid cell's diamond, dithered, on the plane of
+    :func:`surface_level`."""
+    level = surface_level(stage)
     cells = [(cx, cy) for cy, row in enumerate(stage.cells) for cx, cell in enumerate(row) if cell]
     corners = [project(cx, cy, level) for cx, cy in cells]
     left = min(x for x, _ in corners) - TILE_W // 2

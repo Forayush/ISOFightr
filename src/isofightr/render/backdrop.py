@@ -904,58 +904,78 @@ PAINTERS["holo"] = paint_holo
 
 # --- the volcano (Ember Forge) -------------------------------------------------------------
 
-CONE_COLOURS: Final[tuple[str, str, str]] = ("7a3045", "6e2727", "45293f")
+CONE_COLOURS: Final[tuple[str, str, str]] = ("cd683d", "9e4539", "7a3045")
 """The volcano: the side its crater lights, its flank, its far side."""
 LAVA_COLOURS: Final[tuple[str, str, str]] = ("fbff86", "f79617", "ea4f36")
 """Molten rock: white-hot, flowing, cooling."""
-RIDGE_COLOURS: Final[tuple[str, str]] = ("7a3045", "6e2727")
-PLAIN_LAVA: Final[tuple[str, str, str]] = ("f57d4a", "b33831", "ae2334")
-"""The far river of lava: its few bright glints, its flow, its cooler near bank. Deep reds,
-not the forge's own orange and yellow (decision D-065)."""
+RIDGE_COLOURS: Final[tuple[str, str]] = ("7a3045", "753c54")
+LAKE_LINE: Final[int] = 196
+"""Where the lake of lava meets the far shore, in pixels down the picture."""
+LAKE_COLOURS: Final[tuple[str, str, str, str]] = ("f57d4a", "b33831", "ae2334", "6e2727")
+"""The lake: its glare along the far shore, its body, its darker near water, its depths.
+Deep reds and one orange: none of the forge's own lava colours (decision D-065)."""
+CRUST_COLOURS: Final[tuple[str, str]] = ("7a3045", "6e2727")
+"""A plate of cooled crust drifting on the lake: its top, its shaded edge."""
 LAVA_FRAMES: Final[int] = 2
-CRATER: Final[tuple[int, int]] = (184, 96)
+CRATER: Final[tuple[int, int]] = (184, 112)
 """Where the crater's lip is on the volcano's layer."""
+CONE_HALF: Final[int] = 170
 
 
 def ember_sky(mood: Mood) -> Image.Image:
-    """Return the mood's sky with the crater's glow thrown up into the smoke above where the
-    volcano stands (a sky and a layer with no parallax are drawn the same distance off, so
+    """Return the caldera the forge hangs in: the mood's smoky sky down to the far shore,
+    with the crater's glow thrown up into the smoke above where the volcano stands, and under
+    it the lake of lava, glaring along the shore and darkening toward the viewer. The lake is
+    part of this picture, which does not move with the camera, so its shore never slides
+    against the sky (a sky and a layer with no parallax are drawn the same distance off, so
     the crater's own x is the glow's)."""
-    image = sky(mood)
+    image = Image.new("RGBA", (NATIVE_W, NATIVE_H))
+    image.paste(sky(mood, NATIVE_W, LAKE_LINE), (0, 0))
     pixels = image.load()
     assert pixels is not None
     glow = hex_rgb(LAVA_COLOURS[2])
-    centre_x, centre_y = CRATER[0], CRATER[1] - 14
-    reach_x, reach_y = 120, 64
-    for y in range(max(centre_y - reach_y, 0), centre_y + reach_y):
+    centre_x, centre_y = CRATER[0], CRATER[1] - 12
+    reach_x, reach_y = 96, 52
+    for y in range(max(centre_y - reach_y, 0), min(centre_y + reach_y, LAKE_LINE)):
         for x in range(centre_x - reach_x, centre_x + reach_x):
             distance = (((x - centre_x) / reach_x) ** 2 + ((y - centre_y) / reach_y) ** 2) ** 0.5
             if distance < 1.0 and (1.0 - distance) ** 2 * 16 > BAYER_4[y % 4][x % 4]:
                 pixels[x % NATIVE_W, y] = (*glow, 255)
+    glare, body, near, deep = (hex_rgb(value) for value in LAKE_COLOURS)
+    bands = ((glare, body, 10), (body, near, 70), (near, deep, NATIVE_H - LAKE_LINE - 80))
+    y = LAKE_LINE
+    for first, second, rows in bands:
+        for row in range(rows):
+            blend = row / max(rows - 1, 1)
+            for x in range(NATIVE_W):
+                pick = second if blend * 16 > BAYER_4[y % 4][x % 4] else first
+                pixels[x, y] = (*pick, 255)
+            y += 1
     return image
 
 
 def volcano(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
-    """Return the volcano as ``LAVA_FRAMES`` frames stacked top to bottom: a broad cone with
-    a broken crater, lava running down it in three streams whose bright beads move from one
-    frame to the next, and lower cones either side. It wraps."""
+    """Return the far shore as ``LAVA_FRAMES`` frames stacked top to bottom: a broad volcano
+    with a broken crater standing on the lake's far side, lower cones either side of it, and
+    lava running down it in three streams whose bright beads move from one frame to the
+    next. The middle stream runs all the way down into the lake. It wraps."""
     rng = random.Random(seed)
     lit, flank, far = (hex_rgb(value) for value in CONE_COLOURS)
     hot, flow, cool = (hex_rgb(value) for value in LAVA_COLOURS)
     image = Image.new("RGBA", (width, height * LAVA_FRAMES))
     draw = ImageDraw.Draw(image)
     crater_x, crater_y = CRATER
-    foot = 300
-    cones = [(crater_x, crater_y, 330, True)]
-    for _ in range(4):
-        cones.append((rng.randrange(width), rng.randint(190, 240), rng.randint(110, 190), False))
-    streams = [(-26, 0.62), (4, 0.9), (30, 0.5)]
+    foot = LAKE_LINE + 2
+    cones = [(crater_x, crater_y, CONE_HALF, True)]
+    for _ in range(6):
+        cones.append((rng.randrange(width), rng.randint(150, 182), rng.randint(60, 120), False))
+    streams = [(-22, 0.55), (4, 1.0), (26, 0.45)]
     for frame in range(LAVA_FRAMES):
         top = frame * height
         for x, y, half, main in sorted(cones, key=lambda cone: cone[3]):
             for shift in (-width, 0, width):
                 at = x + shift
-                lip = 34 if main else 12
+                lip = 30 if main else 10
                 draw.polygon(
                     (
                         (at - half, top + foot),
@@ -979,8 +999,8 @@ def volcano(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Imag
                         (
                             (at - lip, top + y),
                             (at + lip, top + y),
-                            (at + lip - 8, top + y + 7),
-                            (at - lip + 10, top + y + 5),
+                            (at + lip - 8, top + y + 6),
+                            (at - lip + 10, top + y + 4),
                         ),
                         fill=flow,
                     )
@@ -988,13 +1008,14 @@ def volcano(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Imag
                     draw.polygon(
                         (
                             (at - lip, top + y),
-                            (at - lip - 22, top + y + 40),
-                            (at - lip + 6, top + y + 34),
-                            (at - lip + 12, top + y + 5),
+                            (at - lip - 16, top + y + 30),
+                            (at - lip + 5, top + y + 26),
+                            (at - lip + 10, top + y + 4),
                         ),
                         fill=lit,
                     )
-        draw.rectangle((0, top + foot, width, top + height), fill=far)
+        # A low shore of rock joins the cones' feet along the lake.
+        draw.rectangle((0, top + foot - 5, width, top + foot), fill=far)
         # The streams: each wanders down the cone, hot beads sliding along it.
         for number, (start, share) in enumerate(streams):
             walk = random.Random(seed * 31 + number)
@@ -1011,57 +1032,83 @@ def volcano(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Imag
     return image
 
 
-def lava_plain(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
-    """Return the ground near the viewer as ``LAVA_FRAMES`` frames stacked top to bottom: a
-    jagged ridge of black rock with a river of lava beyond it, whose glints move. It wraps."""
+def lava_lake(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return what floats on the lake as ``LAVA_FRAMES`` frames stacked top to bottom: plates
+    of dark crust, small and close together near the far shore and big near the viewer, with
+    the lake's glow in the gaps between them, and a few glints that move. It wraps."""
     rng = random.Random(seed)
-    rock, shade = (hex_rgb(value) for value in RIDGE_COLOURS)
-    hot, flow, cool = (hex_rgb(value) for value in PLAIN_LAVA)
+    top_colour, edge = (hex_rgb(value) for value in CRUST_COLOURS)
+    glint = hex_rgb(LAKE_COLOURS[0])
+    plates = []
+    rows = 9
+    for row in range(rows):
+        depth = (row + 0.5) / rows
+        y = LAKE_LINE + 8 + int(depth * depth * (height - LAKE_LINE - 8))
+        wide = 7 + int(depth * 34)
+        x = rng.randint(0, wide)
+        while x < width:
+            long = int(wide * rng.uniform(0.7, 1.5))
+            if rng.random() < 0.7:
+                plates.append((x, y + rng.randint(-2, 2), long, max(2, long // 4)))
+            x += long * 2 + rng.randint(4, 10 + wide)
+    glints = [
+        (rng.randrange(width), rng.randint(LAKE_LINE + 4, height - 4), rng.randint(3, 9))
+        for _ in range(70)
+    ]
     image = Image.new("RGBA", (width, height * LAVA_FRAMES))
     draw = ImageDraw.Draw(image)
-    river = 296
-    teeth = []
-    x = 0
-    while x < width:
-        wide = rng.randint(14, 44)
-        teeth.append((x, wide, rng.randint(8, 34)))
-        x += wide - 4
-    glints = [
-        (rng.randrange(width), river + rng.randint(3, 20), rng.randint(4, 12)) for _ in range(60)
-    ]
-    # Every other glint is the bright one; the rest are the near bank's colour.
     for frame in range(LAVA_FRAMES):
         top = frame * height
-        draw.rectangle((0, top + river, width, top + river + 26), fill=flow)
-        draw.line(((0, top + river), (width, top + river)), fill=cool, width=2)
         for number, (gx, gy, long) in enumerate(glints):
-            colour = hot if (number + frame) % 2 else cool
-            at = (gx + frame * 3) % width
-            draw.line(((at, top + gy), (at + long, top + gy)), fill=colour)
-        draw.rectangle((0, top + river + 24, width, top + height), fill=shade)
-        for tx, wide, tall in teeth:
+            if (number + frame) % 2:
+                at = (gx + frame * 2) % width
+                draw.line(((at, top + gy), (at + long, top + gy)), fill=glint)
+        for x, y, long, tall in plates:
             for shift in (-width, 0, width):
-                at = tx + shift
-                base = top + river + 26
-                draw.polygon(
-                    ((at, base), (at + wide // 2, base - tall), (at + wide, base)), fill=shade
+                at = x + shift
+                draw.ellipse(
+                    (at - long, top + y - tall + 1, at + long, top + y + tall + 1), fill=edge
                 )
-                draw.polygon(
-                    ((at, base), (at + wide // 2, base - tall), (at + wide // 2 + 2, base)),
-                    fill=rock,
+                draw.ellipse(
+                    (at - long, top + y - tall, at + long, top + y + tall - 1), fill=top_colour
                 )
     return image
 
 
+def near_rim(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+    """Return the caldera's near rim: a jagged line of dark rock along the bottom of the
+    picture, between the viewer and the lake. It wraps."""
+    rng = random.Random(seed)
+    rock, shade = (hex_rgb(value) for value in RIDGE_COLOURS)
+    image = Image.new("RGBA", (width, height))
+    draw = ImageDraw.Draw(image)
+    base = height - 26
+    draw.rectangle((0, base, width, height), fill=shade)
+    x = 0
+    while x < width:
+        wide = rng.randint(14, 44)
+        tall = rng.randint(8, 30)
+        for shift in (-width, 0, width):
+            at = x + shift
+            draw.polygon(((at, base), (at + wide // 2, base - tall), (at + wide, base)), fill=shade)
+            draw.polygon(
+                ((at, base), (at + wide // 2, base - tall), (at + wide // 2 + 2, base)), fill=rock
+            )
+        x += wide - 4
+    return image
+
+
 def paint_volcano(mood: Mood, seed: int) -> dict[str, Image.Image]:
-    """Ember Forge: a sky of smoke lit from below, drifting smoke, a volcano running with
-    lava, and a river of it beyond a ridge of black rock."""
+    """Ember Forge: a caldera. Smoke lit from below over a lake of lava, a volcano on its far
+    shore whose streams run down into it, plates of crust drifting on it, and the near rim's
+    black rock along the bottom. The forge hangs over the lake it draws its fire from."""
     return {
         "bg_0_sky.png": ember_sky(mood),
-        "bg_1_smoke.png": clouds(mood, seed, 7, (40, 130), (12, 20)),
+        "bg_1_smoke.png": clouds(mood, seed, 7, (30, 110), (12, 20)),
         "bg_2_volcano.png": volcano(seed + 1),
-        "bg_3_near_smoke.png": clouds(mood, seed + 2, 4, (150, 230), (16, 24)),
-        "bg_4_plain.png": lava_plain(seed + 3),
+        "bg_3_near_smoke.png": clouds(mood, seed + 2, 4, (120, 180), (14, 22)),
+        "bg_4_lake.png": lava_lake(seed + 3),
+        "bg_5_rim.png": near_rim(seed + 4),
     }
 
 
