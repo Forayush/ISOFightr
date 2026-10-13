@@ -29,12 +29,10 @@ from isofightr.data.backdrop_rules import (
 )
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 
-NOT_YET_REPAINTED = {
-    "dune_bazaar",
-    "neon_circuit",
-}
-"""Stages whose backdrops still break a rule: M15 group 2 repaints them in three batches and
-takes each off this list as it passes. Never add a stage here."""
+NOT_YET_REPAINTED: set[str] = set()
+"""Stages whose backdrops still break a rule. M15 group 2 repainted all eleven in three
+batches and emptied this list; it stays so that the test below keeps its two halves. Never
+add a stage here: a stage that cannot pass a rule is argued for in ``EXCUSED``."""
 
 GRASS, DIRT, WHITE = (0x91, 0xDB, 0x69), (0x9E, 0x45, 0x39), (255, 255, 255)
 SKY, PALE, NAVY = (0x4D, 0x9B, 0xE6), (0x8F, 0xD3, 0xFF), (0x32, 0x33, 0x53)
@@ -189,7 +187,7 @@ def test_frostpeak_is_excused_from_the_colours_rule_and_from_nothing_else() -> N
     its mountains may share them; they still have to be flat and near the sky's colour."""
     from isofightr.data.backdrop_rules import EXCUSED
 
-    assert EXCUSED == {"frostpeak": ("colours",)}
+    assert EXCUSED == {"frostpeak": ("colours",), "dune_bazaar": ("haze",)}
     reports = check_stage(load_stage("frostpeak"))
     peaks = [each for each in reports if "peaks" in each.image]
     assert len(peaks) == 2 and all(each.excused == ("colours",) for each in peaks)
@@ -209,3 +207,18 @@ def test_a_blend_is_an_ordered_dither_of_two_palette_colours() -> None:
     assert colour_table(mixed.crop((0, 8, 16, 16))) == {(9, 9, 9): 128}, "the rest untouched"
     mostly = blended(flat, {"010203": ("8fd3ff", "9babb2", 12)})
     assert colour_table(mostly)[(0x8F, 0xD3, 0xFF)] == 96
+
+
+def test_dune_bazaar_is_excused_from_the_haze_rule_and_from_nothing_else() -> None:
+    """Its paving is nearly the colour of the sky behind the island, so the haze rule leaves
+    no room; its dunes are the colour its sky has at the horizon (decision D-065)."""
+    reports = check_stage(load_stage("dune_bazaar"))
+    dunes = [each for each in reports if "dunes" in each.image]
+    assert len(dunes) == 2 and all(each.excused == ("haze",) and each.passed for each in dunes)
+    assert all(each.shared <= MAX_SHARED and each.contrast <= MAX_CONTRAST for each in dunes)
+    sky = Image.open("assets/stages/dune_bazaar/bg_0_sky.png").convert("RGB")
+    horizon = sky.getpixel((10, sky.height - 2))
+    far = Image.open("assets/stages/dune_bazaar/bg_4_far_dunes.png").convert("RGBA")
+    assert (*horizon, 255) in {colour for _, colour in far.getcolors() or []}, (
+        "the far dunes are the horizon's own colour"
+    )

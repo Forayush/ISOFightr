@@ -118,9 +118,9 @@ GLOW: Final[Mood] = Mood(
 """A city's night: dark overhead, the streets' light staining the horizon (Neon Circuit)."""
 HAZE: Final[Mood] = Mood(
     sky=("4d9be6", "8fd3ff", "c7dcd0", "fdcbb0", "fca790"),
-    cloud=("ffffff", "fdcbb0", "fca790"),
-    island_top="fdcbb0",
-    island_side=("fbb954", "e6904e"),
+    cloud=("ffffff", "fca790", "eaaded"),
+    island_top="fca790",
+    island_side=("fca790", "f68181"),
     ruin="ffffff",
 )
 """A hot afternoon: blue overhead, bleached and dusty toward the ground (Dune Bazaar)."""
@@ -407,11 +407,13 @@ def cloud_bank(
     return image
 
 
-def birds(seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H) -> Image.Image:
+def birds(
+    seed: int, width: int = LAYER_WIDTH, height: int = NATIVE_H, colour_name: str = BIRD_COLOUR
+) -> Image.Image:
     """Return a flock of far-off birds as two frames stacked top to bottom (wings up, wings
     level), for a ``[[background]]`` layer with ``frames = 2``."""
     rng = random.Random(seed)
-    colour = (*hex_rgb(BIRD_COLOUR), 255)
+    colour = (*hex_rgb(colour_name), 255)
     image = Image.new("RGBA", (width, height * len(BIRD_FRAMES)))
     spots = []
     lead_x, lead_y = rng.randint(80, width - 80), rng.randint(*BIRD_BAND)
@@ -1133,12 +1135,14 @@ PAINTERS["peaks"] = paint_peaks
 
 # --- the city at night (Neon Circuit) ------------------------------------------------------
 
-FAR_TOWERS: Final[tuple[str, str]] = ("484a77", "6b3e75")
-NEAR_TOWERS: Final[tuple[str, str]] = ("2e222f", "323353")
-"""A row of towers: their walls, and the edge the city's glow catches."""
+FAR_TOWERS: Final[tuple[str, str]] = ("6b3e75", "753c54")
+NEAR_TOWERS: Final[tuple[str, str]] = ("694f62", "7a3045")
+"""A row of towers: their walls, and the edge the city's glow catches. Mauves lit by the
+glow behind them (decision D-065): not the roof's own slate and navy, and nearer the
+sky's colour the further off they stand."""
 WINDOW_COLOURS: Final[tuple[str, ...]] = ("f9c22b", "f9c22b", "8ff8e2", "f04f78")
 CITY_FRAMES: Final[int] = 2
-TRAFFIC_COLOURS: Final[tuple[str, str]] = ("f04f78", "8ff8e2")
+TRAFFIC_COLOURS: Final[tuple[str, str]] = ("f9c22b", "8ff8e2")
 TRAFFIC: Final[int] = 9
 
 
@@ -1216,9 +1220,12 @@ PAINTERS["city"] = paint_city
 # --- dunes and a far city (Dune Bazaar) ----------------------------------------------------
 
 HIGH_SUN: Final[tuple[int, int]] = (470, 58)
-FAR_DUNES: Final[tuple[str, str]] = ("fdcbb0", "fbb954")
-NEAR_DUNES: Final[tuple[str, str]] = ("fbb954", "e6904e")
-"""A line of dunes: the colour of its sunlit crest, then of its slopes."""
+FAR_DUNES: Final[tuple[str, str]] = ("ffffff", "fca790")
+NEAR_DUNES: Final[tuple[str, str]] = ("fca790", "f68181")
+"""A line of dunes: the colour of its sunlit crest, then of its slopes. The far line is the
+colour the sky has at the horizon, and the near one a step pinker: the dunes dissolve in the
+heat, and none is the paving's own sand (decision D-065)."""
+VULTURE_COLOUR: Final[str] = "9e4539"
 CITY_COLOURS: Final[tuple[str, str]] = ("fca790", "f68181")
 """The far city in the haze: its sunlit walls, its shaded ones."""
 
@@ -1283,9 +1290,10 @@ def paint_dunes(mood: Mood, seed: int) -> dict[str, Image.Image]:
     return {
         "bg_0_sky.png": sunny_sky(mood, HIGH_SUN),
         "bg_1_far_clouds.png": clouds(mood, seed, 4, (40, 110), (9, 13)),
-        "bg_2_city.png": far_city(seed + 1, 250),
-        "bg_3_far_dunes.png": hills(FAR_DUNES, seed + 2, 258, 12),
-        "bg_4_near_dunes.png": hills(NEAR_DUNES, seed + 3, 304, 18),
+        "bg_2_birds.png": birds(seed + 4, colour_name=VULTURE_COLOUR),
+        "bg_3_city.png": far_city(seed + 1, 250),
+        "bg_4_far_dunes.png": hills(FAR_DUNES, seed + 2, 258, 12),
+        "bg_5_near_dunes.png": hills(NEAR_DUNES, seed + 3, 304, 18),
     }
 
 

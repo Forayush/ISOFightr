@@ -59,11 +59,19 @@ TILE_TOP: Final[tuple[int, int]] = (32, 16)
 SKY_WINDOW: Final[tuple[int, int, int, int]] = (160, 80, 480, 280)
 """The part of the sky picture the island stands in front of (left, top, right, bottom)."""
 RULES: Final[tuple[str, ...]] = ("colours", "contrast", "haze")
-EXCUSED: Final[dict[str, tuple[str, ...]]] = {"frostpeak": ("colours",)}
-"""Rules a stage is excused from, with the reason in the Decision Log (D-065). Frostpeak:
-every pale blue and grey of the palette is its own snow and ice, so mountains and cloud
-behind it cannot avoid them and still look like mountains and cloud. It still has to pass
-contrast and haze."""
+EXCUSED: Final[dict[str, tuple[str, ...]]] = {
+    "frostpeak": ("colours",),
+    "dune_bazaar": ("haze",),
+}
+"""Rules a stage is excused from, with the reason in the Decision Log (D-065).
+
+Frostpeak, ``colours``: every pale blue and grey of the palette is its own snow and ice, so
+mountains and cloud behind it cannot avoid them and still look like mountains and cloud.
+
+Dune Bazaar, ``haze``: its paving is nearly the colour of the sky behind the island, so the
+rule leaves almost no room, and none of the palette's free colours fits in it. Its dunes are
+painted in the colour its sky has at the horizon, where they stand, which the rule (it
+measures against the sky behind the island, blue) counts as far off."""
 Table = dict[Rgb, int]
 
 
