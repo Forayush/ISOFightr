@@ -16,7 +16,7 @@ from typing import Protocol
 
 import arcade
 from arcade.types import LBWH, LRBT
-from PIL import Image
+from PIL import Image, ImageChops
 
 from isofightr.config import (
     BACKDROP_FRAME_TICKS,
@@ -75,6 +75,8 @@ HIDDEN_DRAW_RANK = -1
 GROUND_ITEM_BASE = 1 << 20
 """Depth sorter ids of ground items start here, far above any fighter part's id."""
 BACKDROP_COPIES = 3
+GROUND_MASK_LIMIT = 8192
+"""The most ground clippings kept; past it they are forgotten and worked out again."""
 BODY_RECT_HALF_WIDTH = art.BODY_HALF_WIDTH + 3
 """Half-width of everything the fighter sprite draws: the body plus the arrow tips."""
 BODY_HEIGHT_UNITS = art.BODY_HEIGHT / Z_PX
@@ -209,6 +211,8 @@ class WorldRenderer:
         # frame from where the match says the platform is.
         self.live: Stage = stage
         self._block_items: list[DynamicItem] = []
+        self._moving_heights: set[float] = set()
+        """The deck heights of platforms that move, at rest and now."""
         """The stage on the frame being drawn: ``stage``, with its platforms where they are."""
         self._blocks: dict[int, _RankedSprite] = {}
         for block in moving_blocks(stage, stage):
@@ -240,9 +244,9 @@ class WorldRenderer:
         self._ghosts: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self._ghost_of: dict[int, arcade.Sprite] = {}
         self._outlines: dict[tuple[arcade.Texture, int], arcade.Texture] = {}
-        self._alphas: dict[arcade.Texture, tuple[int, int, bytes]] = {}
-        """Which pixels of a texture are solid (width, height, one byte each), for
-        :meth:`_covers`."""
+        self._ghost_source: dict[int, tuple[arcade.Texture, int]] = {}
+        self._alphas: dict[tuple[arcade.Texture, int], Image.Image] = {}
+        """Which pixels of a texture are solid at a given least alpha, for :meth:`_covers`."""
 
         # A marker or a height line that the stage is in front of is drawn once more over
         # the finished world, thinned: it is never hidden (decision D-065).
@@ -292,6 +296,12 @@ class WorldRenderer:
         self.live = live if live is not None else self.stage
         blink_off = (frame // INVINCIBLE_BLINK_FRAMES) % 2 == 1
         self._block_items = list(moving_blocks(self.stage, self.live))
+        self._moving_heights = {
+            height
+            for rest, now in zip(self.stage.soft_platforms, self.live.soft_platforms, strict=True)
+            if rest.motion is not None
+            for height in (rest.z, now.z)
+        }
         items: list[DynamicItem] = []
         self._body_rects = []
         for entity in entities:
@@ -303,6 +313,7 @@ class WorldRenderer:
                 self._body_rects.append(body.rect)
                 if self._behind_a_prop(body, self._parts[(entity.entity_id, Part.BODY)]):
                     self._ghost_of[entity.entity_id].visible = True
+                    self._dress_ghost(entity.entity_id)
             items.extend(self._sync_marker(entity, hidden))
             platform = self._sync_revival_platform(entity)
             if platform is not None:
@@ -652,14 +663,12 @@ class WorldRenderer:
         # What shows of a fighter the stage hides: its outline in the player's colour, or
         # with the depth aids off the faint copy there always was (decision D-025).
         outlined = self.depth_aids != DEPTH_OFF
-        shown = self._outline(texture, entity.color_index) if outlined else texture
         ghost = self._ghost_of.get(entity.entity_id)
         if ghost is None:
-            ghost = arcade.Sprite(shown)
+            ghost = arcade.Sprite(texture)
             self._ghost_of[entity.entity_id] = ghost
             self._ghosts.append(ghost)
-        elif ghost.texture is not shown:
-            ghost.texture = shown
+        self._ghost_source[entity.entity_id] = (texture, entity.color_index)
         ghost.alpha = 255 if outlined else OCCLUDED_FIGHTER_ALPHA
         ghost.position = sprite.position
         # Only while the stage hides part of the fighter, so fighters overlapping each other
@@ -675,34 +684,52 @@ class WorldRenderer:
             )
         else:
             ghost.visible = self.sorter.is_hidden_by_stage(item)
+        if ghost.visible:
+            self._dress_ghost(entity.entity_id)
         return item
 
-    def _alpha(self, texture: arcade.Texture) -> tuple[int, int, bytes]:
-        found = self._alphas.get(texture)
+    def _dress_ghost(self, entity_id: int) -> None:
+        """Give a hidden fighter's copy its picture: the outline of the frame the fighter
+        shows, or that frame itself with the depth aids off. Only done for a copy that is
+        on screen: an outline is built once per frame of animation, which is not free."""
+        texture, color = self._ghost_source[entity_id]
+        shown = self._outline(texture, color) if self.depth_aids != DEPTH_OFF else texture
+        ghost = self._ghost_of[entity_id]
+        if ghost.texture is not shown:
+            ghost.texture = shown
+
+    def _solid(self, texture: arcade.Texture, least: int) -> Image.Image:
+        """Return a texture's pixels whose alpha is ``least`` or more, as a mask (cached)."""
+        key = (texture, least)
+        found = self._alphas.get(key)
         if found is None:
-            image = texture.image
-            found = (image.width, image.height, image.getchannel("A").tobytes())
-            self._alphas[texture] = found
+            alpha = texture.image.getchannel("A")
+            found = alpha.point(lambda value: 255 if value >= least else 0)
+            self._alphas[key] = found
         return found
 
     def _covers(self, front: arcade.Sprite, behind: arcade.Sprite, least: int = 128) -> bool:
         """Return whether a solid pixel of ``front`` lies over a pixel of ``behind`` whose
-        alpha is ``least`` or more (every pixel is looked at: a ring is one pixel thin)."""
-        front_w, front_h, front_alpha = self._alpha(front.texture)
-        back_w, back_h, back_alpha = self._alpha(behind.texture)
-        front_left = round(front.center_x - front_w / 2)
-        front_top = round(front.center_y + front_h / 2)
-        back_left = round(behind.center_x - back_w / 2)
-        back_top = round(behind.center_y + back_h / 2)
-        left, right = max(front_left, back_left), min(front_left + front_w, back_left + back_w)
-        top, bottom = min(front_top, back_top), max(front_top - front_h, back_top - back_h)
-        for y in range(top - 1, bottom - 1, -1):
-            front_row = (front_top - 1 - y) * front_w - front_left
-            back_row = (back_top - 1 - y) * back_w - back_left
-            for x in range(left, right):
-                if back_alpha[back_row + x] >= least and front_alpha[front_row + x] >= 128:
-                    return True
-        return False
+        alpha is ``least`` or more (every pixel counts: a ring is one pixel thin)."""
+        front_mask = self._solid(front.texture, 128)
+        back_mask = self._solid(behind.texture, least)
+        front_left = round(front.center_x - front_mask.width / 2)
+        front_top = round(front.center_y + front_mask.height / 2)
+        back_left = round(behind.center_x - back_mask.width / 2)
+        back_top = round(behind.center_y + back_mask.height / 2)
+        left = max(front_left, back_left)
+        right = min(front_left + front_mask.width, back_left + back_mask.width)
+        top = min(front_top, back_top)
+        bottom = max(front_top - front_mask.height, back_top - back_mask.height)
+        if left >= right or bottom >= top:
+            return False
+        ours = front_mask.crop(
+            (left - front_left, front_top - top, right - front_left, front_top - bottom)
+        )
+        theirs = back_mask.crop(
+            (left - back_left, back_top - top, right - back_left, back_top - bottom)
+        )
+        return ImageChops.multiply(ours, theirs).getbbox() is not None
 
     def _sync_marker(self, entity: WorldEntity, hidden: bool) -> list[DynamicItem]:
         """Place what says where an entity is (decision D-065): the shadow and ring on the
@@ -934,10 +961,14 @@ class WorldRenderer:
         screen_x, screen_y = project(item.x, item.y, item.surface)
         centre_x = snap(screen_x) + (width % 2) / 2
         centre_y = snap(screen_y) + (height % 2) / 2
-        if item.on_ground:
+        # The ground does not move: a mask worked out for a place holds for good. Only a
+        # decal at the height of a deck that moves has to be clipped afresh every frame.
+        if item.on_ground or item.surface not in self._moving_heights:
             place = (centre_x, centre_y, item.surface, width, height)
             found = self._ground_masks.get(place)
             if found is None:
+                if len(self._ground_masks) >= GROUND_MASK_LIMIT:
+                    self._ground_masks.clear()
                 found = shadow_mask(self.stage, centre_x, centre_y, item.surface, width, height)
                 self._ground_masks[place] = found
             mask = found
@@ -979,6 +1010,7 @@ class WorldRenderer:
             self._order = None
         for entity_id in [key for key in self._ghost_of if key not in alive]:
             self._ghost_of.pop(entity_id).remove_from_sprite_lists()
+            self._ghost_source.pop(entity_id, None)
         for key in [key for key in self._covered_of if key[0] not in alive]:
             self._covered_of.pop(key).remove_from_sprite_lists()
 
