@@ -85,3 +85,18 @@ def test_the_depth_lab_puts_each_ground_point_beside_its_off_stage_twin(window: 
         assert box[2] - box[0] <= wide // 2 and box[3] - box[1] <= tall * 3 // 4, (
             "and they differ only around the fighter"
         )
+
+
+def test_a_hit_strip_follows_the_target_from_before_the_hit(window: Any) -> None:
+    """Decision D-066: ticks count from the hit, earlier ones included, and every picture is
+    a crop of the same size centred on the target."""
+    from isofightr.capture import capture_hit_strip
+
+    sheet = capture_hit_strip(
+        window, "rook", "rook", "fsmash", 100, [-2, 0, 20, 40], crop=(100, 80), columns=2
+    )
+    assert sheet.size == (2 * 100, 2 * 80), "four pictures, two to a row"
+    pictures = [sheet.crop((x, y, x + 100, y + 80)).tobytes() for y in (0, 80) for x in (0, 100)]
+    assert len(set(pictures)) == 4, "the hit, the freeze and the flight all differ"
+    with pytest.raises(ValueError, match="does not hit"):
+        capture_hit_strip(window, "rook", "rook", "taunt", 0, [0, 2], crop=(100, 80))

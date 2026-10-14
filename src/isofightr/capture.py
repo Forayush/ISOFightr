@@ -502,3 +502,115 @@ def capture_stage_sheet(
     if scale > 1:
         sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
     return sheet
+
+
+HIT_STRIP_CROP: tuple[int, int] = (160, 120)
+"""Native pixels of each hit-strip picture, centred on the target."""
+HIT_STRIP_COLUMNS = 8
+HIT_STRIP_TICK_LIMIT = 240
+"""A move that has not hit by this tick never will."""
+HIT_STRIP_GAP = 0.9
+"""Distance between attacker and target, as in :mod:`isofightr.sim.kill_calc`."""
+
+
+def capture_hit_strip(
+    window: GameWindow,
+    attacker: str,
+    target: str,
+    move_id: str,
+    percent: float,
+    ticks: Sequence[int],
+    stage_id: str = "training_grid",
+    facing: Dir8 = Dir8.SE,
+    crop: tuple[int, int] = HIT_STRIP_CROP,
+    columns: int = HIT_STRIP_COLUMNS,
+    scale: int = 1,
+) -> Image.Image:
+    """Return a strip of one hit (decision D-066): the attacker performs ``move_id`` on a
+    target at ``percent`` standing on the stage's respawn point (set up as
+    :mod:`isofightr.sim.kill_calc` does), and each picture is a crop of the screen centred on
+    the target, at ``ticks`` counted from the tick the hit lands (0; negative ticks are
+    before it), in rows of ``columns``. The HUD is off; everything else is drawn as in a
+    match (flash, shake, sparks, trails). Each picture is labelled with its tick, the target's
+    state and its hitlag or hitstun left.
+
+    Raises ``ValueError`` if the move never hits.
+    """
+    from isofightr.sim.events import HitEvent
+    from isofightr.sim.states.interrupts import start_move
+
+    wanted = sorted(set(ticks))
+    if not wanted:
+        raise ValueError("no ticks to capture")
+    window.switch_to()
+    stage = load_stage(stage_id)
+    view = BattleView(
+        window.pixel_buffer, stage, [load_character(attacker), load_character(target)]
+    )
+    view.show_help = False
+    view.hud_display = False
+    window.show_view(view)
+    match = view.match
+    striker, victim = match.fighters[0], match.fighters[1]
+    spot = stage.respawn
+    top = stage.surface_top(spot.x, spot.y)
+    assert top is not None, "the target must stand on solid ground"
+    victim.pos = Vec3(spot.x, spot.y, top)
+    match.set_damage(victim.player_index, percent)
+    behind = spot - facing.world * HIT_STRIP_GAP
+    striker.pos = Vec3(behind.x, behind.y, top)
+    striker.facing = facing
+    victim.facing = facing_from_move(-facing.world) or victim.facing
+    view.camera.snap_to([striker.pos, victim.pos])
+    start_move(match, striker, move_id)
+
+    def picture() -> tuple[Image.Image, str]:
+        view.on_draw()
+        body = victim.character.body.height
+        world_x, world_y = project(victim.pos.x, victim.pos.y, victim.pos.z + body / 2)
+        centre_x, centre_y = view.view_centre()
+        at_x = NATIVE_W // 2 + round(world_x - centre_x)
+        at_y = NATIVE_H // 2 - round(world_y - centre_y)
+        left = min(max(at_x - crop[0] // 2, 0), NATIVE_W - crop[0])
+        upper = min(max(at_y - crop[1] // 2, 0), NATIVE_H - crop[1])
+        frame = read_frame(window).crop((left, upper, left + crop[0], upper + crop[1]))
+        timer = f"hitlag {victim.hitlag}" if victim.hitlag else f"hitstun {victim.hitstun}"
+        return frame, f"{victim.state.name.lower()} {timer}"
+
+    early = -wanted[0] if wanted[0] < 0 else 0
+    before: list[tuple[Image.Image, str]] = []
+    frames: dict[int, tuple[Image.Image, str]] = {}
+    hit_at: int | None = None
+    for tick in range(1, HIT_STRIP_TICK_LIMIT + wanted[-1] + 1):
+        view.on_update(TICK_SECONDS)
+        if hit_at is None:
+            if any(
+                isinstance(event, HitEvent) and event.target == victim.player_index
+                for event in match.events
+            ):
+                hit_at = tick
+                frames.update(zip(range(-len(before), 0), before, strict=True))
+            elif tick >= HIT_STRIP_TICK_LIMIT:
+                raise ValueError(f"{move_id} does not hit a target in front of it")
+            elif early:
+                before = [*before, picture()][-early:]
+                continue
+            else:
+                continue
+        relative = tick - hit_at
+        if relative in wanted:
+            frames[relative] = picture()
+        if relative >= wanted[-1]:
+            break
+    pictures = []
+    for tick in (tick for tick in wanted if tick in frames):
+        frame, status = frames[tick]
+        _label(frame, f"{tick:+d} {status}")
+        pictures.append(frame)
+    rows = -(-len(pictures) // columns)
+    sheet = Image.new("RGBA", (min(len(pictures), columns) * crop[0], rows * crop[1]), LABEL_SHADE)
+    for index, frame in enumerate(pictures):
+        sheet.paste(frame, ((index % columns) * crop[0], (index // columns) * crop[1]))
+    if scale > 1:
+        sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
+    return sheet

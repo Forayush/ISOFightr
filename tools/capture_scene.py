@@ -22,6 +22,15 @@ edges, the underside and the top; ``--hazards on|off`` switches the stage's mech
 
     uv run python tools/capture_scene.py --stage-sheet sky_ruins --out sky_ruins.png
 
+``--hit-strip MOVE`` shows one hit up close (decision D-066): ``--p1`` performs the move on
+``--p2`` at ``--percent``, set up as ``tools/kill_calc.py`` does, and each picture is a crop
+(``--follow W,H``, default 160,120) centred on the target. ``--ticks`` counts from the tick
+the hit lands (0) and takes ranges ``first:last:step`` (write ``--ticks=-2:40:2`` when the
+first is negative)::
+
+    uv run python tools/capture_scene.py --hit-strip fsmash --percent 100 --ticks=-2:40:2 \
+        --scale 2 --out hit.png
+
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
 rules, pool, controls, charselect, stageselect, results, hud, loading, settings, soundtest, pause,
 training,
@@ -39,11 +48,13 @@ from isofightr.capture import (
     STAGE_SHEET_TICKS,
     capture,
     capture_depth_lab,
+    capture_hit_strip,
     capture_screen,
     capture_stage_sheet,
     parse_script,
 )
 from isofightr.settings import Settings, rules_from_data
+from isofightr.sim.input_frame import Dir8
 
 
 def _rules(text: str) -> dict[str, object]:
@@ -63,6 +74,18 @@ def _numbers(text: str) -> tuple[float, ...]:
     return tuple(float(part) for part in text.split(","))
 
 
+def _ticks(text: str) -> list[int]:
+    """Parse ticks such as ``10,20,30`` or ranges ``first:last:step`` (``0:40:2``), mixed."""
+    ticks: list[int] = []
+    for part in (part.strip() for part in text.split(",") if part.strip()):
+        if ":" in part:
+            first, last, *step = (int(value) for value in part.split(":"))
+            ticks.extend(range(first, last + 1, step[0] if step else 1))
+        else:
+            ticks.append(int(part))
+    return ticks
+
+
 def main() -> None:
     """Parse arguments, run the capture and save the sheet."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -74,6 +97,11 @@ def main() -> None:
         action="store_true",
         help="the --stage's depth lab: ground points and their off-stage twins, side by side",
     )
+    parser.add_argument("--hit-strip", default="", metavar="MOVE", help="one hit, up close")
+    parser.add_argument("--percent", type=float, default=60.0, help="the target's damage")
+    parser.add_argument("--facing", default="SE", choices=[direction.name for direction in Dir8])
+    parser.add_argument("--follow", default="160,120", help="hit-strip picture size W,H")
+    parser.add_argument("--columns", type=int, default=8, help="hit-strip pictures per row")
     parser.add_argument(
         "--hazards", choices=("on", "off"), default="on", help="stage mechanics on a --stage-sheet"
     )
@@ -86,7 +114,7 @@ def main() -> None:
     parser.add_argument("--p2", default="rook")
     parser.add_argument("--stage", default="training_grid")
     parser.add_argument("--script", default="", help='key events, e.g. "K@2,K!3"')
-    parser.add_argument("--ticks", default="", help="ticks to capture, e.g. 10,20,30")
+    parser.add_argument("--ticks", default="", help="ticks to capture, e.g. 10,20,30 or 0:40:2")
     parser.add_argument("--p1-at", default=None, help="x,y,z for player 1")
     parser.add_argument("--p2-at", default=None, help="x,y,z for player 2")
     parser.add_argument("--damage", default="", help="starting damage per player, e.g. 0,80")
@@ -108,8 +136,23 @@ def main() -> None:
         left, top, width, height = (int(value) for value in _numbers(args.crop))
         crop = (left, top, width, height)
     window = GameWindow(visible=False, sound=False)
-    ticks = [int(value) for value in _numbers(args.ticks)] if args.ticks else [30]
-    if args.depth_lab:
+    ticks = _ticks(args.ticks) if args.ticks else [30]
+    if args.hit_strip:
+        wide, tall = (int(value) for value in _numbers(args.follow))
+        sheet = capture_hit_strip(
+            window,
+            args.p1,
+            args.p2,
+            args.hit_strip,
+            args.percent,
+            _ticks(args.ticks) if args.ticks else list(range(0, 41, 2)),
+            stage_id=args.stage,
+            facing=Dir8[args.facing],
+            crop=(wide, tall),
+            columns=args.columns,
+            scale=args.scale,
+        )
+    elif args.depth_lab:
         sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)
     elif args.stage_sheet:
         sheet = capture_stage_sheet(
