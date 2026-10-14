@@ -671,6 +671,15 @@ def build_outline(image: Image.Image, player_index: int) -> Image.Image:
     return faint
 
 
+def build_afterimage(image: Image.Image, player_index: int, alpha: int) -> Image.Image:
+    """Return an afterimage of a fighter's picture (decision D-066): its silhouette, solid in
+    the player's colour at ``alpha`` (0 to 255)."""
+    picture = image.convert("RGBA")
+    silhouette = Image.new("RGBA", picture.size, player_color(player_index))
+    silhouette.putalpha(picture.getchannel("A").point(lambda value: alpha if value >= 128 else 0))
+    return silhouette
+
+
 def build_plane_grid(void: Sequence[Sequence[bool]]) -> Image.Image:
     """Return the "Strong" depth aid's picture of the reference plane around a fighter that
     is off the stage: the outlines of the void cells near it, dotted, thinning toward the

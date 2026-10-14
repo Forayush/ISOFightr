@@ -97,6 +97,18 @@ class Part(IntEnum):
     LINE = 3
     """The dotted line from the marker to the feet."""
     BODY = 4
+    AFTERIMAGE_NEAR = 5
+    """The fading copies a hard launch leaves along its path (decision D-066), nearest
+    first."""
+    AFTERIMAGE_MID = 6
+    AFTERIMAGE_FAR = 7
+
+
+AFTERIMAGE_PARTS: tuple[Part, ...] = (
+    Part.AFTERIMAGE_NEAR,
+    Part.AFTERIMAGE_MID,
+    Part.AFTERIMAGE_FAR,
+)
 
 
 class WorldEntity(Protocol):
@@ -312,6 +324,7 @@ class WorldRenderer:
             hidden = look.hidden or (entity.invincible and blink_off)
             body = self._sync_body(entity, look, hidden=hidden)
             items.append(body)
+            items.extend(self._sync_afterimages(entity, look, body, hidden))
             if not hidden:
                 self._body_rects.append(body.rect)
                 if self._behind_a_prop(body, self._parts[(entity.entity_id, Part.BODY)]):
@@ -1024,6 +1037,51 @@ class WorldRenderer:
         for item_id in [item_id for item_id in self._ground if item_id not in alive]:
             self._ground.pop(item_id).remove_from_sprite_lists()
             self._order = None
+
+    def _sync_afterimages(
+        self, entity: WorldEntity, look: FighterLook, body: DynamicItem, hidden: bool
+    ) -> list[DynamicItem]:
+        """Place the fading copies of a hard-launched fighter (decision D-066): its current
+        picture as a silhouette in its player's colour, where it was a few ticks ago, sorted
+        with the world like the fighter itself."""
+        items: list[DynamicItem] = []
+        body_sprite = self._parts[(entity.entity_id, Part.BODY)]
+        pos = entity.pos
+        feet_x, feet_y = (snap(value) for value in project(pos.x, pos.y, pos.z))
+        for number, part in enumerate(AFTERIMAGE_PARTS):
+            if hidden or number >= len(look.afterimages):
+                sprite = self._parts.get((entity.entity_id, part))
+                if sprite is not None:
+                    sprite.visible = False
+                continue
+            where, alpha = look.afterimages[number]
+            source = body_sprite.texture
+            texture = self._texture(
+                ("afterimage", source, entity.color_index, alpha),
+                lambda source=source, alpha=alpha: art.build_afterimage(
+                    source.image, entity.color_index, alpha
+                ),
+            )
+            sprite = self._part(entity, part, texture)
+            x, y = (snap(value) for value in project(where.x, where.y, where.z))
+            dx, dy = x - feet_x, y - feet_y
+            sprite.position = (body_sprite.center_x + dx, body_sprite.center_y + dy)
+            sprite.visible = True
+            rect = body.rect
+            items.append(
+                DynamicItem(
+                    item_id=_item_id(entity.entity_id, part),
+                    rank=part,
+                    x=where.x,
+                    y=where.y,
+                    z=where.z,
+                    height=BODY_HEIGHT_UNITS,
+                    rect=ScreenRect(
+                        rect.left + dx, rect.bottom + dy, rect.right + dx, rect.top + dy
+                    ),
+                )
+            )
+        return items
 
     def _drop_missing(self, alive: set[int]) -> None:
         for key in [key for key in self._parts if key[0] not in alive]:

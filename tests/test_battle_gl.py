@@ -185,7 +185,7 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     ticks(view, 13)
     target = view.match.fighters[1]
     assert target.damage == pytest.approx(76.8) and target.hitlag > 0
-    assert view.effects.flash == {1: 3}, "a third of the 11-frame hitlag (D-066), at least 3"
+    assert view.effects.flash == {1: 2}, "a 2-tick impact flash (D-066)"
     assert len(view.effects.streaks) == 1
     assert view.effects.shake.offset != (0, 0)
     assert len(view.effects.sparks) == 1
@@ -722,3 +722,30 @@ def test_a_launched_fighter_draws_its_hit_poses_every_tick(window: Any) -> None:
             seen.add(look.sprite.anim)
             bank.frame(look.sprite.anim, look.sprite.pose, look.direction or target.facing)
     assert {"hurt_impact", "hurt_fly", "tumble"} <= seen
+
+
+def test_a_hard_launch_leaves_afterimages_sorted_into_the_world(window: Any) -> None:
+    """Decision D-066: copies of the victim in its player's colour, fading, where it was a
+    few ticks ago, drawn as world sprites (so the stage still hides them where it should)."""
+    from isofightr.render import placeholder_art as art
+    from isofightr.render.world_renderer import AFTERIMAGE_PARTS
+
+    view = make_view(window)
+    view.match.set_damage(1, 150.0)
+    target = view.match.fighters[1]
+    view.on_key_press(keys().U, 0)  # forward smash
+    ticks(view, 1)
+    view.on_key_release(keys().U, 0)
+    shown = 0
+    for _ in range(40):
+        ticks(view, 1)
+        view.on_draw()
+        sprites = [view.renderer._parts.get((target.entity_id, part)) for part in AFTERIMAGE_PARTS]
+        visible = [sprite for sprite in sprites if sprite is not None and sprite.visible]
+        shown = max(shown, len(visible))
+        for sprite in visible:
+            assert sprite in view.renderer.sprites
+            colours = {pixel[:3] for pixel in sprite.texture.image.getdata() if pixel[3]}
+            assert colours == {art.player_color(target.color_index)[:3]}
+    assert shown == len(AFTERIMAGE_PARTS)
+    assert not visible, "gone again once the launch has run on"

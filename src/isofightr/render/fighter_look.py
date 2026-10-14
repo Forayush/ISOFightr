@@ -19,6 +19,7 @@ from isofightr.render.hurt_motion import HurtTrack, hurt_choice, placeholder_spi
 from isofightr.sim.combat.constants import GETUP_FRAMES
 from isofightr.sim.fighter import NO_TEAM, Fighter, StateId
 from isofightr.sim.input_frame import Dir8
+from isofightr.sim.math3d import Vec3
 
 HITLAG_SHAKE_PIXELS: Final[int] = 1
 HITLAG_SHAKE_STEPS: Final[tuple[tuple[int, int], ...]] = ((16, 3), (8, 2))
@@ -71,6 +72,9 @@ class FighterLook:
     direction: Dir8 | None = None
     """The sheet direction to draw ``sprite`` in, or ``None`` for the fighter's facing (a
     flying or tumbling fighter is drawn by its travel, decision D-066)."""
+    afterimages: tuple[tuple[Vec3, int], ...] = ()
+    """Fading copies of the fighter along a hard launch's path: where each stands and how
+    opaque it is, nearest first (``BattleEffects.afterimages``, decision D-066)."""
 
 
 DEFAULT_LOOK: Final[FighterLook] = FighterLook()
@@ -111,6 +115,7 @@ def fighter_look(
     reduce_flashing: bool = False,
     hit_hitlag: int = 0,
     hurt: HurtTrack | None = None,
+    afterimages: tuple[tuple[Vec3, int], ...] = (),
 ) -> FighterLook:
     """Return a fighter's look.
 
@@ -126,6 +131,7 @@ def fighter_look(
             the longer the freeze, the bigger the shake.
         hurt: the fighter's hit-pose track (``BattleEffects.hurt``): with it a hit shows the
             freeze, flinch, damage-fly and tumble poses of decision D-066.
+        afterimages: the fading copies to draw behind a hard launch (passed through).
     """
     pose, spin = Pose.STAND, 0
     if fighter.state is StateId.TUMBLE:
@@ -171,4 +177,5 @@ def fighter_look(
         costume=costume,
         character="" if anims is None else fighter.character.id,
         direction=direction,
+        afterimages=afterimages,
     )

@@ -82,6 +82,16 @@ the solid frames never cover the victim for longer than before)."""
 # --- Launch streaks ------------------------------------------------------------------------
 STREAK_MIN_KNOCKBACK: Final[float] = 40.0
 """Launches at least this strong throw speed lines along the launch direction."""
+AFTERIMAGE_MIN_KNOCKBACK: Final[float] = 150.0
+"""A launch this strong leaves fading copies of the victim along its path (decision D-066)."""
+AFTERIMAGE_TICKS: Final[int] = 8
+"""The copies show for this many ticks after the launch."""
+AFTERIMAGE_SPACING: Final[int] = 2
+"""Ticks between one copy and the next along the path."""
+AFTERIMAGE_ALPHAS: Final[tuple[int, ...]] = (120, 80, 45)
+"""The copies' opacity, nearest the victim first; all of it fades over ``AFTERIMAGE_TICKS``."""
+AFTERIMAGE_FADE_STEPS: Final[int] = 4
+"""The fade goes in this many steps (each step is a picture, cached)."""
 STREAK_FRAME_TICKS: Final[int] = 4
 STREAK_FRAMES: Final[int] = 2
 STREAK_ANGLES: Final[int] = 16
@@ -109,11 +119,10 @@ SHIELD_BREAK_SHAKE_PIXELS: Final[int] = 3
 PARRY_SHAKE_PIXELS: Final[int] = 2
 
 # --- Flash and HUD pop ---------------------------------------------------------------------
-HIT_FLASH_FRAMES: Final[int] = 3
-HIT_FLASH_HITLAG_SHARE: Final[int] = 3
-"""The hit flash lasts the first 1/N of the hitlag (at least ``HIT_FLASH_FRAMES``)..."""
-HIT_FLASH_MAX_FRAMES: Final[int] = 8
-"""...and never longer than this, however long the freeze."""
+HIT_FLASH_FRAMES: Final[int] = 2
+"""The impact flash: the victim is solid white for this many ticks from the moment a hit
+lands, however long the freeze (decision D-066; the rest of the freeze shows the impact
+pose)."""
 COUNTER_FLASH_FRAMES: Final[int] = 6
 """A fighter that was just hit is drawn white for this many ticks."""
 HUD_POP_FRAMES: Final[int] = 10
@@ -329,11 +338,14 @@ class KoBlast:
 
 @dataclass(slots=True)
 class ScreenShake:
-    """A decaying up-and-down camera offset, in whole native pixels."""
+    """A decaying camera offset, in whole native pixels, back and forth along a direction on
+    screen: up and down unless a launch aims it (decision D-066)."""
 
     amplitude: int = 0
     frames: int = 0
     age: int = 0
+    direction: tuple[float, float] = (0.0, 1.0)
+    """A unit vector on screen (y up) the shake moves along."""
 
     def start(self, pixels: int) -> None:
         """Begin a shake of ``pixels``, unless a stronger one is still running."""
@@ -343,6 +355,13 @@ class ScreenShake:
         self.amplitude = pixels
         self.frames = SHAKE_BASE_FRAMES + pixels * SHAKE_FRAMES_PER_PIXEL
         self.age = 0
+        self.direction = (0.0, 1.0)
+
+    def aim(self, screen_x: float, screen_y: float) -> None:
+        """Shake along a direction on screen (a launch's), if it has one."""
+        length = math.hypot(screen_x, screen_y)
+        if length > 0.0:
+            self.direction = (screen_x / length, screen_y / length)
 
     def tick(self) -> None:
         """Advance by one sim tick."""
@@ -360,8 +379,9 @@ class ScreenShake:
     def offset(self) -> tuple[int, int]:
         """The camera offset for this frame."""
         size = self.current()
-        up = (self.age // SHAKE_FLIP_TICKS) % 2 == 0
-        return (0, size if up else -size)
+        sign = 1 if (self.age // SHAKE_FLIP_TICKS) % 2 == 0 else -1
+        dx, dy = self.direction
+        return (round(dx * size) * sign, round(dy * size) * sign)
 
 
 def shake_pixels(knockback: float) -> int:
@@ -372,8 +392,9 @@ def shake_pixels(knockback: float) -> int:
 
 
 def hit_flash_ticks(hitlag: int) -> int:
-    """Return how long a hit with this hitlag flashes its target white."""
-    return min(max(HIT_FLASH_FRAMES, hitlag // HIT_FLASH_HITLAG_SHARE), HIT_FLASH_MAX_FRAMES)
+    """Return how long a hit with this hitlag flashes its target white: the same short
+    impact flash whatever the freeze (decision D-066)."""
+    return HIT_FLASH_FRAMES
 
 
 def spark_lifetime(hitlag: int) -> int:
@@ -439,6 +460,8 @@ class BattleEffects:
     _launches: dict[int, Launch] = field(default_factory=dict)
     """The pending launch last seen on each player, to notice a new one."""
     hurt: HurtMotion = field(default_factory=HurtMotion)
+    _paths: dict[int, list[Vec3]] = field(default_factory=dict)
+    """Where each fighter launched hard has been since the launch (for its afterimages)."""
     """Each fighter's hit pose and body turn (decision D-066), for ``fighter_look``."""
 
     def consume(self, events: Iterable[Event]) -> None:
@@ -525,6 +548,7 @@ class BattleEffects:
         self.hurt.step(fighters)
         for fighter in fighters:
             self._observe_launch(fighter)
+            self._observe_path(fighter)
             self._observe_combo(fighter)
             self._observe_charge(fighter)
             self._observe_special(fighter, stage)
@@ -722,6 +746,41 @@ class BattleEffects:
             pos = fighter.pos
             at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
             self.streaks.append(Streak(at, streak_angle(launch)))
+            # The screen shakes along the launch, not up and down (decision D-066).
+            direction = launch_vector(launch.heading, launch.elevation)
+            self.shake.aim(*project(direction.x, direction.y, direction.z))
+        if launch.knockback >= AFTERIMAGE_MIN_KNOCKBACK:
+            self._paths[player] = []
+        else:
+            self._paths.pop(player, None)
+
+    def _observe_path(self, fighter: Fighter) -> None:
+        """Remember where a hard-launched fighter flies, for its first ``AFTERIMAGE_TICKS``."""
+        player = fighter.player_index
+        path = self._paths.get(player)
+        if path is None or fighter.hitlag > 0:
+            return
+        if not fighter.in_play or len(path) > AFTERIMAGE_TICKS:
+            del self._paths[player]
+            return
+        path.append(fighter.pos)
+
+    def afterimages(self, player: int) -> tuple[tuple[Vec3, int], ...]:
+        """Return the fading copies a hard-launched fighter leaves along its path: where each
+        is and how opaque, nearest first (decision D-066)."""
+        path = self._paths.get(player)
+        if not path:
+            return ()
+        steps = AFTERIMAGE_FADE_STEPS
+        left = math.ceil(steps * (AFTERIMAGE_TICKS + 1 - len(path)) / AFTERIMAGE_TICKS)
+        fade = max(0, min(left, steps)) / steps
+        copies = []
+        for number, alpha in enumerate(AFTERIMAGE_ALPHAS, start=1):
+            index = len(path) - 1 - number * AFTERIMAGE_SPACING
+            if index < 0 or fade <= 0.0:
+                break
+            copies.append((path[index], round(alpha * fade)))
+        return tuple(copies)
 
     def tick(self) -> None:
         """Advance every effect by one sim tick."""

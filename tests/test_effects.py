@@ -81,12 +81,13 @@ def test_a_hit_spawns_a_spark_at_the_hit_point_that_plays_and_goes_away() -> Non
     assert effects.sparks == []
 
 
-def test_spark_and_flash_lengths_follow_the_hitlag() -> None:
+def test_sparks_follow_the_hitlag_and_the_impact_flash_does_not() -> None:
+    """Decision D-066: a short, hard flash at the moment of impact, whatever the freeze."""
     assert [fx.spark_lifetime(hitlag) for hitlag in (0, 5, 6, 7, 30)] == [9, 9, 9, 10, 33]
-    assert [fx.hit_flash_ticks(hitlag) for hitlag in (5, 9, 12, 24, 30)] == [3, 3, 4, 8, 8]
+    assert [fx.hit_flash_ticks(hitlag) for hitlag in (5, 9, 12, 24, 30)] == [2] * 5
     effects = BattleEffects()
     effects.consume([hit(100.0)])
-    assert effects.flash == {1: 3} and effects.hit_hitlag == {1: 10}
+    assert effects.flash == {1: 2} and effects.hit_hitlag == {1: 10}
     effects.consume([hit(100.0, damage=0.0)])
     assert effects.hit_hitlag == {1: 10}, "a hit that deals nothing does not shake its target"
 
@@ -123,6 +124,29 @@ def test_shake_alternates_fades_out_and_ends() -> None:
     assert sizes[shake.frames - 1] == 1, "still visible on its last frame"
 
 
+def test_a_launch_aims_the_shake_along_its_direction_on_screen() -> None:
+    """Decision D-066: the screen shakes back and forth along the launch, not up and down."""
+    match, _, target = duel(damage=100.0)
+    effects = BattleEffects()
+    for frames in [hold(buttons=Button.STRONG, frames=1)] + [neutral(1)] * 20:
+        run(match, frames)
+        effects.consume(match.events)
+        effects.observe(match.fighters)
+        if target.hitlag > 0:
+            break
+    assert target.launch is not None and effects.shake.current() > 0
+    dx, dy = effects.shake.direction
+    direction = fx.launch_vector(target.launch.heading, target.launch.elevation)
+    sx, sy = project(direction.x, direction.y, direction.z)
+    assert dx * sx + dy * sy == pytest.approx(math.hypot(sx, sy)), "the launch's own direction"
+    first = effects.shake.offset
+    effects.tick()
+    effects.tick()
+    assert effects.shake.offset == (-first[0], -first[1]) or effects.shake.current() < 2
+    effects.shake.start(4)
+    assert effects.shake.direction == (0.0, 1.0), "a new shake starts up and down"
+
+
 def test_a_weaker_hit_does_not_cut_a_strong_shake_short() -> None:
     shake = ScreenShake()
     shake.start(4)
@@ -148,11 +172,11 @@ def test_hits_and_kos_shake_the_screen() -> None:
 # --- flash and HUD pop --------------------------------------------------------------------
 
 
-def test_the_target_flashes_for_three_ticks() -> None:
+def test_the_target_flashes_for_two_ticks() -> None:
     effects = BattleEffects()
     effects.consume([hit(50.0, target=1)])
-    assert effects.flash == {1: 3}
-    for left in (2, 1):
+    assert effects.flash == {1: 2}
+    for left in (1,):
         effects.tick()
         assert effects.flash == {1: left}
     effects.tick()
@@ -850,3 +874,49 @@ def test_hits_of_an_element_get_an_extra_effect(element: Effect, kinds: list[str
     effects.consume([dataclasses.replace(hit(50.0), effect=element)])
     assert [effect.kind for effect in effects.fx] == kinds
     assert len(effects.sparks) == 1, "on top of the spark, not instead of it"
+
+
+# --- afterimages (decision D-066) -----------------------------------------------------------
+
+
+def launched(damage: float) -> tuple[Match, Fighter, BattleEffects, list]:
+    """Rook forward-smashes Rook at ``damage``; return what the target's afterimages were
+    on each tick after the hit."""
+    match, _, target = duel(damage=damage)
+    effects = BattleEffects()
+    seen = []
+    for frames in [hold(buttons=Button.STRONG, frames=1)] + [neutral(1)] * 60:
+        run(match, frames)
+        effects.tick()
+        effects.consume(match.events)
+        effects.observe(match.fighters)
+        seen.append((target.hitlag, target.pos, effects.afterimages(target.player_index)))
+    return match, target, effects, seen
+
+
+def test_only_a_hard_launch_leaves_afterimages() -> None:
+    _, _, _, seen = launched(30.0)
+    assert all(copies == () for _, _, copies in seen), "under 150 knockback: none"
+    _, _, _, seen = launched(150.0)
+    assert any(copies for _, _, copies in seen)
+
+
+def test_afterimages_trail_the_path_nearest_first_and_fade_within_eight_ticks() -> None:
+    _, _, _, seen = launched(150.0)
+    flight = [entry for entry in seen if entry[0] == 0]
+    shown = [index for index, (_, _, copies) in enumerate(seen) if copies]
+    assert shown, "they show"
+    first = shown[0]
+    # The first copy is two ticks behind; up to three, each two ticks further back.
+    _, _, copies = seen[first]
+    assert copies[0][0] == seen[first - fx.AFTERIMAGE_SPACING][1]
+    longest = max(len(copies) for _, _, copies in seen)
+    assert longest == len(fx.AFTERIMAGE_ALPHAS)
+    for _, _, copies in seen:
+        alphas = [alpha for _, alpha in copies]
+        assert alphas == sorted(alphas, reverse=True), "nearest the fighter is strongest"
+        assert all(0 < a <= base for a, base in zip(alphas, fx.AFTERIMAGE_ALPHAS, strict=False))
+    assert shown[-1] - first < fx.AFTERIMAGE_TICKS, "gone within the first eight ticks"
+    totals = [sum(alpha for _, alpha in seen[i][2]) for i in shown]
+    assert totals[-1] < max(totals), "and they fade"
+    assert flight, "the target flew"
