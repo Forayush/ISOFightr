@@ -7,6 +7,7 @@ from itertools import pairwise
 import pytest
 
 from helpers import hold, make_match, neutral, place, run
+from isofightr.data.character_loader import list_character_ids
 from isofightr.data.sprite_sheet import load_sprite_set
 from isofightr.render.fighter_look import fighter_look
 from isofightr.render.hurt_motion import (
@@ -30,8 +31,8 @@ from isofightr.sim.input_frame import Button, Dir8
 from isofightr.sim.match import Match
 from isofightr.sim.states.base import change_state
 
-HIT_ANIMS_DONE = ("rook", "bramble", "zephyr")
-"""Characters whose hit animations are built (D-066 group 2 does Rook first)."""
+ANIMATED = tuple(c for c in list_character_ids() if load_sprite_set(c) is not None)
+"""Every character with packed sprites must have every hit animation (D-066)."""
 REQUIRED = (
     IMPACT_ANIM,
     FLY_ANIM,
@@ -77,7 +78,7 @@ def test_a_tumble_turns_faster_the_faster_it_flies() -> None:
     assert TURN_FAST_DEGREES < TUMBLE_STEP_DEGREES, "never more than one pose a tick"
 
 
-@pytest.mark.parametrize("character", HIT_ANIMS_DONE)
+@pytest.mark.parametrize("character", ANIMATED)
 def test_every_hit_animation_the_selector_asks_for_exists(character: str) -> None:
     anims = load_sprite_set(character).anims
     for name in REQUIRED:
