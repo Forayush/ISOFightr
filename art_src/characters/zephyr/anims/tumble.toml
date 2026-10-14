@@ -1,31 +1,79 @@
-# Tumble: spinning head over heels after a strong hit.
+# Tumble (D-066): a head-over-heels turn, back first, the top moving with the travel,
+# 12 poses 30 degrees apart about the tucked body's middle, the cape trailing.
+# The selector picks the pose from a rotation angle that follows the launch speed; the
+# sheet's direction is the opposite of the travel. Written by
+# build/scratch/m16_author_hurt.py; this file is the source.
 loop = true
-fps = 12
+fps = 24
 
 [[poses]]
 use = "tuck"
-offset = [0.0, 0.0, 0.3]
+offset = [0.000, -0.120, 0.284]
 hips = [0.0, 0.0, 0.0]
-shoulder_r = [60.0, -60.0, 0.0]
-shoulder_l = [60.0, 60.0, 0.0]
+cape = [-75.0, 0.0, 0.0]
 
 [[poses]]
 use = "tuck"
-offset = [0.0, 0.0, 0.3]
-hips = [-90.0, 0.0, 0.0]
-shoulder_r = [60.0, -60.0, 0.0]
-shoulder_l = [60.0, 60.0, 0.0]
+offset = [0.000, -0.056, 0.237]
+hips = [30.0, 0.0, 0.0]
+cape = [-64.6, 0.0, 5.2]
 
 [[poses]]
 use = "tuck"
-offset = [0.0, 0.0, 0.3]
-hips = [-180.0, 0.0, 0.0]
-shoulder_r = [60.0, -60.0, 0.0]
-shoulder_l = [60.0, 60.0, 0.0]
+offset = [0.000, 0.023, 0.228]
+hips = [60.0, 0.0, 0.0]
+cape = [-64.6, 0.0, 5.2]
 
 [[poses]]
 use = "tuck"
-offset = [0.0, 0.0, 0.3]
-hips = [-270.0, 0.0, 0.0]
-shoulder_r = [60.0, -60.0, 0.0]
-shoulder_l = [60.0, 60.0, 0.0]
+offset = [0.000, 0.096, 0.260]
+hips = [90.0, 0.0, 0.0]
+cape = [-75.0, 0.0, 0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, 0.143, 0.324]
+hips = [120.0, 0.0, 0.0]
+cape = [-85.4, 0.0, -5.2]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, 0.152, 0.403]
+hips = [150.0, 0.0, 0.0]
+cape = [-85.4, 0.0, -5.2]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, 0.120, 0.476]
+hips = [180.0, 0.0, 0.0]
+cape = [-75.0, 0.0, -0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, 0.056, 0.523]
+hips = [210.0, 0.0, 0.0]
+cape = [-64.6, 0.0, 5.2]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, -0.023, 0.532]
+hips = [240.0, 0.0, 0.0]
+cape = [-64.6, 0.0, 5.2]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, -0.096, 0.500]
+hips = [270.0, 0.0, 0.0]
+cape = [-75.0, 0.0, 0.0]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, -0.143, 0.436]
+hips = [300.0, 0.0, 0.0]
+cape = [-85.4, 0.0, -5.2]
+
+[[poses]]
+use = "tuck"
+offset = [0.000, -0.152, 0.357]
+hips = [330.0, 0.0, 0.0]
+cape = [-85.4, 0.0, -5.2]
