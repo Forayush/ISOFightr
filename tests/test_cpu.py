@@ -225,6 +225,22 @@ def test_a_launched_cpu_holds_survival_di_toward_the_middle() -> None:
     assert frame.move.y < -0.9, "across the launch (+x), on the side of the stage's middle"
 
 
+def test_a_cpu_lets_its_shield_drop_once_the_threat_has_passed() -> None:
+    """Holding shield through the drop raised it again when the drop ended: two CPUs facing
+    each other did that forever (found by the CPU soak after decision D-066)."""
+    match, cpus = cpu_match("final_plateau", ("rook", "rook"), (9, 0))
+    cpu = cpus[0]
+    assert cpu is not None
+    fighter = match.fighters[0]
+    change_state(match, fighter, StateId.SHIELD_DROP)
+    assert not cpu.think(match).held & Button.SHIELD, "nothing is coming: let it drop"
+    states = set()
+    for _ in range(40):
+        match.tick([cpu.think(match), NEUTRAL_INPUT])
+        states.add(fighter.state)
+    assert StateId.SHIELD not in states, "and it does not come back up by itself"
+
+
 def test_a_cpu_shields_a_smash_it_sees_coming_at_high_levels() -> None:
     def shields(level: int) -> int:
         count = 0

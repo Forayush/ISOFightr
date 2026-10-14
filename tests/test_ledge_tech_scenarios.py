@@ -345,8 +345,11 @@ SHIELD = hold(buttons=Button.SHIELD, frames=1)
 )
 def test_tech_window(early: int, teched: bool) -> None:
     assert (c.TECH_WINDOW, c.TECH_LOCKOUT) == (20, 40), "decision D-058"
-    landing = ticks_to_land()
-    match, fighter = tumbling()
+    # From 3 units up: a fall long enough for a press more than the window before landing
+    # (hitstun gravity is 0.8 since decision D-066).
+    landing = ticks_to_land(3.0)
+    assert landing > c.TECH_WINDOW + 1
+    match, fighter = tumbling(3.0)
     events = []
     for frame in neutral(landing - early) + SHIELD + neutral(early - 1):
         run(match, [frame])
@@ -362,8 +365,9 @@ def test_tech_window(early: int, teched: bool) -> None:
 
 
 def test_mashing_shield_does_not_tech() -> None:
-    landing = ticks_to_land(3.0)
-    match, fighter = tumbling(3.0)
+    landing = ticks_to_land(4.0)
+    assert landing > 30
+    match, fighter = tumbling(4.0)
     # A press 30 frames before landing starts the lockout; the well-timed second one is lost.
     run(match, neutral(landing - 30) + SHIELD + neutral(24) + SHIELD + neutral(4))
     assert fighter.state is StateId.KNOCKDOWN

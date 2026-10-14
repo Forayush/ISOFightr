@@ -421,8 +421,10 @@ class CpuController:
         self._enqueue([NEUTRAL_INPUT, InputFrame(vertical=vertical), NEUTRAL_INPUT])
 
     def _shielding(self, world: WorldView, me: FighterView) -> InputFrame:
-        """Keep the shield up until the threat has passed, then let go."""
-        if me.state is StateId.SHIELD and world.frame >= self._shield_until:
+        """Keep the shield up until the threat has passed, then let go. Not while it drops:
+        a shield held through the drop comes straight back up when the drop ends, and two
+        CPUs facing each other then raised and dropped their shields forever."""
+        if me.state is not StateId.SHIELD_STUN and world.frame >= self._shield_until:
             return NEUTRAL_INPUT
         return InputFrame(held=int(Button.SHIELD))
 

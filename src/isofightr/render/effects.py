@@ -16,6 +16,7 @@ from typing import Final
 from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.iso import project
 from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
+from isofightr.sim.combat.constants import LAUNCH_SNAP
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
     BounceEvent,
@@ -54,8 +55,9 @@ LAND_DUST_FALL_SPEED: Final[float] = 0.05
 """Landings faster than this (units per frame) raise dust."""
 LAND_RING_FALL_SPEED: Final[float] = 0.22
 """Landings faster than this (a fast fall or a launch into the ground) send out a ring."""
-TRAIL_MIN_SPEED: Final[float] = 0.12
-"""A fighter in hitstun moving faster than this (units per frame) leaves a smoke trail."""
+TRAIL_MIN_SPEED: Final[float] = 0.12 * LAUNCH_SNAP
+"""A fighter in hitstun moving faster than this (units per frame) leaves a smoke trail
+(scaled with the launch speed, so the same launches leave one as before decision D-066)."""
 TRAIL_FIERY_KNOCKBACK: Final[float] = 150.0
 """A launch this strong leaves a fiery trail (a likely KO)."""
 TRAIL_EVERY: Final[int] = 3

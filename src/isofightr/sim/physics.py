@@ -15,7 +15,7 @@ import math
 from dataclasses import dataclass
 
 from isofightr.config import SURFACE_EPSILON
-from isofightr.sim.combat.constants import KB_DECAY
+from isofightr.sim.combat.constants import KB_DECAY, KB_TRACTION_MULT
 from isofightr.sim.constants import (
     EDGE_TOLERANCE,
     PLATFORM_DROP_CLEARANCE,
@@ -80,13 +80,14 @@ def apply_air_drift(fighter: Fighter, multiplier: float = 1.0) -> None:
 def decay_knockback(fighter: Fighter) -> None:
     """Shrink knockback velocity by ``KB_DECAY`` along its own direction, down to zero.
 
-    On the ground the fighter's traction slows the slide as well.
+    On the ground the fighter's traction slows the slide as well (times ``KB_TRACTION_MULT``,
+    which keeps the slide's length as launches got faster, decision D-066).
     """
     speed = fighter.kb_vel.length()
     if speed == 0.0:
         return
     traction = fighter.character.movement.traction * fighter.traction_scale
-    loss = KB_DECAY + (traction if fighter.grounded else 0.0)
+    loss = KB_DECAY + (traction * KB_TRACTION_MULT if fighter.grounded else 0.0)
     if speed <= loss:
         fighter.kb_vel = ZERO3
     else:

@@ -86,7 +86,7 @@ def test_jab_hits_on_its_first_active_frame_and_stuns() -> None:
     expected_kb = kb.knockback(target.damage, hit.damage, ROOK.weight, 8, 30)
     assert hit.knockback == pytest.approx(expected_kb)
     hitlag = kb.hitlag_frames(hit.damage)
-    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 6
+    assert attacker.hitlag == target.hitlag == hit.hitlag == hitlag == 5
 
     # Both are frozen for the hitlag; then the target is launched into hitstun.
     run(match, neutral(hitlag - 1))
@@ -568,8 +568,10 @@ def test_any_input_gets_up_from_a_knockdown_after_the_lock() -> None:
 
 def test_hitstun_cannot_be_acted_out_of_but_tumble_after_hitstun_can() -> None:
     match, _, target = duel(damage=80.0, stage="sky_ruins")
-    place(match, target, ORIGIN_X + 1.0, ORIGIN_Y, z=6.0, damage=80.0)
-    place(match, match.fighters[0], ORIGIN_X, ORIGIN_Y, z=5.2)
+    # High enough that the target is still in the air when its hitstun ends (D-066's faster
+    # launches and stronger hitstun gravity bring it down sooner than before).
+    place(match, target, ORIGIN_X + 1.0, ORIGIN_Y, z=9.0, damage=80.0)
+    place(match, match.fighters[0], ORIGIN_X, ORIGIN_Y, z=8.2)
     start_move(match, match.fighters[0], "nair")
     jump = hold(buttons=Button.JUMP, frames=1)
     seen = hit_events(run_collect(match, neutral(8)))
@@ -678,11 +680,11 @@ def custom_jab(**hitbox: float) -> tuple[Match, Fighter, Fighter]:
     return match, attacker, target
 
 
-def test_a_ten_percent_hit_freezes_both_fighters_for_eleven_frames() -> None:
+def test_a_ten_percent_hit_freezes_both_fighters_for_eight_frames() -> None:
     match, attacker, target = custom_jab(damage=10.0 / FRESH)
     [(_, hit)] = hit_events(run_collect(match, ATTACK + neutral(2)))
     assert hit.damage == pytest.approx(10.0)
-    assert attacker.hitlag == target.hitlag == hit.hitlag == 11, "6 in D-058, x1.75 in D-059"
+    assert attacker.hitlag == target.hitlag == hit.hitlag == 8, "6 in D-058, 11 in D-059"
 
 
 def test_hitstun_only_starts_when_hitlag_ends() -> None:

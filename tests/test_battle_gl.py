@@ -185,7 +185,7 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     ticks(view, 13)
     target = view.match.fighters[1]
     assert target.damage == pytest.approx(76.8) and target.hitlag > 0
-    assert view.effects.flash == {1: 5}, "a third of the 15-frame hitlag"
+    assert view.effects.flash == {1: 3}, "a third of the 11-frame hitlag (D-066), at least 3"
     assert len(view.effects.streaks) == 1
     assert view.effects.shake.offset != (0, 0)
     assert len(view.effects.sparks) == 1

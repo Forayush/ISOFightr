@@ -69,17 +69,17 @@ def test_tumble_threshold_is_exactly_eighty() -> None:
 
 
 def test_hitlag_formula_and_cap() -> None:
-    """``floor((d / 3 + 3) * HITLAG_SCALE)`` (decisions D-058 and D-059), times the
+    """``floor((d / 3 + 3) * HITLAG_SCALE)`` (decisions D-058, D-059 and D-066), times the
     multipliers, capped at 30."""
-    assert (c.HITLAG_DAMAGE_DIVISOR, c.HITLAG_BASE, c.HITLAG_SCALE) == (3.0, 3.0, 1.75)
-    cases = {0: 5, 3: 7, 5: 8, 10: 11, 12: 12, 20: 16, 30: 22, 42: 29, 43: 30}
+    assert (c.HITLAG_DAMAGE_DIVISOR, c.HITLAG_BASE, c.HITLAG_SCALE) == (3.0, 3.0, 1.3)
+    cases = {0: 3, 3: 5, 5: 6, 10: 8, 12: 9, 16.8: 11, 20: 12, 30: 16, 60: 29, 61: 30}
     for damage, frames in cases.items():
         assert kb.hitlag_frames(damage) == frames, damage
     assert kb.hitlag_frames(81) == kb.hitlag_frames(200) == c.HITLAG_MAX == 30
-    assert kb.hitlag_frames(10, multiplier=0.5) == math.floor((10 / 3 + 3) * 1.75 * 0.5) == 5
+    assert kb.hitlag_frames(10, multiplier=0.5) == math.floor((10 / 3 + 3) * 1.3 * 0.5) == 4
     electric = kb.hitlag_frames(10, effect=Effect.ELECTRIC)
-    assert electric == math.floor((10 / 3 + 3) * 1.75 * 1.5) == 16
-    assert kb.hitlag_frames(10, full_charge=True) == math.floor((10 / 3 + 3) * 1.75 * 1.2) == 13
+    assert electric == math.floor((10 / 3 + 3) * 1.3 * 1.5) == 12
+    assert kb.hitlag_frames(10, full_charge=True) == math.floor((10 / 3 + 3) * 1.3 * 1.2) == 9
 
 
 def test_scale_one_and_no_bonus_give_back_the_melee_numbers(
@@ -101,9 +101,13 @@ def test_scale_one_and_no_bonus_give_back_the_melee_numbers(
         assert kb.hitstun_frames(knockback) == math.floor(knockback * 0.4)
 
 
-def test_launch_speed_scales_with_phys_scale() -> None:
-    assert kb.launch_speed(100) == pytest.approx(100 * 0.03 * c.PHYS_SCALE)
-    assert pytest.approx(0.051 * c.PHYS_SCALE) == c.KB_DECAY
+def test_launch_speed_scales_with_phys_scale_and_the_snap() -> None:
+    """Melee's speed and decay, scaled to our distances (D-029) and snapped: the speed times
+    ``LAUNCH_SNAP``, the decay times its square (D-066)."""
+    assert c.LAUNCH_SNAP == 2.0
+    assert kb.launch_speed(100) == pytest.approx(100 * 0.03 * c.PHYS_SCALE * c.LAUNCH_SNAP)
+    assert pytest.approx(0.051 * c.PHYS_SCALE * c.LAUNCH_SNAP**2) == c.KB_DECAY
+    assert pytest.approx(c.LAUNCH_SNAP**2) == c.KB_TRACTION_MULT
 
 
 # --- launch angle -------------------------------------------------------------------------

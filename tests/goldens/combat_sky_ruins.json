@@ -10,11 +10,11 @@
   "seed": 3,
   "stocks": null,
   "start_damage": 90.0,
-  "input_seed": 198,
+  "input_seed": 206,
   "ticks": 6000,
   "rules": {
     "parry": true,
     "air_dodge_helpless": true
   },
-  "hash": "87a07d32d5e7b6d021a7e55a9bfd0420"
+  "hash": "66b375d245be827a8fe6856e0190c003"
 }

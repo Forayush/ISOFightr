@@ -25,7 +25,8 @@ from isofightr.sim.launch_profile import launch_profile, profile_lines
 def constants_line() -> str:
     """Return the launch constants in force, for the top of the output."""
     return (
-        f"PHYS_SCALE={c.PHYS_SCALE:g}  HITSTUN_GRAVITY_MULT={c.HITSTUN_GRAVITY_MULT:g}  "
+        f"PHYS_SCALE={c.PHYS_SCALE:g}  LAUNCH_SNAP={c.LAUNCH_SNAP:g}  "
+        f"HITSTUN_GRAVITY_MULT={c.HITSTUN_GRAVITY_MULT:g}  "
         f"HITLAG_SCALE={c.HITLAG_SCALE:g}  HITSTUN_BONUS={c.HITSTUN_BONUS_FRAMES}  "
         f"KB_DECAY={c.KB_DECAY:.5f}"
     )

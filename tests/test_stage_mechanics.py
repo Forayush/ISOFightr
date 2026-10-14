@@ -340,9 +340,10 @@ def test_a_geyser_hits_once_each_time_it_goes_off() -> None:
     assert victim.damage == 12.0 and victim.hitlag > 0 and bystander.hitlag == 0
     assert victim.hazard_hits == {0: 0} and victim.last_hit_by == NO_PARTNER
     assert match.stats[0].damage_taken == 12.0 and match.stats[1].damage_given == 0.0
-    wait(match, 29)
-    assert victim.damage == 12.0, "one eruption, one hit, however long it lasts"
+    wait(match, 14)
     assert not victim.grounded and victim.pos.z > 0.0, "thrown up"
+    wait(match, 15)
+    assert victim.damage == 12.0, "one eruption, one hit, however long it lasts"
     wait(match, 150)  # let it land and get up before standing it back in the geyser
     place(match, victim, 5.2, 5.0, damage=12.0)
     wait(match, 141)

@@ -31,11 +31,20 @@ PHYS_SCALE: Final[float] = 0.033
 """Converts Smash-unit knockback to world units. Calibrated so Rook's uncharged forward smash
 KOs Rook at about 130% from the centre of Sky Ruins (see ``tools/kill_calc.py``)."""
 
-LAUNCH_SPEED_PER_KB: Final[float] = 0.03 * PHYS_SCALE
+LAUNCH_SNAP: Final[float] = 2.0
+"""Makes every launch this many times faster and its decay this many times squared stronger,
+so it covers the same distance (and KOs at the same percent) in a fraction of the time: a
+snap instead of a glide (decision D-066). 1.0 restores the launches of D-029."""
+
+LAUNCH_SPEED_PER_KB: Final[float] = 0.03 * PHYS_SCALE * LAUNCH_SNAP
 """Launch speed in units per frame, per point of knockback."""
 
-KB_DECAY: Final[float] = 0.051 * PHYS_SCALE
+KB_DECAY: Final[float] = 0.051 * PHYS_SCALE * LAUNCH_SNAP**2
 """Knockback speed lost per frame, along its own direction."""
+
+KB_TRACTION_MULT: Final[float] = LAUNCH_SNAP**2
+"""On the ground, knockback also loses the fighter's traction times this each frame, so a
+faster launch slides as far as a slower one did (decision D-066)."""
 
 LAUNCH_SELF_VELOCITY_KEEP: Final[float] = 0.5
 """Fraction of horizontal self velocity a fighter keeps when launched."""
@@ -43,10 +52,13 @@ LAUNCH_SELF_VELOCITY_KEEP: Final[float] = 0.5
 HITSTUN_DRIFT_MULT: Final[float] = 0.5
 """Air drift acceleration multiplier while in hitstun."""
 
-HITSTUN_GRAVITY_MULT: Final[float] = 0.4
+HITSTUN_GRAVITY_MULT: Final[float] = 0.8
 """Gravity and fall-speed multiplier while in hitstun. Blast zones here are much closer than
-in Smash, so launches are slower (``PHYS_SCALE``); without this, gravity would flatten every
-launch and nothing could KO off the top (decision D-029)."""
+in Smash, so launches cover less ground (``PHYS_SCALE``); full gravity would flatten them and
+nothing could KO off the top (decision D-029). It was 0.4 until the launches got faster
+(``LAUNCH_SNAP``, decision D-066); 0.8 keeps every up KO within a few percent. Keep it under
+1.0: from there a fighter launched off the side falls past the bottom blast zone before its
+hitstun ends."""
 
 # --- Launch angle --------------------------------------------------------------------------
 SAKURAI_ANGLE: Final[float] = 361.0
@@ -63,9 +75,10 @@ HITLAG_DAMAGE_DIVISOR: Final[float] = 3.0
 HITLAG_BASE: Final[float] = 3.0
 """Hitlag is ``floor(damage / HITLAG_DAMAGE_DIVISOR + HITLAG_BASE)`` frames, Melee's formula
 (decision D-058). It is a division, so an exact multiple of 3 never floors a frame short."""
-HITLAG_SCALE: Final[float] = 1.75
-"""Multiplies every hit's hitlag, so the freeze is long enough to feel (decision D-059):
-a 10% hit freezes for 11 frames. 1.0 restores D-058's numbers."""
+HITLAG_SCALE: Final[float] = 1.3
+"""Multiplies every hit's hitlag, so the freeze is long enough to feel (decision D-059), but
+short and hard rather than long (decision D-066, which lowered it from 1.75): a 10% hit
+freezes for 8 frames. 1.0 restores D-058's numbers."""
 HITLAG_MAX: Final[int] = 30
 ELECTRIC_HITLAG_MULT: Final[float] = 1.5
 FULL_CHARGE_HITLAG_MULT: Final[float] = 1.2
@@ -214,8 +227,9 @@ TECH_ROLL_FRAMES: Final[int] = 40
 TECH_ROLL_DISTANCE: Final[float] = 1.8
 WALL_TECH_FRAMES: Final[int] = 20
 WALL_TECH_INTANGIBLE: Final[int] = 14
-WALL_BOUNCE_MIN_SPEED: Final[float] = 0.05
-"""A tumbling fighter hitting a wall slower than this just stops."""
+WALL_BOUNCE_MIN_SPEED: Final[float] = 0.05 * LAUNCH_SNAP
+"""A tumbling fighter hitting a wall slower than this just stops. Scaled with the launch
+speed, so the same hits bounce as before decision D-066."""
 WALL_BOUNCE_KEEP: Final[float] = 0.8
 """Fraction of the knockback speed kept after bouncing off a wall."""
 WALL_BOUNCE_DAMAGE: Final[float] = 1.0
