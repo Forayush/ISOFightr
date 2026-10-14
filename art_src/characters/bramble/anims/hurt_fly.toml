@@ -1,0 +1,134 @@
+# Damage-fly (D-066): the body along its trajectory, back first, head leading on the way
+# up, limbs flung toward the front. One pose per elevation of the travel: straight up,
+# up and away, level, down and away, straight down. The selector picks the pose; the
+# sheet's direction is the opposite of the travel. Written by
+# build/scratch/m16_author_hurt.py; this file is the source.
+loop = true
+fps = 1
+
+[[smears]]
+name = "lid_r"
+joint = "head"
+shape = "box"
+low = [0.045, 0.305, 0.125]
+high = [0.175, 0.392, 0.235]
+material = "stone"
+
+[[smears]]
+name = "lash_r"
+joint = "head"
+shape = "box"
+low = [0.050, 0.392, 0.168]
+high = [0.170, 0.410, 0.192]
+material = "stone_dark"
+
+[[smears]]
+name = "lid_l"
+joint = "head"
+shape = "box"
+low = [-0.175, 0.305, 0.125]
+high = [-0.045, 0.392, 0.235]
+material = "stone"
+
+[[smears]]
+name = "lash_l"
+joint = "head"
+shape = "box"
+low = [-0.170, 0.392, 0.168]
+high = [-0.050, 0.410, 0.192]
+material = "stone_dark"
+
+[[poses]]
+offset = [0.000, -0.000, 0.000]
+hips = [0.0, 0.0, 0.0]
+chest = [-18.0, 0.0, 0.0]
+head = [-14.0, 0.0, 8.0]
+cape = [12.0, 0.0, 0.0]
+shoulder_r = [75.0, -45.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [95.0, 40.0, 0.0]
+elbow_l = [15.0, 0.0, 0.0]
+hip_r = [55.0, 0.0, -10.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [15.0, 0.0, 0.0]
+hip_l = [28.0, 0.0, 10.0]
+knee_l = [-65.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+offset = [0.000, 0.354, 0.146]
+hips = [45.0, 0.0, 0.0]
+chest = [-18.0, 0.0, 0.0]
+head = [-14.0, 0.0, 8.0]
+cape = [12.0, 0.0, 0.0]
+shoulder_r = [75.0, -45.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [95.0, 40.0, 0.0]
+elbow_l = [15.0, 0.0, 0.0]
+hip_r = [55.0, 0.0, -10.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [15.0, 0.0, 0.0]
+hip_l = [28.0, 0.0, 10.0]
+knee_l = [-65.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+offset = [0.000, 0.500, 0.500]
+hips = [90.0, 0.0, 0.0]
+chest = [-18.0, 0.0, 0.0]
+head = [-14.0, 0.0, 8.0]
+cape = [12.0, 0.0, 0.0]
+shoulder_r = [75.0, -45.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [95.0, 40.0, 0.0]
+elbow_l = [15.0, 0.0, 0.0]
+hip_r = [55.0, 0.0, -10.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [15.0, 0.0, 0.0]
+hip_l = [28.0, 0.0, 10.0]
+knee_l = [-65.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+offset = [0.000, 0.354, 0.854]
+hips = [135.0, 0.0, 0.0]
+chest = [-18.0, 0.0, 0.0]
+head = [-14.0, 0.0, 8.0]
+cape = [12.0, 0.0, 0.0]
+shoulder_r = [75.0, -45.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [95.0, 40.0, 0.0]
+elbow_l = [15.0, 0.0, 0.0]
+hip_r = [55.0, 0.0, -10.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [15.0, 0.0, 0.0]
+hip_l = [28.0, 0.0, 10.0]
+knee_l = [-65.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+offset = [0.000, 0.000, 1.000]
+hips = [180.0, 0.0, 0.0]
+chest = [-18.0, 0.0, 0.0]
+head = [-14.0, 0.0, 8.0]
+cape = [12.0, 0.0, 0.0]
+shoulder_r = [75.0, -45.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [95.0, 40.0, 0.0]
+elbow_l = [15.0, 0.0, 0.0]
+hip_r = [55.0, 0.0, -10.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [15.0, 0.0, 0.0]
+hip_l = [28.0, 0.0, 10.0]
+knee_l = [-65.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]

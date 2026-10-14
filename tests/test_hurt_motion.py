@@ -30,7 +30,7 @@ from isofightr.sim.input_frame import Button, Dir8
 from isofightr.sim.match import Match
 from isofightr.sim.states.base import change_state
 
-HIT_ANIMS_DONE = ("rook",)
+HIT_ANIMS_DONE = ("rook", "bramble")
 """Characters whose hit animations are built (D-066 group 2 does Rook first)."""
 REQUIRED = (
     IMPACT_ANIM,
