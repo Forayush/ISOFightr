@@ -16,6 +16,7 @@ from isofightr.render import effects as fx
 from isofightr.render import placeholder_art as art
 from isofightr.render.effects import BattleEffects, ScreenShake, Spark
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose, fighter_look
+from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
 from isofightr.sim.combat.hitbox import hurtbox
 from isofightr.sim.events import ClankEvent, HitEvent, JumpEvent, JumpKind, KoEvent
@@ -274,18 +275,21 @@ def test_flash_frames_and_charging_make_the_sprite_white() -> None:
     assert blinks == [True, True, True, False, False, False]
 
 
-def test_tumble_spins_and_knockdown_lies_down() -> None:
+def test_tumble_turns_head_over_heels_and_knockdown_lies_down() -> None:
+    """Decision D-066: the placeholder turns by the tumble's pitch, in 30 degree steps, as the
+    hit-pose track says (it is stepped once per tick, as the battle does)."""
     match, _, target = duel(damage=60.0)
-    run(match, hold(buttons=Button.STRONG, frames=1) + neutral(30))
-    assert target.state is StateId.TUMBLE
-    look = fighter_look(target, match.frame)
-    assert look.pose is Pose.TUMBLE
-    turns = set()
-    for _ in range(20):
-        run(match, neutral(1))
+    motion = HurtMotion()
+    spins = set()
+    for frames in [hold(buttons=Button.STRONG, frames=1)] + [neutral(1)] * 60:
+        run(match, frames)
+        motion.step(match.fighters)
         if target.state is StateId.TUMBLE:
-            turns.add(fighter_look(target, match.frame).quarter_turns)
-    assert len(turns) >= 3 and turns <= {0, 1, 2, 3}
+            look = fighter_look(target, match.frame, hurt=motion.track(target.player_index))
+            assert look.pose is Pose.TUMBLE
+            spins.add(look.spin_degrees)
+    assert len(spins) >= 3 and all(spin % 30 == 0 for spin in spins)
+    assert fighter_look(target, match.frame).spin_degrees == 0, "no track, no turn"
     for _ in range(200):
         if target.state is StateId.KNOCKDOWN:
             break
@@ -327,16 +331,16 @@ def test_lying_pose_is_low_and_wide_on_the_same_feet_row() -> None:
     assert lying[3] - lying[1] == art.BODY_HALF_WIDTH * 2
 
 
-def test_quarter_turns_rotate_the_sprite_about_its_middle() -> None:
+def test_a_spin_turns_the_sprite_about_its_middle() -> None:
     upright = art.build_fighter(0, Dir8.SE)
-    sideways = art.build_fighter(0, Dir8.SE, quarter_turns=1)
-    flipped = art.build_fighter(0, Dir8.SE, quarter_turns=2)
+    sideways = art.build_fighter(0, Dir8.SE, spin_degrees=90)
+    flipped = art.build_fighter(0, Dir8.SE, spin_degrees=180)
     left, top, right, bottom = opaque_box(upright)
     side_box = opaque_box(sideways)
     assert side_box[2] - side_box[0] >= art.BODY_HEIGHT - 1, "the long axis is now horizontal"
     assert opaque_box(flipped) == (left, top, right, bottom), "half a turn: same outline box"
     assert flipped.tobytes() != upright.tobytes()
-    assert art.build_fighter(0, Dir8.SE, quarter_turns=4).tobytes() == upright.tobytes()
+    assert art.build_fighter(0, Dir8.SE, spin_degrees=360).tobytes() == upright.tobytes()
 
 
 @pytest.mark.parametrize("tier", range(4))

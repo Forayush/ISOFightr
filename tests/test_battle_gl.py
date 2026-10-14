@@ -694,3 +694,31 @@ def test_stepped_zoom_draws_the_world_twice_as_big(window: Any) -> None:
     near = view._screen_positions([first, second])
     assert near[1][0] - near[0][0] == pytest.approx(gap * 2, abs=1.0), "markers follow the zoom"
     assert view.renderer.camera.zoom == 2
+
+
+def test_a_launched_fighter_draws_its_hit_poses_every_tick(window: Any) -> None:
+    """Decision D-066: the freeze, damage-fly and tumble poses exist in every direction the
+    selector asks for (a missing frame would raise while drawing)."""
+    from isofightr.render.fighter_look import fighter_look
+
+    view = make_view(window)
+    view.match.set_damage(1, 100.0)
+    target = view.match.fighters[1]
+    bank = view.renderer.banks["rook"]
+    seen = set()
+    view.on_key_press(keys().U, 0)  # forward smash
+    ticks(view, 1)
+    view.on_key_release(keys().U, 0)
+    for _ in range(90):
+        ticks(view, 1)
+        view.on_draw()
+        look = fighter_look(
+            target,
+            view.match.frame,
+            anims=bank.sprite_set.anims,
+            hurt=view.effects.hurt.track(target.player_index),
+        )
+        if look.sprite is not None:
+            seen.add(look.sprite.anim)
+            bank.frame(look.sprite.anim, look.sprite.pose, look.direction or target.facing)
+    assert {"hurt_impact", "hurt_fly", "tumble"} <= seen

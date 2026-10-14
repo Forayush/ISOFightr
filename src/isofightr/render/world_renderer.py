@@ -640,19 +640,21 @@ class WorldRenderer:
             # A packed frame: placed by its feet pivot; its rect bounds exactly what it draws.
             tint = Tint.FLASH if look.flash else Tint.DIM if look.dim else Tint.NORMAL
             choice = look.sprite
-            texture = bank.texture(choice.anim, choice.pose, entity.facing, look.costume, tint)
-            frame = bank.frame(choice.anim, choice.pose, entity.facing)
+            # A flying or tumbling fighter is drawn by its travel, not its facing (D-066).
+            direction = look.direction or entity.facing
+            texture = bank.texture(choice.anim, choice.pose, direction, look.costume, tint)
+            frame = bank.frame(choice.anim, choice.pose, direction)
             left = feet_x + look.offset_x - frame.pivot_x
             top = feet_y + frame.pivot_y
             rect = ScreenRect(left, top - frame.height, left + frame.width, top)
             position = (left + frame.width / 2, top - frame.height / 2)
         else:
             lying = look.pose is Pose.DOWN
-            turns = look.quarter_turns if look.pose is Pose.TUMBLE else 0
+            spin = look.spin_degrees if look.pose is Pose.TUMBLE else 0
             texture = self._texture(
-                ("fighter", entity.color_index, entity.facing, lying, turns, look.flash, look.dim),
+                ("fighter", entity.color_index, entity.facing, lying, spin, look.flash, look.dim),
                 lambda: art.build_fighter(
-                    entity.color_index, entity.facing, lying, turns, look.flash, look.dim
+                    entity.color_index, entity.facing, lying, spin, look.flash, look.dim
                 ),
             )
             position = (

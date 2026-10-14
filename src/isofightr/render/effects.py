@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 from isofightr.render.ground_items import ProjectileLooks
+from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
 from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
 from isofightr.sim.combat.constants import LAUNCH_SNAP
@@ -437,6 +438,8 @@ class BattleEffects:
     ticks: int = 0
     _launches: dict[int, Launch] = field(default_factory=dict)
     """The pending launch last seen on each player, to notice a new one."""
+    hurt: HurtMotion = field(default_factory=HurtMotion)
+    """Each fighter's hit pose and body turn (decision D-066), for ``fighter_look``."""
 
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
@@ -518,6 +521,8 @@ class BattleEffects:
     def observe(self, fighters: Iterable[Fighter], stage: Stage | None = None) -> None:
         """Add the effects that come from what fighters are doing rather than from events:
         dust when a dash, skid or run turn starts, and the smoke trail of a launch."""
+        fighters = list(fighters)
+        self.hurt.step(fighters)
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_combo(fighter)

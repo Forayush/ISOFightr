@@ -15,8 +15,10 @@ from typing import Final
 
 from isofightr.data.sprite_sheet import AnimInfo
 from isofightr.render.anim_select import AnimChoice, select_anim
+from isofightr.render.hurt_motion import HurtTrack, hurt_choice, placeholder_spin
 from isofightr.sim.combat.constants import GETUP_FRAMES
 from isofightr.sim.fighter import NO_TEAM, Fighter, StateId
+from isofightr.sim.input_frame import Dir8
 
 HITLAG_SHAKE_PIXELS: Final[int] = 1
 HITLAG_SHAKE_STEPS: Final[tuple[tuple[int, int], ...]] = ((16, 3), (8, 2))
@@ -24,9 +26,8 @@ HITLAG_SHAKE_STEPS: Final[tuple[tuple[int, int], ...]] = ((16, 3), (8, 2))
 HITLAG_SHAKE_FLIP_FRAMES: Final[int] = 1
 """The victim's sprite hops between +1 and -1 px every this many frames of hitlag."""
 CHARGE_BLINK_FRAMES: Final[int] = 3
-TUMBLE_SPIN_FRAMES: Final[int] = 5
-"""A tumbling fighter turns a quarter turn every this many frames."""
 QUARTER_TURNS: Final[int] = 4
+QUARTER_TURN_DEGREES: Final[int] = 90
 ROLL_SPIN_FRAMES: Final[int] = 4
 ROLLING_STATES: Final[frozenset[StateId]] = frozenset(
     {StateId.ROLL, StateId.TECH_ROLL, StateId.GETUP_ROLL, StateId.LEDGE_ROLL}
@@ -51,8 +52,9 @@ class FighterLook:
     """How to draw a fighter this frame."""
 
     pose: Pose = Pose.STAND
-    quarter_turns: int = 0
-    """Rotation of a tumbling fighter, in quarter turns."""
+    spin_degrees: int = 0
+    """How far the placeholder capsule is turned on screen, counterclockwise (a tumble's
+    pitch, a roll's quarter turns)."""
     flash: bool = False
     """Draw the sprite solid white."""
     offset_x: int = 0
@@ -66,6 +68,9 @@ class FighterLook:
     costume: int = 0
     character: str = ""
     """Whose sprites ``sprite`` refers to."""
+    direction: Dir8 | None = None
+    """The sheet direction to draw ``sprite`` in, or ``None`` for the fighter's facing (a
+    flying or tumbling fighter is drawn by its travel, decision D-066)."""
 
 
 DEFAULT_LOOK: Final[FighterLook] = FighterLook()
@@ -105,6 +110,7 @@ def fighter_look(
     costume: int = 0,
     reduce_flashing: bool = False,
     hit_hitlag: int = 0,
+    hurt: HurtTrack | None = None,
 ) -> FighterLook:
     """Return a fighter's look.
 
@@ -118,11 +124,13 @@ def fighter_look(
             intangible fighter is dimmed steadily instead of blinking.
         hit_hitlag: the hitlag of the hit the fighter is frozen by (from ``BattleEffects``):
             the longer the freeze, the bigger the shake.
+        hurt: the fighter's hit-pose track (``BattleEffects.hurt``): with it a hit shows the
+            freeze, flinch, damage-fly and tumble poses of decision D-066.
     """
-    pose, turns = Pose.STAND, 0
+    pose, spin = Pose.STAND, 0
     if fighter.state is StateId.TUMBLE:
         pose = Pose.TUMBLE
-        turns = (fighter.state_frame // TUMBLE_SPIN_FRAMES) % QUARTER_TURNS
+        spin = placeholder_spin(fighter, hurt)
     elif fighter.state is StateId.KNOCKDOWN or (
         fighter.state is StateId.GETUP and fighter.state_frame <= GETUP_FRAMES // 2
     ):
@@ -130,6 +138,7 @@ def fighter_look(
     elif fighter.state in ROLLING_STATES:
         pose = Pose.TUMBLE
         turns = (fighter.state_frame // ROLL_SPIN_FRAMES) % QUARTER_TURNS
+        spin = turns * QUARTER_TURN_DEGREES
 
     charging = fighter.state is StateId.ATTACK and fighter.charge_frames > 0
     charge_blink = charging and (frame // CHARGE_BLINK_FRAMES) % 2 == 0
@@ -143,14 +152,23 @@ def fighter_look(
     elif fighter.state is StateId.DIZZY:
         offset = DIZZY_WOBBLE[(frame // DIZZY_WOBBLE_FRAMES) % len(DIZZY_WOBBLE)]
     blink_off = (frame // INTANGIBLE_BLINK_FRAMES) % 2 == 1
+    sprite, direction = None, None
+    if anims is not None:
+        chosen = hurt_choice(fighter, hurt, anims)
+        if chosen is None:
+            sprite = select_anim(fighter, anims)
+        else:
+            sprite = AnimChoice(chosen.anim, chosen.pose, exact=True)
+            direction = chosen.direction
     return FighterLook(
         pose,
-        turns,
+        spin,
         (flash_frames > 0 or charge_blink) and not reduce_flashing,
         offset,
         hidden=fighter.intangible and blink_off and not reduce_flashing,
         dim=fighter.state is StateId.HELPLESS or (reduce_flashing and fighter.intangible),
-        sprite=None if anims is None else select_anim(fighter, anims),
+        sprite=sprite,
         costume=costume,
         character="" if anims is None else fighter.character.id,
+        direction=direction,
     )

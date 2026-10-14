@@ -105,6 +105,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.ground_items",
     "isofightr.render.projectile_art",
     "isofightr.render.anim_select",
+    "isofightr.render.hurt_motion",
     "isofightr.render.backdrop",
     "isofightr.render.camera",
     "isofightr.render.depth",

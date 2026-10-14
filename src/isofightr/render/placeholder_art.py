@@ -114,7 +114,7 @@ PLAYER_COLORS: Final[tuple[Rgba, ...]] = (
 LYING_HALF_LENGTH: Final[int] = BODY_HEIGHT // 2
 LYING_HEIGHT: Final[int] = BODY_HALF_WIDTH * 2
 """A knocked-down fighter is the same capsule on its side."""
-QUARTER_TURN_DEGREES: Final[int] = 90
+FULL_TURN_DEGREES: Final[int] = 360
 DIM_SHADE: Final[float] = 0.55
 """Brightness of a helpless fighter's sprite."""
 
@@ -270,7 +270,7 @@ def build_fighter(
     player_index: int,
     facing: Dir8,
     lying: bool = False,
-    quarter_turns: int = 0,
+    spin_degrees: int = 0,
     flash: bool = False,
     dim: bool = False,
 ) -> Image.Image:
@@ -283,17 +283,16 @@ def build_fighter(
         player_index: picks the color.
         facing: where the arrow points.
         lying: draw the knocked-down pose (the capsule on its side) instead.
-        quarter_turns: spin the standing sprite about its middle (tumbling).
+        spin_degrees: turn the standing sprite about its middle, counterclockwise on
+            screen (tumbling, rolling).
         flash: paint every pixel white (hit flash, charge blink).
         dim: darken the sprite (helpless fall).
     """
     image = _build_lying(player_index) if lying else _build_standing(player_index, facing)
-    if quarter_turns % 4 and not lying:
+    if spin_degrees % FULL_TURN_DEGREES and not lying:
         # Pillow measures the centre from the image's top-left corner, in pixel edges.
         middle = (FIGHTER_PIVOT_X, FIGHTER_CANVAS - FIGHTER_PIVOT_FROM_BOTTOM - BODY_HEIGHT / 2)
-        image = image.rotate(
-            quarter_turns * QUARTER_TURN_DEGREES, resample=Image.Resampling.NEAREST, center=middle
-        )
+        image = image.rotate(spin_degrees, resample=Image.Resampling.NEAREST, center=middle)
     if flash:
         white = Image.new("RGBA", image.size, WHITE)
         white.putalpha(image.getchannel("A"))

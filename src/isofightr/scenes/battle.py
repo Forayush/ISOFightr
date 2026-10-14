@@ -1085,6 +1085,7 @@ class BattleView(TickedView):
                 0 if bank is None else self.costume(fighter, len(bank.sprite_set.costumes)),
                 self.settings.reduce_flashing,
                 self.effects.hit_hitlag.get(fighter.player_index, 0),
+                self.effects.hurt.track(fighter.player_index),
             )
         colors = {fighter.player_index: fighter.color_index for fighter in self.match.fighters}
         ground: list[GroundItem] = []

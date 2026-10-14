@@ -1,0 +1,112 @@
+# A heavy hit from behind: rocked forward, then settling (D-066). Written by
+# build/scratch/m16_author_hurt.py; this file is the source.
+
+[[smears]]
+name = "lid_r"
+joint = "head"
+shape = "box"
+low = [0.055, 0.345, 0.285]
+high = [0.165, 0.472, 0.445]
+material = "skin"
+
+[[smears]]
+name = "lash_r"
+joint = "head"
+shape = "box"
+low = [0.060, 0.472, 0.353]
+high = [0.160, 0.490, 0.377]
+material = "ink"
+
+[[smears]]
+name = "lid_l"
+joint = "head"
+shape = "box"
+low = [-0.165, 0.345, 0.285]
+high = [-0.055, 0.472, 0.445]
+material = "skin"
+
+[[smears]]
+name = "lash_l"
+joint = "head"
+shape = "box"
+low = [-0.160, 0.472, 0.353]
+high = [-0.060, 0.490, 0.377]
+material = "ink"
+
+[[poses]]
+start = 1
+offset = [0.000, 0.140, -0.070]
+hips = [-14.0, 0.0, 0.0]
+chest = [-25.2, 0.0, 0.0]
+head = [-22.4, 0.0, 14.0]
+cape = [-49.0, 0.0, 0.0]
+shoulder_r = [-49.0, -42.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-49.0, 42.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [-16.8, 0.0, 0.0]
+knee_r = [-36.4, 0.0, 0.0]
+ankle_r = [19.6, 0.0, 0.0]
+hip_l = [30.8, 0.0, 0.0]
+knee_l = [-47.6, 0.0, 0.0]
+ankle_l = [16.8, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+start = 3
+offset = [0.000, 0.098, -0.049]
+hips = [-9.8, 0.0, 0.0]
+chest = [-17.6, 0.0, 0.0]
+head = [-15.7, 0.0, 9.8]
+cape = [-34.3, 0.0, 0.0]
+shoulder_r = [-34.3, -29.4, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-34.3, 29.4, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [-11.8, 0.0, 0.0]
+knee_r = [-25.5, 0.0, 0.0]
+ankle_r = [13.7, 0.0, 0.0]
+hip_l = [21.6, 0.0, 0.0]
+knee_l = [-33.3, 0.0, 0.0]
+ankle_l = [11.8, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+start = 6
+offset = [0.000, 0.056, -0.028]
+hips = [-5.6, 0.0, 0.0]
+chest = [-10.1, 0.0, 0.0]
+head = [-9.0, 0.0, 5.6]
+cape = [-19.6, 0.0, 0.0]
+shoulder_r = [-19.6, -16.8, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-19.6, 16.8, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [-6.7, 0.0, 0.0]
+knee_r = [-14.6, 0.0, 0.0]
+ankle_r = [7.8, 0.0, 0.0]
+hip_l = [12.3, 0.0, 0.0]
+knee_l = [-19.0, 0.0, 0.0]
+ankle_l = [6.7, 0.0, 0.0]
+
+[[poses]]
+start = 9
+offset = [0.000, 0.021, -0.011]
+hips = [-2.1, 0.0, 0.0]
+chest = [-3.8, 0.0, 0.0]
+head = [-3.4, 0.0, 2.1]
+cape = [-7.3, 0.0, 0.0]
+shoulder_r = [-7.3, -6.3, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-7.3, 6.3, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [-2.5, 0.0, 0.0]
+knee_r = [-5.5, 0.0, 0.0]
+ankle_r = [2.9, 0.0, 0.0]
+hip_l = [4.6, 0.0, 0.0]
+knee_l = [-7.1, 0.0, 0.0]
+ankle_l = [2.5, 0.0, 0.0]
