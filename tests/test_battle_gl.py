@@ -697,8 +697,9 @@ def test_stepped_zoom_draws_the_world_twice_as_big(window: Any) -> None:
 
 
 def test_a_launched_fighter_draws_its_hit_poses_every_tick(window: Any) -> None:
-    """Decision D-066: the freeze, damage-fly and tumble poses exist in every direction the
-    selector asks for (a missing frame would raise while drawing)."""
+    """Decisions D-066, D-067: the freeze, damage-fly and tumble poses exist in every direction
+    the selector asks for (a missing frame would raise while drawing). The tumble shows only
+    once hitstun is over, so the test ends the hitstun early while the target is in the air."""
     from isofightr.render.fighter_look import fighter_look
 
     view = make_view(window)
@@ -706,10 +707,13 @@ def test_a_launched_fighter_draws_its_hit_poses_every_tick(window: Any) -> None:
     target = view.match.fighters[1]
     bank = view.renderer.banks["rook"]
     seen = set()
+    cut = False
     view.on_key_press(keys().U, 0)  # forward smash
     ticks(view, 1)
     view.on_key_release(keys().U, 0)
     for _ in range(90):
+        if not cut and target.state is StateId.TUMBLE and 0 < target.hitstun < 50:
+            target.hitstun, cut = 1, True
         ticks(view, 1)
         view.on_draw()
         look = fighter_look(

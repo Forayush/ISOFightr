@@ -1,17 +1,23 @@
-"""Which hit pose a fighter shows, and which way its body is turned (decision D-066).
+"""Which hit pose a fighter shows, and which way its body is turned (decisions D-066, D-067).
 
-Plan note "10 - Animation and Asset Pipeline" (hit animations). A hit is drawn in four parts:
+Plan note "10 - Animation and Asset Pipeline" (hit animations). As in Melee, what a hit victim
+shows follows **whether its hitstun is running**:
 
 - **the freeze:** while a hit's hitlag holds the target (a launch is waiting), ``hurt_impact``;
-- **a flinch** (knockback under the tumble threshold): ``hurt_light_*`` or ``hurt_heavy_*`` by
-  the hit's knockback, ``*_front`` or ``*_back`` by the side it came from, timed by the state's
+- **a flinch** (hitstun running, not launched): ``hurt_light_*`` or ``hurt_heavy_*`` by the
+  hit's knockback, ``*_front`` or ``*_back`` by the side it came from, timed by the state's
   frames, in the fighter's facing;
-- **damage-fly:** a strong launch (``FLY_MIN_KNOCKBACK``) first shows ``hurt_fly``, the body
-  along its trajectory, one pose per band of elevation, while the knockback is still strong;
-- **the tumble:** ``tumble``'s twelve poses are a head-over-heels turn, picked by a rotation
-  angle that grows each tick by a rate following the knockback's speed: fast at the start (a
-  turn in about half a second), slow as it runs out (about 1.2 s). When hitstun ends the body
-  turns on to upright and shows ``fall``.
+- **damage-fly** (hitstun running, launched: airborne with ``FLY_MIN_KB`` or more, or sliding
+  on the ground with ``GROUND_FLY_MIN_KB`` or more, and always in the sim's tumble state):
+  ``hurt_fly`` for the **whole** hitstun, the body along its current travel, one pose per band
+  of elevation (Melee's DamageFly);
+- **the tumble** (hitstun over, still in the sim's tumble state): ``tumble``'s twelve poses, a
+  head-over-heels turn starting from the last fly pose's body angle and turning
+  ``TUMBLE_TURN_DEGREES`` a tick until the fighter acts or lands (Melee's DamageFall). It never
+  shows while hitstun runs.
+
+The sim's ``TUMBLE`` state with hitstun left and without it already are Melee's DamageFly and
+DamageFall, so none of this needs a sim change.
 
 Damage-fly and tumble are drawn in the **direction opposite the travel**: the sheets show them
 back first (``build/scratch/m16_author_hurt.py`` wrote them so), so a fighter launched by a hit
@@ -31,34 +37,36 @@ from dataclasses import dataclass
 from typing import Final
 
 from isofightr.data.sprite_sheet import AnimInfo
-from isofightr.sim.combat import knockback as kb
 from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.input_frame import Dir8, facing_from_move
 
 IMPACT_ANIM: Final[str] = "hurt_impact"
 FLY_ANIM: Final[str] = "hurt_fly"
 TUMBLE_ANIM: Final[str] = "tumble"
-SETTLED_ANIM: Final[str] = "fall"
 
+HIT_STATES: Final[frozenset[StateId]] = frozenset({StateId.FLINCH, StateId.TUMBLE})
+"""The sim states a hit puts its victim in (hitstun runs in both)."""
 HEAVY_FLINCH_KNOCKBACK: Final[float] = 40.0
 """A flinch from this much knockback or more is the heavy one."""
-FLY_MIN_KNOCKBACK: Final[float] = 110.0
-"""A launch this strong shows damage-fly before it tumbles."""
-FLY_UNTIL_SHARE: Final[float] = 0.55
-"""Damage-fly lasts while the knockback's speed is at least this share of its launch speed."""
+FLY_MIN_KB: Final[float] = 32.0
+"""An airborne victim launched this hard shows damage-fly for its hitstun (D-067)."""
+GROUND_FLY_MIN_KB: Final[float] = 80.0
+"""A victim sliding on the ground shows damage-fly from this knockback (the tumble threshold)."""
 FLY_ELEVATIONS: Final[tuple[float, ...]] = (90.0, 45.0, 0.0, -45.0, -90.0)
 """The elevation of the travel each ``hurt_fly`` pose is drawn for, in pose order."""
+FLY_LOWEST_ELEVATION: Final[float] = -45.0
+"""Damage-fly is drawn no steeper downward than this unless the launch itself started steeper
+(a spike): the end of a long launch falls nearly straight down, and a head-first dive for half
+a second reads wrong."""
+FLINCH_FLY_LOWEST_ELEVATION: Final[float] = 0.0
+"""A launch under the tumble threshold lands on its feet, into a flinch, so its damage-fly is
+never drawn below level (diving head first for the last ticks before standing reads wrong)."""
 TUMBLE_POSES: Final[int] = 12
 TUMBLE_STEP_DEGREES: Final[float] = 360.0 / TUMBLE_POSES
-TURN_FAST_DEGREES: Final[float] = 12.0
-"""Degrees a tick at launch speed: a turn in half a second."""
-TURN_SLOW_DEGREES: Final[float] = 5.0
-"""Degrees a tick once the knockback has run out: a turn in 1.2 seconds."""
-SETTLE_DEGREES: Final[float] = 15.0
-"""Degrees a tick while the body turns on to upright after hitstun."""
+TUMBLE_TURN_DEGREES: Final[float] = 8.0
+"""Degrees a tick the tumble turns once hitstun is over: a turn in 0.75 s (D-067)."""
 HEADING_MIN_SPEED: Final[float] = 0.02
 """Units a frame of sideways travel below which the heading is kept as it was."""
-FULL_TURN: Final[float] = 360.0
 
 
 def flinch_anim(knockback: float, behind: bool) -> str:
@@ -77,13 +85,6 @@ def tumble_pose(angle: float) -> int:
     return round(angle / TUMBLE_STEP_DEGREES) % TUMBLE_POSES
 
 
-def turn_rate(speed: float, launch_speed: float) -> float:
-    """Return the degrees a tumbling body turns this tick: from ``TURN_FAST_DEGREES`` at its
-    launch speed down to ``TURN_SLOW_DEGREES`` when the knockback has run out."""
-    share = 0.0 if launch_speed <= 0.0 else min(speed / launch_speed, 1.0)
-    return TURN_SLOW_DEGREES + (TURN_FAST_DEGREES - TURN_SLOW_DEGREES) * share
-
-
 def body_angle(elevation: float) -> float:
     """Return the turn (degrees about the body's left-right axis, back first) that lays the
     body along travel at ``elevation``: upright going straight up, flat going level."""
@@ -98,19 +99,21 @@ class HurtTrack:
     """The last hit's knockback."""
     behind: bool = False
     """Whether the last hit came from behind (it launches the fighter the way it faces)."""
-    launch_speed: float = 0.0
     heading: Dir8 | None = None
     """The sheet direction while flying or tumbling: the opposite of the travel."""
     screen_right: bool = True
     """Whether the travel goes right on screen (which way the placeholder turns)."""
     elevation: float = 0.0
     """Degrees above level of the travel."""
+    launch_elevation: float | None = None
+    """The travel's elevation on the first tick after the freeze (``None`` until then)."""
     angle: float = 0.0
-    """The tumbling body's turn, in degrees; grows while it tumbles."""
+    """The body's turn about its left-right axis in degrees: the fly pose's while flying, then
+    growing while it tumbles."""
     flying: bool = False
+    """Hitstun is running and the victim is launched: damage-fly."""
     tumbling: bool = False
-    settled: bool = False
-    """Hitstun is over and the body has turned upright: show ``fall``."""
+    """Hitstun is over and the victim still tumbles."""
 
 
 class HurtMotion:
@@ -130,18 +133,38 @@ class HurtMotion:
             _follow(track, fighter)
 
 
+def launched(fighter: Fighter, knockback: float) -> bool:
+    """Return whether a victim in hitstun is launched (damage-fly) rather than flinching: in
+    the sim's tumble state, airborne with ``FLY_MIN_KB`` or more, or sliding on the ground with
+    ``GROUND_FLY_MIN_KB`` or more."""
+    if fighter.state is StateId.TUMBLE:
+        return True
+    least = GROUND_FLY_MIN_KB if fighter.grounded else FLY_MIN_KB
+    return knockback >= least
+
+
+def pose_elevation(track: HurtTrack, fighter: Fighter) -> float:
+    """Return the elevation damage-fly is drawn for: the travel's, but no steeper downward than
+    ``FLY_LOWEST_ELEVATION`` (``FLINCH_FLY_LOWEST_ELEVATION`` for a launch that will land on
+    its feet) unless the launch started steeper (a spike)."""
+    tumbling = fighter.state is StateId.TUMBLE
+    lowest = FLY_LOWEST_ELEVATION if tumbling else FLINCH_FLY_LOWEST_ELEVATION
+    start = track.elevation if track.launch_elevation is None else track.launch_elevation
+    return max(track.elevation, min(start, lowest))
+
+
 def _follow(track: HurtTrack, fighter: Fighter) -> None:
     launch = fighter.launch
     if fighter.hitlag > 0 and launch is not None:
         # The freeze: remember the hit; whatever the body did before starts over.
         track.knockback = launch.knockback
         track.behind = launch.heading.dot(fighter.facing.world) > 0.0
-        track.launch_speed = kb.launch_speed(launch.knockback)
-        track.flying = track.tumbling = track.settled = False
+        track.flying = track.tumbling = False
         track.heading = None
+        track.launch_elevation = None
         return
-    if fighter.state is not StateId.TUMBLE:
-        track.flying = track.tumbling = track.settled = False
+    if fighter.state not in HIT_STATES:
+        track.flying = track.tumbling = False
         track.heading = None
         return
     travel = fighter.vel + fighter.kb_vel
@@ -152,31 +175,25 @@ def _follow(track: HurtTrack, fighter: Fighter) -> None:
     if track.heading is None:
         track.heading = fighter.facing
     track.elevation = math.degrees(math.atan2(travel.z, sideways.length()))
-    speed = fighter.kb_vel.length()
-    first = not (track.flying or track.tumbling or track.settled)
-    if first and track.knockback >= FLY_MIN_KNOCKBACK and fighter.hitstun > 0:
-        track.flying = True
-    if track.flying and (speed < FLY_UNTIL_SHARE * track.launch_speed or fighter.hitstun <= 0):
-        track.flying = False
-        track.tumbling = True
-        track.angle = body_angle(FLY_ELEVATIONS[fly_pose(track.elevation)])
-        return
-    if track.flying:
-        return
-    if not track.tumbling and not track.settled:
-        track.tumbling = True
-        track.angle = body_angle(track.elevation)
-    if track.settled:
-        return
+    if track.launch_elevation is None:
+        track.launch_elevation = track.elevation
     if fighter.hitstun > 0:
-        track.angle += turn_rate(speed, track.launch_speed)
-        return
-    # Free to act: turn on to the next upright, then fall.
-    upright = math.ceil(track.angle / FULL_TURN) * FULL_TURN
-    track.angle = min(track.angle + SETTLE_DEGREES, upright)
-    if track.angle >= upright:
-        track.settled = True
+        # Hitstun: damage-fly while launched, never the tumble.
         track.tumbling = False
+        track.flying = launched(fighter, track.knockback)
+        if track.flying:
+            track.angle = body_angle(FLY_ELEVATIONS[fly_pose(pose_elevation(track, fighter))])
+        return
+    if fighter.state is not StateId.TUMBLE:
+        track.flying = track.tumbling = False
+        return
+    # Hitstun is over and the fighter still tumbles: turn on from the last fly pose.
+    if track.tumbling:
+        track.angle += TUMBLE_TURN_DEGREES
+    elif not track.flying:
+        track.angle = body_angle(pose_elevation(track, fighter))
+    track.flying = False
+    track.tumbling = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,27 +215,26 @@ def hurt_choice(
         return None
     if fighter.hitlag > 0 and fighter.launch is not None:
         return HurtChoice(IMPACT_ANIM, 0, None) if IMPACT_ANIM in anims else None
+    if fighter.state not in HIT_STATES:
+        return None
+    if track.flying and FLY_ANIM in anims:
+        return HurtChoice(FLY_ANIM, fly_pose(pose_elevation(track, fighter)), track.heading)
     if fighter.state is StateId.FLINCH:
         name = flinch_anim(track.knockback, track.behind)
         info = anims.get(name)
         return None if info is None else HurtChoice(name, info.pose_at(fighter.state_frame), None)
-    if fighter.state is not StateId.TUMBLE:
-        return None
-    if track.flying and FLY_ANIM in anims:
-        return HurtChoice(FLY_ANIM, fly_pose(track.elevation), track.heading)
-    if track.settled and SETTLED_ANIM in anims:
-        info = anims[SETTLED_ANIM]
-        return HurtChoice(SETTLED_ANIM, info.pose_at(fighter.state_frame), None)
     if track.tumbling and TUMBLE_ANIM in anims and anims[TUMBLE_ANIM].poses == TUMBLE_POSES:
         return HurtChoice(TUMBLE_ANIM, tumble_pose(track.angle), track.heading)
     return None
 
 
 def placeholder_spin(fighter: Fighter, track: HurtTrack | None) -> int:
-    """Return the degrees (counterclockwise on screen) the placeholder capsule of a tumbling
-    fighter is turned: its pitch, snapped to the tumble's steps, the top moving the way the
-    fighter travels on screen."""
-    if track is None or fighter.state is not StateId.TUMBLE or not track.tumbling:
+    """Return the degrees (counterclockwise on screen) the placeholder capsule of a flying or
+    tumbling fighter is turned: its pitch, snapped to the tumble's steps, the top moving the
+    way the fighter travels on screen."""
+    if track is None or fighter.state not in HIT_STATES or fighter.hitlag > 0:
+        return 0
+    if not (track.flying or track.tumbling):
         return 0
     step = tumble_pose(track.angle) * round(TUMBLE_STEP_DEGREES)
     return -step if track.screen_right else step

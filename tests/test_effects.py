@@ -300,8 +300,9 @@ def test_flash_frames_and_charging_make_the_sprite_white() -> None:
 
 
 def test_tumble_turns_head_over_heels_and_knockdown_lies_down() -> None:
-    """Decision D-066: the placeholder turns by the tumble's pitch, in 30 degree steps, as the
-    hit-pose track says (it is stepped once per tick, as the battle does)."""
+    """Decisions D-066, D-067: the placeholder turns by the body's pitch (the fly pose's while
+    hitstun runs, then the tumble's), in 30 degree steps, as the hit-pose track says (it is
+    stepped once per tick, as the battle does)."""
     match, _, target = duel(damage=60.0)
     motion = HurtMotion()
     spins = set()
