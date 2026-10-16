@@ -460,12 +460,17 @@ class BattleEffects:
     _launches: dict[int, Launch] = field(default_factory=dict)
     """The pending launch last seen on each player, to notice a new one."""
     hurt: HurtMotion = field(default_factory=HurtMotion)
+    """Each fighter's hit pose and body turn (decisions D-066, D-067), for ``fighter_look``."""
     _paths: dict[int, list[Vec3]] = field(default_factory=dict)
     """Where each fighter launched hard has been since the launch (for its afterimages)."""
-    """Each fighter's hit pose and body turn (decision D-066), for ``fighter_look``."""
+    _tick_events: list[Event] = field(default_factory=list)
+    """This tick's events, until ``observe`` hands them to ``hurt`` (its hits describe a
+    freeze: where the hit landed, how hard it was, its effect)."""
 
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
+        events = list(events)
+        self._tick_events.extend(events)
         for event in events:
             if isinstance(event, HitEvent | ShieldHitEvent | HazardHitEvent):
                 self._hit_points.append(event.position)
@@ -541,11 +546,15 @@ class BattleEffects:
                 if isinstance(event, TechEvent) and not event.wall:
                     self.rings.append(Ring(event.position))
 
-    def observe(self, fighters: Iterable[Fighter], stage: Stage | None = None) -> None:
+    def observe(
+        self, fighters: Iterable[Fighter], stage: Stage | None = None, frame: int | None = None
+    ) -> None:
         """Add the effects that come from what fighters are doing rather than from events:
-        dust when a dash, skid or run turn starts, and the smoke trail of a launch."""
+        dust when a dash, skid or run turn starts, and the smoke trail of a launch. ``frame``
+        is the match frame (the hit poses hash it; the effects' own tick count without it)."""
         fighters = list(fighters)
-        self.hurt.step(fighters)
+        self.hurt.step(fighters, self._tick_events, self.ticks if frame is None else frame)
+        self._tick_events = []
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_path(fighter)
@@ -784,6 +793,7 @@ class BattleEffects:
 
     def tick(self) -> None:
         """Advance every effect by one sim tick."""
+        self._tick_events = []
         for spark in self.sparks:
             spark.age += 1
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]

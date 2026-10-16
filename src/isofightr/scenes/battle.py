@@ -915,7 +915,7 @@ class BattleView(TickedView):
         self.hud_state.step(
             self.match.fighters, self.match.events, self.match.phase is MatchPhase.OVER
         )
-        self.effects.observe(self.match.fighters, self.match.stage)
+        self.effects.observe(self.match.fighters, self.match.stage, self.match.frame)
         looks = self.effect_renderer.projectile_looks
         looks.learn(self.characters)
         self.effects.observe_projectiles(self.match.projectiles, looks)
