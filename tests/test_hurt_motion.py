@@ -17,6 +17,10 @@ from isofightr.render.hurt_motion import (
     GROUND_FLY_MIN_KB,
     HIT_STATES,
     IMPACT_ANIM,
+    MELEE_HIT_ANIMS,
+    ROLL_ANIM,
+    ROLL_BODY_ANGLE,
+    ROLL_POSES,
     TUMBLE_ANIM,
     TUMBLE_POSES,
     TUMBLE_STEP_DEGREES,
@@ -41,6 +45,12 @@ from isofightr.sim.states.interrupts import start_move
 
 ANIMATED = tuple(c for c in list_character_ids() if load_sprite_set(c) is not None)
 """Every character with packed sprites must have every hit animation (D-066)."""
+FLINCHES = frozenset(
+    name
+    for name in MELEE_HIT_ANIMS
+    if name.startswith("hurt_") and (name.endswith(("_front", "_back")))
+)
+"""D-067's ground and air flinches."""
 REQUIRED = (
     IMPACT_ANIM,
     FLY_ANIM,
@@ -66,7 +76,7 @@ def smash(
     shown = []
     for frames in [hold(buttons=buttons, frames=1)] + [neutral(1)] * 180:
         run(match, frames)
-        motion.step(match.fighters)
+        motion.step(match.fighters, match.events, match.frame)
         track = motion.track(target.player_index)
         choice = hurt_choice(target, track, anims)
         shown.append((target.state, target.hitlag, choice, replace(track)))
@@ -107,7 +117,7 @@ def timeline(
             target.vel = ZERO3
             target.ground = GroundKind.NONE
         match.tick([NEUTRAL_INPUT, NEUTRAL_INPUT])
-        motion.step(match.fighters)
+        motion.step(match.fighters, match.events, match.frame)
         for event in match.events:
             if isinstance(event, HitEvent) and event.target == 1 and knockback is None:
                 knockback = event.knockback
@@ -155,9 +165,11 @@ def test_hitstun_shows_damage_fly_or_a_flinch_and_never_the_tumble(
         assert tick.choice.anim != TUMBLE_ANIM, "never the tumble while hitstun runs"
         least = GROUND_FLY_MIN_KB if tick.grounded else FLY_MIN_KB
         if tick.state is StateId.TUMBLE or knockback >= least:
-            assert tick.choice.anim == FLY_ANIM
+            assert tick.choice.anim == (ROLL_ANIM if tick.track.rolling else FLY_ANIM)
         else:
-            assert tick.choice.anim.startswith(("hurt_light_", "hurt_heavy_"))
+            assert tick.choice.anim in FLINCHES
+            in_air = tick.track.airborne_hit and not tick.grounded
+            assert tick.choice.anim.startswith("hurt_air_") is in_air
     after = [t for t in shown if t.state is StateId.TUMBLE and t.hitstun == 0]
     if knockback < TUMBLE_KB_THRESHOLD:
         assert not after
@@ -170,8 +182,11 @@ def test_hitstun_shows_damage_fly_or_a_flinch_and_never_the_tumble(
     if first is not None:
         before = shown[first - 1]
         assert before.hitstun == 1 and before.choice is not None
-        assert before.choice.anim == FLY_ANIM, "the tumble starts the tick after hitstun"
-        fly_angle = body_angle(FLY_ELEVATIONS[before.choice.pose])
+        assert before.choice.anim in (FLY_ANIM, ROLL_ANIM), "the tumble follows hitstun"
+        if before.choice.anim == ROLL_ANIM:
+            fly_angle = ROLL_BODY_ANGLE
+        else:
+            fly_angle = body_angle(FLY_ELEVATIONS[before.choice.pose])
         tumble_angle = shown[first].choice.pose * TUMBLE_STEP_DEGREES
         gap = abs((tumble_angle - fly_angle + 180.0) % 360.0 - 180.0)
         assert gap <= TUMBLE_STEP_DEGREES, "the tumble starts within one step of the fly pose"
@@ -204,6 +219,13 @@ def test_every_hit_animation_the_selector_asks_for_exists(character: str) -> Non
     assert anims[TUMBLE_ANIM].poses == TUMBLE_POSES
     assert anims[FLY_ANIM].poses == 5
     assert anims[IMPACT_ANIM].poses == 1
+    # D-067's set: all or none (a character without it falls back to the flinches above).
+    have = [name in anims for name in MELEE_HIT_ANIMS]
+    assert all(have) or not any(have), [n for n in MELEE_HIT_ANIMS if n not in anims]
+    if all(have):
+        assert anims[ROLL_ANIM].poses == ROLL_POSES
+        assert anims["hurt_electric"].poses == 2
+        assert all(anims[name].poses == 4 for name in FLINCHES)
 
 
 def test_a_strong_hit_freezes_flies_then_tumbles_back_first() -> None:
@@ -245,16 +267,16 @@ def test_a_launch_that_lands_on_its_feet_is_never_drawn_diving() -> None:
     knockback, shown = timeline("fsmash", 0.0)
     assert FLY_MIN_KB <= knockback < TUMBLE_KB_THRESHOLD
     poses = [t.choice.pose for t in shown if t.choice and t.choice.anim == FLY_ANIM]
-    assert poses and max(poses) == 2
+    assert poses and max(poses) <= 2
     landed = [t for t in shown if t.state is StateId.FLINCH and t.grounded and t.hitstun > 0]
-    assert landed and all(t.choice and t.choice.anim.startswith("hurt_heavy") for t in landed)
+    assert landed and all(t.choice and t.choice.anim == "hurt_mid_heavy_front" for t in landed)
 
 
 @pytest.mark.parametrize(("behind", "side"), [(False, "front"), (True, "back")])
 def test_a_weak_hit_flinches_away_from_the_side_it_came_from(behind: bool, side: str) -> None:
     _, _, _, shown = smash(0.0, behind, buttons=Button.ATTACK)
     flinches = [c for state, _, c, _ in shown if state is StateId.FLINCH and c]
-    assert flinches and {c.anim for c in flinches} == {f"hurt_light_{side}"}
+    assert flinches and {c.anim for c in flinches} == {f"hurt_mid_weak_{side}"}
     assert all(c.direction is None for c in flinches), "a flinch keeps the facing"
     assert [c.pose for c in flinches[:9]] == [0, 0, 1, 1, 1, 2, 2, 2, 3], "rock, then settle"
 

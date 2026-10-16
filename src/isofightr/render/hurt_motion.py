@@ -55,6 +55,8 @@ from isofightr.sim.move_def import Effect
 IMPACT_ANIM: Final[str] = "hurt_impact"
 FLY_ANIM: Final[str] = "hurt_fly"
 TUMBLE_ANIM: Final[str] = "tumble"
+ROLL_ANIM: Final[str] = "hurt_roll"
+ELECTRIC_ANIM: Final[str] = "hurt_electric"
 
 HIT_STATES: Final[frozenset[StateId]] = frozenset({StateId.FLINCH, StateId.TUMBLE})
 """The sim states a hit puts its victim in (hitstun runs in both)."""
@@ -71,12 +73,20 @@ FLY_LOWEST_ELEVATION: Final[float] = -45.0
 (a spike): the end of a long launch falls nearly straight down, and a head-first dive for half
 a second reads wrong."""
 FLINCH_FLY_LOWEST_ELEVATION: Final[float] = 0.0
-"""A launch under the tumble threshold lands on its feet, into a flinch, so its damage-fly is
-never drawn below level (diving head first for the last ticks before standing reads wrong)."""
+"""A launch under the tumble threshold is short and lands on its feet, into a flinch, so its
+damage-fly keeps the pose of the direction it was launched in, never below level unless that
+was a spike: following its arc turned a pop-up's body flat at the top and dived it head first
+into the ground for the last ticks before it stood."""
 TUMBLE_POSES: Final[int] = 12
 TUMBLE_STEP_DEGREES: Final[float] = 360.0 / TUMBLE_POSES
 TUMBLE_TURN_DEGREES: Final[float] = 8.0
 """Degrees a tick the tumble turns once hitstun is over: a turn in 0.75 s (D-067)."""
+ROLL_POSES: Final[int] = 8
+ROLL_STEP_DEGREES: Final[float] = 360.0 / ROLL_POSES
+ROLL_TURN_DEGREES: Final[float] = 22.5
+"""Degrees a tick the reeling roll turns about the body's long axis: a pose every 2 ticks."""
+ROLL_BODY_ANGLE: Final[float] = 90.0
+"""The roll's body lies level along the travel: the tumble after it starts from there."""
 HEADING_MIN_SPEED: Final[float] = 0.02
 """Units a frame of sideways travel below which the heading is kept as it was."""
 
@@ -112,6 +122,32 @@ class DamageTier(Enum):
     WEAK = "weak"
     MEDIUM = "medium"
     HEAVY = "heavy"
+
+
+def ground_flinch_anim(height: HitHeight, tier: DamageTier, behind: bool) -> str:
+    """Return the ground flinch for a hit (Melee's DamageHi/N/Lw 1 to 3), from the front or
+    behind: ``hurt_<height>_<tier>_<front|back>``."""
+    return f"hurt_{height.value}_{tier.value}_{'back' if behind else 'front'}"
+
+
+def air_flinch_anim(tier: DamageTier, behind: bool) -> str:
+    """Return the air flinch for a hit (Melee's DamageAir 1 to 3): ``hurt_air_<tier>_<side>``."""
+    return f"hurt_air_{tier.value}_{'back' if behind else 'front'}"
+
+
+MELEE_HIT_ANIMS: Final[tuple[str, ...]] = (
+    *(
+        ground_flinch_anim(height, tier, behind)
+        for height in HitHeight
+        for tier in DamageTier
+        for behind in (False, True)
+    ),
+    *(air_flinch_anim(tier, behind) for tier in DamageTier for behind in (False, True)),
+    ROLL_ANIM,
+    ELECTRIC_ANIM,
+)
+"""D-067's animations. A character with sprites has all of them or none (then the selector
+falls back to D-066's flinches and damage-fly)."""
 
 
 def hit_height(fighter: Fighter, point: Vec3) -> HitHeight:
@@ -228,8 +264,15 @@ class HurtTrack:
     """The last hit's :func:`roll_value` (1.0 when no hit event was seen: it never rolls)."""
     rolling: bool = False
     """The launch is the reeling roll, decided on its first tick."""
+    roll_angle: float = 0.0
+    """The rolling body's turn about its long axis, in degrees."""
     frozen: bool = False
     """The fighter was in a hit's freeze last tick."""
+    flinch_from: int | None = None
+    """The state frame the flinch being shown started on (the hit's first tick, or the
+    landing of a victim that flew or flinched in the air first), so it plays from its start."""
+    flinch_air: bool = False
+    """Whether the flinch being shown is the air flinch."""
 
 
 class HurtMotion:
@@ -306,13 +349,14 @@ def launched(fighter: Fighter, knockback: float) -> bool:
 
 
 def pose_elevation(track: HurtTrack, fighter: Fighter) -> float:
-    """Return the elevation damage-fly is drawn for: the travel's, but no steeper downward than
-    ``FLY_LOWEST_ELEVATION`` (``FLINCH_FLY_LOWEST_ELEVATION`` for a launch that will land on
-    its feet) unless the launch started steeper (a spike)."""
-    tumbling = fighter.state is StateId.TUMBLE
-    lowest = FLY_LOWEST_ELEVATION if tumbling else FLINCH_FLY_LOWEST_ELEVATION
+    """Return the elevation damage-fly is drawn for. A tumble-strength launch follows its
+    travel, no steeper downward than ``FLY_LOWEST_ELEVATION`` unless it started steeper (a
+    spike); a weaker one keeps its launch's elevation, no lower than
+    ``FLINCH_FLY_LOWEST_ELEVATION`` unless it was a spike."""
     start = track.elevation if track.launch_elevation is None else track.launch_elevation
-    return max(track.elevation, min(start, lowest))
+    if fighter.state is StateId.TUMBLE:
+        return max(track.elevation, min(start, FLY_LOWEST_ELEVATION))
+    return start if start < FLY_LOWEST_ELEVATION else max(start, FLINCH_FLY_LOWEST_ELEVATION)
 
 
 def _follow(track: HurtTrack, fighter: Fighter) -> None:
@@ -324,6 +368,7 @@ def _follow(track: HurtTrack, fighter: Fighter) -> None:
         track.flying = track.tumbling = track.rolling = False
         track.heading = None
         track.launch_elevation = None
+        track.flinch_from = None
         return
     if fighter.state not in HIT_STATES:
         track.flying = track.tumbling = False
@@ -346,9 +391,19 @@ def _follow(track: HurtTrack, fighter: Fighter) -> None:
     if fighter.hitstun > 0:
         # Hitstun: damage-fly while launched, never the tumble.
         track.tumbling = False
+        was_flying = track.flying
         track.flying = launched(fighter, track.knockback)
-        if track.flying:
+        if track.flying and track.rolling:
+            track.roll_angle = track.roll_angle + ROLL_TURN_DEGREES if was_flying else 0.0
+            track.angle = ROLL_BODY_ANGLE
+        elif track.flying:
             track.angle = body_angle(FLY_ELEVATIONS[fly_pose(pose_elevation(track, fighter))])
+        if track.flying or fighter.state is not StateId.FLINCH:
+            track.flinch_from = None
+        else:
+            air = track.airborne_hit and not fighter.grounded
+            if track.flinch_from is None or air != track.flinch_air:
+                track.flinch_from, track.flinch_air = fighter.state_frame, air
         return
     if fighter.state is not StateId.TUMBLE:
         track.flying = track.tumbling = False
@@ -383,14 +438,43 @@ def hurt_choice(
         return HurtChoice(IMPACT_ANIM, 0, None) if IMPACT_ANIM in anims else None
     if fighter.state not in HIT_STATES:
         return None
+    stunned = fighter.hitstun > 0
+    if stunned and track.effect is Effect.ELECTRIC and ELECTRIC_ANIM in anims:
+        info = anims[ELECTRIC_ANIM]
+        return HurtChoice(ELECTRIC_ANIM, info.pose_at(fighter.state_frame), None)
+    if track.flying and track.rolling and ROLL_ANIM in anims:
+        pose = round(track.roll_angle / ROLL_STEP_DEGREES) % ROLL_POSES
+        return HurtChoice(ROLL_ANIM, pose, track.heading)
     if track.flying and FLY_ANIM in anims:
         return HurtChoice(FLY_ANIM, fly_pose(pose_elevation(track, fighter)), track.heading)
     if fighter.state is StateId.FLINCH:
-        name = flinch_anim(track.knockback, track.behind)
-        info = anims.get(name)
-        return None if info is None else HurtChoice(name, info.pose_at(fighter.state_frame), None)
+        return _flinch_choice(fighter, track, anims)
     if track.tumbling and TUMBLE_ANIM in anims and anims[TUMBLE_ANIM].poses == TUMBLE_POSES:
         return HurtChoice(TUMBLE_ANIM, tumble_pose(track.angle), track.heading)
+    return None
+
+
+def flinch_names(fighter: Fighter, track: HurtTrack) -> tuple[str, ...]:
+    """Return the flinches a fighter may show, best first: the air flinch while a fighter hit
+    in the air is still airborne (a weak ground hit that lifts its victim a little keeps the
+    ground flinch), then the ground flinch by height and tier, then D-066's flinch by knockback
+    (the fallback for a character without D-067's animations)."""
+    names = [ground_flinch_anim(track.height, track.tier, track.behind)]
+    if track.airborne_hit and not fighter.grounded:
+        names.insert(0, air_flinch_anim(track.tier, track.behind))
+    names.append(flinch_anim(track.knockback, track.behind))
+    return tuple(names)
+
+
+def _flinch_choice(
+    fighter: Fighter, track: HurtTrack, anims: Mapping[str, AnimInfo]
+) -> HurtChoice | None:
+    start = 1 if track.flinch_from is None else track.flinch_from
+    frame = fighter.state_frame - start + 1
+    for name in flinch_names(fighter, track):
+        info = anims.get(name)
+        if info is not None:
+            return HurtChoice(name, info.pose_at(frame), None)
     return None
 
 

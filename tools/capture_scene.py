@@ -31,6 +31,10 @@ first is negative)::
     uv run python tools/capture_scene.py --hit-strip fsmash --percent 100 --ticks=-2:40:2 \
         --scale 2 --out hit.png
 
+For D-067's hit poses: ``--lift U`` holds the target U units up until the hit (an air hit),
+``--delay N`` starts the move N ticks later (another hit frame: the reeling roll is a hash of
+it), ``--effect electric`` makes the move's hitboxes electric.
+
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
 rules, pool, controls, charselect, stageselect, results, hud, loading, settings, soundtest, pause,
 training,
@@ -55,6 +59,7 @@ from isofightr.capture import (
 )
 from isofightr.settings import Settings, rules_from_data
 from isofightr.sim.input_frame import Dir8
+from isofightr.sim.move_def import Effect
 
 
 def _rules(text: str) -> dict[str, object]:
@@ -102,6 +107,11 @@ def main() -> None:
     parser.add_argument("--facing", default="SE", choices=[direction.name for direction in Dir8])
     parser.add_argument("--follow", default="160,120", help="hit-strip picture size W,H")
     parser.add_argument("--columns", type=int, default=8, help="hit-strip pictures per row")
+    parser.add_argument("--lift", type=float, default=0.0, help="hit-strip: target this high")
+    parser.add_argument("--delay", type=int, default=0, help="hit-strip: ticks before the move")
+    parser.add_argument(
+        "--effect", default="", choices=["", *(e.value for e in Effect)], help="hit-strip effect"
+    )
     parser.add_argument(
         "--hazards", choices=("on", "off"), default="on", help="stage mechanics on a --stage-sheet"
     )
@@ -151,6 +161,9 @@ def main() -> None:
             crop=(wide, tall),
             columns=args.columns,
             scale=args.scale,
+            lift=args.lift,
+            delay=args.delay,
+            effect=Effect(args.effect) if args.effect else None,
         )
     elif args.depth_lab:
         sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)

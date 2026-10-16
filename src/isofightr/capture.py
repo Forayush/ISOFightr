@@ -31,9 +31,11 @@ from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
 from isofightr.settings import SavedRules, Settings
+from isofightr.sim.fighter import GroundKind
 from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.match import MatchRules
-from isofightr.sim.math3d import Vec3
+from isofightr.sim.math3d import ZERO3, Vec3
+from isofightr.sim.move_def import Effect
 from isofightr.sim.stage import Stage
 
 PRESS, RELEASE = "@", "!"
@@ -525,6 +527,9 @@ def capture_hit_strip(
     crop: tuple[int, int] = HIT_STRIP_CROP,
     columns: int = HIT_STRIP_COLUMNS,
     scale: int = 1,
+    lift: float = 0.0,
+    delay: int = 0,
+    effect: Effect | None = None,
 ) -> Image.Image:
     """Return a strip of one hit (decision D-066): the attacker performs ``move_id`` on a
     target at ``percent`` standing on the stage's respawn point (set up as
@@ -533,6 +538,11 @@ def capture_hit_strip(
     before it), in rows of ``columns``. The HUD is off; everything else is drawn as in a
     match (flash, shake, sparks, trails). Each picture is labelled with its tick, the target's
     state and its hitlag or hitstun left.
+
+    For reviewing D-067's hit poses: ``lift`` holds the target that many units in the air until
+    the hit (an air hit), ``delay`` waits that many ticks before the move starts (the hit lands
+    on another match frame, which decides the reeling roll), and ``effect`` gives the move's
+    hitboxes that effect (no move in the game is electric).
 
     Raises ``ValueError`` if the move never hits.
     """
@@ -544,9 +554,16 @@ def capture_hit_strip(
         raise ValueError("no ticks to capture")
     window.switch_to()
     stage = load_stage(stage_id)
-    view = BattleView(
-        window.pixel_buffer, stage, [load_character(attacker), load_character(target)]
-    )
+    striking = load_character(attacker)
+    if effect is not None:
+        move = striking.moves[move_id]
+        windows = tuple(
+            replace(window, hitboxes=tuple(replace(box, effect=effect) for box in window.hitboxes))
+            for window in move.windows
+        )
+        moves = {**striking.moves, move_id: replace(move, windows=windows)}
+        striking = replace(striking, moves=moves)
+    view = BattleView(window.pixel_buffer, stage, [striking, load_character(target)])
     view.show_help = False
     view.hud_display = False
     window.show_view(view)
@@ -562,6 +579,8 @@ def capture_hit_strip(
     striker.facing = facing
     victim.facing = facing_from_move(-facing.world) or victim.facing
     view.camera.snap_to([striker.pos, victim.pos])
+    for _ in range(delay):
+        view.on_update(TICK_SECONDS)
     start_move(match, striker, move_id)
 
     def picture() -> tuple[Image.Image, str]:
@@ -582,6 +601,10 @@ def capture_hit_strip(
     frames: dict[int, tuple[Image.Image, str]] = {}
     hit_at: int | None = None
     for tick in range(1, HIT_STRIP_TICK_LIMIT + wanted[-1] + 1):
+        if hit_at is None and lift > 0.0:
+            victim.pos = Vec3(spot.x, spot.y, top + lift)
+            victim.vel = ZERO3
+            victim.ground = GroundKind.NONE
         view.on_update(TICK_SECONDS)
         if hit_at is None:
             if any(

@@ -1,0 +1,75 @@
+# An electric hit (D-067): two rigid, spread postures that alternate, a convulsion,
+# held for the hitstun at any knockback, in the fighter's facing.
+# Written by build/scratch/m16/author_g4.py; this file is the source.
+
+loop = true
+fps = 15
+
+[[smears]]
+name = "lid_r"
+joint = "head"
+shape = "box"
+low = [0.055, 0.345, 0.285]
+high = [0.165, 0.472, 0.445]
+material = "skin"
+
+[[smears]]
+name = "lash_r"
+joint = "head"
+shape = "box"
+low = [0.060, 0.472, 0.353]
+high = [0.160, 0.490, 0.377]
+material = "ink"
+
+[[smears]]
+name = "lid_l"
+joint = "head"
+shape = "box"
+low = [-0.165, 0.345, 0.285]
+high = [-0.055, 0.472, 0.445]
+material = "skin"
+
+[[smears]]
+name = "lash_l"
+joint = "head"
+shape = "box"
+low = [-0.160, 0.472, 0.353]
+high = [-0.060, 0.490, 0.377]
+material = "ink"
+
+[[poses]]
+offset = [0.000, 0.000, 0.030]
+hips = [0.0, 0.0, 0.0]
+chest = [-6.0, 0.0, 0.0]
+head = [20.0, 0.0, 0.0]
+cape = [40.0, 0.0, 0.0]
+shoulder_r = [10.0, -88.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [10.0, 88.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, -20.0]
+knee_r = [-4.0, 0.0, 0.0]
+ankle_r = [0.0, 0.0, 0.0]
+hip_l = [6.0, 0.0, 20.0]
+knee_l = [-4.0, 0.0, 0.0]
+ankle_l = [0.0, 0.0, 0.0]
+show = ["lid_r", "lash_r", "lid_l", "lash_l"]
+
+[[poses]]
+offset = [0.000, 0.000, 0.000]
+hips = [3.0, 0.0, 4.0]
+chest = [6.0, 0.0, 0.0]
+head = [6.0, 0.0, -8.0]
+cape = [22.0, 0.0, 0.0]
+shoulder_r = [30.0, -68.0, 0.0]
+elbow_r = [25.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-10.0, 72.0, 0.0]
+elbow_l = [30.0, 0.0, 0.0]
+hip_r = [14.0, 0.0, -12.0]
+knee_r = [-16.0, 0.0, 0.0]
+ankle_r = [6.0, 0.0, 0.0]
+hip_l = [-4.0, 0.0, 14.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [6.0, 0.0, 0.0]
