@@ -219,13 +219,13 @@ def test_every_hit_animation_the_selector_asks_for_exists(character: str) -> Non
     assert anims[TUMBLE_ANIM].poses == TUMBLE_POSES
     assert anims[FLY_ANIM].poses == 5
     assert anims[IMPACT_ANIM].poses == 1
-    # D-067's set: all or none (a character without it falls back to the flinches above).
-    have = [name in anims for name in MELEE_HIT_ANIMS]
-    assert all(have) or not any(have), [n for n in MELEE_HIT_ANIMS if n not in anims]
-    if all(have):
-        assert anims[ROLL_ANIM].poses == ROLL_POSES
-        assert anims["hurt_electric"].poses == 2
-        assert all(anims[name].poses == 4 for name in FLINCHES)
+    # D-067's set: every character with sprites has all of it (the selector still falls back
+    # to the flinches above for a character that does not, such as a new one mid-build).
+    missing = [name for name in MELEE_HIT_ANIMS if name not in anims]
+    assert not missing, missing
+    assert anims[ROLL_ANIM].poses == ROLL_POSES
+    assert anims["hurt_electric"].poses == 2
+    assert all(anims[name].poses == 4 for name in FLINCHES)
 
 
 def test_a_strong_hit_freezes_flies_then_tumbles_back_first() -> None:
