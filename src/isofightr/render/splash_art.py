@@ -93,6 +93,7 @@ SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "fire": (_rgba("c32454"), _rgba("8ff8e2")),
     "darkness": (_rgba("ed8099"), _rgba("0eaf9b")),
     "earth": (_rgba("cd683d"), _rgba("4d9be6")),
+    "wind": (_rgba("f04f78"), _rgba("4d65b4")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -167,11 +168,18 @@ def _needle(
 
 
 def _crescent(
-    centre: float, along: Point, across: Point, radius: float, thickness: float, back: float
+    centre: float,
+    along: Point,
+    across: Point,
+    radius: float,
+    thickness: float,
+    back: float,
+    span_degrees: float = SLASH_SPAN_DEGREES,
 ) -> list[Point]:
     """A crescent convex along the direction: the arc of a circle centred ``back`` behind the
-    centre, thickest in the middle and tapering to points at its tips."""
-    span = math.radians(SLASH_SPAN_DEGREES)
+    centre, thickest in the middle and tapering to points at its tips, ``span_degrees`` to
+    either side."""
+    span = math.radians(span_degrees)
     steps = max(6, round(radius * 1.5))
     outer, inner = [], []
     for index in range(steps + 1):
@@ -885,7 +893,124 @@ def _dust_ring(tier: int, frame: int) -> Image.Image:
     return _puff_ring(tier, frame, colours)
 
 
+# --- wind (Zephyr's gusts) ----------------------------------------------------------------
+WIND_PALE: Final[Rgba] = _rgba("c7dcd0")
+WIND_MINT: Final[Rgba] = _rgba("8ff8e2")
+WIND_TEAL: Final[Rgba] = _rgba("30e1b9")
+WIND_DEEP: Final[Rgba] = _rgba("0b8a8f")
+WIND_EDGE: Final[Rgba] = _rgba("0b5e65")
+"""The outline of wind's art: deep teal, so the white reads on light stages."""
+WIND_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 8.5, 11.0)
+WIND_ARCS: Final[tuple[tuple[float, float, float], ...]] = (
+    (0.45, 1.6, 74.0),
+    (0.7, 1.3, 62.0),
+    (0.95, 1.0, 50.0),
+)
+"""The held gust's nested crescents: ``(distance as a share of its reach, thickness, half
+span in degrees)``: the nearer ones wider, the farther ones thinner."""
+WIND_REACH: Final[tuple[float, ...]] = (6.5, 9.5, 13.5, 17.5)
+WIND_DOUBLE_RING: Final[float] = 9.0
+"""A shock ring at least this wide (half-width, px) is drawn double; a narrower one would be
+a solid blob."""
+"""How far the held gust's farthest crescent sits along the launch, by tier."""
+
+
+def _wind_burst(tier: int, frame: int, swirl: bool = True) -> Image.Image:
+    """A puff of air: a white core with three arcs spiralling round it; next a wider, mint
+    spiral (``swirl`` off: the core alone, the split's shape)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    reach = WIND_BURST_REACH[tier] * (1.0 if frame == 0 else 1.35)
+    core = max(1.5, reach * (0.45 if frame == 0 else 0.3))
+    draw.ellipse((centre - core, centre - core, centre + core, centre + core),
+                 fill=WHITE if frame == 0 else WIND_MINT)  # fmt: skip
+    if not swirl:
+        return image
+    box = (centre - reach, centre - reach, centre + reach, centre + reach)
+    for index in range(3):
+        start = 120.0 * index + frame * 40.0
+        draw.arc(box, start, start + 75.0, fill=WHITE if frame == 0 else WIND_MINT,
+                 width=2 if frame == 0 else 1)  # fmt: skip
+        inner = reach * 0.7
+        draw.arc((centre - inner, centre - inner, centre + inner, centre + inner),
+                 start + 60.0, start + 110.0, fill=WIND_TEAL)  # fmt: skip
+    return image
+
+
+def _wind_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held gust: three thin nested crescents of air sweeping the way the target will
+    fly, rippling outward over the freeze, the farthest fading."""
+    if angle < 0:
+        return _wind_ring_of_air(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, across = _direction(angle)
+    reach = WIND_REACH[tier]
+    colours = ((WHITE, WIND_MINT, WIND_TEAL), (WIND_MINT, WHITE, WIND_MINT),
+               (WIND_TEAL, WIND_MINT, WHITE))[frame]  # fmt: skip
+    for (share, thickness, span), colour in zip(WIND_ARCS, colours, strict=True):
+        distance = reach * share + frame * 0.8
+        radius = max(3.0, reach * 0.55)
+        back = radius - distance
+        scale = 0.6 + 0.2 * tier
+        crescent = _crescent(centre, along, across, radius, thickness * scale, back, span)
+        draw.polygon(crescent, fill=colour)
+    return image
+
+
+def _wind_ring_of_air(tier: int, frame: int) -> Image.Image:
+    """The held gust when the launch has no direction on screen: a broken ring of air round
+    the contact point, turning."""
+    image, draw, centre = _canvas(SIZES[tier])
+    radius = WIND_REACH[tier] * 0.55 + frame * 0.6
+    box = (centre - radius, centre - radius, centre + radius, centre + radius)
+    for index in range(4):
+        start = 90.0 * index + frame * 25.0
+        draw.arc(box, start, start + 55.0, fill=WHITE if index % 2 else WIND_MINT, width=2)
+    return image
+
+
+def _wind_lines(tier: int, angle: int) -> Image.Image:
+    """Air streaks: white with a teal edge, mint beside, deep teal behind."""
+    colours = (WHITE, WIND_DEEP, WIND_MINT, WIND_DEEP)
+    return _lines(tier, angle, WIND_REACH[tier] * 0.5, colours)
+
+
+def _wind_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """A wisp of air: a short stroke along its flight with a curl at its head, fading from
+    white to teal."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    along, across = _direction(angle)
+    length = (2.0, 3.0)[size] - frame * 0.5
+    colour = (WHITE, WIND_MINT, WIND_TEAL)[frame]
+    head = _at(centre, along, across, length / 2.0, 0.0)
+    draw.line((_at(centre, along, across, -length / 2.0, 0.0), head), fill=colour)
+    if frame < 2:
+        draw.point(_at(centre, along, across, length / 2.0 - 1.0, 1.0), fill=WIND_MINT)
+    return image
+
+
+def _shock_ring(tier: int, frame: int) -> Image.Image:
+    """A sharp double shock ring of air spreading from the contact point: two thin rings at
+    first, then one, dashed as it fades."""
+    width = RING_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
+    size = 2 * math.ceil(width) + 3
+    image, draw, centre = _canvas(size)
+    height = width * RING_SQUASH
+    box = (centre - width, centre - height, centre + width, centre + height)
+    if frame < 2:
+        draw.ellipse(box, outline=WHITE if frame == 0 else WIND_MINT)
+        if width >= WIND_DOUBLE_RING:  # room inside for the second ring
+            inner = (box[0] + 3, box[1] + 2, box[2] - 3, box[3] - 2)
+            draw.ellipse(inner, outline=WIND_MINT if frame == 0 else WIND_TEAL)
+        return image
+    dashes = 16
+    for index in range(0, dashes, 2):
+        start = 360.0 * index / dashes + frame * 10.0
+        draw.arc(box, start, start + 360.0 / dashes, fill=WIND_MINT if frame == 2 else WIND_TEAL)
+    return image
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+WIND_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, WIND_MINT, WIND_TEAL)
 EARTH_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (STONE_PALE, CRYSTAL, STONE_DARK)
 DARK_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (DARK_PALE, DARK_LILAC, DARK_VIOLET)
 FIRE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (FIRE_PALE, FIRE_YELLOW, FIRE_RED)
@@ -916,6 +1041,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _earth_particle,
         "ring": _dust_ring,  # dust reads on a light stage without an outline, like smoke
         "flare": lambda frame: _outlined(_flare(frame, EARTH_FLARE), EARTH_EDGE),
+    },
+    "wind": {
+        "burst": lambda tier, frame: _outlined(_wind_burst(tier, frame), WIND_EDGE),
+        "split": lambda tier, frame: _wind_burst(tier, frame, swirl=False),
+        "core": lambda tier, angle, frame: _outlined(_wind_core(tier, angle, frame), WIND_EDGE),
+        "lines": _wind_lines,
+        "particle": _wind_particle,
+        "ring": lambda tier, frame: _outlined(_shock_ring(tier, frame), WIND_EDGE),
+        "flare": lambda frame: _outlined(_flare(frame, WIND_FLARE), WIND_EDGE),
     },
     "fire": {
         "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),

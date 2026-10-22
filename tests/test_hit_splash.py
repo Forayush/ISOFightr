@@ -545,3 +545,26 @@ def test_earth_chips_and_leaves_fall() -> None:
     falling = hs.Particle(0.0, 2.0, 12, hs.PARTICLE_RISE["earth"])
     heights = [falling.offset(age)[1] for age in range(12)]
     assert heights == sorted(heights, reverse=True) and heights[-1] < -5.0
+
+
+def test_wind_wisps_curl_every_other_one_the_other_way() -> None:
+    """``PARTICLE_CURL``: a wind particle turns as it flies, half of them one way and half
+    the other, and its picture follows the way it is going now."""
+    curl = hs.PARTICLE_CURL["wind"]
+    left, right = hs.Particle(0.0, 2.0, 12, curl=curl), hs.Particle(0.0, 2.0, 12, curl=-curl)
+    assert left.offset(8)[1] > 0.5 and right.offset(8)[1] < -0.5, "they curl apart"
+    assert left.offset(8)[0] == pytest.approx(right.offset(8)[0])
+    straight = hs.Particle(0.0, 2.0, 12)
+    reach = sum(2.0 * hs.PARTICLE_DRAG**k for k in range(8))
+    assert straight.offset(8) == pytest.approx((reach, 0.0)), "the sum the curl walks"
+    match = duel()
+    target = match.fighters[1]
+    model = HitSplashes(forecast=lambda stage, fighter: True)
+    frozen(target, 11, across(0))
+    model.hit(hit_event(effect=Effect.NORMAL))
+    model.splashes[0].attacker = None  # no hit theme: set the theme by hand below
+    model.observe(match.fighters, match.stage, 5)
+    model.splashes[0].theme = "wind"
+    model.launch(LaunchEvent(1, target.pos, across(0).normalized(), 200.0))
+    twists = [particle.curl for particle in model.splashes[0].particles]
+    assert set(twists) == {curl, -curl}

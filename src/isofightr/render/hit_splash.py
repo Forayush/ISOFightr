@@ -81,6 +81,9 @@ CONE_DEGREES: Final[tuple[float, ...]] = (30.0, 40.0, 50.0, 60.0)
 PARTICLE_RISE: Final[dict[str, float]] = {"fire": 0.08, "earth": -0.14}
 """How fast a theme's particles drift up the screen, in pixels a tick more each tick: embers
 rise as they slow, rock chips and leaves fall (themes not listed fly straight)."""
+PARTICLE_CURL: Final[dict[str, float]] = {"wind": 0.16}
+"""How fast a theme's particles turn as they fly, in radians a tick (every other one the
+other way): wind's wisps curl."""
 PARTICLE_PULL: Final[dict[str, float]] = {"darkness": 0.07}
 """How fast a theme's particles are drawn back to the contact point, as a share of their
 reach lost each tick: darkness's motes fly out and are pulled back in (an implosion)."""
@@ -172,12 +175,26 @@ class Particle:
     """How fast it drifts up the screen (``PARTICLE_RISE``)."""
     pull: float = 0.0
     """How fast it is drawn back to where it started (``PARTICLE_PULL``)."""
+    curl: float = 0.0
+    """How fast it turns as it flies, in radians a tick (``PARTICLE_CURL``)."""
+
+    def heading(self, age: int) -> float:
+        """Which way it flies ``age`` ticks after the launch."""
+        return self.turn + self.curl * age
 
     def offset(self, age: int) -> tuple[float, float]:
         """Where it is ``age`` ticks after the launch, from the contact point, in pixels."""
-        reach = self.speed * (1.0 - PARTICLE_DRAG**age) / (1.0 - PARTICLE_DRAG)
-        reach *= max(0.0, 1.0 - self.pull * age)
+        pulled = max(0.0, 1.0 - self.pull * age)
         drift = self.rise * age * (age + 1) / 2.0
+        if self.curl:
+            x = y = 0.0
+            step = self.speed
+            for tick in range(age):
+                x += math.cos(self.heading(tick)) * step
+                y += math.sin(self.heading(tick)) * step
+                step *= PARTICLE_DRAG
+            return x * pulled, y * pulled + drift
+        reach = self.speed * (1.0 - PARTICLE_DRAG**age) / (1.0 - PARTICLE_DRAG) * pulled
         return math.cos(self.turn) * reach, math.sin(self.turn) * reach + drift
 
 
@@ -351,6 +368,7 @@ class HitSplashes:
         cone = math.radians(CONE_DEGREES[splash.tier])
         rise = PARTICLE_RISE.get(splash.theme, 0.0)
         pull = PARTICLE_PULL.get(splash.theme, 0.0)
+        curl = PARTICLE_CURL.get(splash.theme, 0.0)
         particles = []
         for number in range(count):
             spread, pace, fade = (
@@ -362,7 +380,8 @@ class HitSplashes:
                 angle = turn + (2.0 * spread - 1.0) * cone
             speed = PARTICLE_SPEED[splash.tier] * (0.6 + 0.8 * pace)
             life = DISPERSAL_TICKS[splash.tier] - round(fade * 3.0)
-            particles.append(Particle(angle, speed, life, rise, pull))
+            twist = curl if number % 2 else -curl
+            particles.append(Particle(angle, speed, life, rise, pull, twist))
         return tuple(particles)
 
     def _sprites_of(self, splash: HitSplash) -> list[SplashSprite]:
@@ -395,7 +414,7 @@ class HitSplashes:
                     continue
                 dx, dy = particle.offset(since)
                 look = min(since * PARTICLE_FRAMES // particle.life, PARTICLE_FRAMES - 1)
-                heading = angle_step(particle.turn) or 0
+                heading = angle_step(particle.heading(since)) or 0
                 key = ("particle", theme, size, heading, look)
                 pictures.append(SplashSprite(key, x + dx, y + dy))
         flaring = splash.launched_at is None and splash.age < FLARE_FRAMES * FLARE_FRAME_TICKS
