@@ -509,9 +509,10 @@ def test_a_hit_splashes_through_its_freeze_and_disperses_on_its_launch(window: A
             seen.append((target.hitlag, splash_kinds(view)))
     assert view.effects.sparks == [], "the splash replaces the hit's spark"
     hitlag = seen[0][0]
-    assert [kinds for _, kinds in seen[:2]] == [{"burst"}, {"burst"}]
+    heavy = {"burst", "split"}  # 60% is a heavy hit: its burst has its chromatic split
+    assert [kinds for _, kinds in seen[:2]] == [heavy, heavy]
     assert all(kinds == {"core", "lines"} for _, kinds in seen[2:hitlag])
-    assert seen[hitlag][1] == {"particle"}, "the launch"
+    assert seen[hitlag][1] == {"particle", "ring"}, "the launch, with a heavy hit's ring"
     assert seen[-1][1] == set(), "and then it is gone"
 
 
@@ -789,3 +790,55 @@ def test_a_hard_launch_leaves_afterimages_sorted_into_the_world(window: Any) -> 
             assert colours == {art.player_color(target.color_index)[:3]}
     assert shown == len(AFTERIMAGE_PARTS)
     assert not visible, "gone again once the launch has run on"
+
+
+def test_a_battle_builds_its_splash_art_ahead_of_time(window: Any) -> None:
+    """Decision D-068: every picture the match's hits can need is queued when the battle
+    starts and built a little each drawn frame (into the atlas), so hits rarely build their
+    own; a frame's share stays near its budget."""
+    import time
+
+    from isofightr.render import splash_art
+    from isofightr.render.effect_renderer import WARM_BUDGET_SECONDS
+    from isofightr.render.hit_splash import match_themes
+
+    view = make_view(window)
+    renderer = view.effect_renderer
+    themes = match_themes(view.characters)
+    drawn = [theme for theme in themes if splash_art.has_art(theme)]
+    assert drawn and renderer.warming == sum(len(splash_art.theme_keys(t)) for t in drawn)
+    queued = renderer.warming
+    for _ in range(5):
+        view.on_draw()
+    assert renderer.warming < queued
+    spent = time.perf_counter()
+    renderer.warm()
+    assert time.perf_counter() - spent < WARM_BUDGET_SECONDS + 0.02
+    first = ("splash", *splash_art.theme_keys(drawn[0])[0])
+    atlas = renderer.sprites.atlas or window.ctx.default_atlas
+    assert atlas.has_texture(renderer._textures[first]), "in the atlas before any hit"
+
+
+def test_a_critical_hit_flashes_the_screen_unless_flashing_is_reduced(window: Any) -> None:
+    """Decision D-068: a hit forecast to KO flashes the screen white for two ticks; "reduce
+    flashing" keeps the screen still."""
+    from dataclasses import replace
+
+    from isofightr.sim.events import HitEvent
+
+    for calm in (False, True):
+        view = make_view(window)
+        view.settings = replace(view.settings, reduce_flashing=calm)
+        view.match.set_damage(1, 250.0)
+        view.on_key_press(keys().U, 0)  # forward smash
+        ticks(view, 1)
+        view.on_key_release(keys().U, 0)
+        flashes = []
+        for _ in range(40):
+            ticks(view, 1)
+            view.on_draw()
+            flashes.append(view.effect_renderer._flash.visible)
+            if any(isinstance(event, HitEvent) for event in view.match.events):
+                splash = view.effects.splashes.splashes[0]
+                assert splash.tier == 3, "forecast to KO: critical"
+        assert flashes.count(True) == (0 if calm else 2), calm

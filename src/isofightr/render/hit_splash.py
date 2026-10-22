@@ -13,11 +13,17 @@ Plan note "09 - Art Direction" (VFX style) and D-068 in "19 - Decision Log". One
 
 Its **tier** is the knockback band (``TIER_KNOCKBACK``), one up for a sweetspot (to heavy at
 most), one down for a multi-hit sub-hit, and critical only for a hit forecast to KO
-(:mod:`isofightr.render.ko_forecast`). Its **theme** is the hit's effect, or for a normal hit
-the attacker's ``hit_theme``. Particles move by a fixed hash of the hit's match frame, the
-target's player index and the particle's number: the same on every run, nothing drawn from
-the sim. Everything is placed in world pixels (as :func:`isofightr.render.iso.project` gives
-them), so the effect renderer draws :meth:`HitSplashes.sprites` as they come.
+(:mod:`isofightr.render.ko_forecast`). Heavy and critical hits add a chromatic split under the
+burst (two palette-coloured copies, ``SPLIT_OFFSET`` pixels to either side) and a shockwave ring
+at the launch; a critical hit adds a flare and a two-tick screen flash. "Reduce flashing"
+(``calm``) drops the split and the screen flash.
+
+Its **theme** is the hit's effect, or for a normal hit the attacker's ``hit_theme``.
+Particles move by a fixed hash of the hit's match frame, the target's player index and the
+particle's number: the same on every run, nothing drawn from the sim. Everything is placed in
+world pixels (as :func:`isofightr.render.iso.project` gives them), so the effect renderer
+draws :meth:`HitSplashes.sprites` as they come; :mod:`isofightr.render.splash_art` draws
+their keys.
 
 Presentation only: fed with ``match.events`` and the fighters, never writing to them. Pure
 Python (no ``arcade``).
@@ -32,6 +38,8 @@ from typing import Final
 from isofightr.render.hurt_motion import MASK64, mix64
 from isofightr.render.iso import project
 from isofightr.render.ko_forecast import will_ko
+from isofightr.render.splash_art import CORE_FRAMES, FLARE_FRAMES, RING_FRAMES, SPLIT_CHANNELS
+from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import HazardHitEvent, HitEvent, LaunchEvent
 from isofightr.sim.fighter import Fighter
@@ -48,7 +56,7 @@ TIER_KNOCKBACK: Final[tuple[float, ...]] = (40.0, 80.0)
 forecast KO is critical (decision D-068, agreed: KB 150 is a forward smash at 60%)."""
 BURST_TICKS: Final[int] = 2
 """The burst: the contact tick and the next."""
-HOLD_FRAMES: Final[int] = 3
+HOLD_FRAMES: Final[int] = CORE_FRAMES
 """Frames of the held core, spread across the rest of the freeze."""
 DISPERSAL_TICKS: Final[tuple[int, ...]] = (8, 10, 12, 14)
 """How long the dispersal lasts, by tier."""
@@ -60,6 +68,14 @@ PARTICLE_DRAG: Final[float] = 0.82
 """A particle keeps this share of its speed from one tick to the next."""
 PARTICLE_FRAMES: Final[int] = 3
 """A particle's look steps through this many frames over its life."""
+SPLIT_OFFSET: Final[int] = 2
+"""How far to either side of the burst its chromatic split's copies are drawn, in pixels."""
+RING_FRAME_TICKS: Final[int] = 2
+"""Ticks each frame of the shockwave ring shows (it starts with the launch)."""
+FLARE_FRAME_TICKS: Final[int] = 2
+"""Ticks each frame of the critical flare shows (it starts on the contact tick)."""
+SCREEN_FLASH_TICKS: Final[int] = 2
+"""A critical hit flashes the screen for this many ticks from the contact."""
 CONE_DEGREES: Final[tuple[float, ...]] = (30.0, 40.0, 50.0, 60.0)
 """Half the cone the particles fly in around the launch, by tier."""
 RADIAL_BELOW: Final[float] = 6.0
@@ -74,8 +90,8 @@ MAX_PER_HIT: Final[int] = 12
 """Sprites one splash may show at once."""
 MAX_LIVE: Final[int] = 160
 """Splash sprites that may be on screen at once."""
-CORE_SPRITES: Final[int] = 2
-"""Sprites a splash's core takes: the splash and its directional lines."""
+RING_SPRITES: Final[int] = 1
+"""Sprites a heavy splash's dispersal takes besides its particles: the ring."""
 LINGER_TICKS: Final[int] = 4
 """A hold whose freeze is over without a launch being seen ends this many ticks late at most
 (a safety: normally the target's own hitlag ends it)."""
@@ -218,6 +234,8 @@ class HitSplashes:
     """Whether launches throw particles ("Hit effects: Minimal" has none)."""
     forecast: Callable[[Stage, Fighter], bool] = will_ko
     """Whether a fighter's pending launch will KO it (tests and the splash sheet replace it)."""
+    calm: bool = False
+    """"Reduce flashing": no chromatic split and no screen flash (the battle sets it)."""
 
     def hit(self, event: HitEvent | HazardHitEvent) -> None:
         """Start a splash for a hit; ``observe`` completes it on the same tick."""
@@ -272,6 +290,18 @@ class HitSplashes:
         """Drop every splash (a match restart)."""
         self.splashes = []
 
+    def screen_flash(self) -> int:
+        """How strong the screen flash is now: 0 none, up to ``SCREEN_FLASH_TICKS`` on a
+        critical hit's contact tick, one less each tick after (never with ``calm``)."""
+        if self.calm:
+            return 0
+        flashes = [
+            SCREEN_FLASH_TICKS - splash.age
+            for splash in self.splashes
+            if splash.tier == CRITICAL and splash.launched_at is None and splash.resolved
+        ]
+        return max([flash for flash in flashes if flash > 0], default=0)
+
     def live(self) -> int:
         """How many sprites the splashes show now."""
         return sum(len(self._sprites_of(splash)) for splash in self.splashes)
@@ -304,7 +334,8 @@ class HitSplashes:
 
     def _particles(self, splash: HitSplash, turn: float | None) -> tuple[Particle, ...]:
         room = MAX_LIVE - self.live()
-        count = max(0, min(PARTICLES[splash.tier], MAX_PER_HIT - CORE_SPRITES, room))
+        ring = RING_SPRITES if splash.tier >= HEAVY else 0
+        count = max(0, min(PARTICLES[splash.tier], MAX_PER_HIT - ring, room - ring))
         cone = math.radians(CONE_DEGREES[splash.tier])
         particles = []
         for number in range(count):
@@ -321,25 +352,66 @@ class HitSplashes:
         return tuple(particles)
 
     def _sprites_of(self, splash: HitSplash) -> list[SplashSprite]:
+        """A splash's pictures now, the ones to be drawn underneath first."""
         x, y = project(splash.contact.x, splash.contact.y, splash.contact.z)
         phase = splash.phase
         theme, tier = splash.theme, splash.tier
+        pictures: list[SplashSprite] = []
         if phase is Phase.BURST:
-            return [SplashSprite(("burst", theme, tier, splash.age), x, y)]
-        if phase is Phase.HOLD:
-            x += VIBRATION_PIXELS * (splash.age % 2)
-            pictures = [SplashSprite(("core", theme, tier, splash.hold_frame), x, y)]
+            if tier >= HEAVY and not self.calm:
+                for channel in range(SPLIT_CHANNELS):
+                    shift = SPLIT_OFFSET * (2 * channel - 1)
+                    key = ("split", theme, tier, splash.age, channel)
+                    pictures.append(SplashSprite(key, x + shift, y))
+            pictures.append(SplashSprite(("burst", theme, tier, splash.age), x, y))
+        elif phase is Phase.HOLD:
+            held = x + VIBRATION_PIXELS * (splash.age % 2)
+            angle = -1 if splash.angle is None else splash.angle
+            pictures.append(SplashSprite(("core", theme, tier, angle, splash.hold_frame), held, y))
             if splash.angle is not None:
-                pictures.append(SplashSprite(("lines", theme, tier, splash.angle), x, y))
-            return pictures
-        if phase is Phase.DISPERSAL and splash.launched_at is not None:
+                pictures.append(SplashSprite(("lines", theme, tier, splash.angle), held, y))
+        elif phase is Phase.DISPERSAL and splash.launched_at is not None:
             since = splash.age - splash.launched_at
-            pictures = []
+            if tier >= HEAVY and since < RING_FRAMES * RING_FRAME_TICKS:
+                key = ("ring", theme, tier, since // RING_FRAME_TICKS)
+                pictures.append(SplashSprite(key, x, y))
+            size = 1 if tier >= HEAVY else 0
             for particle in splash.particles:
                 if since >= particle.life:
                     continue
                 dx, dy = particle.offset(since)
                 look = min(since * PARTICLE_FRAMES // particle.life, PARTICLE_FRAMES - 1)
-                pictures.append(SplashSprite(("particle", theme, tier, look), x + dx, y + dy))
-            return pictures
-        return []
+                heading = angle_step(particle.turn) or 0
+                key = ("particle", theme, size, heading, look)
+                pictures.append(SplashSprite(key, x + dx, y + dy))
+        flaring = splash.launched_at is None and splash.age < FLARE_FRAMES * FLARE_FRAME_TICKS
+        if tier == CRITICAL and flaring and phase is not Phase.DONE:
+            pictures.append(SplashSprite(("flare", theme, splash.age // FLARE_FRAME_TICKS), x, y))
+        return pictures
+
+
+def match_themes(
+    characters: Iterable[CharacterDef], hazard_effects: Iterable[Effect] = ()
+) -> tuple[str, ...]:
+    """Return the themes a match's hits can have, each once, the characters' own first: their
+    hit themes, the effects their moves and projectiles carry, and the stage's hazards'."""
+    themes: list[str] = []
+
+    def add(theme: str) -> None:
+        if theme not in themes:
+            themes.append(theme)
+
+    for character in characters:
+        add(theme_of(Effect.NORMAL, character.hit_theme))
+    for character in characters:
+        for move in character.moves.values():
+            boxes = [box for window in move.windows for box in window.hitboxes]
+            for projectile in move.projectiles:
+                boxes.append(projectile.hitbox)
+                if projectile.burst is not None:
+                    boxes.append(projectile.burst)
+            for box in boxes:
+                add(theme_of(box.effect, character.hit_theme))
+    for effect in hazard_effects:
+        add(theme_of(effect, ""))
+    return tuple(themes)

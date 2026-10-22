@@ -7,12 +7,17 @@ drawn as one batched ``SpriteList``.
 Reads state only: it never changes what it draws.
 """
 
-from collections.abc import Callable, Collection, Mapping, Sequence
+import hashlib
+import time
+from collections import deque
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from functools import partial
+from typing import Final
 
 import arcade
 from PIL import Image
 
+from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.render import placeholder_art as art
 from isofightr.render import projectile_art, splash_art, vfx_art
 from isofightr.render.camera import snap
@@ -30,6 +35,18 @@ SHIELD_SIZE_STEP = 0.05
 SHIELD_SHIMMER_TICKS = 8
 """Ticks each shimmer frame of the shield bubble is shown."""
 """Shield bubble textures are built in steps of this radius, so a draining shield reuses them."""
+SCREEN_FLASH_ALPHAS: Final[tuple[int, ...]] = (0, 40, 80)
+"""The critical hit's screen flash, by strength (``HitSplashes.screen_flash``): white this
+opaque on the contact tick, half that on the next (decision D-068)."""
+WARM_BUDGET_SECONDS: Final[float] = 0.001
+"""How long building splash textures ahead of time may take in one drawn frame."""
+WARM_PICTURES: Final[int] = 1
+"""The most new splash pictures built ahead of time in one drawn frame: each costs about
+0.6 ms in all (drawing it, making the texture, adding it to the atlas), most of it outside
+what the frame's own clock sees, and twice that on a busy machine (decision D-068)."""
+WARM_PICTURES_COUNTDOWN: Final[int] = 8
+"""The same during the countdown (180 ticks before a versus match), when nothing moves yet
+and a frame has time to spare: most of a match's pictures are built then."""
 
 
 class EffectRenderer:
@@ -45,6 +62,15 @@ class EffectRenderer:
         """Draw every projectile as the placeholder ball (``placeholder_art=True``)."""
         self.live = 0
         """How many sprites the layer placed on the last :meth:`sync` (its live sprites)."""
+        self._flash_layer: arcade.SpriteList[arcade.SpriteSolidColor] = arcade.SpriteList()
+        self._flash = arcade.SpriteSolidColor(NATIVE_W * 2, NATIVE_H * 2)
+        self._flash.visible = False
+        self._flash_layer.append(self._flash)
+        self._warm: deque[tuple[str | int, ...]] = deque()
+        """Splash pictures still to build ahead of time, the next first."""
+        self._by_content: dict[str, arcade.Texture] = {}
+        """Splash textures by a digest of their pixels: pictures that come out the same (small
+        particles at neighbouring angles) share one texture and one place in the atlas."""
 
     def sync(
         self,
@@ -145,6 +171,7 @@ class EffectRenderer:
             texture = self._texture(("trail", *key), partial(vfx_art.build_trail, *key))
             wanted.append((texture, trail.position))
         placed: list[tuple[arcade.Texture, tuple[float, float]]] = []
+        self._flash.visible = False
         if camera_centre is not None:
             for blast in effects.blasts:
                 color = (colors or {}).get(blast.player, blast.player)
@@ -159,10 +186,13 @@ class EffectRenderer:
                     ),
                 )
                 placed.append((texture, base))
+            flash = effects.splashes.screen_flash()
+            self._flash.visible = flash > 0
+            if flash:
+                self._flash.position = camera_centre
+                self._flash.alpha = SCREEN_FLASH_ALPHAS[min(flash, len(SCREEN_FLASH_ALPHAS) - 1)]
         for picture in effects.splashes.sprites():
-            texture = self._texture(
-                ("splash", *picture.key), partial(splash_art.build, picture.key)
-            )
+            texture = self._splash_texture(("splash", *picture.key))
             placed.append((texture, (picture.x, picture.y)))
 
         screen: list[tuple[arcade.Texture, tuple[float, float]]] = [
@@ -189,6 +219,54 @@ class EffectRenderer:
     def draw(self) -> None:
         """Draw the layer. Call with the world camera active."""
         self.sprites.draw(pixelated=True)
+        if self._flash.visible:
+            self._flash_layer.draw()
+
+    def warm_splashes(self, themes: Iterable[str]) -> None:
+        """Queue every splash picture of ``themes`` to be built ahead of time (decision D-068):
+        :meth:`warm` builds them a few at a time, so a hit rarely builds its own. Light and
+        medium hits' pictures of every theme come first, then heavy and critical ones. Themes
+        without art of their own are left out (they reuse a few old effects' pictures)."""
+        drawn = [theme for theme in themes if splash_art.has_art(theme)]
+        keys = [("splash", *key) for theme in drawn for key in splash_art.theme_keys(theme)]
+        self._warm.extend(sorted(keys, key=lambda key: splash_art.heavy(key[1:])))
+
+    def warm(self, budget: float = WARM_BUDGET_SECONDS, limit: int = WARM_PICTURES) -> int:
+        """Build queued splash pictures into textures, and into the atlas: at most ``limit``
+        of them, and none once ``budget`` seconds have gone. Returns how many it built."""
+        started = time.perf_counter()
+        built = 0
+        atlas = self.sprites.atlas or arcade.get_window().ctx.default_atlas
+        while self._warm and built < limit and time.perf_counter() - started < budget:
+            key = self._warm.popleft()
+            if key in self._textures:
+                continue
+            known = len(self._by_content)
+            texture = self._splash_texture(key)
+            if len(self._by_content) > known:  # a new picture, not one already built
+                atlas.add(texture)
+                built += 1
+        return built
+
+    def _splash_texture(self, key: tuple[str | int, ...]) -> arcade.Texture:
+        """A splash picture's texture; pictures with the same pixels share one, named after
+        a digest of them (so arcade need not hash the image itself)."""
+        texture = self._textures.get(key)
+        if texture is None:
+            image = splash_art.build(key[1:])
+            digest = hashlib.blake2b(image.tobytes(), digest_size=12).hexdigest()
+            name = f"splash-{image.width}x{image.height}-{digest}"
+            texture = self._by_content.get(name)
+            if texture is None:
+                texture = arcade.Texture(image, hash=name)
+                self._by_content[name] = texture
+            self._textures[key] = texture
+        return texture
+
+    @property
+    def warming(self) -> int:
+        """How many splash pictures are still queued to be built ahead of time."""
+        return len(self._warm)
 
     def _texture(self, key: object, build: Callable[[], Image.Image]) -> arcade.Texture:
         texture = self._textures.get(key)

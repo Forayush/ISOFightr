@@ -55,12 +55,17 @@ from isofightr.input.keyboard import KeyLatch
 from isofightr.render import placeholder_art as art
 from isofightr.render.camera import FollowCamera, StepZoom, bounds_on_screen
 from isofightr.render.debug_overlay import StageOverlay
-from isofightr.render.effect_renderer import EffectRenderer
+from isofightr.render.effect_renderer import (
+    WARM_PICTURES,
+    WARM_PICTURES_COUNTDOWN,
+    EffectRenderer,
+)
 from isofightr.render.effects import BattleEffects
 from isofightr.render.fighter_look import costume_for, fighter_look
 from isofightr.render.ground_items import GroundItem, decal_items, projectile_items
 from isofightr.render.hazard_look import ground_marks, hazard_sprites
 from isofightr.render.hazard_renderer import HazardRenderer
+from isofightr.render.hit_splash import match_themes
 from isofightr.render.hitbox_overlay import HitboxOverlay
 from isofightr.render.iso import project, project_point
 from isofightr.render.pixel_buffer import PixelBuffer
@@ -70,6 +75,7 @@ from isofightr.scenes.setup import QUIT_HINT, MatchSetup, clock_text, countdown_
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     DEPTH_AIDS,
+    HIT_EFFECTS_OFF,
     KEYBOARD_ARROWS,
     KEYBOARD_SOLO,
     ZOOM_STEPPED,
@@ -306,6 +312,9 @@ class BattleView(TickedView):
         self.camera.snap_to(self._camera_targets())
         self.effects = BattleEffects()
         self.effect_renderer = EffectRenderer()
+        hazards = self.stage.hazards if self.match.rules.stage_hazards else ()
+        hazard_effects = [hazard.hitbox.effect for hazard in hazards if hazard.hitbox]
+        self.effect_renderer.warm_splashes(match_themes(self.characters, hazard_effects))
         self.hazard_renderer = HazardRenderer()
         self.effect_renderer.plain_projectiles = placeholder_art
         self.hitboxes = HitboxOverlay()
@@ -1120,6 +1129,7 @@ class BattleView(TickedView):
             for entity_id, look in looks.items()
             if look.sprite is not None and look.sprite.exact
         }
+        self.effects.splashes.calm = calm  # "reduce flashing": no split, no screen flash
         self.effect_renderer.sync(
             self.effects,
             fighters,
@@ -1128,6 +1138,9 @@ class BattleView(TickedView):
             colors,
             self.view_centre(),
         )
+        if self.effects.hit_effects != HIT_EFFECTS_OFF:
+            counting = self.match.phase is MatchPhase.COUNTDOWN
+            self.effect_renderer.warm(limit=WARM_PICTURES_COUNTDOWN if counting else WARM_PICTURES)
         self.hitboxes.fighters = fighters
         self.hitboxes.projectiles = self.match.projectiles
         scores = [stats.score for stats in self.match.stats] if self.score_display else None

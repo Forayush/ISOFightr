@@ -17,6 +17,7 @@ from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.hit_splash import HitSplashes
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
+from isofightr.render.splash_art import has_art
 from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
 from isofightr.settings import HIT_EFFECTS_FULL, HIT_EFFECTS_OFF
 from isofightr.sim.combat.constants import LAUNCH_SNAP
@@ -499,7 +500,7 @@ class BattleEffects:
                 else:
                     self.splashes.hit(event)
                 extra = ELEMENT_EXTRAS.get(event.effect)
-                if extra is not None:
+                if extra is not None and self._shows_extra(event.effect):
                     kind, family = extra
                     self.fx.append(Fx(kind, event.position, family))
                     if kind == "ember":
@@ -561,6 +562,11 @@ class BattleEffects:
                     self.sparks.append(Spark(point, SMALL_SPARK_TIER, Effect.NORMAL))
                 if isinstance(event, TechEvent) and not event.wall:
                     self.rings.append(Ring(event.position))
+
+    def _shows_extra(self, effect: Effect) -> bool:
+        """Whether a hit of ``effect`` gets D-060's element extra: always with hit effects
+        off; otherwise only until its theme's splash has art of its own (which folds it in)."""
+        return self.hit_effects == HIT_EFFECTS_OFF or not has_art(effect.value)
 
     def observe(
         self, fighters: Iterable[Fighter], stage: Stage | None = None, frame: int | None = None

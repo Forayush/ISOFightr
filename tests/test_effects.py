@@ -18,7 +18,7 @@ from isofightr.render.effects import BattleEffects, ScreenShake, Spark
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose, fighter_look
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
-from isofightr.settings import HIT_EFFECTS_OFF
+from isofightr.settings import HIT_EFFECTS_FULL, HIT_EFFECTS_OFF
 from isofightr.sim.combat.hitbox import hurtbox
 from isofightr.sim.events import ClankEvent, HitEvent, JumpEvent, JumpKind, KoEvent
 from isofightr.sim.fighter import Fighter, StateId
@@ -620,7 +620,9 @@ def test_combo_text_hides_single_hits() -> None:
 # --- move effects (decision D-060) --------------------------------------------------------
 
 
-def _fire(character_id: str, move_id: str) -> tuple[Match, BattleEffects, object]:
+def _fire(
+    character_id: str, move_id: str, hit_effects: str = HIT_EFFECTS_FULL
+) -> tuple[Match, BattleEffects, object]:
     from isofightr.data.character_loader import load_character
     from isofightr.data.stage_loader import load_stage
     from isofightr.render.ground_items import ProjectileLooks
@@ -634,7 +636,7 @@ def _fire(character_id: str, move_id: str) -> tuple[Match, BattleEffects, object
     looks = ProjectileLooks()
     looks.learn(characters)
     start_move(match, match.fighters[0], move_id)
-    return match, BattleEffects(), looks
+    return match, BattleEffects(hit_effects=hit_effects), looks
 
 
 def _step(match: Match, effects: BattleEffects, looks: object) -> None:
@@ -659,13 +661,15 @@ def test_a_projectile_bursts_where_it_appears_and_where_it_ends() -> None:
 
 
 def test_a_projectile_that_ends_on_a_hit_or_the_ground_bursts_differently() -> None:
-    match, effects, looks = _fire("rook", "nspecial")
-    match.fighters[1].pos = Vec3(6.0, 6.0, 0.0)
-    kinds: list[str] = []
-    for _ in range(60):
-        _step(match, effects, looks)
-        kinds += [effect.kind for effect in effects.fx if effect.age == 0]
-    assert kinds == ["muzzle", "slash", "burst_hit"], "the wave slashes: a cut line too"
+    for hit_effects, cut in ((HIT_EFFECTS_OFF, ["slash"]), (HIT_EFFECTS_FULL, [])):
+        match, effects, looks = _fire("rook", "nspecial", hit_effects)
+        match.fighters[1].pos = Vec3(6.0, 6.0, 0.0)
+        kinds: list[str] = []
+        for _ in range(60):
+            _step(match, effects, looks)
+            kinds += [effect.kind for effect in effects.fx if effect.age == 0]
+        # The wave slashes: a cut line too, which the slash splash draws itself (D-068).
+        assert kinds == ["muzzle", *cut, "burst_hit"], hit_effects
 
     match, effects, looks = _fire("mote", "nspecial")
     kinds = []

@@ -187,16 +187,17 @@ def test_burst_then_hold_for_exactly_the_freeze_then_dispersal_on_the_launch(
     end = hitlag + hs.DISPERSAL_TICKS[HEAVY]
     assert set(phases[hitlag:end]) == {Phase.DISPERSAL} and phases[end] is Phase.DONE
     kinds = [{sprite.key[0] for sprite in sprites} for _, sprites in seen]
-    assert kinds[0] == {"burst"} and all("core" in kind for kind in kinds[2:hitlag])
-    assert kinds[hitlag] == {"particle"}, "the core is gone when the launch starts"
+    assert kinds[0] == {"burst", "split"}, "a heavy hit's burst has its chromatic split"
+    assert all(kind == {"core", "lines"} for kind in kinds[2:hitlag])
+    assert kinds[hitlag] == {"particle", "ring"}, "the core is gone when the launch starts"
 
 
 def test_the_held_frames_spread_across_the_freeze() -> None:
     _, seen = play(30, launch_at=30)
-    frames = [sprites[0].key[3] for phase, sprites in seen if phase is Phase.HOLD]
+    frames = [sprites[0].key[4] for phase, sprites in seen if phase is Phase.HOLD]
     assert frames == [0] * 10 + [1] * 10 + [2] * 8, "ceil(28 / 3) = 10 ticks each"
     _, seen = play(3, launch_at=3)
-    assert [sprites[0].key[3] for phase, sprites in seen if phase is Phase.HOLD] == [0]
+    assert [sprites[0].key[4] for phase, sprites in seen if phase is Phase.HOLD] == [0]
 
 
 def test_the_hold_vibrates_by_a_pixel() -> None:
@@ -391,14 +392,7 @@ def test_with_the_splash_the_launch_streak_is_not_drawn() -> None:
 def all_splash_keys() -> list[tuple[str | int, ...]]:
     from isofightr.render import splash_art
 
-    keys: list[tuple[str | int, ...]] = []
-    for theme in splash_art.THEMES:
-        for tier in range(4):
-            keys += [("burst", theme, tier, frame) for frame in range(hs.BURST_TICKS)]
-            keys += [("core", theme, tier, frame) for frame in range(hs.HOLD_FRAMES)]
-            keys += [("lines", theme, tier, angle) for angle in range(hs.ANGLES)]
-            keys += [("particle", theme, tier, frame) for frame in range(hs.PARTICLE_FRAMES)]
-    return keys
+    return [key for theme in splash_art.THEMES for key in splash_art.theme_keys(theme)]
 
 
 def test_every_splash_picture_is_palette_locked() -> None:
@@ -410,7 +404,7 @@ def test_every_splash_picture_is_palette_locked() -> None:
         image = splash_art.build(key)
         assert {pixel[:3] for pixel in image.getdata() if pixel[3]} <= master, key
     with pytest.raises(ValueError, match="kind"):
-        splash_art.build(("flare", "slash", 0, 0))
+        splash_art.build(("glow", "slash", 0, 0))
 
 
 def test_every_theme_a_splash_can_have_has_art() -> None:
@@ -419,3 +413,94 @@ def test_every_theme_a_splash_can_have_has_art() -> None:
 
     themes = {effect.value for effect in Effect} | set(HIT_THEMES)
     assert themes <= set(splash_art.THEMES)
+
+
+# --- heavy and critical extras (M17 group 2) -------------------------------------------------
+
+
+def sprites_by_tick(
+    knockback: float, critical: bool = False, calm: bool = False, hitlag: int = 11
+) -> list[list[hs.SplashSprite]]:
+    model = HitSplashes(forecast=lambda stage, fighter: critical, calm=calm)
+    match = duel()
+    target = match.fighters[1]
+    seen = []
+    for tick in range(hitlag + 16):
+        if tick:
+            model.tick()
+        if tick == 0:
+            frozen(target, hitlag, across(0))
+            model.hit(hit_event(knockback=knockback, hitlag=hitlag))
+        elif tick == hitlag:
+            model.launch(LaunchEvent(1, target.pos, across(0).normalized(), knockback))
+            target.launch = None
+            target.hitlag = 0
+        else:
+            target.hitlag = max(0, target.hitlag - 1)
+        model.observe(match.fighters, match.stage, 900 + tick)
+        seen.append(model.sprites())
+        if tick < 2:
+            assert model.screen_flash() == (0 if calm or not critical else 2 - tick)
+    return seen
+
+
+def test_a_heavy_burst_has_a_split_under_it_unless_calm() -> None:
+    seen = sprites_by_tick(100.0)
+    x, _ = project(CONTACT.x, CONTACT.y, CONTACT.z)
+    for tick in (0, 1):
+        split = [s for s in seen[tick] if s.key[0] == "split"]
+        assert [s.x - x for s in split] == [-hs.SPLIT_OFFSET, hs.SPLIT_OFFSET]
+        assert seen[tick][-1].key[0] == "burst", "drawn over its split"
+    assert not any(s.key[0] == "split" for s in sprites_by_tick(100.0, calm=True)[0])
+    assert not any(s.key[0] == "split" for s in sprites_by_tick(60.0)[0]), "medium: none"
+
+
+def test_a_heavy_launch_rings_and_throws_bigger_particles() -> None:
+    seen = sprites_by_tick(100.0)
+    rings = [[s.key[3] for s in sprites if s.key[0] == "ring"] for sprites in seen[11:]]
+    assert rings[: hs.RING_FRAME_TICKS * 4] == [[0], [0], [1], [1], [2], [2], [3], [3]]
+    assert all(s.key[2] == 1 for sprites in seen[11:] for s in sprites if s.key[0] == "particle")
+    medium = sprites_by_tick(60.0)
+    assert not any(s.key[0] == "ring" for sprites in medium for s in sprites)
+    assert all(s.key[2] == 0 for sprites in medium for s in sprites if s.key[0] == "particle")
+
+
+def test_a_critical_hit_flares_and_flashes_the_screen_unless_calm() -> None:
+    seen = sprites_by_tick(200.0, critical=True)
+    flares = [[s.key[2] for s in sprites if s.key[0] == "flare"] for sprites in seen]
+    assert flares[:6] == [[0], [0], [1], [1], [2], [2]] and flares[6] == []
+    assert max(len(sprites) for sprites in seen) <= hs.MAX_PER_HIT
+    calm = sprites_by_tick(200.0, critical=True, calm=True)
+    assert any(s.key[0] == "flare" for s in calm[0]), "the flare stays: it does not flash"
+
+
+def test_particles_are_keyed_by_where_they_fly() -> None:
+    seen = sprites_by_tick(100.0)
+    x, y = project(CONTACT.x, CONTACT.y, CONTACT.z)
+    for sprite in (s for s in seen[14] if s.key[0] == "particle"):
+        heading = angle_step(math.atan2(sprite.y - y, sprite.x - x))
+        assert heading is not None and abs((heading - sprite.key[3] + 8) % 16 - 8) <= 1
+
+
+def test_a_match_knows_the_themes_its_hits_can_have() -> None:
+    from isofightr.render.hit_splash import match_themes
+
+    roster = [load_character(name) for name in ("rook", "bramble", "zephyr", "mote")]
+    assert match_themes(roster) == ("slash", "earth", "wind", "fire", "darkness")
+    assert match_themes([roster[0]], [Effect.ELECTRIC, Effect.NORMAL]) == (
+        "slash",
+        "electric",
+        "normal",
+    ), "the stage's hazards too"
+
+
+def test_with_its_own_art_a_themes_old_extra_is_folded_in() -> None:
+    from isofightr.render import splash_art
+
+    for hit_effects in (HIT_EFFECTS_OFF, HIT_EFFECTS_FULL):
+        effects = BattleEffects(hit_effects=hit_effects)
+        effects.consume([hit_event(effect=Effect.SLASH), hit_event(effect=Effect.FIRE, target=0)])
+        kinds = {effect.kind for effect in effects.fx}
+        assert ("slash" in kinds) == (hit_effects == HIT_EFFECTS_OFF), "the slash draws its cut"
+        embers = hit_effects == HIT_EFFECTS_OFF or not splash_art.has_art("fire")
+        assert ("ember" in kinds) == embers, "until fire has its own art"
