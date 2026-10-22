@@ -90,6 +90,7 @@ SLASH_BLUE: Final[Rgba] = _rgba("4d9be6")
 SLASH_DEEP: Final[Rgba] = _rgba("4d65b4")
 SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "slash": (_rgba("e83b3b"), _rgba("30e1b9")),
+    "fire": (_rgba("c32454"), _rgba("8ff8e2")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -263,33 +264,42 @@ def _slash_cross(tier: int, frame: int) -> Image.Image:
     return image
 
 
-def _slash_lines(tier: int, angle: int) -> Image.Image:
-    """Speed lines ahead along the launch, the middle one longest, and a short dim
-    counter-streak behind: 1 px wide, so they never hide what is behind them."""
+def _lines(
+    tier: int, angle: int, start: float, colours: tuple[Rgba, Rgba, Rgba, Rgba]
+) -> Image.Image:
+    """Speed lines ahead along the launch from ``start``, the middle one longest, and a short
+    dim counter-streak behind: 1 px wide, so they never hide what is behind them. ``colours``
+    are the main line's, its edge's, the side lines' and the counter-streak's."""
+    main, edge_colour, side_colour, counter = colours
     image, draw, centre = _canvas(SIZES[tier])
     along, across = _direction(angle)
     reach = centre - 1.0
-    start = SLASH_CRESCENT[tier] * 0.55
     for side, length, first in SLASH_LINES:
         begin = start + (reach - start) * (1.0 - first) * 0.5
         end = min(reach, begin + (reach - start) * length)
         offset = side * (0.6 + 0.2 * tier)
-        if side == 0.0:  # the main line has a blue edge, so it reads on a light stage too
+        if side == 0.0:  # the main line has an edge, so it reads on a light stage too
             edge = offset - 1.0
             draw.line(
                 (_at(centre, along, across, begin, edge), _at(centre, along, across, end, edge)),
-                fill=SLASH_BLUE,
+                fill=edge_colour,
             )
         draw.line(
             (_at(centre, along, across, begin, offset), _at(centre, along, across, end, offset)),
-            fill=WHITE if side == 0.0 else SLASH_ICE,
+            fill=main if side == 0.0 else side_colour,
         )
     back = -start * 0.8
     draw.line(
         (_at(centre, along, across, back, 0.0), _at(centre, along, across, back - reach * 0.35, 0)),
-        fill=SLASH_DEEP,
+        fill=counter,
     )
     return image
+
+
+def _slash_lines(tier: int, angle: int) -> Image.Image:
+    """The slash's speed lines: white with a blue edge, ice beside, deep blue behind."""
+    colours = (WHITE, SLASH_BLUE, SLASH_ICE, SLASH_DEEP)
+    return _lines(tier, angle, SLASH_CRESCENT[tier] * 0.55, colours)
 
 
 def _slash_particle(size: int, angle: int, frame: int) -> Image.Image:
@@ -379,7 +389,174 @@ def _silhouette(image: Image.Image, colour: Rgba) -> Image.Image:
     return Image.composite(filled, blank, mask)
 
 
+# --- fire (Mote's flames, and every fire hit) ---------------------------------------------
+FIRE_PALE: Final[Rgba] = _rgba("fbff86")
+FIRE_YELLOW: Final[Rgba] = _rgba("f9c22b")
+FIRE_ORANGE: Final[Rgba] = _rgba("f79617")
+FIRE_DEEP: Final[Rgba] = _rgba("fb6b1d")
+FIRE_RED: Final[Rgba] = _rgba("ea4f36")
+FIRE_EDGE: Final[Rgba] = _rgba("b33831")
+"""The outline of fire's art: brick red, so it reads on light stages."""
+SMOKE: Final[Rgba] = _rgba("7f708a")
+SMOKE_DARK: Final[Rgba] = _rgba("625565")
+FIRE_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
+"""How far the burst's longest flame points reach, by tier."""
+FIRE_BURST_POINTS: Final[tuple[float, ...]] = (1.0, 0.45, 0.72, 0.45)
+"""The burst's points in turn, as shares of its reach: long, short, middling, short."""
+FIRE_TONGUE: Final[tuple[float, ...]] = (6.0, 9.0, 12.5, 16.0)
+"""The length of the held plume's middle flame, by tier."""
+FIRE_TONGUE_WIDTH: Final[tuple[float, ...]] = (1.5, 2.0, 2.75, 3.5)
+FIRE_SPREAD_DEGREES: Final[float] = 34.0
+"""How far the side flames lean from the launch."""
+FIRE_FLICKER_DEGREES: Final[tuple[float, ...]] = (0.0, 6.0, -5.0)
+"""How the plume sways from frame to frame."""
+SMOKE_PUFFS: Final[int] = 10
+
+
+def _fire_burst(tier: int, frame: int, sparks: bool = True) -> Image.Image:
+    """A jagged flash of flame: sixteen points of three lengths, a hot core; next a bigger
+    orange one throwing a few sparks (``sparks`` off: the flame alone, the split's shape)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    reach = FIRE_BURST_REACH[tier] * (1.0 if frame == 0 else 1.3)
+    for share, colour in ((1.0, FIRE_YELLOW if frame == 0 else FIRE_ORANGE),
+                          (0.55, FIRE_PALE if frame == 0 else FIRE_YELLOW)):  # fmt: skip
+        points = []
+        for index in range(16):
+            turn = 2.0 * math.pi * index / 16 + math.pi / 4.0
+            radius = max(1.0, reach * share * FIRE_BURST_POINTS[index % 4])
+            points.append((round(centre + math.cos(turn) * radius),
+                           round(centre - math.sin(turn) * radius)))  # fmt: skip
+        draw.polygon(points, fill=colour)
+    if frame == 1 and sparks:
+        for index in range(6):
+            turn = 2.0 * math.pi * index / 6 + 0.4
+            x = round(centre + math.cos(turn) * reach * 1.05)
+            y = round(centre - math.sin(turn) * reach * 1.05)
+            draw.point((x, y), fill=FIRE_RED if index % 2 else FIRE_YELLOW)
+    return image
+
+
+def _flame(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    along: Point,
+    across: Point,
+    start: float,
+    length: float,
+    width: float,
+    sway: float,
+    fill: Rgba,
+) -> None:
+    """A tongue of flame from ``start`` to ``start + length`` along the direction: broad at
+    its root, licking out at one side and in at the other, pointed at its tip."""
+    draw.polygon(
+        [
+            _at(centre, along, across, start, width),
+            _at(centre, along, across, start + length * 0.35, width * (0.95 + sway)),
+            _at(centre, along, across, start + length * 0.55, width * 0.4),
+            _at(centre, along, across, start + length * 0.72, width * (0.55 - sway)),
+            _at(centre, along, across, start + length, 0.0),
+            _at(centre, along, across, start + length * 0.6, -width * 0.45),
+            _at(centre, along, across, start + length * 0.4, -width * (0.85 - sway)),
+            _at(centre, along, across, start, -width),
+        ],
+        fill=fill,
+    )
+
+
+def _fire_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held plume: three separate flames streaming the way the target will fly, the
+    middle one longest and hottest, the side ones leaning out from a little further along;
+    they sway, shrink, and lick a flame off ahead over the freeze."""
+    if angle < 0:
+        return _fire_crown(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, _ = _direction(angle)
+    length = FIRE_TONGUE[tier] * (1.0, 0.9, 0.8)[frame]
+    width = FIRE_TONGUE_WIDTH[tier] * (0.85, 0.75, 0.6)[frame]
+    sway = (0.0, 0.2, -0.15)[frame]
+    flicker = FIRE_FLICKER_DEGREES[frame]
+    for lean, share, root, outer, inner in (
+        (FIRE_SPREAD_DEGREES, 0.62, width * 1.1, FIRE_RED, FIRE_DEEP),
+        (-FIRE_SPREAD_DEGREES, 0.62, width * 1.1, FIRE_RED, FIRE_DEEP),
+        (0.0, 1.0, -length * 0.15, FIRE_ORANGE, FIRE_YELLOW),
+    ):
+        tongue, tongue_across = _turned(along, lean + flicker)
+        reach, broad = length * share, width * share
+        _flame(draw, centre, tongue, tongue_across, root, reach, broad, sway, outer)
+        _flame(draw, centre, tongue, tongue_across, root + reach * 0.12, reach * 0.6,
+               broad * 0.45, -sway, inner)  # fmt: skip
+    if frame:  # a lick of flame breaking off ahead of the middle one
+        tip = length * 0.85 + 1.5 + frame
+        lick = max(1.0, width * 0.45)
+        draw.polygon(
+            [_at(centre, along, (along[1], -along[0]), tip + step, side)
+             for step, side in ((0.0, 0.0), (lick, lick * 0.6), (lick * 2.0, 0.0),
+                                (lick, -lick * 0.6))],
+            fill=FIRE_YELLOW if frame == 1 else FIRE_ORANGE,
+        )  # fmt: skip
+    return image
+
+
+def _fire_crown(tier: int, frame: int) -> Image.Image:
+    """The held plume when the launch has no direction on screen: six short flames round
+    the contact point."""
+    image, draw, centre = _canvas(SIZES[tier])
+    length = FIRE_TONGUE[tier] * 0.55 * (1.0, 0.9, 0.78)[frame]
+    width = FIRE_TONGUE_WIDTH[tier] * 0.7
+    for index in range(6):
+        along, across = _turned((1.0, 0.0), 60.0 * index + 30.0 + FIRE_FLICKER_DEGREES[frame])
+        fill = FIRE_ORANGE if index % 2 else FIRE_YELLOW
+        _flame(draw, centre, along, across, 1.0, length, width, 0.1, fill)
+    return image
+
+
+def _fire_lines(tier: int, angle: int) -> Image.Image:
+    """Heat streaks: yellow with a red edge, orange beside, smoke behind."""
+    colours = (FIRE_YELLOW, FIRE_RED, FIRE_ORANGE, SMOKE)
+    return _lines(tier, angle, FIRE_TONGUE[tier] * 0.45, colours)
+
+
+def _fire_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """An ember: a hot dot with a glowing tail behind it, cooling from yellow to red."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    along, across = _direction(angle)
+    middle = round(centre)
+    heads = ((FIRE_PALE, FIRE_ORANGE), (FIRE_YELLOW, FIRE_DEEP), (FIRE_RED, FIRE_RED))[frame]
+    tail = (2.0, 3.0)[size] - frame
+    if tail >= 1.0:
+        end = _at(centre, along, across, -tail, 0.0)
+        draw.line(((middle, middle), end), fill=heads[1])
+    if size and frame == 0:
+        draw.rectangle((middle, middle - 1, middle + 1, middle), fill=heads[0])
+    else:
+        draw.point((middle, middle), fill=heads[0])
+    return image
+
+
+def _smoke_ring(tier: int, frame: int) -> Image.Image:
+    """An expanding smoke ring: puffs round a flattened ellipse, glowing at first, then grey
+    and thinning out."""
+    width = RING_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
+    size = 2 * math.ceil(width) + 5
+    image, draw, centre = _canvas(size)
+    height = width * RING_SQUASH
+    puff = (1.5, 1.5, 1.0, 0.5)[frame]
+    colours = ((FIRE_ORANGE, SMOKE), (SMOKE, SMOKE_DARK), (SMOKE_DARK, SMOKE), (SMOKE_DARK,) * 2)
+    for index in range(SMOKE_PUFFS):
+        if frame == 3 and index % 2:
+            continue
+        turn = 2.0 * math.pi * index / SMOKE_PUFFS + frame * 0.2
+        x = centre + math.cos(turn) * width
+        y = centre + math.sin(turn) * height
+        colour = colours[frame][index % 2]
+        draw.ellipse((round(x - puff), round(y - puff), round(x + puff), round(y + puff)),
+                     fill=colour)  # fmt: skip
+    return image
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+FIRE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (FIRE_PALE, FIRE_YELLOW, FIRE_RED)
 DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
     "slash": {
         "burst": lambda tier, frame: _outlined(_slash_burst(tier, frame), SLASH_DEEP),
@@ -389,6 +566,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _slash_particle,
         "ring": lambda tier, frame: _outlined(_ring(tier, frame, SLASH_RING), SLASH_DEEP),
         "flare": lambda frame: _outlined(_flare(frame, SLASH_RING), SLASH_DEEP),
+    },
+    "fire": {
+        "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),
+        "split": lambda tier, frame: _fire_burst(tier, frame, sparks=False),
+        "core": lambda tier, angle, frame: _outlined(_fire_core(tier, angle, frame), FIRE_EDGE),
+        "lines": _fire_lines,
+        "particle": _fire_particle,
+        "ring": _smoke_ring,  # grey smoke reads on a light stage without an outline
+        "flare": lambda frame: _outlined(_flare(frame, FIRE_FLARE), FIRE_EDGE),
     },
 }
 """The themes with their own art, and how each draws each kind of picture."""

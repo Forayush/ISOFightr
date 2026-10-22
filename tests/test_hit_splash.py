@@ -504,3 +504,23 @@ def test_with_its_own_art_a_themes_old_extra_is_folded_in() -> None:
         assert ("slash" in kinds) == (hit_effects == HIT_EFFECTS_OFF), "the slash draws its cut"
         embers = hit_effects == HIT_EFFECTS_OFF or not splash_art.has_art("fire")
         assert ("ember" in kinds) == embers, "until fire has its own art"
+
+
+def test_fire_embers_rise_as_they_slow() -> None:
+    """A theme's particles may drift (``PARTICLE_RISE``): embers curl up the screen."""
+    still = hs.Particle(0.0, 2.0, 12)
+    rising = hs.Particle(0.0, 2.0, 12, hs.PARTICLE_RISE["fire"])
+    for age in (1, 5, 10):
+        (x0, y0), (x1, y1) = still.offset(age), rising.offset(age)
+        drift = hs.PARTICLE_RISE["fire"] * age * (age + 1) / 2
+        assert x0 == x1 and y1 - y0 == pytest.approx(drift)
+    match = duel()
+    target = match.fighters[1]
+    for effect, rise in ((Effect.FIRE, hs.PARTICLE_RISE["fire"]), (Effect.SLASH, 0.0)):
+        model = HitSplashes(forecast=lambda stage, fighter: False)
+        frozen(target, 11, across(0))
+        model.hit(hit_event(effect=effect))
+        model.observe(match.fighters, match.stage, 5)
+        model.launch(LaunchEvent(1, target.pos, across(0).normalized(), 100.0))
+        particles = model.splashes[0].particles
+        assert particles and {particle.rise for particle in particles} == {rise}, effect

@@ -63,18 +63,31 @@ def gap(a: float, b: float) -> float:
     return abs((a - b + math.pi) % (2.0 * math.pi) - math.pi)
 
 
+@pytest.mark.parametrize("theme", sorted(art.DRAWN))
 @pytest.mark.parametrize("tier", range(4))
-def test_the_slash_core_and_lines_point_along_their_angle(tier: int) -> None:
+def test_the_core_and_lines_point_along_their_angle(theme: str, tier: int) -> None:
     pictures = set()
     for angle in range(art.ANGLES):
-        core = art.build(("core", "slash", tier, angle, 0))
-        lines = art.build(("lines", "slash", tier, angle))
+        core = art.build(("core", theme, tier, angle, 0))
+        lines = art.build(("lines", theme, tier, angle))
         aim = 2.0 * math.pi * angle / art.ANGLES
         centre = (core.width - 1) / 2
         assert gap(screen_turn_of(opaque(core), centre), aim) < math.radians(30), angle
         assert gap(screen_turn_of(opaque(lines), centre), aim) < math.radians(30), angle
         pictures.add(core.tobytes())
     assert len(pictures) == art.ANGLES, "each direction is drawn, not reused"
+
+
+@pytest.mark.parametrize("theme", sorted(art.DRAWN))
+def test_without_a_direction_the_core_points_nowhere(theme: str) -> None:
+    for tier in range(4):
+        for frame in range(art.CORE_FRAMES):
+            image = art.build(("core", theme, tier, -1, frame))
+            points = opaque(image)
+            centre = (image.width - 1) / 2
+            mean_x = sum(x for x, _ in points) / len(points) - centre
+            mean_y = sum(y for _, y in points) / len(points) - centre
+            assert math.hypot(mean_x, mean_y) < 1.5, (tier, frame)
 
 
 def test_without_a_direction_the_slash_core_is_an_even_cross() -> None:
@@ -85,22 +98,24 @@ def test_without_a_direction_the_slash_core_is_an_even_cross() -> None:
         assert shape.tobytes() == mirrored.tobytes()
 
 
-def test_the_split_is_the_bursts_star_in_two_colours() -> None:
+@pytest.mark.parametrize("theme", sorted(art.DRAWN))
+def test_the_split_is_the_bursts_shape_in_two_colours(theme: str) -> None:
     for tier in (2, 3):
         for frame in range(art.BURST_FRAMES):
-            first = art.build(("split", "slash", tier, frame, 0))
-            second = art.build(("split", "slash", tier, frame, 1))
+            first = art.build(("split", theme, tier, frame, 0))
+            second = art.build(("split", theme, tier, frame, 1))
             colours = [{p[:3] for p in image.getdata() if p[3]} for image in (first, second)]
-            expected = [{colour[:3]} for colour in art.split_colours("slash")]
+            expected = [{colour[:3]} for colour in art.split_colours(theme)]
             assert colours == expected and colours[0] != colours[1]
             assert opaque(first) == opaque(second)
-            burst = set(opaque(art.build(("burst", "slash", tier, frame))))
+            burst = set(opaque(art.build(("burst", theme, tier, frame))))
             assert set(opaque(first)) <= burst, "inside the burst's own outline"
 
 
-def test_slash_particles_are_drawn_along_their_flight() -> None:
+@pytest.mark.parametrize("theme", sorted(art.DRAWN))
+def test_particles_are_drawn_along_their_flight(theme: str) -> None:
     for angle in range(art.ANGLES):
-        image = art.build(("particle", "slash", 1, angle, 0))
+        image = art.build(("particle", theme, 1, angle, 0))
         points = opaque(image)
         aim = 2.0 * math.pi * angle / art.ANGLES
         along = (math.cos(aim), -math.sin(aim))
@@ -111,10 +126,15 @@ def test_slash_particles_are_drawn_along_their_flight() -> None:
         assert max(spread) - min(spread) >= max(width) - min(width), angle
 
 
-def test_a_bigger_tier_draws_bigger() -> None:
-    sizes = [art.build(("burst", "slash", tier, 0)).width for tier in range(4)]
-    assert sizes == sorted(sizes) and len(set(sizes)) == 4
-    rings = [len(opaque(art.build(("ring", "slash", tier, 1)))) for tier in (2, 3)]
+@pytest.mark.parametrize("theme", sorted(art.DRAWN))
+def test_a_bigger_tier_draws_bigger(theme: str) -> None:
+    drawn = [len(opaque(art.build(("burst", theme, tier, 0)))) for tier in range(4)]
+    assert drawn == sorted(drawn) and len(set(drawn)) == 4
+    for kind in ("core", "lines"):
+        sizes = [len(opaque(art.build((kind, theme, tier, 3, 0)[: 5 if kind == "core" else 4])))
+                 for tier in range(4)]  # fmt: skip
+        assert sizes == sorted(sizes), kind
+    rings = [art.build(("ring", theme, tier, 1)).width for tier in (2, 3)]
     assert rings[0] < rings[1], "a critical ring is wider"
 
 
