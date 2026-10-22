@@ -91,6 +91,7 @@ SLASH_DEEP: Final[Rgba] = _rgba("4d65b4")
 SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "slash": (_rgba("e83b3b"), _rgba("30e1b9")),
     "fire": (_rgba("c32454"), _rgba("8ff8e2")),
+    "darkness": (_rgba("ed8099"), _rgba("0eaf9b")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -555,7 +556,157 @@ def _smoke_ring(tier: int, frame: int) -> Image.Image:
     return image
 
 
+# --- darkness (Mote's shadow magic) -------------------------------------------------------
+DARK_PALE: Final[Rgba] = _rgba("eaaded")
+DARK_LILAC: Final[Rgba] = _rgba("a884f3")
+DARK_VIOLET: Final[Rgba] = _rgba("905ea9")
+DARK_DEEP: Final[Rgba] = _rgba("6b3e75")
+DARK_VOID: Final[Rgba] = _rgba("2e222f")
+DARK_EDGE: Final[Rgba] = _rgba("45293f")
+"""The outline of darkness's art: deep plum, so it reads on light stages."""
+DARK_VOID_RADIUS: Final[tuple[float, ...]] = (2.0, 3.0, 4.0, 5.5)
+"""The radius of the void at the burst's heart, by tier."""
+DARK_WISP: Final[tuple[float, ...]] = (6.5, 9.5, 13.0, 17.0)
+"""How far the held wisps reach along the launch, by tier."""
+DARK_WISP_WAVE: Final[tuple[float, ...]] = (1.2, 1.8, 2.6, 3.2)
+"""How far the wisps wave to the side, by tier."""
+IMPLOSION_RADII: Final[tuple[float, ...]] = (16.0, 12.0, 8.0, 4.0)
+"""The implosion ring's half-width on each frame: it closes in, where a shockwave spreads."""
+
+
+def _dark_burst(tier: int, frame: int, rim: bool = True) -> Image.Image:
+    """A hole torn in the light: a dark void with a pale violet halo and four spikes pointing
+    in at it; next it closes, its spikes longer (``rim`` off: the halo's shape alone, the
+    split's)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    void = DARK_VOID_RADIUS[tier] * (1.0 if frame == 0 else 0.6)
+    reach = void * 2.2 + frame * 1.5
+    halo = void + 1.5
+    draw.ellipse((centre - halo, centre - halo, centre + halo, centre + halo),
+                 fill=DARK_LILAC if frame == 0 else DARK_VIOLET)  # fmt: skip
+    for index in range(4):
+        along, across = _turned((1.0, 0.0), 45.0 + 90.0 * index)
+        tip = _at(centre, along, across, halo - 0.5, 0.0)
+        draw.polygon(
+            [tip, _at(centre, along, across, reach, 1.2), _at(centre, along, across, reach, -1.2)],
+            fill=DARK_PALE if frame == 0 else DARK_LILAC,
+        )
+    if rim:
+        draw.ellipse((centre - void, centre - void, centre + void, centre + void), fill=DARK_VOID)
+        if frame == 0:
+            draw.point((round(centre - void * 0.4), round(centre - void * 0.4)), fill=DARK_PALE)
+    return image
+
+
+def _wisp(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    along: Point,
+    across: Point,
+    side: float,
+    length: float,
+    wave: float,
+    phase: float,
+    colours: tuple[Rgba, Rgba],
+    root_width: int = 2,
+) -> None:
+    """A curling tendril of shadow from near the centre out along the direction, waving more
+    the further it goes, ``root_width`` px thick at its root and 1 px after."""
+    steps = max(4, round(length))
+    points = []
+    for index in range(steps + 1):
+        share = index / steps
+        sway = math.sin(phase + share * math.pi * 1.6) * wave * share
+        points.append(_at(centre, along, across, 1.0 + share * length, side + sway))
+    root, tip = points[: steps // 2 + 1], points[steps // 2 :]
+    draw.line(root, fill=colours[0], width=root_width)
+    draw.line(tip, fill=colours[1], width=1)
+
+
+def _dark_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held shadow: a small void at the contact point and three violet wisps trailing
+    the way the target will fly, waving and stretching over the freeze."""
+    if angle < 0:
+        return _dark_swirl(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, across = _direction(angle)
+    length = DARK_WISP[tier] * (0.85, 0.95, 1.0)[frame]
+    wave = DARK_WISP_WAVE[tier]
+    spread = 1.5 + tier * 0.9
+    for side, share, phase, colours, thick in (
+        (spread, 0.75, 0.4, (DARK_VIOLET, DARK_DEEP), 1),
+        (-spread, 0.75, 2.6, (DARK_VIOLET, DARK_DEEP), 1),
+        (0.0, 1.0, 1.3, (DARK_LILAC, DARK_VIOLET), 2),
+    ):
+        _wisp(draw, centre, along, across, side, length * share, wave,
+              phase + frame * 1.1, colours, thick)  # fmt: skip
+    void = max(1.0, DARK_VOID_RADIUS[tier] * 0.6)
+    draw.ellipse((centre - void, centre - void, centre + void, centre + void),
+                 fill=DARK_VOID, outline=DARK_LILAC)  # fmt: skip
+    return image
+
+
+def _dark_swirl(tier: int, frame: int) -> Image.Image:
+    """The held shadow when the launch has no direction on screen: wisps curling round the
+    void, as if it were drawing them in."""
+    image, draw, centre = _canvas(SIZES[tier])
+    length = DARK_WISP[tier] * 0.6
+    for index in range(4):
+        along, across = _turned((1.0, 0.0), 90.0 * index + frame * 20.0)
+        colours = (DARK_LILAC, DARK_VIOLET) if index % 2 else (DARK_VIOLET, DARK_DEEP)
+        _wisp(draw, centre, along, across, 0.0, length, DARK_WISP_WAVE[tier], 0.0, colours)
+    void = max(1.0, DARK_VOID_RADIUS[tier] * 0.6)
+    draw.ellipse((centre - void, centre - void, centre + void, centre + void),
+                 fill=DARK_VOID, outline=DARK_LILAC)  # fmt: skip
+    return image
+
+
+def _dark_lines(tier: int, angle: int) -> Image.Image:
+    """Shadow streaks: lilac with a deep violet edge, violet beside, plum behind."""
+    colours = (DARK_LILAC, DARK_DEEP, DARK_VIOLET, DARK_EDGE)
+    return _lines(tier, angle, DARK_WISP[tier] * 0.5, colours)
+
+
+def _dark_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """A mote of shadow: a dark speck ringed in lilac, a wisp of tail behind, fading to plum."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    along, across = _direction(angle)
+    middle = round(centre)
+    tail = (2.0, 3.0)[size] - frame
+    if tail >= 1.0:
+        draw.line(((middle, middle), _at(centre, along, across, -tail, 0.0)),
+                  fill=(DARK_VIOLET, DARK_DEEP, DARK_EDGE)[frame])  # fmt: skip
+    if size and frame == 0:
+        draw.rectangle((middle - 1, middle - 1, middle + 1, middle + 1), fill=DARK_LILAC)
+        draw.point((middle, middle), fill=DARK_VOID)
+    else:
+        draw.point((middle, middle), fill=(DARK_PALE, DARK_LILAC, DARK_VIOLET)[frame])
+    return image
+
+
+def _implosion_ring(tier: int, frame: int) -> Image.Image:
+    """The implosion: a ring that starts wide and closes in on the contact point, dashed
+    while wide, then solid, ending in a dark point."""
+    widest = IMPLOSION_RADII[0] * (1.3 if tier > HEAVY else 1.0)
+    width = IMPLOSION_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
+    size = 2 * math.ceil(widest) + 3
+    image, draw, centre = _canvas(size)
+    height = width * RING_SQUASH
+    box = (centre - width, centre - height, centre + width, centre + height)
+    if frame == 0:
+        dashes = 14
+        for index in range(0, dashes, 2):
+            start = 360.0 * index / dashes
+            draw.arc(box, start, start + 360.0 / dashes, fill=DARK_PALE)
+    else:
+        draw.ellipse(box, outline=(DARK_LILAC, DARK_VIOLET, DARK_DEEP)[frame - 1])
+    if frame == 3:
+        draw.point((round(centre), round(centre)), fill=DARK_VOID)
+    return image
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+DARK_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (DARK_PALE, DARK_LILAC, DARK_VIOLET)
 FIRE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (FIRE_PALE, FIRE_YELLOW, FIRE_RED)
 DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
     "slash": {
@@ -566,6 +717,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _slash_particle,
         "ring": lambda tier, frame: _outlined(_ring(tier, frame, SLASH_RING), SLASH_DEEP),
         "flare": lambda frame: _outlined(_flare(frame, SLASH_RING), SLASH_DEEP),
+    },
+    "darkness": {
+        "burst": lambda tier, frame: _outlined(_dark_burst(tier, frame), DARK_EDGE),
+        "split": lambda tier, frame: _dark_burst(tier, frame, rim=False),
+        "core": lambda tier, angle, frame: _outlined(_dark_core(tier, angle, frame), DARK_EDGE),
+        "lines": _dark_lines,
+        "particle": _dark_particle,
+        "ring": lambda tier, frame: _outlined(_implosion_ring(tier, frame), DARK_EDGE),
+        "flare": lambda frame: _outlined(_flare(frame, DARK_FLARE), DARK_EDGE),
     },
     "fire": {
         "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),

@@ -524,3 +524,15 @@ def test_fire_embers_rise_as_they_slow() -> None:
         model.launch(LaunchEvent(1, target.pos, across(0).normalized(), 100.0))
         particles = model.splashes[0].particles
         assert particles and {particle.rise for particle in particles} == {rise}, effect
+
+
+def test_darkness_motes_fly_out_then_are_pulled_back_in() -> None:
+    """``PARTICLE_PULL``: an implosion: the motes' reach peaks, then shrinks toward the
+    contact point, where a plain particle only slows."""
+    plain = hs.Particle(0.0, 2.0, 12)
+    pulled = hs.Particle(0.0, 2.0, 12, pull=hs.PARTICLE_PULL["darkness"])
+    reach = [pulled.offset(age)[0] for age in range(13)]
+    peak = reach.index(max(reach))
+    assert 0 < peak < 12 and reach[-1] < reach[peak] * 0.5, "out, then back in"
+    straight = [plain.offset(age)[0] for age in range(13)]
+    assert straight == sorted(straight), "a plain particle never comes back"

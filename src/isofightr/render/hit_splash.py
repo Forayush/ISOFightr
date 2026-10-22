@@ -81,6 +81,9 @@ CONE_DEGREES: Final[tuple[float, ...]] = (30.0, 40.0, 50.0, 60.0)
 PARTICLE_RISE: Final[dict[str, float]] = {"fire": 0.08}
 """How fast a theme's particles drift up the screen, in pixels a tick more each tick: embers
 rise as they slow (themes not listed fly straight)."""
+PARTICLE_PULL: Final[dict[str, float]] = {"darkness": 0.07}
+"""How fast a theme's particles are drawn back to the contact point, as a share of their
+reach lost each tick: darkness's motes fly out and are pulled back in (an implosion)."""
 RADIAL_BELOW: Final[float] = 6.0
 """A direction drawn shorter than this many pixels per world unit points (nearly) at the
 camera or away from it: such a splash has no direction and spreads all round. A unit across
@@ -167,10 +170,13 @@ class Particle:
     """Ticks it shows."""
     rise: float = 0.0
     """How fast it drifts up the screen (``PARTICLE_RISE``)."""
+    pull: float = 0.0
+    """How fast it is drawn back to where it started (``PARTICLE_PULL``)."""
 
     def offset(self, age: int) -> tuple[float, float]:
         """Where it is ``age`` ticks after the launch, from the contact point, in pixels."""
         reach = self.speed * (1.0 - PARTICLE_DRAG**age) / (1.0 - PARTICLE_DRAG)
+        reach *= max(0.0, 1.0 - self.pull * age)
         drift = self.rise * age * (age + 1) / 2.0
         return math.cos(self.turn) * reach, math.sin(self.turn) * reach + drift
 
@@ -344,6 +350,7 @@ class HitSplashes:
         count = max(0, min(PARTICLES[splash.tier], MAX_PER_HIT - ring, room - ring))
         cone = math.radians(CONE_DEGREES[splash.tier])
         rise = PARTICLE_RISE.get(splash.theme, 0.0)
+        pull = PARTICLE_PULL.get(splash.theme, 0.0)
         particles = []
         for number in range(count):
             spread, pace, fade = (
@@ -355,7 +362,7 @@ class HitSplashes:
                 angle = turn + (2.0 * spread - 1.0) * cone
             speed = PARTICLE_SPEED[splash.tier] * (0.6 + 0.8 * pace)
             life = DISPERSAL_TICKS[splash.tier] - round(fade * 3.0)
-            particles.append(Particle(angle, speed, life, rise))
+            particles.append(Particle(angle, speed, life, rise, pull))
         return tuple(particles)
 
     def _sprites_of(self, splash: HitSplash) -> list[SplashSprite]:
