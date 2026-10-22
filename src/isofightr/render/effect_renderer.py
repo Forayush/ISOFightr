@@ -43,6 +43,8 @@ class EffectRenderer:
         self.projectile_looks = ProjectileLooks()
         self.plain_projectiles = False
         """Draw every projectile as the placeholder ball (``placeholder_art=True``)."""
+        self.live = 0
+        """How many sprites the layer placed on the last :meth:`sync` (its live sprites)."""
 
     def sync(
         self,
@@ -162,6 +164,7 @@ class EffectRenderer:
             (texture, project(position.x, position.y, position.z)) for texture, position in wanted
         ]
         screen += placed
+        self.live = len(screen)
         while len(self._pool) < len(screen):
             sprite = arcade.Sprite(screen[0][0])
             self._pool.append(sprite)

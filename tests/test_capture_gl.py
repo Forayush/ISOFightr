@@ -100,3 +100,56 @@ def test_a_hit_strip_follows_the_target_from_before_the_hit(window: Any) -> None
     assert len(set(pictures)) == 4, "the hit, the freeze and the flight all differ"
     with pytest.raises(ValueError, match="does not hit"):
         capture_hit_strip(window, "rook", "rook", "taunt", 0, [0, 2], crop=(100, 80))
+
+
+def test_a_hit_strip_can_show_a_blocked_hit_and_a_parry(window: Any) -> None:
+    """Decision D-068: with a guard the strip starts at the blocked hit; a parried attacker is
+    frozen longer than the target (its hitlag gains ``PARRY_EXTRA_HITLAG``)."""
+    from isofightr.capture import capture_hit_strip
+
+    for guard in ("shield", "parry"):
+        sheet = capture_hit_strip(
+            window, "rook", "rook", "fsmash", 0, [0, 12], crop=(100, 80), guard=guard
+        )
+        assert sheet.size == (2 * 100, 80)
+        left, right = sheet.crop((0, 0, 100, 80)), sheet.crop((100, 0, 200, 80))
+        assert left.tobytes() != right.tobytes()
+    with pytest.raises(ValueError, match="guard"):
+        capture_hit_strip(window, "rook", "rook", "fsmash", 0, [0], guard="dodge")
+
+
+def test_a_splash_sheet_has_a_row_per_tier_and_angle_and_a_column_per_tick(window: Any) -> None:
+    """Decision D-068: rows are tiers times launch angles, columns the ticks from the hit;
+    the hit shows on the contact tick and has faded by the end of the default ticks."""
+    from isofightr.capture import capture_splash_sheet, splash_ticks
+
+    ticks = splash_ticks(11)
+    sheet = capture_splash_sheet(window, "slash", tiers=(0, 3), angles=(0, 4), crop=(60, 60))
+    assert sheet.size == (len(ticks) * 60 * 2, 4 * 60 * 2)
+    first = sheet.crop((0, 0, 120, 120)).tobytes()
+    last = sheet.crop((sheet.width - 120, 0, sheet.width, 120)).tobytes()
+    assert first != last
+    with pytest.raises(ValueError, match="theme"):
+        capture_splash_sheet(window, "plasma")
+
+
+def test_splash_sheet_ticks_cover_the_burst_the_freeze_and_the_launch() -> None:
+    from isofightr.capture import splash_ticks
+
+    for hitlag in (3, 8, 11, 30):
+        ticks = splash_ticks(hitlag)
+        assert ticks == sorted(set(ticks)) and ticks[:2] == [0, 1]
+        assert hitlag in ticks and hitlag + 1 in ticks and max(ticks) > hitlag + 10
+        assert len([tick for tick in ticks if 1 < tick < hitlag]) <= 4
+
+
+def test_screen_launch_points_where_the_projection_shows_it() -> None:
+    """Every one of the 16 screen directions round-trips through the launch's own angle."""
+    from isofightr.capture import screen_launch
+    from isofightr.render.effects import streak_angle
+    from isofightr.sim.fighter import Launch
+
+    for angle in range(16):
+        heading, elevation = screen_launch(angle)
+        assert abs(heading.length() - 1.0) < 1e-9 and -90.0 <= elevation <= 90.0
+        assert streak_angle(Launch(100.0, heading, elevation, True)) == angle

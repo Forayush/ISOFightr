@@ -12,17 +12,20 @@ Imports ``arcade`` (through the app), so it needs a display.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 import arcade
 from PIL import Image, ImageDraw
 
+from isofightr.ai.dummy import DummyBehavior
 from isofightr.app import GameWindow
 from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.render.depth_cues import off_stage_twins
+from isofightr.render.effects import BattleEffects
 from isofightr.render.iso import project
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
@@ -31,10 +34,11 @@ from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
 from isofightr.settings import SavedRules, Settings
-from isofightr.sim.fighter import GroundKind
+from isofightr.sim.events import Event, HitEvent, ShieldHitEvent
+from isofightr.sim.fighter import GroundKind, Launch
 from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.match import MatchRules
-from isofightr.sim.math3d import ZERO3, Vec3
+from isofightr.sim.math3d import ZERO3, Vec2, Vec3
 from isofightr.sim.move_def import Effect
 from isofightr.sim.stage import Stage
 
@@ -513,6 +517,13 @@ HIT_STRIP_TICK_LIMIT = 240
 """A move that has not hit by this tick never will."""
 HIT_STRIP_GAP = 0.9
 """Distance between attacker and target, as in :mod:`isofightr.sim.kill_calc`."""
+GUARDS: tuple[str, ...] = ("", "shield", "parry")
+"""What a hit strip's target does against the hit: nothing, hold shield, or parry it."""
+GUARD_RAISE_TICKS = 12
+"""A guarding target raises its shield this many ticks before the move starts."""
+PARRY_LEAD = 2
+"""A parrying target lets go of shield this many ticks before the move's first active frame,
+so the hit lands in the parry window (``PARRY_WINDOW``, the first frames of dropping it)."""
 
 
 def capture_hit_strip(
@@ -530,6 +541,7 @@ def capture_hit_strip(
     lift: float = 0.0,
     delay: int = 0,
     effect: Effect | None = None,
+    guard: str = "",
 ) -> Image.Image:
     """Return a strip of one hit (decision D-066): the attacker performs ``move_id`` on a
     target at ``percent`` standing on the stage's respawn point (set up as
@@ -544,14 +556,20 @@ def capture_hit_strip(
     on another match frame, which decides the reeling roll), and ``effect`` gives the move's
     hitboxes that effect (no move in the game is electric).
 
-    Raises ``ValueError`` if the move never hits.
+    For reviewing D-068's defensive splashes: ``guard`` ``"shield"`` has the target hold its
+    shield (the training dummy's Shield behaviour), ``"parry"`` turns the parry rule on and has
+    it let go just before the hit; the strip then starts at the blocked hit and each picture
+    also shows the attacker's hitlag (a parry freezes the attacker longer).
+
+    Raises ``ValueError`` if the move never hits (or is never blocked, with a guard).
     """
-    from isofightr.sim.events import HitEvent
     from isofightr.sim.states.interrupts import start_move
 
     wanted = sorted(set(ticks))
     if not wanted:
         raise ValueError("no ticks to capture")
+    if guard not in GUARDS:
+        raise ValueError(f"guard must be one of {GUARDS}, not {guard!r}")
     window.switch_to()
     stage = load_stage(stage_id)
     striking = load_character(attacker)
@@ -563,7 +581,9 @@ def capture_hit_strip(
         )
         moves = {**striking.moves, move_id: replace(move, windows=windows)}
         striking = replace(striking, moves=moves)
-    view = BattleView(window.pixel_buffer, stage, [striking, load_character(target)])
+    rules = MatchRules(stocks=None, parry=guard == "parry") if guard else None
+    fighters = [striking, load_character(target)]
+    view = BattleView(window.pixel_buffer, stage, fighters, rules=rules, training=bool(guard))
     view.show_help = False
     view.hud_display = False
     window.show_view(view)
@@ -581,7 +601,16 @@ def capture_hit_strip(
     view.camera.snap_to([striker.pos, victim.pos])
     for _ in range(delay):
         view.on_update(TICK_SECONDS)
+    drop = None
+    if guard:
+        view.dummy = DummyBehavior.SHIELD
+        for _ in range(GUARD_RAISE_TICKS):
+            view.on_update(TICK_SECONDS)
+        windows = striking.moves[move_id].windows
+        if guard == "parry" and windows:
+            drop = min(window.frames.first for window in windows) - PARRY_LEAD
     start_move(match, striker, move_id)
+    landed: type[HitEvent] | type[ShieldHitEvent] = ShieldHitEvent if guard else HitEvent
 
     def picture() -> tuple[Image.Image, str]:
         view.on_draw()
@@ -593,6 +622,8 @@ def capture_hit_strip(
         left = min(max(at_x - crop[0] // 2, 0), NATIVE_W - crop[0])
         upper = min(max(at_y - crop[1] // 2, 0), NATIVE_H - crop[1])
         frame = read_frame(window).crop((left, upper, left + crop[0], upper + crop[1]))
+        if guard:
+            return frame, f"{victim.state.name.lower()} hl {victim.hitlag} atk {striker.hitlag}"
         timer = f"hitlag {victim.hitlag}" if victim.hitlag else f"hitstun {victim.hitstun}"
         return frame, f"{victim.state.name.lower()} {timer}"
 
@@ -605,10 +636,12 @@ def capture_hit_strip(
             victim.pos = Vec3(spot.x, spot.y, top + lift)
             victim.vel = ZERO3
             victim.ground = GroundKind.NONE
+        if drop is not None and tick >= drop:
+            view.dummy = DummyBehavior.STAND
         view.on_update(TICK_SECONDS)
         if hit_at is None:
             if any(
-                isinstance(event, HitEvent) and event.target == victim.player_index
+                isinstance(event, landed) and event.target == victim.player_index
                 for event in match.events
             ):
                 hit_at = tick
@@ -632,6 +665,151 @@ def capture_hit_strip(
         pictures.append(frame)
     rows = -(-len(pictures) // columns)
     sheet = Image.new("RGBA", (min(len(pictures), columns) * crop[0], rows * crop[1]), LABEL_SHADE)
+    for index, frame in enumerate(pictures):
+        sheet.paste(frame, ((index % columns) * crop[0], (index // columns) * crop[1]))
+    if scale > 1:
+        sheet = sheet.resize((sheet.width * scale, sheet.height * scale), Image.Resampling.NEAREST)
+    return sheet
+
+
+SPLASH_THEMES: tuple[str, ...] = tuple(effect.value for effect in Effect)
+"""What a splash sheet can show: a hit of each effect."""
+SPLASH_SHEET_KNOCKBACK: tuple[float, ...] = (20.0, 60.0, 120.0, 200.0)
+"""Knockback of a splash sheet's hit at each tier (0 light to 3 critical)."""
+SPLASH_SHEET_DAMAGE: tuple[float, ...] = (3.0, 8.0, 14.0, 20.0)
+SPLASH_SHEET_ANGLES: tuple[int, ...] = (0, 4, 8, 12)
+"""Launch directions a splash sheet shows by default: right, up, left and down on screen."""
+SPLASH_ANGLE_STEPS = 16
+SPLASH_SHEET_HITLAG = 11
+"""The freeze a splash sheet's hits have by default (Rook's forward smash at 60%)."""
+SPLASH_SHEET_CROP: tuple[int, int] = (72, 72)
+"""Native pixels of each splash-sheet picture, centred on the contact point."""
+SPLASH_CONTACT_FORWARD = 0.3
+"""A splash sheet's hit lands this far from the target's middle, toward the attacker."""
+SPLASH_HIT_FRAME = 600
+"""The match frame a splash sheet's hit lands on (particles and hit poses hash it)."""
+SPLASH_HOLD_SAMPLES = 4
+"""How many ticks of the freeze, after the burst, a splash sheet shows by default."""
+SPLASH_AFTER: tuple[int, ...] = (0, 1, 2, 4, 7, 11, 14)
+"""Ticks after the launch a splash sheet shows by default."""
+
+
+def splash_ticks(hitlag: int) -> list[int]:
+    """Return the ticks a splash sheet shows by default for a hit with this freeze: the
+    burst (the hit tick and the next), a few ticks of the hold, the launch and after it."""
+    hold = range(2, hitlag)
+    step = max(1, -(-len(hold) // SPLASH_HOLD_SAMPLES))
+    return sorted({0, 1, *hold[::step], *(hitlag + after for after in SPLASH_AFTER)})
+
+
+def screen_launch(angle: int, steps: int = SPLASH_ANGLE_STEPS) -> tuple[Vec2, float]:
+    """Return a launch heading and elevation (degrees) that the game's projection shows
+    pointing ``angle`` steps of ``360 / steps`` degrees counter-clockwise from screen right.
+
+    The direction is taken across the screen (``x + y = 0``), where ``project`` gives
+    ``(32 x, 16 z)``; straight up or down keeps the facing's heading.
+    """
+    turn = 2.0 * math.pi * (angle % steps) / steps
+    across, up = math.cos(turn) / 32.0, math.sin(turn) / 16.0
+    flat = math.hypot(across, across)
+    if flat < 1e-9:
+        return Dir8.E.world, math.copysign(90.0, up)
+    return Vec2(across, -across) / flat, math.degrees(math.atan2(up, flat))
+
+
+def capture_splash_sheet(
+    window: GameWindow,
+    theme: str,
+    tiers: Sequence[int] = (0, 1, 2, 3),
+    angles: Sequence[int] = SPLASH_SHEET_ANGLES,
+    ticks: Sequence[int] | None = None,
+    hitlag: int = SPLASH_SHEET_HITLAG,
+    crop: tuple[int, int] = SPLASH_SHEET_CROP,
+    scale: int = 2,
+    stage_id: str = "training_grid",
+) -> Image.Image:
+    """Return a hit-effect review sheet (decision D-068): one row per tier and launch angle,
+    one column per tick from the hit (0) through the freeze (``hitlag`` ticks) and the
+    launch. Each row is a hit of ``theme`` (an effect: ``normal``, ``slash``, ``fire``...) on a
+    target standing on the stage's respawn point, whose pending launch points ``angle`` steps
+    of 22.5 degrees counter-clockwise from screen right (see :func:`screen_launch`), with the
+    knockback of its tier (``SPLASH_SHEET_KNOCKBACK``). The hit and the launch are fed to the
+    battle's real effects and drawn by its real renderer, but the match itself is not run:
+    the target stays where it is, so the sheet shows the effect and not the flight (a hit
+    strip shows that). Each picture is a crop centred on the contact point.
+    """
+    if theme not in SPLASH_THEMES:
+        raise ValueError(f"theme must be one of {SPLASH_THEMES}, not {theme!r}")
+    wanted = sorted(set(splash_ticks(hitlag) if ticks is None else ticks))
+    if not wanted or wanted[0] < 0:
+        raise ValueError("splash-sheet ticks count from the hit: 0 or more")
+    window.switch_to()
+    stage = load_stage(stage_id)
+    view = BattleView(window.pixel_buffer, stage, [load_character("rook")] * 2)
+    view.show_help = False
+    view.hud_display = False
+    window.show_view(view)
+    match = view.match
+    striker, victim = match.fighters
+    spot = stage.respawn
+    top = stage.surface_top(spot.x, spot.y)
+    assert top is not None, "the target must stand on solid ground"
+    facing = Dir8.E
+    victim.pos = Vec3(spot.x, spot.y, top)
+    behind = spot - facing.world * HIT_STRIP_GAP
+    striker.pos = Vec3(behind.x, behind.y, top)
+    striker.facing = facing
+    victim.facing = facing_from_move(-facing.world) or victim.facing
+    view.camera.snap_to([victim.pos])
+    toward = -facing.world * SPLASH_CONTACT_FORWARD
+    contact = Vec3(spot.x + toward.x, spot.y + toward.y, top + victim.character.body.height / 2)
+    effect = Effect(theme)
+    pictures: list[Image.Image] = []
+    for tier in tiers:
+        for angle in angles:
+            effects = BattleEffects()
+            view.effects = effects
+            heading, elevation = screen_launch(angle)
+            knockback = SPLASH_SHEET_KNOCKBACK[tier]
+            for tick in range(wanted[-1] + 1):
+                events: list[Event] = []
+                if tick == 0:
+                    hit = HitEvent(
+                        attacker=striker.player_index,
+                        target=victim.player_index,
+                        move_id="splash_sheet",
+                        damage=SPLASH_SHEET_DAMAGE[tier],
+                        knockback=knockback,
+                        position=contact,
+                        effect=effect,
+                        hitlag=hitlag,
+                    )
+                    events.append(hit)
+                    victim.launch = Launch(knockback, heading, elevation, knockback >= 80.0)
+                if tick < hitlag:
+                    victim.hitlag = hitlag - tick
+                else:
+                    victim.hitlag = 0
+                    victim.launch = None
+                effects.tick()
+                effects.consume(events)
+                effects.observe(match.fighters, match.stage, SPLASH_HIT_FRAME + tick)
+                if tick not in wanted:
+                    continue
+                view.on_draw()
+                world_x, world_y = project(contact.x, contact.y, contact.z)
+                centre_x, centre_y = view.view_centre()
+                at_x = NATIVE_W // 2 + round(world_x - centre_x)
+                at_y = NATIVE_H // 2 - round(world_y - centre_y)
+                left, upper = at_x - crop[0] // 2, at_y - crop[1] // 2
+                frame = read_frame(window).crop((left, upper, left + crop[0], upper + crop[1]))
+                _label(frame, f"t{tier} a{angle} {tick:+d}")
+                pictures.append(frame)
+    victim.hitlag = 0
+    victim.launch = None
+    columns = len(wanted)
+    rows = len(pictures) // columns
+    sheet = Image.new("RGBA", (columns * crop[0], rows * crop[1]), LABEL_SHADE)
     for index, frame in enumerate(pictures):
         sheet.paste(frame, ((index % columns) * crop[0], (index // columns) * crop[1]))
     if scale > 1:

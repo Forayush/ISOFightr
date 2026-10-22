@@ -33,7 +33,18 @@ first is negative)::
 
 For D-067's hit poses: ``--lift U`` holds the target U units up until the hit (an air hit),
 ``--delay N`` starts the move N ticks later (another hit frame: the reeling roll is a hash of
-it), ``--effect electric`` makes the move's hitboxes electric.
+it), ``--effect electric`` makes the move's hitboxes electric. For D-068's defensive splashes,
+``--guard shield`` has the target hold its shield and ``--guard parry`` has it parry (the
+parry rule on); the strip then starts at the blocked hit.
+
+``--splash-sheet THEME`` shows a hit effect (decision D-068): one row per tier (``--tiers``,
+default 0,1,2,3) and launch direction on screen (``--angles``, steps of 22.5 degrees
+counter-clockwise from right, default 0,4,8,12; ``0:15`` for all sixteen), one column per tick
+from the hit through the freeze (``--hitlag``, default 11) and the launch (``--ticks``
+overrides them), each a crop (``--follow``, default 72,72) centred on the contact point. THEME
+is an effect: normal, slash, fire, electric, ice, darkness::
+
+    uv run python tools/capture_scene.py --splash-sheet slash --angles 0:15:5 --out slash.png
 
 ``--screen`` shows a screen of the game's flow instead of a sandbox battle: title, main,
 rules, pool, controls, charselect, stageselect, results, hud, loading, settings, soundtest, pause,
@@ -48,12 +59,18 @@ from pathlib import Path
 
 from isofightr.app import GameWindow
 from isofightr.capture import (
+    GUARDS,
     SCREENS,
+    SPLASH_SHEET_ANGLES,
+    SPLASH_SHEET_CROP,
+    SPLASH_SHEET_HITLAG,
+    SPLASH_THEMES,
     STAGE_SHEET_TICKS,
     capture,
     capture_depth_lab,
     capture_hit_strip,
     capture_screen,
+    capture_splash_sheet,
     capture_stage_sheet,
     parse_script,
 )
@@ -105,12 +122,27 @@ def main() -> None:
     parser.add_argument("--hit-strip", default="", metavar="MOVE", help="one hit, up close")
     parser.add_argument("--percent", type=float, default=60.0, help="the target's damage")
     parser.add_argument("--facing", default="SE", choices=[direction.name for direction in Dir8])
-    parser.add_argument("--follow", default="160,120", help="hit-strip picture size W,H")
+    parser.add_argument(
+        "--follow", default=None, help="hit-strip (160,120) or splash-sheet (72,72) picture W,H"
+    )
     parser.add_argument("--columns", type=int, default=8, help="hit-strip pictures per row")
     parser.add_argument("--lift", type=float, default=0.0, help="hit-strip: target this high")
     parser.add_argument("--delay", type=int, default=0, help="hit-strip: ticks before the move")
     parser.add_argument(
         "--effect", default="", choices=["", *(e.value for e in Effect)], help="hit-strip effect"
+    )
+    parser.add_argument("--guard", default="", choices=GUARDS, help="hit-strip target guards")
+    parser.add_argument(
+        "--splash-sheet", default="", choices=["", *SPLASH_THEMES], help="a hit effect's sheet"
+    )
+    parser.add_argument("--tiers", default="0,1,2,3", help="splash-sheet tiers")
+    parser.add_argument(
+        "--angles",
+        default=",".join(str(angle) for angle in SPLASH_SHEET_ANGLES),
+        help="splash-sheet launch directions (sixteenths of a turn), e.g. 0:15",
+    )
+    parser.add_argument(
+        "--hitlag", type=int, default=SPLASH_SHEET_HITLAG, help="splash-sheet freeze"
     )
     parser.add_argument(
         "--hazards", choices=("on", "off"), default="on", help="stage mechanics on a --stage-sheet"
@@ -147,8 +179,23 @@ def main() -> None:
         crop = (left, top, width, height)
     window = GameWindow(visible=False, sound=False)
     ticks = _ticks(args.ticks) if args.ticks else [30]
-    if args.hit_strip:
-        wide, tall = (int(value) for value in _numbers(args.follow))
+    if args.splash_sheet:
+        wide, tall = (
+            (int(value) for value in _numbers(args.follow)) if args.follow else (SPLASH_SHEET_CROP)
+        )
+        sheet = capture_splash_sheet(
+            window,
+            args.splash_sheet,
+            tiers=_ticks(args.tiers),
+            angles=_ticks(args.angles),
+            ticks=_ticks(args.ticks) if args.ticks else None,
+            hitlag=args.hitlag,
+            crop=(wide, tall),
+            scale=args.scale,
+            stage_id=args.stage,
+        )
+    elif args.hit_strip:
+        wide, tall = (int(value) for value in _numbers(args.follow or "160,120"))
         sheet = capture_hit_strip(
             window,
             args.p1,
@@ -164,6 +211,7 @@ def main() -> None:
             lift=args.lift,
             delay=args.delay,
             effect=Effect(args.effect) if args.effect else None,
+            guard=args.guard,
         )
     elif args.depth_lab:
         sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)
