@@ -542,6 +542,7 @@ def test_earth_chips_and_leaves_fall() -> None:
     """Earth's particles drift down the screen as they slow (a negative rise), the opposite
     of fire's embers."""
     assert hs.PARTICLE_RISE["earth"] < 0.0 < hs.PARTICLE_RISE["fire"]
+    assert hs.PARTICLE_RISE["earth"] < hs.PARTICLE_RISE["ice"] < 0.0, "ice settles slower"
     falling = hs.Particle(0.0, 2.0, 12, hs.PARTICLE_RISE["earth"])
     heights = [falling.offset(age)[1] for age in range(12)]
     assert heights == sorted(heights, reverse=True) and heights[-1] < -5.0

@@ -95,6 +95,7 @@ SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "earth": (_rgba("cd683d"), _rgba("4d9be6")),
     "wind": (_rgba("f04f78"), _rgba("4d65b4")),
     "electric": (_rgba("c32454"), _rgba("30e1b9")),
+    "ice": (_rgba("cf657f"), _rgba("0b8a8f")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -1152,7 +1153,148 @@ def _volt_ring(tier: int, frame: int) -> Image.Image:
     return image
 
 
+# --- ice (frost and icicles; no move or hazard is icy today) -------------------------------
+FROST: Final[Rgba] = _rgba("c7dcd0")
+ICE_BLUE: Final[Rgba] = _rgba("8fd3ff")
+ICE_DEEP: Final[Rgba] = _rgba("4d9be6")
+ICE_EDGE: Final[Rgba] = _rgba("484a77")
+"""The outline of ice's art: navy, so the white and frost read on light stages."""
+ICE_FLAKE: Final[tuple[float, ...]] = (4.0, 6.0, 8.5, 11.0)
+"""How far a snowflake's arms reach, by tier."""
+ICICLE: Final[tuple[float, ...]] = (6.5, 9.5, 13.5, 17.0)
+"""The length of the held fan's longest icicle, by tier."""
+ICICLE_WIDTH: Final[tuple[float, ...]] = (1.0, 1.5, 2.0, 2.5)
+ICICLES: Final[tuple[tuple[float, float, float], ...]] = (
+    (0.0, 1.0, 0.0),
+    (22.0, 0.7, 1.6),
+    (-22.0, 0.7, 1.6),
+)
+"""The held fan's icicles: ``(lean in degrees, length as a share, how far out its root is as
+a share of the icicle's width)``: the side ones start further along, so the three stay
+apart."""
+
+
+def _snowflake(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    reach: float,
+    turn: float,
+    arm: Rgba,
+    branch: Rgba,
+) -> None:
+    """A six-armed snowflake: arms ``reach`` long, each with a pair of side branches."""
+    for index in range(6):
+        along, across = _turned((1.0, 0.0), turn + 60.0 * index)
+        draw.line((_at(centre, along, across, 0.0, 0.0), _at(centre, along, across, reach, 0.0)),
+                  fill=arm)  # fmt: skip
+        if reach >= 4.0:
+            fork = reach * 0.55
+            for side in (1.0, -1.0):
+                draw.line((_at(centre, along, across, fork, 0.0),
+                           _at(centre, along, across, fork + reach * 0.25, side * reach * 0.22)),
+                          fill=branch)  # fmt: skip
+
+
+def _ice_burst(tier: int, frame: int, branches: bool = True) -> Image.Image:
+    """A flash of frost: a white snowflake round a pale core; next bigger, its arms ice blue
+    (``branches`` off: the core and arms only, the split's shape)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    reach = ICE_FLAKE[tier] * (1.0 if frame == 0 else 1.3)
+    core = max(1.0, reach * 0.25)
+    draw.ellipse((centre - core, centre - core, centre + core, centre + core),
+                 fill=WHITE if frame == 0 else FROST)  # fmt: skip
+    arm = WHITE if frame == 0 else ICE_BLUE
+    _snowflake(draw, centre, reach, 30.0 * frame, arm, FROST if branches else (0, 0, 0, 0))
+    return image
+
+
+def _icicle(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    along: Point,
+    across: Point,
+    start: float,
+    length: float,
+    width: float,
+) -> None:
+    """An icicle from ``start`` out along the direction: a long thin spike, white on its lit
+    side and ice blue on the other."""
+    base_left = _at(centre, along, across, start, width)
+    base_right = _at(centre, along, across, start, -width)
+    middle = _at(centre, along, across, start, 0.0)
+    tip = _at(centre, along, across, start + length, 0.0)
+    draw.polygon([base_left, tip, base_right], fill=ICE_BLUE)
+    draw.polygon([base_left, tip, middle], fill=WHITE)
+
+
+def _ice_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held frost: a narrow spray of icicles shooting the way the target will fly from a
+    small snowflake at the contact point; they lengthen, then frost over."""
+    if angle < 0:
+        return _ice_flake_core(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, _ = _direction(angle)
+    length = ICICLE[tier] * (0.85, 1.0, 1.0)[frame]
+    width = ICICLE_WIDTH[tier]
+    for lean, share, root in ICICLES:
+        spike, spike_across = _turned(along, lean)
+        broad = width * (0.6 + share * 0.4)
+        _icicle(draw, centre, spike, spike_across, 1.0 + width * root, length * share, broad)
+    _snowflake(draw, centre, max(2.0, ICE_FLAKE[tier] * 0.45), 15.0, FROST, FROST)
+    if frame == 2:  # frosting over: pale flecks along the longest icicle
+        for share in (0.35, 0.65):
+            draw.point(_at(centre, along, (along[1], -along[0]), length * share, 0.0), fill=FROST)
+    return image
+
+
+def _ice_flake_core(tier: int, frame: int) -> Image.Image:
+    """The held frost when the launch has no direction on screen: a big snowflake, turning a
+    little each frame."""
+    image, draw, centre = _canvas(SIZES[tier])
+    _snowflake(draw, centre, ICICLE[tier] * 0.6, 10.0 * frame, WHITE, ICE_BLUE)
+    return image
+
+
+def _ice_lines(tier: int, angle: int) -> Image.Image:
+    """Frost streaks: white with an ice blue edge, frost beside, navy behind."""
+    colours = (WHITE, ICE_DEEP, FROST, ICE_EDGE)
+    return _lines(tier, angle, ICICLE[tier] * 0.5, colours)
+
+
+def _ice_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """A fleck of ice that glints: a small cross, then a speck, fading to blue (it looks the
+    same whichever way it flies)."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    middle = round(centre)
+    colour = (WHITE, FROST, ICE_BLUE)[frame]
+    arm = (1, 2)[size] if frame == 0 else (1 if frame == 1 and size else 0)
+    draw.line((middle - arm, middle, middle + arm, middle), fill=colour)
+    draw.line((middle, middle - arm, middle, middle + arm), fill=colour)
+    return image
+
+
+def _frost_ring(tier: int, frame: int) -> Image.Image:
+    """A ring of frost spreading from the contact point: small ice crystals round a flattened
+    ellipse, white, then frost, then sparse and blue."""
+    width = RING_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
+    size = 2 * math.ceil(width) + 5
+    image, draw, centre = _canvas(size)
+    height = width * RING_SQUASH
+    crystals = 12
+    colour = (WHITE, FROST, ICE_BLUE, ICE_BLUE)[frame]
+    for index in range(0, crystals, 1 if frame < 2 else 2):
+        turn = 2.0 * math.pi * index / crystals + frame * 0.15
+        x = round(centre + math.cos(turn) * width)
+        y = round(centre + math.sin(turn) * height)
+        if frame < 2:
+            draw.polygon([(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)], fill=colour)
+        else:
+            draw.point((x, y), fill=colour)
+    return image
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+ICE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, FROST, ICE_BLUE)
 VOLT_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, VOLT_PALE, VOLT_BLUE)
 WIND_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, WIND_MINT, WIND_TEAL)
 EARTH_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (STONE_PALE, CRYSTAL, STONE_DARK)
@@ -1203,6 +1345,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _volt_particle,
         "ring": lambda tier, frame: _outlined(_volt_ring(tier, frame), VOLT_EDGE),
         "flare": lambda frame: _outlined(_flare(frame, VOLT_FLARE), VOLT_EDGE),
+    },
+    "ice": {
+        "burst": lambda tier, frame: _outlined(_ice_burst(tier, frame), ICE_EDGE),
+        "split": lambda tier, frame: _ice_burst(tier, frame, branches=False),
+        "core": lambda tier, angle, frame: _outlined(_ice_core(tier, angle, frame), ICE_EDGE),
+        "lines": _ice_lines,
+        "particle": _ice_particle,
+        "ring": lambda tier, frame: _outlined(_frost_ring(tier, frame), ICE_EDGE),
+        "flare": lambda frame: _outlined(_flare(frame, ICE_FLARE), ICE_EDGE),
     },
     "fire": {
         "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),

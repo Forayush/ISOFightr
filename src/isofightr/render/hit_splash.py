@@ -78,9 +78,10 @@ SCREEN_FLASH_TICKS: Final[int] = 2
 """A critical hit flashes the screen for this many ticks from the contact."""
 CONE_DEGREES: Final[tuple[float, ...]] = (30.0, 40.0, 50.0, 60.0)
 """Half the cone the particles fly in around the launch, by tier."""
-PARTICLE_RISE: Final[dict[str, float]] = {"fire": 0.08, "earth": -0.14}
+PARTICLE_RISE: Final[dict[str, float]] = {"fire": 0.08, "earth": -0.14, "ice": -0.05}
 """How fast a theme's particles drift up the screen, in pixels a tick more each tick: embers
-rise as they slow, rock chips and leaves fall (themes not listed fly straight)."""
+rise as they slow, rock chips and leaves fall, flecks of ice settle slowly (themes not
+listed fly straight)."""
 PARTICLE_CURL: Final[dict[str, float]] = {"wind": 0.16}
 """How fast a theme's particles turn as they fly, in radians a tick (every other one the
 other way): wind's wisps curl."""

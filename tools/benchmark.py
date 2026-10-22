@@ -174,10 +174,15 @@ def _storm_round(match: Match, tick: int) -> None:
 
 
 def bench_hits(
-    stage_id: str, storm: bool, frames: int = STORM_FRAMES, hit_effects: str = HIT_EFFECTS_FULL
+    stage_id: str,
+    storm: bool,
+    frames: int = STORM_FRAMES,
+    hit_effects: str = HIT_EFFECTS_FULL,
+    prewarm: bool = False,
 ) -> DrawStats:
     """Draw cost and live effect sprites of a hit storm (``storm``) or a four-CPU match, with
-    the "Hit effects" setting ``hit_effects`` (decision D-068)."""
+    the "Hit effects" setting ``hit_effects`` (decision D-068). ``prewarm`` builds all the
+    match's hit splash art first, to measure play after the battle has built it."""
     from isofightr.app import GameWindow
     from isofightr.scenes.battle import BattleView
     from isofightr.sim.events import HitEvent
@@ -195,6 +200,8 @@ def bench_hits(
         rules=MatchRules(stocks=None),
     )
     view.effects.hit_effects = hit_effects
+    if prewarm:
+        view.effect_renderer.warm(budget=60.0, limit=1_000_000)
     window.show_view(view)
     ticks, draws, sprites = [], [], []
     hits = 0
@@ -243,11 +250,16 @@ def main() -> None:
     parser.add_argument(
         "--hit-effects", default=HIT_EFFECTS_FULL, choices=HIT_EFFECTS, help="--hits: setting"
     )
+    parser.add_argument(
+        "--prewarm", action="store_true", help="--hits: build the hit splash art first"
+    )
     args = parser.parse_args()
     if args.hits:
         for run in range(args.runs):
             for storm in (True, False):
-                stats = bench_hits(args.hits, storm, hit_effects=args.hit_effects)
+                stats = bench_hits(
+                    args.hits, storm, hit_effects=args.hit_effects, prewarm=args.prewarm
+                )
                 kind = "hit storm" if storm else "four CPUs"
                 print(
                     f"{kind} {args.hits} run {run + 1}: {stats.hits} hits, tick"
