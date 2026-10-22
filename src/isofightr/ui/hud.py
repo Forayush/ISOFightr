@@ -83,6 +83,13 @@ class DamageHud:
         self.ramps = [theme.player_ramp(card.color) for card in cards]
         self._frames: list[Picture] = []
         self._damage: list[TextLabel] = []
+        self._punch: list[TextLabel] = []
+        """The damage number at the punch size (decision D-068), shown instead of the
+        normal one for a moment after a launch."""
+        self._portrait_flash: list[arcade.Sprite] = []
+        """A white copy of each bust, shown over it for a moment after a hit lands."""
+        self._badge_parts: list[list[arcade.Sprite | TextLabel]] = []
+        """Each card's CPU and team badges, hidden with the name while the number punches."""
         self._names: list[TextLabel] = []
         self._score: list[TextLabel] = []
         self._stock_icons: list[list[arcade.Sprite]] = []
@@ -96,7 +103,7 @@ class DamageHud:
         self._bubble_text: list[TextLabel] = []
         self._shards: list[arcade.Sprite] = []
         self._shard_textures: list[list[tuple[arcade.Texture, tuple[int, int]]]] = []
-        self._lit = [False] * len(cards)
+        self._lit: list[tuple[bool, int | None]] = [(False, None)] * len(cards)
         for index, (card, rect) in enumerate(zip(cards, self.rects, strict=True)):
             self._add_card(index, card, rect)
         for index, card in enumerate(cards):
@@ -117,11 +124,12 @@ class DamageHud:
             rect.bottom + well.bottom,
         )
         bust = card.bust or card.icon or self._placeholder_icon(card.color)
-        ui.image(
-            bust,
-            rect.left + well.left + (well.width - bust.width) // 2,
-            rect.bottom + well.bottom + (well.height - bust.height) // 2,
-        )
+        bust_left = rect.left + well.left + (well.width - bust.width) // 2
+        bust_bottom = rect.bottom + well.bottom + (well.height - bust.height) // 2
+        ui.image(bust, bust_left, bust_bottom)
+        white = ui.image(self._white_copy(bust), bust_left, bust_bottom)
+        white.visible = False
+        self._portrait_flash.append(white)
         crown = arcade.Sprite(icon_texture("crown", theme.GOLD) or bust)
         crown.position = (rect.left + well.left + 7, rect.bottom + layout.CROWN_BOTTOM + 6)
         crown.visible = False
@@ -138,15 +146,17 @@ class DamageHud:
         )
         self._names.append(name)
         badge_left = name.left + name.width + 4
+        parts: list[arcade.Sprite | TextLabel] = []
+        self._badge_parts.append(parts)
         for text, color in self._badges(index, card):
             width = font.text_width(text, TextSize.SMALL) + 2 * BADGE_PAD
-            ui.picture(
+            plate = ui.picture(
                 ("hud-badge", width, color),
                 lambda width=width, color=color: hud_art.badge(width, BADGE_HEIGHT, color),
                 badge_left,
                 rect.bottom + layout.NAME_BOTTOM - 1,
             )
-            ui.write(
+            caption = ui.write(
                 text,
                 badge_left + BADGE_PAD,
                 rect.bottom + layout.NAME_BOTTOM,
@@ -154,6 +164,7 @@ class DamageHud:
                 theme.INK,
                 shadow=False,
             )
+            parts += [plate, caption]
             badge_left += width + 3
 
         icon = card.icon or self._placeholder_icon(card.color)
@@ -196,6 +207,15 @@ class DamageHud:
                 align="right",
             )
         )
+        punch = ui.write(
+            "0%",
+            rect.right - layout.DAMAGE_RIGHT,
+            rect.bottom + layout.DAMAGE_BOTTOM - self._punch_drop(),
+            TextSize.PUNCH,
+            align="right",
+        )
+        punch.visible = False
+        self._punch.append(punch)
         plate = Picture(ui, Rect(rect.left + 2, rect.top + 2, 1, COMBO_HEIGHT))
         self._combo_plates.append(plate)
         self._combo.append(
@@ -247,6 +267,22 @@ class DamageHud:
         face = image.crop((left, top, left + size, top + size))
         return arcade.Texture(face, hash=f"hud-face:{id(source)}")
 
+    @staticmethod
+    def _white_copy(texture: arcade.Texture) -> arcade.Texture:
+        """Every drawn pixel of a picture in white (the portrait's flash)."""
+        image = texture.image.convert("RGBA")
+        white = Image.new("RGBA", image.size, (*theme.WHITE, 255))
+        blank = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        mask = image.getchannel("A").point(lambda alpha: 255 if alpha else 0)
+        flash = Image.composite(white, blank, mask)
+        return arcade.Texture(flash, hash=f"hud-white:{id(texture)}")
+
+    @staticmethod
+    def _punch_drop() -> int:
+        """How much lower the punch-size number's line starts than the normal one's, so the
+        two share a baseline."""
+        return font.face(TextSize.PUNCH).descent - font.face(TextSize.NUMERAL).descent
+
     def _placeholder_icon(self, color: int) -> arcade.Texture:
         return picture_texture(("hud-disc", color), lambda: art.build_stock_icon(color))
 
@@ -258,11 +294,13 @@ class DamageHud:
             pieces.append((texture, offset))
         return pieces
 
-    def _show_frame(self, index: int, lit: bool) -> None:
+    def _show_frame(self, index: int, lit: bool, attacker: int | None = None) -> None:
+        """Show a card's frame: its own, white (``lit``), or in ``attacker``'s colours."""
         rect, ramp = self.rects[index], self.ramps[index]
+        accent = None if attacker is None else self.ramps[attacker]
         self._frames[index].show(
-            ("hud-card", rect.width, rect.height, ramp, lit),
-            lambda: hud_art.card(rect.width, rect.height, ramp, lit),
+            ("hud-card", rect.width, rect.height, ramp, lit, accent),
+            lambda: hud_art.card(rect.width, rect.height, ramp, lit, accent),
         )
 
     # --- per frame -------------------------------------------------------------------------
@@ -286,6 +324,7 @@ class DamageHud:
         """
         crowned = None if scores is None else layout.leader(list(scores))
         tick = 0 if state is None else state.tick
+        reactions = effects.reactions
         for fighter in fighters:
             index = fighter.player_index
             rect = self.rects[index]
@@ -296,17 +335,35 @@ class DamageHud:
             label.text = damage_text(shown) if fighter.in_play else KO_TEXT
             hit = state is not None and flashing and state.flash.get(index, 0) > 0
             label.color = theme.WHITE if hit else damage_color(shown)
-            if hit != self._lit[index]:
-                self._lit[index] = hit
-                self._show_frame(index, hit)
-            amplitude = layout.shake_amplitude(shown, shake if flashing else 0.0)
-            jitter_x = anim.shake(tick, amplitude)
-            jitter_y = anim.shake(tick + 7, amplitude)
+            # The hit reaction (decision D-068): nothing unless hit effects are on.
+            attacker = reactions.frame_attacker(index) if flashing else None
+            lit = hit or (flashing and reactions.frame_white(index))
+            if (lit, attacker) != self._lit[index]:
+                self._lit[index] = (lit, attacker)
+                self._show_frame(index, lit and attacker is None, attacker)
+            self._portrait_flash[index].visible = flashing and reactions.portrait_flash(index)
+            strength = shake if flashing else 0.0
+            amplitude = layout.shake_amplitude(shown, strength)
+            react_x, react_y = reactions.offset(index, strength)
+            jitter_x = anim.shake(tick, amplitude) + react_x
+            jitter_y = anim.shake(tick + 7, amplitude) + react_y
             lift = effects.hud_offset(index)
-            label.move_to(
-                rect.right - layout.DAMAGE_RIGHT + jitter_x,
-                rect.bottom + layout.DAMAGE_BOTTOM + lift + jitter_y,
-            )
+            x = rect.right - layout.DAMAGE_RIGHT + jitter_x
+            bottom = rect.bottom + layout.DAMAGE_BOTTOM + lift + jitter_y
+            label.move_to(x, bottom)
+            punch = self._punch[index]
+            punched = fighter.in_play and reactions.punched(index)
+            if punched:
+                punch.text = label.text
+                punch.color = label.color
+                punch.move_to(x, bottom - self._punch_drop())
+            punch.visible = punched
+            label.visible = not punched
+            # The punched number is as tall as the name row is high: it takes the row over.
+            self._names[index].visible = not punched
+            self._score[index].visible = not punched
+            for part in self._badge_parts[index]:
+                part.visible = not punched
             shown_icons = stock_icons_shown(fighter.stocks)
             for slot, sprite in enumerate(self._stock_icons[index]):
                 sprite.visible = slot < shown_icons

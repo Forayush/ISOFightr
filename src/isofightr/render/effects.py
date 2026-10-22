@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 from isofightr.render.ground_items import ProjectileLooks
-from isofightr.render.hit_splash import GuardSplash, HitSplashes
+from isofightr.render.hit_splash import GuardSplash, HitSplash, HitSplashes, tier_of
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
 from isofightr.render.splash_art import has_art
@@ -47,6 +47,7 @@ from isofightr.sim.math3d import ZERO3, Vec3
 from isofightr.sim.move_def import Effect, MoveKind
 from isofightr.sim.projectile import Projectile
 from isofightr.sim.stage import Stage
+from isofightr.ui.hud_reaction import HudReactions
 
 # --- Dust, trails, rings and KO blasts (M8) --------------------------------------------------
 EFFECT_FRAME_TICKS: Final[int] = 3
@@ -476,6 +477,9 @@ class BattleEffects:
     splash instead, without and with its dispersal."""
     splashes: HitSplashes = field(default_factory=HitSplashes)
     """The hit splashes (decision D-068), unless hit effects are off."""
+    reactions: HudReactions = field(default_factory=HudReactions)
+    """How the player cards react to hits (decision D-068, group 4), unless hit effects are
+    off."""
     _ripples: list[GuardSplash] = field(default_factory=list)
     """This tick's blocks, until ``observe`` has found where on the bubble each landed and
     started its ripple there."""
@@ -522,9 +526,11 @@ class BattleEffects:
                     self.flash[event.target] = hit_flash_ticks(event.hitlag)
                     pixels = 1 + round(event.damage / HUD_POP_DAMAGE_PER_PIXEL)
                     self.hud_pop[event.target] = (HUD_POP_FRAMES, min(pixels, HUD_POP_MAX_PIXELS))
+                    if self.hit_effects != HIT_EFFECTS_OFF:
+                        self.reactions.contact(event.target, event.hitlag)
             elif isinstance(event, LaunchEvent):
                 if self.hit_effects != HIT_EFFECTS_OFF:
-                    self.splashes.launch(event)
+                    self._react_to_launch(event, self.splashes.launch(event))
             elif isinstance(event, ClankEvent):
                 self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, ShieldHitEvent):
@@ -573,6 +579,17 @@ class BattleEffects:
                     self.sparks.append(Spark(point, SMALL_SPARK_TIER, Effect.NORMAL))
                 if isinstance(event, TechEvent) and not event.wall:
                     self.rings.append(Ring(event.position))
+
+    def _react_to_launch(self, event: LaunchEvent, launched: list[HitSplash]) -> None:
+        """Tell the HUD a fighter was launched: at the tier of the heaviest splash that
+        launch dispersed (the knockback's band if none was resolved), by its attacker."""
+        resolved = [splash for splash in launched if splash.resolved]
+        if resolved:
+            heaviest = max(resolved, key=lambda splash: splash.tier)
+            tier, attacker = heaviest.tier, heaviest.attacker
+        else:
+            tier, attacker = tier_of(event.knockback, False, False, False), None
+        self.reactions.launch(event.target, tier, attacker)
 
     def _shows_extra(self, effect: Effect) -> bool:
         """Whether a hit of ``effect`` gets D-060's element extra: always with hit effects
@@ -835,6 +852,7 @@ class BattleEffects:
         """Advance every effect by one sim tick."""
         self._tick_events = []
         self.splashes.tick()
+        self.reactions.tick()
         for spark in self.sparks:
             spark.age += 1
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
@@ -886,6 +904,7 @@ class BattleEffects:
         self._dashing = {}
         self._struck = set()
         self.splashes.clear()
+        self.reactions.clear()
         self._ripples = []
 
     def hud_offset(self, player_index: int) -> int:

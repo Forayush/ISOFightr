@@ -400,14 +400,18 @@ class HitSplashes:
         self.guards.append(guard)
         return guard
 
-    def launch(self, event: LaunchEvent) -> None:
-        """The target's freeze ended in a launch: its held splashes disperse along it."""
+    def launch(self, event: LaunchEvent) -> list[HitSplash]:
+        """The target's freeze ended in a launch: its held splashes disperse along it.
+        Returns those splashes."""
         turn = screen_turn(event.direction)
+        launched = []
         for splash in self.splashes:
             if splash.target != event.target or splash.phase not in (Phase.BURST, Phase.HOLD):
                 continue
             splash.launched_at = splash.age
             splash.particles = self._particles(splash, turn) if self.dispersal else ()
+            launched.append(splash)
+        return launched
 
     def observe(self, fighters: Iterable[Fighter], stage: Stage | None, frame: int) -> None:
         """Complete the splashes of this tick's hits from the fighters (the attacker's theme,

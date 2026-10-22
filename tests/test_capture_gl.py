@@ -118,6 +118,20 @@ def test_a_hit_strip_can_show_a_blocked_hit_and_a_parry(window: Any) -> None:
         capture_hit_strip(window, "rook", "rook", "fsmash", 0, [0], guard="dodge")
 
 
+def test_a_hit_strip_can_show_the_player_cards(window: Any) -> None:
+    """Decision D-068 group 4: ``hud`` makes each picture the band of player cards, which
+    react to the hit (the portrait and the number on contact, the punch at the launch)."""
+    from isofightr.capture import HUD_STRIP_MARGIN, capture_hit_strip
+    from isofightr.ui.hud_layout import CARD_GAP, CARD_HEIGHT, CARD_WIDTH
+
+    sheet = capture_hit_strip(window, "rook", "rook", "fsmash", 60, [-1, 0, 13], hud=True)
+    wide = 2 * CARD_WIDTH + CARD_GAP + 2 * HUD_STRIP_MARGIN
+    tall = CARD_HEIGHT + 2 * HUD_STRIP_MARGIN
+    assert sheet.size == (3 * wide, tall)
+    before, contact, launch = (sheet.crop((i * wide, 0, (i + 1) * wide, tall)) for i in range(3))
+    assert before.tobytes() != contact.tobytes() != launch.tobytes()
+
+
 def test_a_splash_sheet_has_a_row_per_tier_and_angle_and_a_column_per_tick(window: Any) -> None:
     """Decision D-068: rows are tiers times launch angles, columns the ticks from the hit;
     the hit shows on the contact tick and has faded by the end of the default ticks."""

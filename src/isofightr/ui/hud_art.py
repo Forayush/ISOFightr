@@ -36,10 +36,13 @@ BANNER_COLORS: Final[dict[str, tuple[Rgb, Rgb, Rgb, Rgb]]] = {
 """Banner palettes: face, lit rim, near depth, far depth."""
 
 
-def card(width: int, height: int, ramp: Ramp, lit: bool = False) -> Image.Image:
+def card(
+    width: int, height: int, ramp: Ramp, lit: bool = False, accent: Ramp | None = None
+) -> Image.Image:
     """Return a player card's body: deep ink, a wedge of the player's dark shade behind the
     bust with leaning stripes, and a border in the player's colour (white when ``lit``, for
-    the moment after a hit)."""
+    the moment after a hit; in ``accent``, the attacker's colours, for the moment after a
+    heavy launch: decision D-068)."""
     light, base, dark, deep = ramp
     mask = kit_art.shape_mask(width, height, theme.CORNER)
     image = kit_art.filled(mask, (*theme.INK, CARD_ALPHA))
@@ -52,9 +55,10 @@ def card(width: int, height: int, ramp: Ramp, lit: bool = False) -> Image.Image:
                 continue
             stripe = (x + 2 * y) % 8 < 2
             pixels[x, y] = (*(deep if stripe else dark), 255)
-    edge = kit_art.panel(
-        width, height, (0, 0, 0, 0), theme.WHITE if lit else base, theme.CORNER, light=light
-    )
+    border = theme.WHITE if lit else base
+    if accent is not None:
+        light, border = accent[0], accent[1]
+    edge = kit_art.panel(width, height, (0, 0, 0, 0), border, theme.CORNER, light=light)
     image.alpha_composite(edge)
     return image
 

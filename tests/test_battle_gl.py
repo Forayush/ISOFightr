@@ -792,6 +792,55 @@ def test_a_hard_launch_leaves_afterimages_sorted_into_the_world(window: Any) -> 
     assert not visible, "gone again once the launch has run on"
 
 
+def test_the_cards_react_to_a_hit_at_contact_and_again_at_its_launch(window: Any) -> None:
+    """Decision D-068 group 4: a forward smash at 60% flashes the victim's portrait and
+    jitters its number through the freeze; at the launch the number punches to the bigger
+    size and the frame takes the attacker's colour (a heavy hit). "Reduce flashing" keeps
+    the portrait and the frame still but not the punch (a size, not a flash)."""
+    from isofightr.ui.font import TextSize
+    from isofightr.ui.hud_reaction import FRAME_FLASH_TICKS, PUNCH_BIG_TICKS
+
+    for calm in (False, True):
+        view = make_view(window, placeholder_art=True)
+        view.settings = replace(view.settings, reduce_flashing=calm)
+        view.match.set_damage(1, 60.0)
+        view.on_draw()
+        hud, target = view.hud, view.match.fighters[1]
+        assert not hud._portrait_flash[1].visible and not hud._punch[1].visible
+        view.on_key_press(keys().U, 0)  # forward smash
+        ticks(view, 1)
+        view.on_key_release(keys().U, 0)
+        rows = []
+        for _ in range(50):
+            ticks(view, 1)
+            view.on_draw()
+            rows.append(
+                {
+                    "frozen": target.hitlag > 0,
+                    "portrait": hud._portrait_flash[1].visible,
+                    "punch": hud._punch[1].visible,
+                    "number": hud._damage[1].visible,
+                    "x": hud._damage[1].x,
+                    "frame": hud._lit[1],
+                }
+            )
+        contact = next(index for index, row in enumerate(rows) if row["frozen"])
+        launch = next(index for index in range(contact, 50) if not rows[index]["frozen"])
+        if calm:
+            assert not any(row["portrait"] for row in rows)
+            assert all(row["frame"] == (False, None) for row in rows)
+        else:
+            assert rows[contact]["portrait"], "the portrait flashes on the contact tick"
+            accent = [row["frame"] for row in rows[launch : launch + FRAME_FLASH_TICKS[2]]]
+            assert accent == [(False, 0)] * FRAME_FLASH_TICKS[2], "the attacker's colour"
+            frozen_x = {row["x"] for row in rows[contact:launch]}
+            assert len(frozen_x) == 2, "the number jitters a pixel either way while frozen"
+        punched = rows[launch : launch + PUNCH_BIG_TICKS[2]]
+        assert all(row["punch"] and not row["number"] for row in punched)
+        assert hud._punch[1].size is TextSize.PUNCH and hud._punch[1].text == "76%"
+        assert rows[-1]["number"] and not rows[-1]["punch"] and not rows[-1]["portrait"]
+
+
 def test_a_battle_builds_its_splash_art_ahead_of_time(window: Any) -> None:
     """Decision D-068: every picture the match's hits can need (and the parry ring) is
     queued when the battle starts and built a little each drawn frame (into the atlas), so

@@ -137,6 +137,7 @@ WINDOWLESS_MODULES = (
     "isofightr.ui.hud_art",
     "isofightr.ui.hud_layout",
     "isofightr.ui.hud_state",
+    "isofightr.ui.hud_reaction",
     "isofightr.ui.icons",
     "isofightr.ui.input_display",
     "isofightr.ui.kit_art",

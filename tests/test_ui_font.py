@@ -13,6 +13,7 @@ CAP_HEIGHTS = {
     TextSize.TITLE: 12,
     TextSize.DISPLAY: 16,
     TextSize.NUMERAL: 16,
+    TextSize.PUNCH: 24,
 }
 
 

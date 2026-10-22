@@ -545,6 +545,7 @@ def capture_hit_strip(
     effect: Effect | None = None,
     guard: str = "",
     hit_effects: str = HIT_EFFECTS_FULL,
+    hud: bool = False,
 ) -> Image.Image:
     """Return a strip of one hit (decision D-066): the attacker performs ``move_id`` on a
     target at ``percent`` standing on the stage's respawn point (set up as
@@ -564,6 +565,10 @@ def capture_hit_strip(
     it let go just before the hit; the strip then starts at the blocked hit and each picture
     also shows the attacker's hitlag (a parry freezes the attacker longer). ``hit_effects``
     is the "Hit effects" setting (``off`` shows the hit as it looked before decision D-068).
+
+    For reviewing D-068's HUD reaction: ``hud`` turns the HUD on and makes each picture the
+    band of player cards (with ``HUD_STRIP_MARGIN`` around them) instead of a crop of the
+    world; ``crop`` is then ignored.
 
     Raises ``ValueError`` if the move never hits (or is never blocked, with a guard).
     """
@@ -591,11 +596,18 @@ def capture_hit_strip(
     fighters = [striking, load_character(target)]
     view = BattleView(window.pixel_buffer, stage, fighters, rules=rules, training=bool(guard))
     view.show_help = False
-    view.hud_display = False
+    view.hud_display = hud
     view.effects.hit_effects = hit_effects
     window.show_view(view)
     match = view.match
     striker, victim = match.fighters[0], match.fighters[1]
+    if hud:
+        cards = view.hud.fixed_rects()
+        band_left = min(card.left for card in cards) - HUD_STRIP_MARGIN
+        band_top = NATIVE_H - max(card.top for card in cards) - HUD_STRIP_MARGIN
+        band_right = max(card.right for card in cards) + HUD_STRIP_MARGIN
+        band_bottom = NATIVE_H - min(card.bottom for card in cards) + HUD_STRIP_MARGIN
+        crop = (band_right - band_left, band_bottom - band_top)
     spot = stage.respawn
     top = stage.surface_top(spot.x, spot.y)
     assert top is not None, "the target must stand on solid ground"
@@ -621,6 +633,9 @@ def capture_hit_strip(
 
     def picture() -> tuple[Image.Image, str]:
         view.on_draw()
+        if hud:
+            frame = read_frame(window).crop((band_left, band_top, band_right, band_bottom))
+            return frame, f"hitlag {victim.hitlag}" if victim.hitlag else "launched"
         body = victim.character.body.height
         world_x, world_y = project(victim.pos.x, victim.pos.y, victim.pos.z + body / 2)
         centre_x, centre_y = view.view_centre()
@@ -679,6 +694,8 @@ def capture_hit_strip(
     return sheet
 
 
+HUD_STRIP_MARGIN = 4
+"""Native pixels around the player cards in a hit strip of the HUD."""
 SPLASH_THEMES: tuple[str, ...] = (
     *(effect.value for effect in Effect),
     *(theme for theme in HIT_THEMES if theme not in {effect.value for effect in Effect}),

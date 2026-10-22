@@ -55,6 +55,9 @@ class TextSize(Enum):
     """Headings and banners: capitals 16 px tall."""
     NUMERAL = "numeral"
     """The damage number: the small face tripled, 16 px tall and chunky."""
+    PUNCH = "punch"
+    """The damage number's punch when its player is launched (decision D-068): half as big
+    again, 24 px tall, for a few ticks."""
 
 
 _SPECS: Final[dict[TextSize, tuple[str, int, int]]] = {
@@ -63,6 +66,7 @@ _SPECS: Final[dict[TextSize, tuple[str, int, int]]] = {
     TextSize.TITLE: ("Jersey25-Regular.ttf", 20, 1),
     TextSize.DISPLAY: ("Jersey25-Regular.ttf", 25, 1),
     TextSize.NUMERAL: ("Jersey10-Regular.ttf", 30, 3),
+    TextSize.PUNCH: ("Jersey10-Regular.ttf", 45, 4),
 }
 """File, pixel size and (for the fallback) the whole-number enlargement of the built-in font."""
 FONT_FILES: Final[tuple[str, ...]] = tuple(sorted({spec[0] for spec in _SPECS.values()}))

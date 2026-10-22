@@ -35,7 +35,8 @@ For D-067's hit poses: ``--lift U`` holds the target U units up until the hit (a
 ``--delay N`` starts the move N ticks later (another hit frame: the reeling roll is a hash of
 it), ``--effect electric`` makes the move's hitboxes electric. For D-068's defensive splashes,
 ``--guard shield`` has the target hold its shield and ``--guard parry`` has it parry (the
-parry rule on); the strip then starts at the blocked hit.
+parry rule on); the strip then starts at the blocked hit. ``--hud`` shows the player cards
+instead of the world (D-068's HUD reaction to the hit).
 
 ``--splash-sheet THEME`` shows a hit effect (decision D-068): one row per tier (``--tiers``,
 default 0,1,2,3) and launch direction on screen (``--angles``, steps of 22.5 degrees
@@ -135,6 +136,7 @@ def main() -> None:
         "--effect", default="", choices=["", *(e.value for e in Effect)], help="hit-strip effect"
     )
     parser.add_argument("--guard", default="", choices=GUARDS, help="hit-strip target guards")
+    parser.add_argument("--hud", action="store_true", help="hit-strip: the player cards")
     parser.add_argument(
         "--splash-sheet", default="", choices=["", *SPLASH_THEMES], help="a hit effect's sheet"
     )
@@ -220,6 +222,7 @@ def main() -> None:
             effect=Effect(args.effect) if args.effect else None,
             guard=args.guard,
             hit_effects=args.hit_effects,
+            hud=args.hud,
         )
     elif args.depth_lab:
         sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)
