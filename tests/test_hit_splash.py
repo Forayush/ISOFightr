@@ -5,19 +5,22 @@ use it (instead of the spark and the launch streak, unless hit effects are off).
 """
 
 import math
+from typing import Any
 
 import pytest
 
-from helpers import place
+from helpers import hold, place
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.render import hit_splash as hs
-from isofightr.render.effects import BattleEffects, streak_angle
+from isofightr.render import splash_art
+from isofightr.render.effects import PARRY_SHAKE_PIXELS, BattleEffects, streak_angle
 from isofightr.render.hit_splash import (
     CRITICAL,
     HEAVY,
     LIGHT,
     MEDIUM,
+    GuardSplash,
     HitSplashes,
     Phase,
     angle_step,
@@ -26,11 +29,19 @@ from isofightr.render.hit_splash import (
     tier_of,
 )
 from isofightr.render.iso import project
+from isofightr.render.placeholder_art import sphere_screen_size
 from isofightr.settings import HIT_EFFECTS_FULL, HIT_EFFECTS_MINIMAL, HIT_EFFECTS_OFF
 from isofightr.sim.combat.knockback import launch_vector
-from isofightr.sim.events import ClankEvent, HitEvent, LaunchEvent
+from isofightr.sim.combat.shield import shield_centre, shield_radius
+from isofightr.sim.events import (
+    ClankEvent,
+    HazardHitEvent,
+    HitEvent,
+    LaunchEvent,
+    ShieldHitEvent,
+)
 from isofightr.sim.fighter import Fighter, Launch
-from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8, InputFrame
+from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec2, Vec3
 from isofightr.sim.move_def import Effect
@@ -582,3 +593,182 @@ def test_electric_sparks_fly_a_zigzag() -> None:
     assert all(abs(side) < 2.0 for side in sides), "it keeps to its line"
     plain = hs.Particle(0.0, 2.0, 12)
     assert plain.heading(5) == 0.0
+
+
+# --- group 3: blocks and parries ------------------------------------------------------------
+
+
+def guarded(
+    parry: bool, hit_effects: str = HIT_EFFECTS_FULL, calm: bool = False
+) -> tuple[BattleEffects, list[dict[str, Any]]]:
+    """Rook forward-tilts Rook, who shields (or, with the parry rule on, drops the shield just
+    in time: the setup of ``test_parry_rule``); feed the battle's effects as the battle does
+    and record, per tick from the block, the guard splash and both fighters' freezes."""
+    match = Match.create(
+        load_stage("training_grid"),
+        [load_character("rook"), load_character("rook")],
+        seed=1,
+        rules=MatchRules(stocks=None, parry=parry),
+    )
+    attacker, defender = match.fighters
+    place(match, attacker, 4.0, 6.0, facing=Dir8.SE)
+    place(match, defender, 5.0, 6.0, facing=Dir8.NW)
+    effects = BattleEffects(hit_effects=hit_effects)
+    effects.splashes.calm = calm
+    shield = hold(buttons=Button.SHIELD, frames=1)[0]
+    swing = hold(Dir8.SE, Button.ATTACK, frames=1)[0]
+    blocked_at = -1
+    seen: list[dict[str, Any]] = []
+    for tick in range(70):
+        held = tick < (3 if parry else 40)
+        match.tick([swing if tick == 0 else NEUTRAL_INPUT, shield if held else NEUTRAL_INPUT])
+        effects.tick()
+        effects.consume(match.events)
+        effects.observe(match.fighters, match.stage, match.frame)
+        if blocked_at < 0 and any(isinstance(e, ShieldHitEvent) for e in match.events):
+            blocked_at = tick
+        if blocked_at >= 0:
+            guards = effects.splashes.guards
+            seen.append(
+                {
+                    "tick": tick - blocked_at,
+                    "guard": guards[0] if guards else None,
+                    "phase": guards[0].phase if guards else Phase.DONE,
+                    "keys": [picture.key for picture in effects.splashes.sprites()],
+                    "attacker_hitlag": attacker.hitlag,
+                    "defender_hitlag": defender.hitlag,
+                    "shake": effects.shake.amplitude,
+                    "sparks": len(effects.sparks),
+                    "fx": [effect.kind for effect in effects.fx],
+                    "ripple_at": effects.fx[0].position if effects.fx else None,
+                    "bubble": (shield_centre(defender), shield_radius(defender)),
+                    "attacker_side": project(
+                        attacker.pos.x - defender.pos.x, attacker.pos.y - defender.pos.y
+                    ),
+                }
+            )
+    assert seen, "the forward tilt was blocked"
+    return effects, seen
+
+
+def test_a_block_draws_an_arc_on_the_bubble_where_the_blow_met_it() -> None:
+    """D-068 group 3: the splash flattens into an arc on the shield bubble's outline as it is
+    drawn, on the side the blow came from (the attacker's, though the forward tilt reaches
+    past the bubble's centre), in the attacker's theme."""
+    _, seen = guarded(parry=False)
+    guard = seen[0]["guard"]
+    assert isinstance(guard, GuardSplash) and not guard.parried and guard.theme == "slash"
+    centre, radius = seen[0]["bubble"]
+    centre_x, centre_y = project(centre.x, centre.y, centre.z)
+    width, height = sphere_screen_size(radius)
+    x, y = guard.screen
+    on_outline = ((x - centre_x) / (width / 2)) ** 2 + ((y - centre_y) / (height / 2)) ** 2
+    assert on_outline == pytest.approx(1.0, abs=0.02)
+    side_x, side_y = seen[0]["attacker_side"]
+    assert (x - centre_x) * side_x + (y - centre_y) * side_y > 0, "on the attacker's side"
+    assert seen[0]["keys"] == [("guard", "slash", guard.size, guard.angle, 0)]
+    assert seen[0]["sparks"] == 0, "the arc replaces the spark"
+    assert seen[0]["fx"] == ["ripple"], "the bubble's ripple stays"
+    assert seen[0]["ripple_at"] == guard.surface, "where the arc is, not at the hitbox's centre"
+
+
+def test_a_block_holds_for_the_defenders_freeze_then_sparks_skitter_along_the_bubble() -> None:
+    _, seen = guarded(parry=False)
+    assert seen[0]["phase"] is seen[1]["phase"] is Phase.BURST
+    assert sum(1 for row in seen if row["defender_hitlag"]) > hs.BURST_TICKS
+    for row in seen:
+        held = row["phase"] in (Phase.BURST, Phase.HOLD)
+        assert held == bool(row["defender_hitlag"]), row["tick"]
+    thawed = next(row for row in seen if not row["defender_hitlag"])
+    guard = thawed["guard"]
+    assert isinstance(guard, GuardSplash) and thawed["phase"] is Phase.DISPERSAL
+    assert len(guard.particles) == hs.GUARD_SPARKS[guard.size]
+    for spark in guard.particles:
+        off_tangent = min(
+            abs((spark.turn - guard.turn - side + math.pi) % (2 * math.pi) - math.pi)
+            for side in (math.pi / 2, -math.pi / 2)
+        )
+        assert off_tangent <= 0.25 + 1e-9, "along the bubble"
+    assert any(key[0] == "particle" for key in thawed["keys"])
+    assert seen[-1]["phase"] is Phase.DONE
+
+
+def test_minimal_blocks_have_no_skittering_sparks() -> None:
+    _, seen = guarded(parry=False, hit_effects=HIT_EFFECTS_MINIMAL)
+    thawed = next(row for row in seen if not row["defender_hitlag"])
+    guard = thawed["guard"]
+    assert isinstance(guard, GuardSplash) and guard.particles == ()
+    assert all(key[0] == "guard" for row in seen for key in row["keys"])
+
+
+def test_a_parry_rings_for_exactly_the_attackers_freeze() -> None:
+    """The ring bursts out over ``PARRY_RING_TICKS``, pulses for as long as the attacker is
+    frozen (its own hitlag, longer than the parrier's), then fades; no spark and no ripple,
+    and the parry's shake stays."""
+    _, seen = guarded(parry=True)
+    guard = seen[0]["guard"]
+    assert isinstance(guard, GuardSplash) and guard.parried
+    assert seen[0]["attacker_hitlag"] > seen[0]["defender_hitlag"]
+    assert seen[0]["shake"] == PARRY_SHAKE_PIXELS
+    fading = splash_art.PARRY_FRAME_COUNT - 1
+    frames: list[int | None] = []
+    for row in seen:
+        rings = [key for key in row["keys"] if key[0] == "parry"]
+        frames.append(rings[0][2] if rings else None)
+        if row["attacker_hitlag"]:
+            assert rings and rings[0][2] < fading, row["tick"]
+    assert frames[: hs.PARRY_RING_TICKS] == list(range(hs.PARRY_RING_TICKS))
+    pulsing = {frame for frame, row in zip(frames, seen, strict=True) if row["attacker_hitlag"]}
+    assert pulsing - set(range(hs.PARRY_RING_TICKS)) == {hs.PARRY_RING_TICKS, 5}
+    thawed = next(index for index, row in enumerate(seen) if not row["attacker_hitlag"])
+    assert frames[thawed : thawed + hs.PARRY_FADE_TICKS] == [fading] * hs.PARRY_FADE_TICKS
+    assert frames[thawed + hs.PARRY_FADE_TICKS] is None
+    assert seen[0]["sparks"] == 0 and seen[0]["fx"] == [], "no spark, no ripple"
+
+
+def test_reduce_flashing_holds_the_parry_ring_still() -> None:
+    _, seen = guarded(parry=True, calm=True)
+    held = {
+        key[2]
+        for row in seen
+        if row["attacker_hitlag"] and row["tick"] >= hs.PARRY_RING_TICKS
+        for key in row["keys"]
+    }
+    assert held == {hs.PARRY_RING_TICKS}
+
+
+def test_blocks_and_parries_look_as_before_with_hit_effects_off() -> None:
+    _, seen = guarded(parry=False, hit_effects=HIT_EFFECTS_OFF)
+    assert all(row["guard"] is None for row in seen)
+    assert seen[0]["sparks"] == 1 and seen[0]["fx"] == ["ripple"]
+    _, seen = guarded(parry=True, hit_effects=HIT_EFFECTS_OFF)
+    assert all(row["guard"] is None for row in seen)
+    assert seen[0]["sparks"] == 1 and seen[0]["fx"] == ["ripple"]
+    assert seen[0]["shake"] == PARRY_SHAKE_PIXELS
+
+
+def test_a_blocked_hazard_gets_an_arc_in_its_effects_theme() -> None:
+    match = duel()
+    defender = match.fighters[1]
+    blocked = HazardHitEvent(0, "lightning", 1, 4.0, 0.0, defender.pos, Effect.ELECTRIC, 6, True)
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_FULL)
+    effects.consume([blocked])
+    effects.observe(match.fighters, match.stage, 300)
+    [guard] = effects.splashes.guards
+    assert guard.theme == "electric" and guard.attacker is None and not effects.sparks
+    off = BattleEffects(hit_effects=HIT_EFFECTS_OFF)
+    off.consume([blocked])
+    assert len(off.sparks) == 1 and not off.splashes.guards
+
+
+def test_the_guard_splash_never_changes_the_sim() -> None:
+    match = duel()
+    match.tick([NEUTRAL_INPUT, NEUTRAL_INPUT])
+    before = match.state_hash()
+    model = HitSplashes()
+    model.guard(ShieldHitEvent(0, 1, 6.0, CONTACT, 9, False))
+    for _ in range(20):
+        model.observe(match.fighters, match.stage, 7)
+        model.sprites()
+        model.tick()
+    assert match.state_hash() == before

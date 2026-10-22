@@ -15,7 +15,12 @@ says what to show as keys, and the effect renderer turns each key into a texture
 - ``("particle", theme, size, angle, frame)``: one dispersal particle flying ``angle``
   (``size`` 0 for light and medium hits, 1 for heavy and critical ones);
 - ``("ring", theme, tier, frame)``: the shockwave ring of a heavy or critical launch;
-- ``("flare", theme, frame)``: the critical flare.
+- ``("flare", theme, frame)``: the critical flare;
+- ``("guard", theme, size, angle, frame)``: a blocked hit's arc of sparks along the shield
+  bubble, convex toward ``angle`` (the way out of the bubble), ``size`` 0 to 2 by the shield
+  damage taken: two burst frames, the held arc, the fading arc (group 3);
+- ``("parry", "gold", frame)``: a parry's golden-white shockwave ring: four frames bursting
+  out, two that pulse while the attacker is frozen, one fading.
 
 Every picture is drawn per angle with pixel-exact polygons and lines (no rotated images, no
 anti-aliasing) in Resurrect 64 colours. A theme without its own art yet uses the effects that
@@ -183,7 +188,8 @@ def _crescent(
     either side."""
     span = math.radians(span_degrees)
     steps = max(6, round(radius * 1.5))
-    outer, inner = [], []
+    outer: list[Point] = []
+    inner: list[Point] = []
     for index in range(steps + 1):
         phi = -span + 2.0 * span * index / steps
         taper = math.cos(phi / span * math.pi / 2.0)
@@ -1293,6 +1299,162 @@ def _frost_ring(tier: int, frame: int) -> Image.Image:
     return image
 
 
+# --- guard (a blocked hit's arc) and parry (its ring) -----------------------------------
+GUARD_COLOURS: Final[dict[str, tuple[Rgba, Rgba, Rgba]]] = {
+    "normal": (WHITE, SLASH_PALE, SLASH_DEEP),
+    "slash": (WHITE, SLASH_ICE, SLASH_DEEP),
+    "fire": (FIRE_PALE, FIRE_ORANGE, FIRE_EDGE),
+    "darkness": (DARK_PALE, DARK_LILAC, DARK_EDGE),
+    "earth": (STONE_PALE, CRYSTAL, EARTH_EDGE),
+    "wind": (WHITE, WIND_MINT, WIND_EDGE),
+    "electric": (WHITE, VOLT_PALE, VOLT_EDGE),
+    "ice": (WHITE, ICE_BLUE, ICE_EDGE),
+}
+"""Each theme's colours for a blocked hit's arc: its bright sparks, the arc, the outline."""
+GUARD_SIZES: Final[int] = 3
+GUARD_FRAMES: Final[int] = 4
+GUARD_CANVAS: Final[tuple[int, ...]] = (23, 29, 35)
+"""The side of a guard picture, by size: room for the contact frame's star and outline."""
+GUARD_CURVE: Final[float] = 20.0
+"""The radius of the arc's curve, in pixels: about a shield bubble's (11 to 32)."""
+GUARD_REACH: Final[tuple[float, ...]] = (6.0, 8.5, 11.0)
+"""Half the arc's length along the bubble, by size."""
+GUARD_THICKNESS: Final[tuple[float, ...]] = (2.0, 2.5, 3.0)
+"""The arc's thickness at its middle (it lies on the inside of the bubble's outline)."""
+GUARD_SPARK: Final[tuple[float, ...]] = (2.0, 3.0, 4.0)
+"""How far the contact frame's sparks fly out of the bubble, by size."""
+GUARD_STAR_EXTRA: Final[float] = 3.0
+"""How far the contact frame's flattened star reaches past the arc's ends (and into the
+bubble), in pixels."""
+GUARD_STAR_WAIST: Final[float] = 1.5
+"""Half the thickness of that star's points where they cross."""
+GUARD_SPARK_LEAN: Final[float] = 30.0
+"""How far its side sparks lean away from straight out, in degrees."""
+GUARD_GRAINS: Final[tuple[tuple[float, ...], ...]] = ((-0.85, -0.35, 0.35, 0.85), (-0.6, 0.6))
+"""Where the sparks grinding along the arc sit on its second frame and while it holds, as
+shares of its half-length."""
+PARRY_PALE: Final[Rgba] = _rgba("fbff86")
+PARRY_LIGHT: Final[Rgba] = _rgba("fbb954")
+PARRY_GOLD: Final[Rgba] = _rgba("f9c22b")
+PARRY_EDGE: Final[Rgba] = _rgba("9e4539")
+"""The parry ring's outline: rust, so the gold reads on a light stage."""
+PARRY_FRAME_COUNT: Final[int] = 7
+PARRY_RADII: Final[tuple[float, ...]] = (5.0, 9.0, 13.0, 16.0, 16.0, 17.0, 18.0)
+"""The parry ring's half-width on each frame."""
+PARRY_SQUASH: Final[float] = 0.8
+"""Its height over its width: rounder than a launch's ring, so the two are told apart."""
+PARRY_FLARE: Final[tuple[float, ...]] = (6.0, 7.0, 5.0, 3.0)
+"""How long the flash's rays across the screen are on the first four frames."""
+PARRY_CANVAS: Final[int] = 55
+
+
+def _arc_point(reach: float, share: float, out: float = 0.0) -> Point:
+    """A point on the guard arc's curve, ``share`` of its half-length to one side and ``out``
+    pixels outside it, as ``(forward, side)`` from the contact point."""
+    phi = share * reach / GUARD_CURVE
+    radius = GUARD_CURVE + out
+    return (-GUARD_CURVE + radius * math.cos(phi), radius * math.sin(phi))
+
+
+def _guard(theme: str, size: int, angle: int, frame: int) -> Image.Image:
+    """A blocked hit's arc: a band on the inside of the bubble's outline, convex out of it.
+    On the contact tick the burst flattened against the bubble (a star whose long points run
+    along it) with sparks flying out; then the band, bright, with sparks grinding along it;
+    then held in the theme's colour; then broken into specks as it fades."""
+    bright, arc, edge = GUARD_COLOURS.get(theme, GUARD_COLOURS["normal"])
+    image, draw, centre = _canvas(GUARD_CANVAS[size])
+    along, across = _direction(angle)
+    reach = GUARD_REACH[size] * (1.0, 1.15, 1.15, 1.15)[frame]
+    span = math.degrees(reach / GUARD_CURVE)
+
+    def at(point: Point) -> Point:
+        return _at(centre, along, across, *point)
+
+    if frame == 3:  # fading: every other pixel of the arc
+        steps = max(4, round(reach * 2.0))
+        for index in range(0, steps + 1, 2):
+            draw.point(at(_arc_point(reach, -1.0 + 2.0 * index / steps)), fill=arc)
+        return _outlined(image, edge)
+    thickness = GUARD_THICKNESS[size] * (1.0, 1.0, 0.8)[frame]
+    band = _crescent(centre, along, across, GUARD_CURVE, thickness, GUARD_CURVE, span)
+    draw.polygon(band, fill=arc if frame != 1 else bright)
+    inner = _crescent(centre, along, across, GUARD_CURVE, thickness * 0.45, GUARD_CURVE, span)
+    draw.polygon(inner, fill=bright if frame != 1 else arc)
+    spark = GUARD_SPARK[size]
+    if frame == 0:  # the burst flattened against the bubble, and sparks flying out of it
+        tip = (reach + GUARD_STAR_EXTRA) / reach
+        waist = GUARD_STAR_WAIST
+        draw.polygon(  # the long points, along the bubble
+            [at(_arc_point(reach, tip)), at((waist, 0.0)),
+             at(_arc_point(reach, -tip)), at((-waist, 0.0))],
+            fill=bright,
+        )  # fmt: skip
+        draw.polygon(  # the short ones, out of it and into it
+            [at((spark + GUARD_STAR_EXTRA, 0.0)), at((0.0, waist)),
+             at((-GUARD_STAR_EXTRA, 0.0)), at((0.0, -waist))],
+            fill=bright,
+        )  # fmt: skip
+        for share in (0.55, -0.55):
+            forward, side = _arc_point(reach, share)
+            lean = math.copysign(math.radians(GUARD_SPARK_LEAN), share)
+            end = (forward + math.cos(lean) * spark, side + math.sin(lean) * spark)
+            draw.line((at((forward, side)), at(end)), fill=bright)
+        draw.point(at((0.0, 0.0)), fill=WHITE)
+        return _outlined(image, edge)
+    for share in GUARD_GRAINS[frame - 1]:  # sparks grinding along it, just outside
+        draw.point(at(_arc_point(reach, share, 2.0)), fill=bright)
+    return _outlined(image, edge)
+
+
+def _sparkle(draw: ImageDraw.ImageDraw, x: float, y: float, arm: int) -> None:
+    """A small four-point glint: white in the middle, pale gold arms."""
+    middle = (round(x), round(y))
+    if arm:
+        draw.line((middle[0] - arm, middle[1], middle[0] + arm, middle[1]), fill=PARRY_PALE)
+        draw.line((middle[0], middle[1] - arm, middle[0], middle[1] + arm), fill=PARRY_PALE)
+    draw.point(middle, fill=WHITE)
+
+
+def _parry(frame: int) -> Image.Image:
+    """A parry's shockwave ring: a white flash with rays across the screen bursting out into a
+    double ring of white and gold, glints round it; it pulses between two frames (the glints
+    twinkling from the diagonals to the sides and back), then fades into a dashed ring."""
+    image, draw, centre = _canvas(PARRY_CANVAS)
+    width = PARRY_RADII[frame]
+    height = width * PARRY_SQUASH
+    outer = (centre - width, centre - height, centre + width, centre + height)
+    if frame == PARRY_FRAME_COUNT - 1:
+        dashes = 16
+        for index in range(0, dashes, 2):
+            start = 360.0 * index / dashes
+            draw.arc(outer, start, start + 360.0 / dashes, fill=PARRY_GOLD)
+        return _outlined(image, PARRY_EDGE)
+    if frame == 0:
+        draw.ellipse((centre - 2, centre - 2, centre + 2, centre + 2), fill=WHITE)
+    draw.ellipse(outer, outline=(WHITE, WHITE, PARRY_PALE, PARRY_PALE, WHITE, PARRY_PALE)[frame])
+    if width >= 9.0:
+        inset = 2.0
+        inner = (outer[0] + inset, outer[1] + inset * PARRY_SQUASH,
+                 outer[2] - inset, outer[3] - inset * PARRY_SQUASH)  # fmt: skip
+        draw.ellipse(inner, outline=PARRY_LIGHT if frame == 5 else PARRY_GOLD)
+    if frame < len(PARRY_FLARE):  # the flash's rays across the screen, apart from the ring
+        gap = width + 2.0
+        for sign in (1.0, -1.0):
+            tip = centre + sign * (gap + PARRY_FLARE[frame])
+            draw.line((round(centre + sign * gap), round(centre), round(tip), round(centre)),
+                      fill=WHITE if frame < 2 else PARRY_PALE)  # fmt: skip
+    if frame:
+        turn_offset = 0.0 if frame == 5 else math.pi / 4.0
+        for index in range(4):
+            turn = turn_offset + math.pi / 2.0 * index
+            if frame < 5 and abs(math.sin(turn)) < 0.1:
+                continue  # the sides belong to the flash's rays
+            x = centre + math.cos(turn) * (width + 3.0)
+            y = centre + math.sin(turn) * (height + 3.0)
+            _sparkle(draw, x, y, 1 if frame in (1, 2) else 2)
+    return _outlined(image, PARRY_EDGE)
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
 ICE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, FROST, ICE_BLUE)
 VOLT_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, VOLT_PALE, VOLT_BLUE)
@@ -1398,6 +1560,12 @@ def build(key: Key) -> Image.Image:
     kind, theme, *rest = key
     assert isinstance(kind, str) and isinstance(theme, str)
     steps = tuple(int(step) for step in rest)
+    if kind == "guard":
+        size, angle, frame = steps
+        return _guard(theme, size, angle, frame)
+    if kind == "parry":
+        (frame,) = steps
+        return _parry(frame)
     drawers = DRAWN.get(theme)
     if kind == "split":
         tier, frame, channel = steps
@@ -1421,9 +1589,26 @@ def split_colours(theme: str) -> tuple[Rgba, Rgba]:
     return SPLIT_COLOURS.get(theme, SPLIT_COLOURS["slash"])
 
 
+def guard_keys(theme: str) -> list[Key]:
+    """Every picture of a blocked hit's arc in a theme (group 3)."""
+    return [
+        ("guard", theme, size, angle, frame)
+        for size in range(GUARD_SIZES)
+        for angle in range(ANGLES)
+        for frame in range(GUARD_FRAMES)
+    ]
+
+
+def parry_keys() -> list[Key]:
+    """Every picture of the parry ring."""
+    return [("parry", "gold", frame) for frame in range(PARRY_FRAME_COUNT)]
+
+
 def heavy(key: Key) -> bool:
     """Whether a picture is only shown by heavy and critical hits (built after the others)."""
     kind = key[0]
+    if kind in ("guard", "parry"):
+        return False
     if kind in ("split", "ring", "flare"):
         return True
     level = key[2]

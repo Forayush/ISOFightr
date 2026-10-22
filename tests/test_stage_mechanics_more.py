@@ -181,9 +181,12 @@ def test_a_hazard_hit_sparks_shakes_and_shows_its_damage() -> None:
     splashed.consume([hit])
     assert not splashed.sparks and len(splashed.splashes.splashes) == 1
     assert splashed.flash[1] > 0 and splashed.shake.current() > 0
-    shield = BattleEffects()
+    shield = BattleEffects(hit_effects=HIT_EFFECTS_OFF)
     shield.consume([replace(hit, blocked=True)])
     assert len(shield.sparks) == 1 and 1 not in shield.flash, "a blocked one only sparks"
+    guarded = BattleEffects()  # D-068 group 3: a blocked one draws an arc on the bubble
+    guarded.consume([replace(hit, blocked=True)])
+    assert not guarded.sparks and len(guarded.splashes.guards) == 1 and 1 not in guarded.flash
     bounce = BattleEffects()
     bounce.consume([BounceEvent(0, Vec3(), 0.4)])
     assert bounce.puffs and bounce.rings

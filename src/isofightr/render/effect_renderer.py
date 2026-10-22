@@ -225,11 +225,17 @@ class EffectRenderer:
     def warm_splashes(self, themes: Iterable[str]) -> None:
         """Queue every splash picture of ``themes`` to be built ahead of time (decision D-068):
         :meth:`warm` builds them a few at a time, so a hit rarely builds its own. Light and
-        medium hits' pictures of every theme come first, then heavy and critical ones. Themes
-        without art of their own are left out (they reuse a few old effects' pictures)."""
+        medium hits' pictures of every theme come first, then the parry ring (group 3), then
+        heavy and critical hits' pictures. Themes without art of their own are left out (they
+        reuse a few old effects' pictures), and so are the arcs of blocked hits: a block shows
+        four of their 192 pictures a theme, so each is built the first time it is needed
+        rather than filling the atlas with the rest."""
         drawn = [theme for theme in themes if splash_art.has_art(theme)]
-        keys = [("splash", *key) for theme in drawn for key in splash_art.theme_keys(theme)]
-        self._warm.extend(sorted(keys, key=lambda key: splash_art.heavy(key[1:])))
+        hits = [key for theme in drawn for key in splash_art.theme_keys(theme)]
+        common = [key for key in hits if not splash_art.heavy(key)]
+        rare = [key for key in hits if splash_art.heavy(key)]
+        keys = common + splash_art.parry_keys() + rare
+        self._warm.extend(("splash", *key) for key in keys)
 
     def warm(self, budget: float = WARM_BUDGET_SECONDS, limit: int = WARM_PICTURES) -> int:
         """Build queued splash pictures into textures, and into the atlas: at most ``limit``

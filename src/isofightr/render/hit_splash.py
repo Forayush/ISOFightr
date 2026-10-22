@@ -25,6 +25,12 @@ world pixels (as :func:`isofightr.render.iso.project` gives them), so the effect
 draws :meth:`HitSplashes.sprites` as they come; :mod:`isofightr.render.splash_art` draws
 their keys.
 
+A blocked hit gets a :class:`GuardSplash` instead (decision D-068, group 3): the splash
+flattens into an arc of sparks along the shield bubble where the blow met it, held for the
+defender's freeze, then sparks skitter off along the bubble; a parried hit gets a golden-white
+shockwave ring that bursts out over ``PARRY_RING_TICKS``, pulses for as long as the attacker
+stays frozen (its own hitlag, read from the fighter), and fades.
+
 Presentation only: fed with ``match.events`` and the fighters, never writing to them. Pure
 Python (no ``arcade``).
 """
@@ -38,10 +44,18 @@ from typing import Final
 from isofightr.render.hurt_motion import MASK64, mix64
 from isofightr.render.iso import project
 from isofightr.render.ko_forecast import will_ko
-from isofightr.render.splash_art import CORE_FRAMES, FLARE_FRAMES, RING_FRAMES, SPLIT_CHANNELS
+from isofightr.render.placeholder_art import sphere_screen_size
+from isofightr.render.splash_art import (
+    CORE_FRAMES,
+    FLARE_FRAMES,
+    PARRY_FRAME_COUNT,
+    RING_FRAMES,
+    SPLIT_CHANNELS,
+)
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat.knockback import launch_vector
-from isofightr.sim.events import HazardHitEvent, HitEvent, LaunchEvent
+from isofightr.sim.combat.shield import shield_centre, shield_radius
+from isofightr.sim.events import HazardHitEvent, HitEvent, LaunchEvent, ShieldHitEvent
 from isofightr.sim.fighter import Fighter
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import Effect
@@ -105,6 +119,25 @@ MAX_LIVE: Final[int] = 160
 """Splash sprites that may be on screen at once."""
 RING_SPRITES: Final[int] = 1
 """Sprites a heavy splash's dispersal takes besides its particles: the ring."""
+GUARD_DAMAGE: Final[tuple[float, ...]] = (5.0, 10.0)
+"""Shield damage at which a block's arc grows a size (three sizes)."""
+GUARD_SPARKS: Final[tuple[int, ...]] = (2, 3, 4)
+"""Sparks a block's arc throws off along the bubble when the freeze ends, by size."""
+GUARD_SKITTER_TICKS: Final[int] = 8
+"""How long they skitter."""
+GUARD_SKITTER_SPEED: Final[float] = 1.6
+"""Their starting speed, in pixels a tick (each varies from 0.7 to 1.3 times)."""
+GUARD_FADE_TICKS: Final[int] = 4
+"""How long the arc's fading frame shows once the freeze is over."""
+PARRY_RING_TICKS: Final[int] = 4
+"""A parry's ring bursts out over this many ticks, a frame each."""
+PARRY_PULSE_TICKS: Final[int] = 4
+"""Then it pulses between two frames, this many ticks each, while the attacker is frozen."""
+PARRY_FADE_TICKS: Final[int] = 3
+"""Then it fades over this many ticks."""
+PARRY_LIMIT_TICKS: Final[int] = 40
+"""A safety: a parry ring whose attacker is never seen to thaw ends this long after the
+parrier's own freeze would have."""
 LINGER_TICKS: Final[int] = 4
 """A hold whose freeze is over without a launch being seen ends this many ticks late at most
 (a safety: normally the target's own hitlag ends it)."""
@@ -136,7 +169,7 @@ def theme_of(effect: Effect, hit_theme: str) -> str:
     """Return a hit's theme: its effect, or for a normal hit the attacker's ``hit_theme``
     (``"normal"`` when it has none)."""
     if effect is not Effect.NORMAL:
-        return effect.value
+        return str(effect.value)
     return hit_theme or Effect.NORMAL.value
 
 
@@ -252,6 +285,58 @@ class HitSplash:
         return min(max(0, self.age - BURST_TICKS) // step, HOLD_FRAMES - 1)
 
 
+@dataclass(slots=True)
+class GuardSplash:
+    """A blocked or parried hit's splash (decision D-068, group 3)."""
+
+    target: int
+    """The defender."""
+    attacker: int | None
+    position: Vec3
+    """Where the blow was: the hitbox's (or the projectile's) centre."""
+    hitlag: int
+    damage: float
+    """Shield damage taken (0 for a parry)."""
+    parried: bool
+    effect: Effect = Effect.NORMAL
+    theme: str = Effect.NORMAL.value
+    size: int = 0
+    angle: int = 0
+    """The screen direction from the bubble's centre out to where the blow met it."""
+    screen: tuple[float, float] = (0.0, 0.0)
+    """Where the blow met the bubble's outline on screen, in world pixels."""
+    surface: Vec3 | None = None
+    """The point of the shield sphere facing the blow, in world space (the bubble's ripple
+    shows there), once resolved."""
+    turn: float = 0.0
+    frame: int = 0
+    resolved: bool = False
+    age: int = 0
+    ended_at: int | None = None
+    """Its age when the freeze ended (the defender's for a block, the attacker's for a
+    parry)."""
+    particles: tuple[Particle, ...] = ()
+
+    @property
+    def phase(self) -> Phase:
+        """Where it is now: burst, hold, then dispersal (the sparks skittering off, or the
+        parry ring fading), then done."""
+        if self.ended_at is not None:
+            if self.parried:
+                fade = PARRY_FADE_TICKS
+            else:
+                fade = (
+                    max(GUARD_SKITTER_TICKS, GUARD_FADE_TICKS)
+                    if self.particles
+                    else GUARD_FADE_TICKS
+                )
+            return Phase.DISPERSAL if self.age - self.ended_at < fade else Phase.DONE
+        if self.age >= self.hitlag + LINGER_TICKS + (PARRY_LIMIT_TICKS if self.parried else 0):
+            return Phase.DONE
+        burst = PARRY_RING_TICKS if self.parried else BURST_TICKS
+        return Phase.BURST if self.age < burst else Phase.HOLD
+
+
 @dataclass(frozen=True, slots=True)
 class SplashSprite:
     """One picture of a splash to draw: its art key and where, in world pixels."""
@@ -266,6 +351,8 @@ class HitSplashes:
     """Every live hit splash, advanced with the battle's effects (:class:`BattleEffects`)."""
 
     splashes: list[HitSplash] = field(default_factory=list)
+    guards: list[GuardSplash] = field(default_factory=list)
+    """Blocked and parried hits' splashes."""
     dispersal: bool = True
     """Whether launches throw particles ("Hit effects: Minimal" has none)."""
     forecast: Callable[[Stage, Fighter], bool] = will_ko
@@ -295,6 +382,24 @@ class HitSplashes:
             )
         )
 
+    def guard(self, event: ShieldHitEvent | HazardHitEvent) -> GuardSplash:
+        """Start the splash of a hit a shield blocked or parried; ``observe`` completes it."""
+        if isinstance(event, ShieldHitEvent):
+            guard = GuardSplash(
+                event.target,
+                event.attacker,
+                event.position,
+                event.hitlag,
+                event.damage,
+                event.parried,
+            )
+        else:
+            guard = GuardSplash(
+                event.target, None, event.position, event.hitlag, event.damage, False, event.effect
+            )
+        self.guards.append(guard)
+        return guard
+
     def launch(self, event: LaunchEvent) -> None:
         """The target's freeze ended in a launch: its held splashes disperse along it."""
         turn = screen_turn(event.direction)
@@ -315,16 +420,30 @@ class HitSplashes:
                 self._resolve(splash, target, by_player, stage, frame)
             elif splash.phase is Phase.HOLD and (target is None or target.hitlag == 0):
                 splash.ended_at = splash.age
+        for guard in self.guards:
+            if not guard.resolved:
+                self._resolve_guard(guard, by_player, frame)
+                continue
+            watched = guard.attacker if guard.parried else guard.target
+            frozen = None if watched is None else by_player.get(watched)
+            if guard.phase is Phase.HOLD and (frozen is None or frozen.hitlag == 0):
+                guard.ended_at = guard.age
+                if not guard.parried and self.dispersal:
+                    guard.particles = self._skitter(guard)
 
     def tick(self) -> None:
         """Advance every splash by one sim tick and drop the finished ones."""
         for splash in self.splashes:
             splash.age += 1
         self.splashes = [splash for splash in self.splashes if splash.phase is not Phase.DONE]
+        for guard in self.guards:
+            guard.age += 1
+        self.guards = [guard for guard in self.guards if guard.phase is not Phase.DONE]
 
     def clear(self) -> None:
         """Drop every splash (a match restart)."""
         self.splashes = []
+        self.guards = []
 
     def screen_flash(self) -> int:
         """How strong the screen flash is now: 0 none, up to ``SCREEN_FLASH_TICKS`` on a
@@ -340,11 +459,13 @@ class HitSplashes:
 
     def live(self) -> int:
         """How many sprites the splashes show now."""
-        return sum(len(self._sprites_of(splash)) for splash in self.splashes)
+        hits = sum(len(self._sprites_of(splash)) for splash in self.splashes)
+        return hits + sum(len(self._guard_sprites(guard)) for guard in self.guards)
 
     def sprites(self) -> list[SplashSprite]:
         """Every picture to draw now, oldest splash first, at most ``MAX_LIVE``."""
         pictures = [picture for splash in self.splashes for picture in self._sprites_of(splash)]
+        pictures += [picture for guard in self.guards for picture in self._guard_sprites(guard)]
         return pictures[-MAX_LIVE:]
 
     def _resolve(
@@ -367,6 +488,58 @@ class HitSplashes:
         splash.tier = tier_of(splash.knockback, splash.sweet, splash.multi, kills)
         if launch is not None:
             splash.angle = angle_step(screen_turn(launch_vector(launch.heading, launch.elevation)))
+
+    def _resolve_guard(self, guard: GuardSplash, fighters: dict[int, Fighter], frame: int) -> None:
+        """Find where the blow met the defender's shield bubble on screen: on the outline of
+        the bubble as it is drawn, toward where the blow came from (the attacker's side for
+        its own swing, the projectile or hazard otherwise)."""
+        guard.resolved = True
+        guard.frame = frame
+        attacker = None if guard.attacker is None else fighters.get(guard.attacker)
+        hit_theme = "" if attacker is None else attacker.character.hit_theme
+        guard.theme = theme_of(guard.effect, hit_theme)
+        guard.size = sum(guard.damage >= threshold for threshold in GUARD_DAMAGE)
+        target = fighters.get(guard.target)
+        if target is None:
+            guard.screen = project(guard.position.x, guard.position.y, guard.position.z)
+            return
+        centre = shield_centre(target)
+        radius = shield_radius(target)
+        towards = guard.position - centre
+        if attacker is not None and attacker.hitlag > 0:
+            # The attacker's own swing (a blocked projectile does not freeze its owner): its
+            # hitbox often reaches past the bubble's centre, so the blow came from the
+            # attacker's side, at the hitbox's height.
+            flat = (attacker.pos - target.pos).xy
+            if flat.length() > 1e-9:
+                side = flat.normalized()
+                rise = max(-1.0, min(1.0, towards.z / max(radius, 1e-9)))
+                towards = Vec3(side.x, side.y, rise)
+        if towards.length() > 1e-9:
+            guard.surface = centre + towards.normalized() * radius
+        screen_x, screen_y = project(towards.x, towards.y, towards.z)
+        if math.hypot(screen_x, screen_y) < 1e-9:
+            screen_x = 1.0
+        guard.turn = math.atan2(screen_y, screen_x)
+        guard.angle = angle_step(guard.turn) or 0
+        centre_x, centre_y = project(centre.x, centre.y, centre.z)
+        width, height = sphere_screen_size(radius)
+        guard.screen = (
+            centre_x + math.cos(guard.turn) * width / 2.0,
+            centre_y + math.sin(guard.turn) * height / 2.0,
+        )
+
+    def _skitter(self, guard: GuardSplash) -> tuple[Particle, ...]:
+        """The sparks a block throws off along the bubble: half each way along it."""
+        count = max(0, min(GUARD_SPARKS[guard.size], MAX_LIVE - self.live()))
+        sparks = []
+        for number in range(count):
+            spread, pace = (unit(guard.frame, guard.target, number, salt) for salt in (5, 6))
+            side = math.pi / 2.0 if number % 2 else -math.pi / 2.0
+            turn = guard.turn + side + (spread - 0.5) * 0.5
+            speed = GUARD_SKITTER_SPEED * (0.7 + 0.6 * pace)
+            sparks.append(Particle(turn, speed, GUARD_SKITTER_TICKS))
+        return tuple(sparks)
 
     def _particles(self, splash: HitSplash, turn: float | None) -> tuple[Particle, ...]:
         room = MAX_LIVE - self.live()
@@ -402,7 +575,7 @@ class HitSplashes:
             if tier >= HEAVY and not self.calm:
                 for channel in range(SPLIT_CHANNELS):
                     shift = SPLIT_OFFSET * (2 * channel - 1)
-                    key = ("split", theme, tier, splash.age, channel)
+                    key: tuple[str | int, ...] = ("split", theme, tier, splash.age, channel)
                     pictures.append(SplashSprite(key, x + shift, y))
             pictures.append(SplashSprite(("burst", theme, tier, splash.age), x, y))
         elif phase is Phase.HOLD:
@@ -428,6 +601,43 @@ class HitSplashes:
         flaring = splash.launched_at is None and splash.age < FLARE_FRAMES * FLARE_FRAME_TICKS
         if tier == CRITICAL and flaring and phase is not Phase.DONE:
             pictures.append(SplashSprite(("flare", theme, splash.age // FLARE_FRAME_TICKS), x, y))
+        return pictures
+
+    def _guard_sprites(self, guard: GuardSplash) -> list[SplashSprite]:
+        """A blocked or parried hit's pictures now."""
+        if not guard.resolved:
+            return []
+        x, y = guard.screen
+        phase = guard.phase
+        if guard.parried:
+            if phase is Phase.BURST:
+                frame = guard.age
+            elif phase is Phase.HOLD:  # pulsing, unless "reduce flashing" holds it still
+                pulse = 0 if self.calm else (guard.age // PARRY_PULSE_TICKS) % 2
+                frame = PARRY_RING_TICKS + pulse
+            elif phase is Phase.DISPERSAL:
+                frame = PARRY_FRAME_COUNT - 1
+            else:
+                return []
+            return [SplashSprite(("parry", "gold", frame), x, y)]
+        key = ("guard", guard.theme, guard.size, guard.angle)
+        if phase is Phase.BURST:
+            return [SplashSprite((*key, guard.age), x, y)]
+        if phase is Phase.HOLD:
+            return [SplashSprite((*key, 2), x, y)]
+        if phase is not Phase.DISPERSAL or guard.ended_at is None:
+            return []
+        since = guard.age - guard.ended_at
+        pictures = [SplashSprite((*key, 3), x, y)] if since < GUARD_FADE_TICKS else []
+        for spark in guard.particles:
+            if since >= spark.life:
+                continue
+            dx, dy = spark.offset(since)
+            look = min(since * PARTICLE_FRAMES // spark.life, PARTICLE_FRAMES - 1)
+            heading = angle_step(spark.heading(since)) or 0
+            pictures.append(
+                SplashSprite(("particle", guard.theme, 0, heading, look), x + dx, y + dy)
+            )
         return pictures
 
 

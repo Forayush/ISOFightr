@@ -793,9 +793,10 @@ def test_a_hard_launch_leaves_afterimages_sorted_into_the_world(window: Any) -> 
 
 
 def test_a_battle_builds_its_splash_art_ahead_of_time(window: Any) -> None:
-    """Decision D-068: every picture the match's hits can need is queued when the battle
-    starts and built a little each drawn frame (into the atlas), so hits rarely build their
-    own; a frame's share stays near its budget."""
+    """Decision D-068: every picture the match's hits can need (and the parry ring) is
+    queued when the battle starts and built a little each drawn frame (into the atlas), so
+    hits rarely build their own; a frame's share stays near its budget. The arcs of blocked
+    hits are built when first needed (group 3: a block uses four of a theme's 192)."""
     import time
 
     from isofightr.render import splash_art
@@ -806,7 +807,8 @@ def test_a_battle_builds_its_splash_art_ahead_of_time(window: Any) -> None:
     renderer = view.effect_renderer
     themes = match_themes(view.characters)
     drawn = [theme for theme in themes if splash_art.has_art(theme)]
-    assert drawn and renderer.warming == sum(len(splash_art.theme_keys(t)) for t in drawn)
+    hits = sum(len(splash_art.theme_keys(theme)) for theme in drawn)
+    assert drawn and renderer.warming == hits + len(splash_art.parry_keys())
     queued = renderer.warming
     for _ in range(5):
         view.on_draw()

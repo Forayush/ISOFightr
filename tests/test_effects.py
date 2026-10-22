@@ -520,6 +520,7 @@ def test_shield_bubble_is_shield_sized_and_player_colored() -> None:
 
 
 def test_blocks_parries_breaks_and_techs_give_feedback() -> None:
+    from isofightr.settings import HIT_EFFECTS_OFF
     from isofightr.sim.events import (
         GrabEvent,
         LedgeGrabEvent,
@@ -528,7 +529,9 @@ def test_blocks_parries_breaks_and_techs_give_feedback() -> None:
         TechEvent,
     )
 
-    effects = BattleEffects()
+    # With hit effects on, blocks and parries get the guard splash instead of the spark
+    # (D-068 group 3, tests/test_hit_splash.py); the old feedback is what Off shows.
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)
     effects.consume([ShieldHitEvent(0, 1, 11.0, ORIGIN, 12, False)])
     assert [spark.tier for spark in effects.sparks] == [fx.SHIELD_SPARK_TIER]
     assert effects.shake.current() == 0 and effects.flash == {}
@@ -854,6 +857,7 @@ def test_a_blocked_hit_ripples_and_an_air_jump_rings() -> None:
 
     effects = BattleEffects()
     effects.consume([ShieldHitEvent(0, 1, 8.0, ORIGIN, 6, False)])
+    effects.observe([])  # with hit effects on, the ripple starts where the arc lands (D-068)
     assert [effect.kind for effect in effects.fx] == ["ripple"]
     effects.clear()
     ground = next(kind for kind in JumpKind if kind is not JumpKind.AIR)

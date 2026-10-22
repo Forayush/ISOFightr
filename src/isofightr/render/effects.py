@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 from isofightr.render.ground_items import ProjectileLooks
-from isofightr.render.hit_splash import HitSplashes
+from isofightr.render.hit_splash import GuardSplash, HitSplashes
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
 from isofightr.render.splash_art import has_art
@@ -476,17 +476,24 @@ class BattleEffects:
     splash instead, without and with its dispersal."""
     splashes: HitSplashes = field(default_factory=HitSplashes)
     """The hit splashes (decision D-068), unless hit effects are off."""
+    _ripples: list[GuardSplash] = field(default_factory=list)
+    """This tick's blocks, until ``observe`` has found where on the bubble each landed and
+    started its ripple there."""
 
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
         events = list(events)
         self._tick_events.extend(events)
+        self.splashes.dispersal = self.hit_effects == HIT_EFFECTS_FULL
         for event in events:
             if isinstance(event, HitEvent | ShieldHitEvent | HazardHitEvent):
                 self._hit_points.append(event.position)
                 self._struck.add(event.target)
             if isinstance(event, HazardHitEvent) and event.blocked:
-                self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
+                if self.hit_effects == HIT_EFFECTS_OFF:
+                    self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
+                else:
+                    self.splashes.guard(event)
             elif isinstance(event, HitEvent | HazardHitEvent):
                 if self.hit_effects == HIT_EFFECTS_OFF:
                     self.sparks.append(
@@ -517,14 +524,18 @@ class BattleEffects:
                     self.hud_pop[event.target] = (HUD_POP_FRAMES, min(pixels, HUD_POP_MAX_PIXELS))
             elif isinstance(event, LaunchEvent):
                 if self.hit_effects != HIT_EFFECTS_OFF:
-                    self.splashes.dispersal = self.hit_effects == HIT_EFFECTS_FULL
                     self.splashes.launch(event)
             elif isinstance(event, ClankEvent):
                 self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, ShieldHitEvent):
-                tier = PARRY_SPARK_TIER if event.parried else SHIELD_SPARK_TIER
-                self.sparks.append(Spark(event.position, tier, Effect.ICE))
-                self.fx.append(Fx("ripple", event.position, "pale"))
+                if self.hit_effects == HIT_EFFECTS_OFF:
+                    tier = PARRY_SPARK_TIER if event.parried else SHIELD_SPARK_TIER
+                    self.sparks.append(Spark(event.position, tier, Effect.ICE))
+                    self.fx.append(Fx("ripple", event.position, "pale"))
+                else:  # an arc along the bubble, or a parry's ring (D-068, group 3)
+                    guard = self.splashes.guard(event)
+                    if not event.parried:  # the bubble ripples where the arc is
+                        self._ripples.append(guard)
                 if event.parried:
                     self.shake.start(PARRY_SHAKE_PIXELS)
             elif isinstance(event, ShieldBreakEvent):
@@ -580,6 +591,9 @@ class BattleEffects:
         self._tick_events = []
         if self.hit_effects != HIT_EFFECTS_OFF:
             self.splashes.observe(fighters, stage, match_frame)
+            for guard in self._ripples:
+                self.fx.append(Fx("ripple", guard.surface or guard.position, "pale"))
+            self._ripples = []
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_path(fighter)
@@ -872,6 +886,7 @@ class BattleEffects:
         self._dashing = {}
         self._struck = set()
         self.splashes.clear()
+        self._ripples = []
 
     def hud_offset(self, player_index: int) -> int:
         """Return how many pixels a player's damage number is lifted right now."""

@@ -144,3 +144,81 @@ def test_themes_without_art_yet_use_the_old_effects() -> None:
         if art.has_art(theme):
             continue
         assert art.build(("burst", theme, 0, 0)).size == (19, 19), "the old 19 px spark"
+
+
+# --- group 3: a blocked hit's arc and the parry ring -----------------------------------------
+
+
+@pytest.mark.parametrize("theme", art.THEMES)
+def test_guard_and_parry_pictures_are_palette_locked_centred_and_open(theme: str) -> None:
+    """The arc of a blocked hit (in every theme) and the parry ring: Resurrect 64 only,
+    centred on a pixel, drawing something, and open line art (they stay up for a freeze)."""
+    keys = art.guard_keys(theme) + art.parry_keys()
+    assert len(art.guard_keys(theme)) == art.GUARD_SIZES * art.ANGLES * art.GUARD_FRAMES
+    for key in keys:
+        image = art.build(key)
+        assert {pixel[:3] for pixel in image.getdata() if pixel[3]} <= MASTER, key
+        assert image.width % 2 == 1 and image.height % 2 == 1, f"{key}: centred on a pixel"
+        assert opaque(image), f"{key}: draws something"
+        solid = sum(1 for pixel in image.getdata() if pixel[3] == 255)
+        assert solid < image.width * image.height * 0.5, key
+        xs = [x for x, _ in opaque(image)]
+        ys = [y for _, y in opaque(image)]
+        inside = min(xs) > 0 and min(ys) > 0
+        assert inside and max(xs) < image.width - 1 and max(ys) < image.height - 1, (
+            f"{key}: nothing clipped by its canvas"
+        )
+
+
+def along_and_across(points: list[tuple[int, int]], centre: float, angle: int) -> tuple:  # type: ignore[type-arg]
+    """Each point's distance along screen direction ``angle`` from the centre, and across it."""
+    turn = 2.0 * math.pi * angle / art.ANGLES
+    forward = [(x - centre) * math.cos(turn) - (y - centre) * math.sin(turn) for x, y in points]
+    side = [(x - centre) * math.sin(turn) + (y - centre) * math.cos(turn) for x, y in points]
+    return forward, side
+
+
+@pytest.mark.parametrize("angle", range(16))
+def test_the_guard_arc_lies_along_the_bubble_and_its_sparks_fly_out(angle: int) -> None:
+    """The arc runs across its direction (along the bubble's outline, which faces that way),
+    and the contact frame's sparks fly out of the bubble, not into it."""
+    for size in range(art.GUARD_SIZES):
+        held = art.build(("guard", "slash", size, angle, 2))
+        centre = (held.width - 1) / 2
+        forward, side = along_and_across(opaque(held), centre, angle)
+        spread_along = max(forward) - min(forward)
+        spread_across = max(side) - min(side)
+        assert spread_across > 2.0 * spread_along, (size, angle)
+        contact = art.build(("guard", "slash", size, angle, 0))
+        forward, _ = along_and_across(opaque(contact), centre, angle)
+        assert max(forward) >= art.GUARD_SPARK[size] + 1.0, (size, angle)
+        assert max(forward) > -min(forward), "the sparks fly out of the bubble"
+
+
+def test_a_bigger_block_draws_a_longer_arc() -> None:
+    lengths = []
+    for size in range(art.GUARD_SIZES):
+        image = art.build(("guard", "fire", size, 4, 2))
+        xs = [x for x, _ in opaque(image)]
+        lengths.append(max(xs) - min(xs))
+    assert lengths == sorted(lengths) and lengths[0] < lengths[-1]
+
+
+def test_the_parry_ring_bursts_out_pulses_and_fades() -> None:
+    widths = []
+    for frame in range(art.PARRY_FRAME_COUNT):
+        image = art.build(("parry", "gold", frame))
+        xs = [x for x, _ in opaque(image)]
+        widths.append(max(xs) - min(xs))
+    bursting = widths[: hs_ring_ticks()]
+    assert bursting == sorted(bursting) and len(set(bursting)) == len(bursting)
+    pulse = [art.build(("parry", "gold", frame)).tobytes() for frame in (4, 5)]
+    assert pulse[0] != pulse[1], "the two frames it pulses between differ"
+    fading = art.build(("parry", "gold", art.PARRY_FRAME_COUNT - 1))
+    assert art.WHITE not in set(fading.getdata()), "the fading ring is no longer white"
+
+
+def hs_ring_ticks() -> int:
+    from isofightr.render.hit_splash import PARRY_RING_TICKS
+
+    return PARRY_RING_TICKS
