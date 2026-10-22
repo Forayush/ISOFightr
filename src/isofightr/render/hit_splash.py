@@ -84,6 +84,9 @@ rise as they slow, rock chips and leaves fall (themes not listed fly straight)."
 PARTICLE_CURL: Final[dict[str, float]] = {"wind": 0.16}
 """How fast a theme's particles turn as they fly, in radians a tick (every other one the
 other way): wind's wisps curl."""
+PARTICLE_ZAG: Final[dict[str, float]] = {"electric": 0.7}
+"""How far a theme's particles swerve to one side and then the other on alternate ticks, in
+radians: electric sparks fly a zigzag."""
 PARTICLE_PULL: Final[dict[str, float]] = {"darkness": 0.07}
 """How fast a theme's particles are drawn back to the contact point, as a share of their
 reach lost each tick: darkness's motes fly out and are pulled back in (an implosion)."""
@@ -177,16 +180,19 @@ class Particle:
     """How fast it is drawn back to where it started (``PARTICLE_PULL``)."""
     curl: float = 0.0
     """How fast it turns as it flies, in radians a tick (``PARTICLE_CURL``)."""
+    zag: float = 0.0
+    """How far it swerves either way on alternate ticks, in radians (``PARTICLE_ZAG``)."""
 
     def heading(self, age: int) -> float:
         """Which way it flies ``age`` ticks after the launch."""
-        return self.turn + self.curl * age
+        swerve = self.zag if age % 2 else -self.zag
+        return self.turn + self.curl * age + (swerve if self.zag else 0.0)
 
     def offset(self, age: int) -> tuple[float, float]:
         """Where it is ``age`` ticks after the launch, from the contact point, in pixels."""
         pulled = max(0.0, 1.0 - self.pull * age)
         drift = self.rise * age * (age + 1) / 2.0
-        if self.curl:
+        if self.curl or self.zag:
             x = y = 0.0
             step = self.speed
             for tick in range(age):
@@ -369,6 +375,7 @@ class HitSplashes:
         rise = PARTICLE_RISE.get(splash.theme, 0.0)
         pull = PARTICLE_PULL.get(splash.theme, 0.0)
         curl = PARTICLE_CURL.get(splash.theme, 0.0)
+        zag = PARTICLE_ZAG.get(splash.theme, 0.0)
         particles = []
         for number in range(count):
             spread, pace, fade = (
@@ -381,7 +388,7 @@ class HitSplashes:
             speed = PARTICLE_SPEED[splash.tier] * (0.6 + 0.8 * pace)
             life = DISPERSAL_TICKS[splash.tier] - round(fade * 3.0)
             twist = curl if number % 2 else -curl
-            particles.append(Particle(angle, speed, life, rise, pull, twist))
+            particles.append(Particle(angle, speed, life, rise, pull, twist, zag))
         return tuple(particles)
 
     def _sprites_of(self, splash: HitSplash) -> list[SplashSprite]:

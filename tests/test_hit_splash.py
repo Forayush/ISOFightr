@@ -568,3 +568,16 @@ def test_wind_wisps_curl_every_other_one_the_other_way() -> None:
     model.launch(LaunchEvent(1, target.pos, across(0).normalized(), 200.0))
     twists = [particle.curl for particle in model.splashes[0].particles]
     assert set(twists) == {curl, -curl}
+
+
+def test_electric_sparks_fly_a_zigzag() -> None:
+    """``PARTICLE_ZAG``: an electric spark swerves one way and then the other on alternate
+    ticks, so its path zigzags about its line, and its picture follows its heading."""
+    zag = hs.PARTICLE_ZAG["electric"]
+    spark = hs.Particle(0.0, 2.0, 12, zag=zag)
+    assert [spark.heading(age) for age in range(4)] == [-zag, zag, -zag, zag]
+    sides = [spark.offset(age)[1] for age in range(1, 7)]
+    assert any(side < 0.0 for side in sides) and any(side > -0.5 for side in sides)
+    assert all(abs(side) < 2.0 for side in sides), "it keeps to its line"
+    plain = hs.Particle(0.0, 2.0, 12)
+    assert plain.heading(5) == 0.0

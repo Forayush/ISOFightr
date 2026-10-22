@@ -94,6 +94,7 @@ SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "darkness": (_rgba("ed8099"), _rgba("0eaf9b")),
     "earth": (_rgba("cd683d"), _rgba("4d9be6")),
     "wind": (_rgba("f04f78"), _rgba("4d65b4")),
+    "electric": (_rgba("c32454"), _rgba("30e1b9")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -1009,7 +1010,150 @@ def _shock_ring(tier: int, frame: int) -> Image.Image:
     return image
 
 
+# --- electric (lightning: Storm Galleon's bolts, and every electric hit) -------------------
+VOLT_PALE: Final[Rgba] = _rgba("fbff86")
+VOLT_YELLOW: Final[Rgba] = _rgba("f9c22b")
+VOLT_BLUE: Final[Rgba] = _rgba("8fd3ff")
+VOLT_EDGE: Final[Rgba] = _rgba("484a77")
+"""The outline of electric's art: the storm's navy (the lightning hazard's own colours)."""
+VOLT_BOLT: Final[tuple[float, ...]] = (7.0, 10.0, 14.0, 18.0)
+"""How far the held bolt reaches along the launch, by tier."""
+VOLT_JAGS: Final[tuple[tuple[tuple[float, float], ...], ...]] = (
+    ((0.0, 0.0), (0.3, 1.0), (0.42, -0.8), (0.72, 0.7), (1.0, -0.2)),
+    ((0.0, 0.0), (0.25, -0.9), (0.5, 0.9), (0.62, -0.5), (1.0, 0.2)),
+    ((0.0, 0.0), (0.35, 0.8), (0.5, -1.0), (0.78, 0.8), (1.0, 0.0)),
+)
+"""The bolt's joints on each frame of the hold: ``(how far along, how far to the side as a
+share of the tier's jag)``, unevenly spaced like real lightning, a new shape each frame."""
+VOLT_JAG: Final[tuple[float, ...]] = (1.0, 1.5, 2.2, 3.0)
+
+
+def _zigzag(
+    centre: float,
+    along: Point,
+    across: Point,
+    start: float,
+    length: float,
+    jag: float,
+    joints: tuple[tuple[float, float], ...],
+) -> list[Point]:
+    """The joints of a lightning bolt from ``start`` out along the direction."""
+    return [
+        _at(centre, along, across, start + length * share, jag * side) for share, side in joints
+    ]
+
+
+def _bolt(draw: ImageDraw.ImageDraw, joints: list[Point], across: Point, glow: bool) -> None:
+    """A bolt along ``joints``: one white pixel wide, with a pale yellow glow a pixel to one
+    side when ``glow``."""
+    if glow:
+        shifted = [(round(x + across[0]), round(y + across[1])) for x, y in joints]
+        draw.line(shifted, fill=VOLT_PALE)
+    draw.line(joints, fill=WHITE)
+
+
+CRACKLE: Final[tuple[tuple[float, float], ...]] = ((0.0, 0.0), (0.4, 1.0), (0.7, -1.0), (1.0, 0.0))
+"""The joints of the short zigzags of the burst, the crackle and a spark."""
+
+
+def _volt_burst(tier: int, frame: int, crackle: bool = True) -> Image.Image:
+    """A crackle of power: a white core with six short zigzags jumping out of it; next the
+    zigzags longer with blue tips (``crackle`` off: the core alone, the split's shape)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    core = max(1.5, (1.5, 2.0, 3.0, 4.0)[tier] * (1.0 if frame == 0 else 0.7))
+    draw.ellipse((centre - core, centre - core, centre + core, centre + core),
+                 fill=WHITE if frame == 0 else VOLT_PALE)  # fmt: skip
+    if not crackle:
+        return image
+    reach = VOLT_BOLT[tier] * (0.5 if frame == 0 else 0.7)
+    for index in range(6):
+        along, across = _turned((1.0, 0.0), 60.0 * index + 15.0 + frame * 30.0)
+        joints = _zigzag(centre, along, across, core, reach - core, 1.0, CRACKLE)
+        _bolt(draw, joints, across, tier >= HEAVY and frame == 0)
+        if frame == 1:
+            draw.point(joints[-1], fill=VOLT_BLUE)
+    return image
+
+
+def _volt_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held bolt: forked lightning from the contact point along the launch, flickering
+    to a new zigzag on each frame, with two forks branching off it."""
+    if angle < 0:
+        return _volt_crackle(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, across = _direction(angle)
+    length = VOLT_BOLT[tier]
+    jag = VOLT_JAG[tier]
+    joints = _zigzag(centre, along, across, -length * 0.1, length, jag, VOLT_JAGS[frame])
+    _bolt(draw, joints, across, tier >= 1)
+    for joint, lean in ((2, 35.0),) if tier else ():
+        fork, fork_across = _turned(along, lean if frame != 1 else -lean)
+        x, y = joints[joint]
+        branch = [(x, y)]
+        for step, side in ((0.2, 0.8), (0.4, -0.4)):
+            dx = fork[0] * length * step + fork_across[0] * jag * side
+            dy = fork[1] * length * step + fork_across[1] * jag * side
+            branch.append((round(x + dx), round(y + dy)))
+        draw.line(branch, fill=VOLT_BLUE if frame == 2 else VOLT_PALE)
+    return image
+
+
+def _volt_crackle(tier: int, frame: int) -> Image.Image:
+    """The held bolt when the launch has no direction on screen: four short zigzags
+    crackling round the contact point, jumping to new places each frame."""
+    image, draw, centre = _canvas(SIZES[tier])
+    reach = VOLT_BOLT[tier] * 0.55
+    for index in range(4):
+        along, across = _turned((1.0, 0.0), 90.0 * index + 45.0 + frame * 22.5)
+        joints = _zigzag(centre, along, across, 1.5, reach, VOLT_JAG[tier] * 0.5, CRACKLE)
+        _bolt(draw, joints, across, tier >= HEAVY)
+    return image
+
+
+def _volt_lines(tier: int, angle: int) -> Image.Image:
+    """Charged streaks: pale yellow with a navy edge, blue beside, navy behind."""
+    colours = (VOLT_PALE, VOLT_EDGE, VOLT_BLUE, VOLT_EDGE)
+    return _lines(tier, angle, VOLT_BOLT[tier] * 0.5, colours)
+
+
+def _volt_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """A spark: a tiny zigzag along its flight, white, then pale yellow, then blue."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    along, across = _direction(angle)
+    length = (2.0, 3.0)[size]
+    colour = (WHITE, VOLT_PALE, VOLT_BLUE)[frame]
+    if frame == 2:
+        draw.point((round(centre), round(centre)), fill=colour)
+        return image
+    joints = _zigzag(centre, along, across, -length / 2.0, length, 1.0, CRACKLE)
+    draw.line(joints, fill=colour)
+    return image
+
+
+def _volt_ring(tier: int, frame: int) -> Image.Image:
+    """A ring of crackling charge spreading from the contact point: an ellipse whose edge
+    jumps in and out, white, then pale yellow, then broken and blue."""
+    width = RING_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
+    size = 2 * math.ceil(width + 1.0) + 3
+    image, draw, centre = _canvas(size)
+    points = []
+    teeth = 18
+    for index in range(teeth):
+        turn = 2.0 * math.pi * index / teeth
+        reach = width + (1.0 if index % 2 else -1.0)
+        points.append((round(centre + math.cos(turn) * reach),
+                       round(centre + math.sin(turn) * reach * RING_SQUASH)))  # fmt: skip
+    colour = (WHITE, VOLT_PALE, VOLT_BLUE, VOLT_BLUE)[frame]
+    if frame < 2:
+        draw.line([*points, points[0]], fill=colour)
+    else:
+        for index in range(0, teeth, 3 if frame == 2 else 4):
+            draw.line([points[index], points[(index + 1) % teeth]], fill=colour)
+    return image
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+VOLT_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, VOLT_PALE, VOLT_BLUE)
 WIND_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, WIND_MINT, WIND_TEAL)
 EARTH_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (STONE_PALE, CRYSTAL, STONE_DARK)
 DARK_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (DARK_PALE, DARK_LILAC, DARK_VIOLET)
@@ -1050,6 +1194,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _wind_particle,
         "ring": lambda tier, frame: _outlined(_shock_ring(tier, frame), WIND_EDGE),
         "flare": lambda frame: _outlined(_flare(frame, WIND_FLARE), WIND_EDGE),
+    },
+    "electric": {
+        "burst": lambda tier, frame: _outlined(_volt_burst(tier, frame), VOLT_EDGE),
+        "split": lambda tier, frame: _volt_burst(tier, frame, crackle=False),
+        "core": lambda tier, angle, frame: _outlined(_volt_core(tier, angle, frame), VOLT_EDGE),
+        "lines": _volt_lines,
+        "particle": _volt_particle,
+        "ring": lambda tier, frame: _outlined(_volt_ring(tier, frame), VOLT_EDGE),
+        "flare": lambda frame: _outlined(_flare(frame, VOLT_FLARE), VOLT_EDGE),
     },
     "fire": {
         "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),
