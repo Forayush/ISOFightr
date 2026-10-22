@@ -92,6 +92,7 @@ SPLIT_COLOURS: Final[dict[str, tuple[Rgba, Rgba]]] = {
     "slash": (_rgba("e83b3b"), _rgba("30e1b9")),
     "fire": (_rgba("c32454"), _rgba("8ff8e2")),
     "darkness": (_rgba("ed8099"), _rgba("0eaf9b")),
+    "earth": (_rgba("cd683d"), _rgba("4d9be6")),
 }
 """The two colours of each theme's chromatic split: drawn left and right of the burst."""
 SLASH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
@@ -535,15 +536,14 @@ def _fire_particle(size: int, angle: int, frame: int) -> Image.Image:
     return image
 
 
-def _smoke_ring(tier: int, frame: int) -> Image.Image:
-    """An expanding smoke ring: puffs round a flattened ellipse, glowing at first, then grey
-    and thinning out."""
+def _puff_ring(tier: int, frame: int, colours: tuple[tuple[Rgba, Rgba], ...]) -> Image.Image:
+    """An expanding ring of puffs round a flattened ellipse, thinning out; ``colours`` are
+    the two colours the puffs alternate in, on each frame."""
     width = RING_RADII[frame] * (1.3 if tier > HEAVY else 1.0)
     size = 2 * math.ceil(width) + 5
     image, draw, centre = _canvas(size)
     height = width * RING_SQUASH
     puff = (1.5, 1.5, 1.0, 0.5)[frame]
-    colours = ((FIRE_ORANGE, SMOKE), (SMOKE, SMOKE_DARK), (SMOKE_DARK, SMOKE), (SMOKE_DARK,) * 2)
     for index in range(SMOKE_PUFFS):
         if frame == 3 and index % 2:
             continue
@@ -554,6 +554,12 @@ def _smoke_ring(tier: int, frame: int) -> Image.Image:
         draw.ellipse((round(x - puff), round(y - puff), round(x + puff), round(y + puff)),
                      fill=colour)  # fmt: skip
     return image
+
+
+def _smoke_ring(tier: int, frame: int) -> Image.Image:
+    """An expanding smoke ring: glowing at first, then grey and thinning out."""
+    colours = ((FIRE_ORANGE, SMOKE), (SMOKE, SMOKE_DARK), (SMOKE_DARK, SMOKE), (SMOKE_DARK,) * 2)
+    return _puff_ring(tier, frame, colours)
 
 
 # --- darkness (Mote's shadow magic) -------------------------------------------------------
@@ -705,7 +711,182 @@ def _implosion_ring(tier: int, frame: int) -> Image.Image:
     return image
 
 
+# --- earth (Bramble's stone and moss) -----------------------------------------------------
+STONE_PALE: Final[Rgba] = _rgba("c7dcd0")
+STONE: Final[Rgba] = _rgba("9babb2")
+STONE_DARK: Final[Rgba] = _rgba("7f708a")
+STONE_DEEP: Final[Rgba] = _rgba("625565")
+CRYSTAL_PALE: Final[Rgba] = _rgba("8ff8e2")
+CRYSTAL: Final[Rgba] = _rgba("30e1b9")
+CRYSTAL_DEEP: Final[Rgba] = _rgba("0eaf9b")
+LEAF: Final[Rgba] = _rgba("91db69")
+LEAF_DARK: Final[Rgba] = _rgba("1ebc73")
+EARTH_EDGE: Final[Rgba] = _rgba("3e3546")
+"""The outline of earth's art: deep slate, so it reads on light stages."""
+EARTH_BURST_REACH: Final[tuple[float, ...]] = (4.0, 6.0, 9.0, 12.0)
+EARTH_BURST_POINTS: Final[tuple[float, ...]] = (1.0, 0.55, 0.85, 0.5, 0.95, 0.6)
+"""The burst's six spikes, as shares of its reach: an uneven, broken-rock star."""
+EARTH_SHARD: Final[tuple[float, ...]] = (6.0, 8.5, 12.0, 15.5)
+"""The length of the held fan's middle crystal shard, by tier."""
+EARTH_SHARD_WIDTH: Final[tuple[float, ...]] = (1.25, 1.75, 2.5, 3.0)
+EARTH_FAN_DEGREES: Final[float] = 36.0
+"""How far the side shards lean from the launch."""
+
+
+def _earth_burst(tier: int, frame: int, chips: bool = True) -> Image.Image:
+    """A rock cracking under the blow: an uneven six-spiked star of pale stone round a white
+    point; next it breaks into its spikes with chips flying (``chips`` off: the star alone,
+    the split's shape)."""
+    image, draw, centre = _canvas(SIZES[tier])
+    reach = EARTH_BURST_REACH[tier] * (1.0 if frame == 0 else 1.3)
+    points = []
+    for index, share in enumerate(EARTH_BURST_POINTS):
+        turn = 2.0 * math.pi * index / 6 + 0.3
+        tip = reach * share
+        notch = reach * 0.3
+        middle = turn + math.pi / 6
+        points.append((round(centre + math.cos(turn) * tip), round(centre - math.sin(turn) * tip)))
+        points.append((round(centre + math.cos(middle) * notch),
+                       round(centre - math.sin(middle) * notch)))  # fmt: skip
+    draw.polygon(points, fill=STONE_PALE if frame == 0 else STONE)
+    core = max(1.0, reach * 0.22)
+    draw.rectangle((round(centre - core), round(centre - core), round(centre + core),
+                    round(centre + core)), fill=WHITE if frame == 0 else STONE_PALE)  # fmt: skip
+    if frame == 1 and chips:
+        for index in range(5):
+            turn = 2.0 * math.pi * index / 5 + 0.9
+            x = round(centre + math.cos(turn) * reach * 1.1)
+            y = round(centre - math.sin(turn) * reach * 1.1)
+            draw.rectangle((x, y, x + 1, y + 1), fill=STONE_DARK if index % 2 else CRYSTAL)
+    return image
+
+
+def _shard(
+    draw: ImageDraw.ImageDraw,
+    centre: float,
+    along: Point,
+    across: Point,
+    start: float,
+    length: float,
+    width: float,
+    colours: tuple[Rgba, Rgba],
+) -> None:
+    """A crystal shard from ``start`` out along the direction: a long pointed prism, its lit
+    facet (one side) paler than the other."""
+    base, shoulder, tip = start, start + length * 0.3, start + length
+    draw.polygon(
+        [
+            _at(centre, along, across, base, width * 0.6),
+            _at(centre, along, across, shoulder, width),
+            _at(centre, along, across, tip, 0.0),
+            _at(centre, along, across, shoulder, -width),
+            _at(centre, along, across, base, -width * 0.6),
+        ],
+        fill=colours[1],
+    )
+    draw.polygon(
+        [
+            _at(centre, along, across, base, width * 0.6),
+            _at(centre, along, across, shoulder, width),
+            _at(centre, along, across, tip, 0.0),
+            _at(centre, along, across, shoulder, 0.0),
+        ],
+        fill=colours[0],
+    )
+
+
+def _chunk(draw: ImageDraw.ImageDraw, x: float, y: float, size: float, shade: int) -> None:
+    """A small angular rock at ``(x, y)``: a pale top over a darker side."""
+    top = [(round(x - size), round(y)), (round(x), round(y - size * 0.7)),
+           (round(x + size), round(y - size * 0.2)), (round(x + size * 0.4), round(y + size * 0.6)),
+           (round(x - size * 0.6), round(y + size * 0.5))]  # fmt: skip
+    draw.polygon(top, fill=(STONE, STONE_DARK)[shade])
+    draw.line([top[0], top[1], top[2]], fill=(STONE_PALE, STONE)[shade])
+
+
+def _earth_core(tier: int, angle: int, frame: int) -> Image.Image:
+    """The held break: a fan of three crystal shards jutting the way the target will fly,
+    rock chunks knocked loose beside them; the shards crack over the freeze."""
+    if angle < 0:
+        return _earth_geode(tier, frame)
+    image, draw, centre = _canvas(SIZES[tier])
+    along, _ = _direction(angle)
+    length = EARTH_SHARD[tier] * (0.9, 1.0, 1.0)[frame]
+    width = EARTH_SHARD_WIDTH[tier]
+    for lean, share, root, colours in (
+        (EARTH_FAN_DEGREES, 0.6, width * 1.3, (CRYSTAL, CRYSTAL_DEEP)),
+        (-EARTH_FAN_DEGREES, 0.6, width * 1.3, (CRYSTAL, CRYSTAL_DEEP)),
+        (0.0, 1.0, -length * 0.15, (CRYSTAL_PALE, CRYSTAL)),
+    ):
+        shard, shard_across = _turned(along, lean)
+        _shard(draw, centre, shard, shard_across, root, length * share, width * share,
+               colours)  # fmt: skip
+        if frame == 2:  # cracked: a gap across the shard
+            crack = root + length * share * 0.55
+            ends = (
+                _at(centre, shard, shard_across, crack, width),
+                _at(centre, shard, shard_across, crack, -width),
+            )
+            draw.line(ends, fill=(0, 0, 0, 0))  # the outline then draws the crack dark
+    rocks = ((-length * 0.25, length * 0.45), (-length * 0.3, -length * 0.5))
+    for index, (forward, side) in enumerate(rocks):
+        x, y = _at(centre, along, (along[1], -along[0]), forward + frame * 0.6, side)
+        _chunk(draw, x, y, 1.0 + tier * 0.5, index % 2)
+    return image
+
+
+def _earth_geode(tier: int, frame: int) -> Image.Image:
+    """The held break when the launch has no direction on screen: five crystal shards
+    jutting all round, like a split geode."""
+    image, draw, centre = _canvas(SIZES[tier])
+    length = EARTH_SHARD[tier] * 0.65 * (0.9, 1.0, 1.0)[frame]
+    width = EARTH_SHARD_WIDTH[tier] * 0.8
+    for index in range(5):
+        along, across = _turned((1.0, 0.0), 72.0 * index + 90.0)
+        colours = (CRYSTAL_PALE, CRYSTAL) if index % 2 == 0 else (CRYSTAL, CRYSTAL_DEEP)
+        _shard(draw, centre, along, across, 1.0, length, width, colours)
+    return image
+
+
+def _earth_lines(tier: int, angle: int) -> Image.Image:
+    """Dust streaks: pale stone with a slate edge, stone beside, dark dust behind."""
+    colours = (STONE_PALE, STONE_DARK, STONE, STONE_DEEP)
+    return _lines(tier, angle, EARTH_SHARD[tier] * 0.5, colours)
+
+
+def _earth_particle(size: int, angle: int, frame: int) -> Image.Image:
+    """A rock chip, or on odd angles a torn leaf: they fall and darken as they go."""
+    image, draw, centre = _canvas(PARTICLE_SIZE)
+    middle = round(centre)
+    if angle % 2:
+        along, across = _direction(angle)
+        colour = (LEAF, LEAF_DARK, LEAF_DARK)[frame]
+        reach = (1.5, 2.5)[size] - (frame > 1)
+        draw.line((_at(centre, along, across, -reach, 0.5), _at(centre, along, across, reach, 0)),
+                  fill=colour)  # fmt: skip
+        if size and frame < 2:
+            draw.point(_at(centre, along, across, 0.0, -1.0), fill=LEAF_DARK)
+        return image
+    top, side = ((STONE_PALE, STONE), (STONE, STONE_DARK), (STONE_DARK, STONE_DEEP))[frame]
+    if size:
+        draw.rectangle((middle - 1, middle - 1, middle + 1, middle), fill=top)
+        draw.line((middle - 1, middle + 1, middle + 1, middle + 1), fill=side)
+    else:
+        draw.point((middle, middle), fill=top)
+        draw.point((middle, middle + 1), fill=side)
+    return image
+
+
+def _dust_ring(tier: int, frame: int) -> Image.Image:
+    """A ring of dust thrown out round the contact point: stone grey, then darker (pale
+    stone would vanish on a light stage, whose tiles are that colour)."""
+    colours = ((STONE, STONE_DARK), (STONE_DARK, STONE_DEEP), (STONE_DEEP, STONE_DARK),
+               (STONE_DEEP,) * 2)  # fmt: skip
+    return _puff_ring(tier, frame, colours)
+
+
 SLASH_RING: Final[tuple[Rgba, Rgba, Rgba]] = (WHITE, SLASH_ICE, SLASH_BLUE)
+EARTH_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (STONE_PALE, CRYSTAL, STONE_DARK)
 DARK_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (DARK_PALE, DARK_LILAC, DARK_VIOLET)
 FIRE_FLARE: Final[tuple[Rgba, Rgba, Rgba]] = (FIRE_PALE, FIRE_YELLOW, FIRE_RED)
 DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
@@ -726,6 +907,15 @@ DRAWN: Final[dict[str, dict[str, Callable[..., Image.Image]]]] = {
         "particle": _dark_particle,
         "ring": lambda tier, frame: _outlined(_implosion_ring(tier, frame), DARK_EDGE),
         "flare": lambda frame: _outlined(_flare(frame, DARK_FLARE), DARK_EDGE),
+    },
+    "earth": {
+        "burst": lambda tier, frame: _outlined(_earth_burst(tier, frame), EARTH_EDGE),
+        "split": lambda tier, frame: _earth_burst(tier, frame, chips=False),
+        "core": lambda tier, angle, frame: _outlined(_earth_core(tier, angle, frame), EARTH_EDGE),
+        "lines": _earth_lines,
+        "particle": _earth_particle,
+        "ring": _dust_ring,  # dust reads on a light stage without an outline, like smoke
+        "flare": lambda frame: _outlined(_flare(frame, EARTH_FLARE), EARTH_EDGE),
     },
     "fire": {
         "burst": lambda tier, frame: _outlined(_fire_burst(tier, frame), FIRE_EDGE),
