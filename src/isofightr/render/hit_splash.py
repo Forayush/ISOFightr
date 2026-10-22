@@ -354,7 +354,9 @@ class HitSplashes:
     guards: list[GuardSplash] = field(default_factory=list)
     """Blocked and parried hits' splashes."""
     dispersal: bool = True
-    """Whether launches throw particles ("Hit effects: Minimal" has none)."""
+    """"Hit effects: Full": launches throw particles (and heavy ones ring), heavy bursts have
+    their chromatic split, blocks throw sparks off. "Minimal" has none of these: the burst
+    and the hold only (decision D-068 item 8)."""
     forecast: Callable[[Stage, Fighter], bool] = will_ko
     """Whether a fighter's pending launch will KO it (tests and the splash sheet replace it)."""
     calm: bool = False
@@ -576,7 +578,7 @@ class HitSplashes:
         theme, tier = splash.theme, splash.tier
         pictures: list[SplashSprite] = []
         if phase is Phase.BURST:
-            if tier >= HEAVY and not self.calm:
+            if tier >= HEAVY and self.dispersal and not self.calm:
                 for channel in range(SPLIT_CHANNELS):
                     shift = SPLIT_OFFSET * (2 * channel - 1)
                     key: tuple[str | int, ...] = ("split", theme, tier, splash.age, channel)

@@ -580,6 +580,17 @@ class BattleEffects:
                 if isinstance(event, TechEvent) and not event.wall:
                     self.rings.append(Ring(event.position))
 
+    def set_hit_effects(self, mode: str) -> None:
+        """Switch the "Hit effects" setting mid-match (the training menu): splashes and card
+        reactions in progress are dropped when it goes off."""
+        if mode == self.hit_effects:
+            return
+        self.hit_effects = mode
+        if mode == HIT_EFFECTS_OFF:
+            self.splashes.clear()
+            self.reactions.clear()
+            self._ripples = []
+
     def _react_to_launch(self, event: LaunchEvent, launched: list[HitSplash]) -> None:
         """Tell the HUD a fighter was launched: at the tier of the heaviest splash that
         launch dispersed (the knockback's band if none was resolved), by its attacker."""

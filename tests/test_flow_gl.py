@@ -631,6 +631,7 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
         "dummy_level",
         "stage_hazards",
         "depth_aids",
+        "hit_effects",
         "moves",
         "help",
         "quit",
@@ -745,6 +746,31 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
     assert name(window) == "MainMenuView"
     press(window, keys().ENTER)
     assert window.current_view.hub.settings.deadzone == 0.25, "new scenes use the new settings"
+
+
+def test_the_hit_effects_setting_is_chosen_in_settings_and_used_by_the_next_battle(
+    window: Any,
+) -> None:
+    """Decision D-068 group 5: the Settings row steps Full, Minimal, Off, and a battle
+    started afterwards shows hits that way."""
+    from isofightr.scenes.setup import MatchSetup
+
+    flow = to_main_menu(window)
+    flow.show_settings()
+    step(window, 2)
+    view = window.current_view
+    assert view.menu.item("hit_effects").value == "full"
+    while view.menu.selected.key != "hit_effects":
+        press(window, keys().S)
+    assert view.help_label.text.startswith("How hits look")
+    press(window, keys().A)
+    assert flow.settings.hit_effects == "minimal"
+    press(window, keys().A)
+    assert flow.settings.hit_effects == "off"
+    flow.start_battle(
+        MatchSetup(characters=("rook", "mote"), devices=("keyboard:solo", "keyboard:arrows"))
+    )
+    assert window.current_view.effects.hit_effects == "off"
 
 
 def test_resetting_the_settings_keeps_the_controls_and_the_rules(window: Any) -> None:

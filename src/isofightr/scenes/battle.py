@@ -75,6 +75,7 @@ from isofightr.scenes.setup import QUIT_HINT, MatchSetup, clock_text, countdown_
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     DEPTH_AIDS,
+    HIT_EFFECTS,
     HIT_EFFECTS_OFF,
     KEYBOARD_ARROWS,
     KEYBOARD_SOLO,
@@ -203,6 +204,7 @@ BATTLE_FADE_TICKS = 20
 MENU_DUMMY_LEVEL = "dummy_level"
 MENU_HAZARDS = "stage_hazards"
 MENU_DEPTH = "depth_aids"
+MENU_HIT_EFFECTS = "hit_effects"
 CPU_LEVEL_CHOICES = tuple(str(level) for level in range(CPU_MIN_LEVEL, CPU_MAX_LEVEL + 1))
 MENU_MOVES = "moves"
 ON_OFF = ("off", "on")
@@ -310,7 +312,7 @@ class BattleView(TickedView):
         self.camera = FollowCamera(limits=bounds_on_screen(stage.camera_bounds))
         self.zoom = StepZoom(enabled=self.settings.camera_zoom == ZOOM_STEPPED)
         self.camera.snap_to(self._camera_targets())
-        self.effects = BattleEffects()
+        self.effects = BattleEffects(hit_effects=self.settings.hit_effects)
         self.effect_renderer = EffectRenderer()
         hazards = self.stage.hazards if self.match.rules.stage_hazards else ()
         hazard_effects = [hazard.hitbox.effect for hazard in hazards if hazard.hitbox]
@@ -452,6 +454,12 @@ class BattleView(TickedView):
                     "Depth aids",
                     DEPTH_AIDS,
                     DEPTH_AIDS.index(self.settings.depth_aids),
+                ),
+                MenuItem(
+                    MENU_HIT_EFFECTS,
+                    "Hit effects",
+                    HIT_EFFECTS,
+                    HIT_EFFECTS.index(self.effects.hit_effects),
                 ),
             ]
         items.append(MenuItem(MENU_MOVES, "Move list"))
@@ -648,6 +656,7 @@ class BattleView(TickedView):
             menu.item(MENU_DUMMY_LEVEL).index = CPU_LEVEL_CHOICES.index(str(self.dummy_level))
             menu.item(MENU_HAZARDS).index = int(self.match.rules.stage_hazards)
             menu.item(MENU_DEPTH).index = DEPTH_AIDS.index(self.settings.depth_aids)
+            menu.item(MENU_HIT_EFFECTS).index = HIT_EFFECTS.index(self.effects.hit_effects)
             dummies = self.match.fighters[FIRST_DUMMY:]
             damage = dummies[0].damage if dummies else 0.0
             menu.item(MENU_DAMAGE).label = f"Dummy damage: < {damage:.0f}% >"
@@ -686,8 +695,10 @@ class BattleView(TickedView):
             if hazards != self.match.rules.stage_hazards:
                 self.match.set_stage_hazards(hazards)  # one of the sim's own training tools
             aids = DEPTH_AIDS[menu.item(MENU_DEPTH).index]
-            if aids != self.settings.depth_aids:
-                self.settings = replace(self.settings, depth_aids=aids)
+            hit_effects = HIT_EFFECTS[menu.item(MENU_HIT_EFFECTS).index]
+            if (aids, hit_effects) != (self.settings.depth_aids, self.settings.hit_effects):
+                self.settings = replace(self.settings, depth_aids=aids, hit_effects=hit_effects)
+                self.effects.set_hit_effects(hit_effects)
                 if self.flow is not None:
                     self.flow.update_settings(self.settings)
         self._sync_pause_menu()

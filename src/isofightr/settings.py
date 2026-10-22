@@ -236,6 +236,10 @@ class Settings:
     instead of blinking."""
     depth_aids: str = DEPTH_STANDARD
     """One of :data:`DEPTH_AIDS`."""
+    hit_effects: str = HIT_EFFECTS_FULL
+    """One of :data:`HIT_EFFECTS` (decision D-068): ``full`` is the hit splash with its
+    particles and the HUD's reaction, ``minimal`` the splash without particles, ``off`` the
+    hit effects as they were before the splash."""
     master_volume: int = VOLUME_MAX
     music_volume: int = 8
     sfx_volume: int = VOLUME_MAX
@@ -524,6 +528,7 @@ def from_data(data: Mapping[str, Any]) -> Settings:
             reduce_flashing if isinstance(reduce_flashing, bool) else defaults.reduce_flashing
         ),
         depth_aids=_pick(video.get("depth_aids"), DEPTH_AIDS, defaults.depth_aids),
+        hit_effects=_pick(video.get("hit_effects"), HIT_EFFECTS, defaults.hit_effects),
         master_volume=_volume(audio.get("master"), defaults.master_volume),
         music_volume=_volume(audio.get("music"), defaults.music_volume),
         sfx_volume=_volume(audio.get("sfx"), defaults.sfx_volume),
@@ -556,6 +561,7 @@ def to_toml(settings: Settings) -> str:
         f"camera_zoom = {text(settings.camera_zoom)}",
         f"reduce_flashing = {'true' if settings.reduce_flashing else 'false'}",
         f"depth_aids = {text(settings.depth_aids)}",
+        f"hit_effects = {text(settings.hit_effects)}",
         "",
         "[audio]",
         f"master = {settings.master_volume}",

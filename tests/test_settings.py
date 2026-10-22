@@ -59,6 +59,7 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
         deadzone=0.30,
         reduce_flashing=True,
         depth_aids="strong",
+        hit_effects="minimal",
         slot_devices=("pad:1", "keyboard:solo", "", "pad:0"),
     ).with_pad(1, PAD_LAYOUTS[PRESET_BUMPERS])
     path = tmp_path / "nested" / "settings.toml"
@@ -73,9 +74,25 @@ def test_settings_survive_the_file_exactly(tmp_path: Path) -> None:
         "camera_zoom": "static",
         "reduce_flashing": True,
         "depth_aids": "strong",
+        "hit_effects": "minimal",
     }
     assert parsed["keyboard"]["solo"]["attack"] == "F"
     assert to_toml(settings) == path.read_text(encoding="utf-8")
+
+
+def test_the_hit_effects_setting_is_saved_and_a_bad_value_falls_back(tmp_path: Path) -> None:
+    """Decision D-068: "Hit effects" is Full unless the file says otherwise, and a value the
+    game does not know (or a file from before the setting) gives Full."""
+    from isofightr.settings import HIT_EFFECTS, from_data
+
+    assert HIT_EFFECTS == ("off", "minimal", "full") and Settings().hit_effects == "full"
+    path = tmp_path / "settings.toml"
+    for value in HIT_EFFECTS:
+        save_settings(path, from_data({"video": {"hit_effects": value}}))
+        assert load_settings(path).hit_effects == value
+    assert from_data({"video": {"hit_effects": "loud"}}).hit_effects == "full"
+    assert from_data({"video": {"hit_effects": 2}}).hit_effects == "full"
+    assert from_data({}).hit_effects == "full", "a file from before the setting"
 
 
 def test_a_missing_or_broken_file_gives_the_defaults(tmp_path: Path) -> None:

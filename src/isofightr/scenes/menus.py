@@ -28,6 +28,7 @@ from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import (
     CAMERA_ZOOMS,
     DEPTH_AIDS,
+    HIT_EFFECTS,
     KEYBOARD_SOLO,
     SCALES,
     SHAKE_STEPS,
@@ -70,7 +71,9 @@ ON_OFF = ("off", "on")
 LIST_WIDTH = 400
 """Width of a list menu's panel."""
 LIST_ROW_GAP = 2
-LIST_TOP_GAP = 10
+LIST_TOP_GAP = 6
+"""Gap between the header and a list menu's panel: 6 since Settings grew to 14 rows (M17), so
+the last row still clears the help line and the footer."""
 LIST_VALUE_WIDTH = 96
 """Width of the well a row's value sits in."""
 LIST_SWITCH_WIDTH = 44
@@ -525,6 +528,7 @@ class SettingsView(MenuListView):
         "camera_zoom": "stage",
         "reduce_flashing": "shield",
         "depth_aids": "fall",
+        "hit_effects": "burst",
         "defaults": "cross",
         "back": "arrow_left",
     }
@@ -546,6 +550,7 @@ class SettingsView(MenuListView):
         "camera_zoom": "Stepped: the camera doubles when everyone is close.",
         "reduce_flashing": "No hit flashes, no screen shake, no pulsing clock.",
         "depth_aids": "A ring and a line show where a fighter is. Strong adds a grid.",
+        "hit_effects": "How hits look. Minimal has no particles; off is the old spark.",
         "defaults": "Video, sound and accessibility back to how they came.",
         "back": "Back to the main menu.",
     }
@@ -589,6 +594,13 @@ class SettingsView(MenuListView):
                 _setting(
                     "depth_aids", "Depth aids", list(DEPTH_AIDS), DEPTH_AIDS, settings.depth_aids
                 ),
+                _setting(
+                    "hit_effects",
+                    "Hit effects",
+                    list(HIT_EFFECTS),
+                    HIT_EFFECTS,
+                    settings.hit_effects,
+                ),
                 MenuItem("defaults", "Reset to defaults"),
                 MenuItem("back", "Back"),
             ]
@@ -611,6 +623,7 @@ class SettingsView(MenuListView):
                 camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
                 reduce_flashing=bool(menu.item("reduce_flashing").index),
                 depth_aids=DEPTH_AIDS[menu.item("depth_aids").index],
+                hit_effects=HIT_EFFECTS[menu.item("hit_effects").index],
             )
         )
 

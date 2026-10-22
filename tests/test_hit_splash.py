@@ -270,6 +270,8 @@ def test_minimal_has_no_dispersal() -> None:
     model = HitSplashes(dispersal=False, forecast=lambda stage, fighter: False)
     _, seen = play(11, launch_at=11, splashes=model)
     assert seen[10][0] is Phase.HOLD and seen[11][0] is Phase.DONE and seen[11][1] == []
+    burst = [sprite.key[0] for sprite in seen[0][1]]
+    assert burst == ["burst"], "a heavy burst without its split: the burst and the hold only"
 
 
 def test_one_hit_shows_at_most_twelve_sprites_and_all_at_most_160() -> None:

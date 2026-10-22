@@ -841,6 +841,31 @@ def test_the_cards_react_to_a_hit_at_contact_and_again_at_its_launch(window: Any
         assert rows[-1]["number"] and not rows[-1]["punch"] and not rows[-1]["portrait"]
 
 
+def test_the_training_menu_switches_the_hit_effects(window: Any) -> None:
+    """Decision D-068 group 5: the training menu's "Hit effects" row changes how this match's
+    hits look at once (and the saved setting); going off drops the splashes on screen."""
+    from isofightr.scenes.battle import MENU_HIT_EFFECTS
+    from isofightr.sim.events import HitEvent
+    from isofightr.sim.math3d import Vec3
+    from isofightr.sim.move_def import Effect
+    from isofightr.ui.menu import MenuAction
+
+    view = make_view(window, training=True)
+    assert view.effects.hit_effects == "full"
+    view.effects.consume([HitEvent(0, 1, "jab1", 3.0, 30.0, Vec3(4, 6, 1), Effect.NORMAL, 5)])
+    assert view.effects.splashes.splashes and view.effects.reactions.cards
+    view.open_menu()
+    assert view.pause_menu.item(MENU_HIT_EFFECTS).value == "full"
+    while view.pause_menu.selected.key != MENU_HIT_EFFECTS:
+        view.menu_action(MenuAction.DOWN)
+    view.menu_action(MenuAction.LEFT)
+    assert view.effects.hit_effects == view.settings.hit_effects == "minimal"
+    assert view.effects.splashes.splashes, "Minimal keeps the splash on screen"
+    view.menu_action(MenuAction.LEFT)
+    assert view.effects.hit_effects == view.settings.hit_effects == "off"
+    assert not view.effects.splashes.splashes and not view.effects.reactions.cards
+
+
 def test_a_battle_builds_its_splash_art_ahead_of_time(window: Any) -> None:
     """Decision D-068: every picture the match's hits can need (and the parry ring) is
     queued when the battle starts and built a little each drawn frame (into the atlas), so
