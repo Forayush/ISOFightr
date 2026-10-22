@@ -30,6 +30,7 @@ from isofightr.ai.view import observe
 from isofightr.config import TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import list_stage_ids, load_stage
+from isofightr.settings import HIT_EFFECTS, HIT_EFFECTS_FULL
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.match import Match, MatchRules
@@ -172,8 +173,11 @@ def _storm_round(match: Match, tick: int) -> None:
             start_move(match, fighter, move_id)
 
 
-def bench_hits(stage_id: str, storm: bool, frames: int = STORM_FRAMES) -> DrawStats:
-    """Draw cost and live effect sprites of a hit storm (``storm``) or a four-CPU match."""
+def bench_hits(
+    stage_id: str, storm: bool, frames: int = STORM_FRAMES, hit_effects: str = HIT_EFFECTS_FULL
+) -> DrawStats:
+    """Draw cost and live effect sprites of a hit storm (``storm``) or a four-CPU match, with
+    the "Hit effects" setting ``hit_effects`` (decision D-068)."""
     from isofightr.app import GameWindow
     from isofightr.scenes.battle import BattleView
     from isofightr.sim.events import HitEvent
@@ -190,6 +194,7 @@ def bench_hits(stage_id: str, storm: bool, frames: int = STORM_FRAMES) -> DrawSt
         cpus=None if storm else [9] * 4,
         rules=MatchRules(stocks=None),
     )
+    view.effects.hit_effects = hit_effects
     window.show_view(view)
     ticks, draws, sprites = [], [], []
     hits = 0
@@ -235,11 +240,14 @@ def main() -> None:
     parser.add_argument("--profile", choices=("sim", "cpu", "draw"), help="profile one part")
     parser.add_argument("--hits", metavar="STAGE", help="hit effects: a hit storm on STAGE")
     parser.add_argument("--runs", type=int, default=3, help="--hits: runs of each, in turn")
+    parser.add_argument(
+        "--hit-effects", default=HIT_EFFECTS_FULL, choices=HIT_EFFECTS, help="--hits: setting"
+    )
     args = parser.parse_args()
     if args.hits:
         for run in range(args.runs):
             for storm in (True, False):
-                stats = bench_hits(args.hits, storm)
+                stats = bench_hits(args.hits, storm, hit_effects=args.hit_effects)
                 kind = "hit storm" if storm else "four CPUs"
                 print(
                     f"{kind} {args.hits} run {run + 1}: {stats.hits} hits, tick"

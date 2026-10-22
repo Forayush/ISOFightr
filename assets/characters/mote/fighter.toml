@@ -4,6 +4,7 @@ id = "mote"
 display_name = "Mote"
 archetype = "the zoner"
 blurb = "A floaty lantern mage. Keeps you out with orbs, lamps and glyphs."
+hit_theme = "fire"   # how its normal hits look (D-068)
 weight = 85
 
 [movement]

@@ -35,7 +35,7 @@ from isofightr.render.hazard_look import (
 )
 from isofightr.scenes.rules_model import RULE_ROWS, with_default_rules
 from isofightr.scenes.setup import MatchSetup
-from isofightr.settings import SavedRules, Settings, rules_from_data
+from isofightr.settings import HIT_EFFECTS_OFF, SavedRules, Settings, rules_from_data
 from isofightr.sim.events import BounceEvent, HazardHitEvent
 from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import Button, Dir8, InputFrame
@@ -174,9 +174,13 @@ def test_hazards_warn_and_go_off_with_a_sound() -> None:
 
 def test_a_hazard_hit_sparks_shakes_and_shows_its_damage() -> None:
     hit = HazardHitEvent(0, "geyser", 1, 12.0, 90.0, Vec3(1, 1, 1), Effect.FIRE, 11, False)
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # the look before the hit splash
     effects.consume([hit])
     assert len(effects.sparks) == 1 and effects.flash[1] > 0 and effects.shake.current() > 0
+    splashed = BattleEffects()  # D-068: a hazard's hit splashes in its effect's theme
+    splashed.consume([hit])
+    assert not splashed.sparks and len(splashed.splashes.splashes) == 1
+    assert splashed.flash[1] > 0 and splashed.shake.current() > 0
     shield = BattleEffects()
     shield.consume([replace(hit, blocked=True)])
     assert len(shield.sparks) == 1 and 1 not in shield.flash, "a blocked one only sparks"

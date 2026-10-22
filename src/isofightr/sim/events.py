@@ -76,6 +76,25 @@ class HitEvent:
     """World position of the hitbox that connected."""
     effect: Effect
     hitlag: int
+    contact: Vec3 | None = None
+    """Where the hitbox met the target's hurtbox: the middle of their overlap (decision D-068).
+    ``None`` for hits without a hitbox (throws, pummels): ``position`` is on the target."""
+    sweet: bool = False
+    """The hitbox is its window's sweetspot (``HitboxDef.sweet``, decision D-068)."""
+    multi: bool = False
+    """The hitbox is a multi-hit sub-hit (``HitboxDef.multi``, decision D-068)."""
+
+
+@dataclass(frozen=True, slots=True)
+class LaunchEvent:
+    """A fighter's hitlag ended and it was launched (decision D-068): where it is and the
+    way it actually flies, after DI, so presentation can burst the hit's effect along it."""
+
+    target: int
+    position: Vec3
+    direction: Vec3
+    """Unit direction of the launch velocity (DI and any carried velocity included)."""
+    knockback: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,6 +234,7 @@ type Event = (
     | KoEvent
     | RespawnEvent
     | HitEvent
+    | LaunchEvent
     | ClankEvent
     | ShieldHitEvent
     | ShieldBreakEvent

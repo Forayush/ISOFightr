@@ -109,8 +109,11 @@ def plain(value: Any) -> Any:
 
 
 def effects_part(effects: BattleEffects, players: int) -> Any:
-    """What the effect layer, the screen shake and the fighters' flashes show."""
+    """What the effect layer, the screen shake and the fighters' flashes show. Hit splashes
+    (decision D-068) are added only when there are any, so a run without them digests exactly
+    as before they existed."""
     shake = effects.shake
+    splashes = effects.splashes.sprites()
     return plain(
         (
             effects.sparks,
@@ -127,6 +130,7 @@ def effects_part(effects: BattleEffects, players: int) -> Any:
             effects.combos,
             [effects.hud_offset(player) for player in range(players)],
             [effects.afterimages(player) for player in range(players)],
+            *([splashes] if splashes else []),
         )
     )
 
@@ -265,7 +269,8 @@ def save(name: str, description: str, data: dict[str, Any]) -> None:
     """Write a fixture."""
     FIXTURES.mkdir(exist_ok=True)
     body = {"description": description, "window": WINDOW, **data}
-    (FIXTURES / name).write_text(json.dumps(body, indent=1) + "\n", encoding="utf-8")
+    text = json.dumps(body, indent=1) + "\n"
+    (FIXTURES / name).write_text(text, encoding="utf-8", newline="\n")
 
 
 def first_difference(

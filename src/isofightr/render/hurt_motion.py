@@ -169,15 +169,15 @@ def damage_tier(damage: float) -> DamageTier:
     return DamageTier.MEDIUM if damage <= MEDIUM_MAX_DAMAGE else DamageTier.HEAVY
 
 
-_MASK64: Final[int] = (1 << 64) - 1
+MASK64: Final[int] = (1 << 64) - 1
 
 
-def _mix64(value: int) -> int:
+def mix64(value: int) -> int:
     """SplitMix64's finaliser: a fixed scramble of 64 bits (not Python's ``hash``, which
     changes from one process to the next)."""
-    value = (value + 0x9E3779B97F4A7C15) & _MASK64
-    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & _MASK64
-    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & _MASK64
+    value = (value + 0x9E3779B97F4A7C15) & MASK64
+    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & MASK64
+    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & MASK64
     return value ^ (value >> 31)
 
 
@@ -185,9 +185,9 @@ def roll_value(frame: int, player_index: int, damage: float) -> float:
     """Return a number in [0, 1) that is a fixed hash of a hit's match frame, the victim's
     player index and its damage after the hit (to a hundredth): the same on every run and
     replay, and nothing drawn from the sim."""
-    mixed = _mix64(frame & _MASK64)
-    mixed = _mix64(mixed ^ player_index)
-    mixed = _mix64(mixed ^ (round(damage * 100.0) & _MASK64))
+    mixed = mix64(frame & MASK64)
+    mixed = mix64(mixed ^ player_index)
+    mixed = mix64(mixed ^ (round(damage * 100.0) & MASK64))
     return mixed / float(1 << 64)
 
 

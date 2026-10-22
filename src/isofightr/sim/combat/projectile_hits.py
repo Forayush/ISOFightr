@@ -27,7 +27,7 @@ from isofightr.sim.combat.shield import is_shielding, shield_volume
 from isofightr.sim.combat.staling import push_stale
 from isofightr.sim.events import ClankEvent, HitEvent, ShieldHitEvent
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
-from isofightr.sim.math3d import ZERO2, capsules_overlap
+from isofightr.sim.math3d import ZERO2, capsules_overlap, overlap_middle
 from isofightr.sim.projectile import Projectile, reflect
 from isofightr.sim.states.base import change_state
 
@@ -167,6 +167,8 @@ def _struck(match: Match, projectile: Projectile, target: Fighter) -> None:
             position=projectile.pos,
             effect=projectile.hitbox.effect,
             hitlag=hitlag,
+            contact=overlap_middle(projectile.volume, hurtbox(target)),
+            multi=projectile.hitbox.multi,
         )
     )
 

@@ -21,11 +21,12 @@ from PIL import Image, ImageDraw
 
 from isofightr.ai.dummy import DummyBehavior
 from isofightr.app import GameWindow
-from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
+from isofightr.config import HIT_THEMES, NATIVE_H, NATIVE_W, TICK_SECONDS
 from isofightr.data.character_loader import load_character
 from isofightr.data.stage_loader import load_stage
 from isofightr.render.depth_cues import off_stage_twins
 from isofightr.render.effects import BattleEffects
+from isofightr.render.hit_splash import CRITICAL
 from isofightr.render.iso import project
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
@@ -33,8 +34,9 @@ from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
 from isofightr.scenes.ui_kit import UiKitView
-from isofightr.settings import SavedRules, Settings
-from isofightr.sim.events import Event, HitEvent, ShieldHitEvent
+from isofightr.settings import HIT_EFFECTS, HIT_EFFECTS_FULL, SavedRules, Settings
+from isofightr.sim.combat.knockback import launch_vector
+from isofightr.sim.events import Event, HitEvent, LaunchEvent, ShieldHitEvent
 from isofightr.sim.fighter import GroundKind, Launch
 from isofightr.sim.input_frame import Dir8, facing_from_move
 from isofightr.sim.match import MatchRules
@@ -542,6 +544,7 @@ def capture_hit_strip(
     delay: int = 0,
     effect: Effect | None = None,
     guard: str = "",
+    hit_effects: str = HIT_EFFECTS_FULL,
 ) -> Image.Image:
     """Return a strip of one hit (decision D-066): the attacker performs ``move_id`` on a
     target at ``percent`` standing on the stage's respawn point (set up as
@@ -559,7 +562,8 @@ def capture_hit_strip(
     For reviewing D-068's defensive splashes: ``guard`` ``"shield"`` has the target hold its
     shield (the training dummy's Shield behaviour), ``"parry"`` turns the parry rule on and has
     it let go just before the hit; the strip then starts at the blocked hit and each picture
-    also shows the attacker's hitlag (a parry freezes the attacker longer).
+    also shows the attacker's hitlag (a parry freezes the attacker longer). ``hit_effects``
+    is the "Hit effects" setting (``off`` shows the hit as it looked before decision D-068).
 
     Raises ``ValueError`` if the move never hits (or is never blocked, with a guard).
     """
@@ -570,6 +574,8 @@ def capture_hit_strip(
         raise ValueError("no ticks to capture")
     if guard not in GUARDS:
         raise ValueError(f"guard must be one of {GUARDS}, not {guard!r}")
+    if hit_effects not in HIT_EFFECTS:
+        raise ValueError(f"hit_effects must be one of {HIT_EFFECTS}, not {hit_effects!r}")
     window.switch_to()
     stage = load_stage(stage_id)
     striking = load_character(attacker)
@@ -586,6 +592,7 @@ def capture_hit_strip(
     view = BattleView(window.pixel_buffer, stage, fighters, rules=rules, training=bool(guard))
     view.show_help = False
     view.hud_display = False
+    view.effects.hit_effects = hit_effects
     window.show_view(view)
     match = view.match
     striker, victim = match.fighters[0], match.fighters[1]
@@ -672,8 +679,12 @@ def capture_hit_strip(
     return sheet
 
 
-SPLASH_THEMES: tuple[str, ...] = tuple(effect.value for effect in Effect)
-"""What a splash sheet can show: a hit of each effect."""
+SPLASH_THEMES: tuple[str, ...] = (
+    *(effect.value for effect in Effect),
+    *(theme for theme in HIT_THEMES if theme not in {effect.value for effect in Effect}),
+)
+"""What a splash sheet can show: a hit of each effect, and a normal hit by an attacker of each
+character theme (``hit_theme``)."""
 SPLASH_SHEET_KNOCKBACK: tuple[float, ...] = (20.0, 60.0, 120.0, 200.0)
 """Knockback of a splash sheet's hit at each tier (0 light to 3 critical)."""
 SPLASH_SHEET_DAMAGE: tuple[float, ...] = (3.0, 8.0, 14.0, 20.0)
@@ -727,25 +738,35 @@ def capture_splash_sheet(
     crop: tuple[int, int] = SPLASH_SHEET_CROP,
     scale: int = 2,
     stage_id: str = "training_grid",
+    hit_effects: str = HIT_EFFECTS_FULL,
 ) -> Image.Image:
     """Return a hit-effect review sheet (decision D-068): one row per tier and launch angle,
     one column per tick from the hit (0) through the freeze (``hitlag`` ticks) and the
-    launch. Each row is a hit of ``theme`` (an effect: ``normal``, ``slash``, ``fire``...) on a
-    target standing on the stage's respawn point, whose pending launch points ``angle`` steps
-    of 22.5 degrees counter-clockwise from screen right (see :func:`screen_launch`), with the
-    knockback of its tier (``SPLASH_SHEET_KNOCKBACK``). The hit and the launch are fed to the
-    battle's real effects and drawn by its real renderer, but the match itself is not run:
-    the target stays where it is, so the sheet shows the effect and not the flight (a hit
-    strip shows that). Each picture is a crop centred on the contact point.
+    launch. Each row is a hit of ``theme`` (an effect: ``normal``, ``slash``, ``fire``..., or a
+    character theme: ``earth``, ``wind``, a normal hit by an attacker with that ``hit_theme``)
+    on a target standing on the stage's respawn point, whose pending launch points ``angle``
+    steps of 22.5 degrees counter-clockwise from screen right (see :func:`screen_launch`), with
+    the knockback of its tier (``SPLASH_SHEET_KNOCKBACK``); tier 3 rows are forecast to KO. The
+    hit and the launch (straight along the pending one: no DI) are fed to the battle's real
+    effects and drawn by its real renderer, but the match itself is not run: the target stays
+    where it is, so the sheet shows the effect and not the flight (a hit strip shows that).
+    Each picture is a crop centred on the contact point. ``hit_effects`` is the "Hit effects"
+    setting (``off`` is the look before decision D-068).
     """
     if theme not in SPLASH_THEMES:
         raise ValueError(f"theme must be one of {SPLASH_THEMES}, not {theme!r}")
     wanted = sorted(set(splash_ticks(hitlag) if ticks is None else ticks))
     if not wanted or wanted[0] < 0:
         raise ValueError("splash-sheet ticks count from the hit: 0 or more")
+    if hit_effects not in HIT_EFFECTS:
+        raise ValueError(f"hit_effects must be one of {HIT_EFFECTS}, not {hit_effects!r}")
     window.switch_to()
     stage = load_stage(stage_id)
-    view = BattleView(window.pixel_buffer, stage, [load_character("rook")] * 2)
+    effects_by_name = {effect.value: effect for effect in Effect}
+    effect = effects_by_name.get(theme, Effect.NORMAL)
+    rook = load_character("rook")
+    attacker = replace(rook, hit_theme="" if theme in effects_by_name else theme)
+    view = BattleView(window.pixel_buffer, stage, [attacker, rook])
     view.show_help = False
     view.hud_display = False
     window.show_view(view)
@@ -763,11 +784,12 @@ def capture_splash_sheet(
     view.camera.snap_to([victim.pos])
     toward = -facing.world * SPLASH_CONTACT_FORWARD
     contact = Vec3(spot.x + toward.x, spot.y + toward.y, top + victim.character.body.height / 2)
-    effect = Effect(theme)
     pictures: list[Image.Image] = []
     for tier in tiers:
         for angle in angles:
-            effects = BattleEffects()
+            effects = BattleEffects(hit_effects=hit_effects)
+            critical = tier >= CRITICAL
+            effects.splashes.forecast = lambda stage, fighter, kills=critical: kills
             view.effects = effects
             heading, elevation = screen_launch(angle)
             knockback = SPLASH_SHEET_KNOCKBACK[tier]
@@ -788,7 +810,10 @@ def capture_splash_sheet(
                     victim.launch = Launch(knockback, heading, elevation, knockback >= 80.0)
                 if tick < hitlag:
                     victim.hitlag = hitlag - tick
-                else:
+                elif victim.launch is not None:
+                    direction = launch_vector(heading, elevation)
+                    launched = LaunchEvent(victim.player_index, victim.pos, direction, knockback)
+                    events.append(launched)
                     victim.hitlag = 0
                     victim.launch = None
                 effects.tick()

@@ -198,8 +198,8 @@ def closest_point_on_segment(point: Vec3, start: Vec3, end: Vec3) -> Vec3:
     return start + segment * min(1.0, max(0.0, t))
 
 
-def segment_distance_squared(a_start: Vec3, a_end: Vec3, b_start: Vec3, b_end: Vec3) -> float:
-    """Return the squared distance between the closest points of two segments.
+def closest_points(a_start: Vec3, a_end: Vec3, b_start: Vec3, b_end: Vec3) -> tuple[Vec3, Vec3]:
+    """Return the closest points of two segments: one on each.
 
     Handles degenerate (zero-length) and parallel segments. Standard clamped closest-point
     computation (Ericson, "Real-Time Collision Detection", 5.1.9).
@@ -212,7 +212,7 @@ def segment_distance_squared(a_start: Vec3, a_end: Vec3, b_start: Vec3, b_end: V
     f = d2.dot(r)
 
     if a < EPSILON and e < EPSILON:
-        return r.length_squared()
+        return a_start, b_start
     if a < EPSILON:
         s = 0.0
         t = min(1.0, max(0.0, f / e))
@@ -233,8 +233,12 @@ def segment_distance_squared(a_start: Vec3, a_end: Vec3, b_start: Vec3, b_end: V
                 t = 1.0
                 s = min(1.0, max(0.0, (b - c) / a))
 
-    closest_a = a_start + d1 * s
-    closest_b = b_start + d2 * t
+    return a_start + d1 * s, b_start + d2 * t
+
+
+def segment_distance_squared(a_start: Vec3, a_end: Vec3, b_start: Vec3, b_end: Vec3) -> float:
+    """Return the squared distance between the closest points of two segments."""
+    closest_a, closest_b = closest_points(a_start, a_end, b_start, b_end)
     return (closest_a - closest_b).length_squared()
 
 
@@ -255,3 +259,19 @@ def capsules_overlap(a: Capsule, b: Capsule) -> bool:
     """Return whether two capsules intersect (touching counts)."""
     reach = a.radius + b.radius
     return segment_distance_squared(a.start, a.end, b.start, b.end) <= reach * reach
+
+
+def overlap_middle(a: Capsule, b: Capsule) -> Vec3:
+    """Return the middle of where two touching capsules overlap, measured along the line
+    where their segments come closest: the average of the two surface points facing each
+    other, ``a``'s own point when ``a`` is inside ``b``, and ``b``'s when ``b`` is inside
+    ``a`` (a hit's contact point, decision D-068). Event data only: nothing in the sim reads it.
+    """
+    on_a, on_b = closest_points(a.start, a.end, b.start, b.end)
+    gap = on_b - on_a
+    distance = gap.length()
+    if distance < EPSILON:
+        return on_a
+    near = max(-a.radius, distance - b.radius)
+    far = min(a.radius, distance + b.radius)
+    return on_a + gap * ((near + far) / 2.0 / distance)

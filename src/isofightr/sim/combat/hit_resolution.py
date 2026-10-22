@@ -26,6 +26,7 @@ from isofightr.sim.combat.hitbox import (
     hit_damage,
     hitboxes_touch,
     hits,
+    hurtbox,
     remember_hitboxes,
 )
 from isofightr.sim.combat.shield import (
@@ -36,10 +37,16 @@ from isofightr.sim.combat.shield import (
     shieldstun_frames,
 )
 from isofightr.sim.combat.staling import push_stale
-from isofightr.sim.events import ClankEvent, CounterEvent, HitEvent, ShieldHitEvent
+from isofightr.sim.events import (
+    ClankEvent,
+    CounterEvent,
+    HitEvent,
+    LaunchEvent,
+    ShieldHitEvent,
+)
 from isofightr.sim.fighter import Fighter, GroundKind, Launch, StateId
 from isofightr.sim.input_frame import VERTICAL_NONE, Press
-from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3, capsules_overlap
+from isofightr.sim.math3d import ZERO2, ZERO3, Vec2, Vec3, capsules_overlap, overlap_middle
 from isofightr.sim.move_def import DirectionMode, HitboxDef
 from isofightr.sim.states.base import change_state
 from isofightr.sim.states.interrupts import snap_facing, start_move
@@ -228,6 +235,9 @@ def _apply_hits(match: Match, found: list[_Hit]) -> None:
                 position=hit.box.centre,
                 effect=definition.effect,
                 hitlag=hitlag,
+                contact=overlap_middle(hit.box.volume, hurtbox(target)),
+                sweet=definition.sweet,
+                multi=definition.multi,
             )
         )
     for change in changes:
@@ -437,6 +447,8 @@ def _launch(match: Match, fighter: Fighter, launch: Launch) -> None:
         elevation = 0.0  # DI cannot push a standing fighter into the floor
     direction = kb_math.launch_vector(heading, elevation)
     fighter.kb_vel = direction * kb_math.launch_speed(launch.knockback) + launch.carry
+    flying = fighter.kb_vel.normalized() if fighter.kb_vel.length() > 0.0 else direction
+    match.events.append(LaunchEvent(fighter.player_index, fighter.pos, flying, launch.knockback))
     kept = fighter.vel.xy * c.LAUNCH_SELF_VELOCITY_KEEP
     fighter.vel = Vec3(kept.x, kept.y, 0.0)
     fighter.hitstun = kb_math.hitstun_frames(launch.knockback)

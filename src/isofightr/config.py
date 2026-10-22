@@ -90,6 +90,17 @@ AMBIENT_KINDS: Final[tuple[str, ...]] = (
     "spores",
 )
 """What a stage's ``[ambient]`` table may drift across the screen (decision D-063)."""
+HIT_THEMES: Final[tuple[str, ...]] = (
+    "slash",
+    "fire",
+    "darkness",
+    "earth",
+    "wind",
+    "electric",
+    "ice",
+)
+"""What a character's ``hit_theme`` may be: the look of its hits whose effect is ``normal``
+(decision D-068; presentation only, the sim never reads it)."""
 AMBIENT_MAX: Final[int] = 16
 """The most ambient sprites a stage may ask for."""
 PROP_LAYERS: Final[tuple[str, ...]] = ("world", "below", "ground")

@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from types import MappingProxyType
 
+from isofightr.config import HIT_THEMES
 from isofightr.data.move_loader import MAX_ELEVATION, load_moves, parse_frame_range
 from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError, TableReader
@@ -115,6 +116,7 @@ def parse_character(
             "display_name",
             "archetype",
             "blurb",
+            "hit_theme",
             "weight",
             "movement",
             "body",
@@ -135,6 +137,7 @@ def parse_character(
         display_name=root.string("display_name"),
         archetype=root.optional_string("archetype") or "",
         blurb=root.optional_string("blurb") or "",
+        hit_theme=_hit_theme(root),
         weight=weight,
         movement=_movement(root.subtable("movement", (*_SPEED_KEYS, *_FRAME_KEYS))),
         body=_body(root.subtable("body", ("radius", "height", "hurtbox", "shield_radius_max"))),
@@ -294,3 +297,11 @@ def _body(reader: TableReader) -> BodyStats:
     if shield <= 0:
         raise reader.error("must be greater than 0", "shield_radius_max")
     return BodyStats(radius=radius, height=height, hurtbox=hurtbox, shield_radius_max=shield)
+
+
+def _hit_theme(root: TableReader) -> str:
+    """The optional ``hit_theme``: one of ``config.HIT_THEMES`` (decision D-068)."""
+    theme = root.optional_string("hit_theme") or ""
+    if theme and theme not in HIT_THEMES:
+        raise root.error(f"must be one of {', '.join(HIT_THEMES)}, not {theme!r}", "hit_theme")
+    return theme

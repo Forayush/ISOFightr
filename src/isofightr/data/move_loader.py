@@ -9,11 +9,12 @@ import itertools
 import math
 import tomllib
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 
 from isofightr.data.validation import DataError, TableReader
 from isofightr.sim.characters import SCRIPTS
-from isofightr.sim.combat.constants import SAKURAI_ANGLE
+from isofightr.sim.combat.constants import SAKURAI_ANGLE, SWEETSPOT_SHARE
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import (
     ArmorDef,
@@ -325,7 +326,21 @@ def _window(table: object, source: str, index: int, total: int, clank_default: b
     ids = [hitbox.id for hitbox in hitboxes]
     if len(set(ids)) != len(ids):
         raise reader.error(f"hitbox ids must be unique within a window, got {ids}", "hitboxes")
-    return HitWindow(frames=frames, hitboxes=tuple(sorted(hitboxes, key=lambda box: box.id)))
+    ordered = tuple(sorted(hitboxes, key=lambda box: box.id))
+    return HitWindow(frames=frames, hitboxes=mark_sweetspot(ordered))
+
+
+def mark_sweetspot(hitboxes: tuple[HitboxDef, ...]) -> tuple[HitboxDef, ...]:
+    """Mark a window's sweetspot (decision D-068): its hitbox with the most damage, when every
+    other hitbox of the window deals at most ``SWEETSPOT_SHARE`` of that. No data names it,
+    and only presentation reads it."""
+    if len(hitboxes) < 2:
+        return hitboxes
+    best = max(hitboxes, key=lambda box: box.damage)
+    others = [box for box in hitboxes if box.id != best.id]
+    if best.damage <= 0.0 or any(box.damage > best.damage * SWEETSPOT_SHARE for box in others):
+        return hitboxes
+    return tuple(replace(box, sweet=True) if box.id == best.id else box for box in hitboxes)
 
 
 def _hitbox(table: object, source: str, where: str, clank_default: bool) -> HitboxDef:

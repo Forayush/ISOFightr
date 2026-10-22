@@ -4,6 +4,7 @@ id = "zephyr"
 display_name = "Zephyr"
 archetype = "the rushdown"
 blurb = "A bird-fox courier. Fastest on foot, two air jumps, all combos."
+hit_theme = "wind"   # how its normal hits look (D-068)
 weight = 78
 
 [movement]

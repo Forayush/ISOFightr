@@ -4,6 +4,7 @@ id = "bramble"
 display_name = "Bramble"
 archetype = "the heavyweight"
 blurb = "A mossy stone golem. Slow, huge reach, armour on his smashes."
+hit_theme = "earth"   # how its normal hits look (D-068)
 weight = 120
 
 [movement]

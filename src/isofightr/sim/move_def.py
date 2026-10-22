@@ -90,6 +90,15 @@ class HitboxDef:
     clank: bool
     shield_damage: float = 0.0
     """Extra damage this hitbox does to a shield, on top of its normal damage."""
+    sweet: bool = False
+    """Its window's sweetspot: derived when the move loads, never written in data (decision
+    D-068; only presentation reads it, through ``HitEvent.sweet``)."""
+
+    @property
+    def multi(self) -> bool:
+        """Whether this is a multi-hit sub-hit: it rehits, or its hitlag is cut (decision
+        D-068; only presentation reads it, through ``HitEvent.multi``)."""
+        return self.rehit > 0 or self.hitlag_mult < 1.0
 
 
 @dataclass(frozen=True, slots=True)

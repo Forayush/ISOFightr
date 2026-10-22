@@ -18,6 +18,7 @@ from isofightr.render.effects import BattleEffects, ScreenShake, Spark
 from isofightr.render.fighter_look import DEFAULT_LOOK, FighterLook, Pose, fighter_look
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
+from isofightr.settings import HIT_EFFECTS_OFF
 from isofightr.sim.combat.hitbox import hurtbox
 from isofightr.sim.events import ClankEvent, HitEvent, JumpEvent, JumpKind, KoEvent
 from isofightr.sim.fighter import Fighter, StateId
@@ -67,7 +68,7 @@ def test_spark_tier_grows_with_knockback() -> None:
 
 
 def test_a_hit_spawns_a_spark_at_the_hit_point_that_plays_and_goes_away() -> None:
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # today's look
     effects.consume([hit(100.0)])
     [spark] = effects.sparks
     assert (spark.position, spark.tier, spark.effect, spark.frame) == (ORIGIN, 2, Effect.SLASH, 0)
@@ -184,7 +185,7 @@ def test_the_target_flashes_for_two_ticks() -> None:
 
 
 def test_a_hit_on_an_invincible_target_does_not_flash_or_pop() -> None:
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # today's look
     effects.consume([hit(0.0, damage=0.0)])
     assert effects.flash == {} and effects.hud_pop == {}
     assert len(effects.sparks) == 1
@@ -216,7 +217,7 @@ def test_clear_drops_everything() -> None:
 
 def test_effects_follow_a_real_match() -> None:
     match, _, target = duel(damage=100.0)
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # today's look
     seen_spark = False
     for frame in hold(buttons=Button.STRONG, frames=1) + neutral(20):
         run(match, [frame])
@@ -266,7 +267,7 @@ def test_a_strong_launch_throws_streaks_along_its_screen_direction() -> None:
     from isofightr.sim.math3d import Vec2
 
     match, _, target = duel()
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # today's look
     target.hitlag = 5
     target.launch = Launch(39.0, Vec2(1.0, 0.0), 0.0, False)
     effects.observe(match.fighters)
@@ -871,7 +872,7 @@ def test_a_blocked_hit_ripples_and_an_air_jump_rings() -> None:
 def test_hits_of_an_element_get_an_extra_effect(element: Effect, kinds: list[str]) -> None:
     import dataclasses
 
-    effects = BattleEffects()
+    effects = BattleEffects(hit_effects=HIT_EFFECTS_OFF)  # today's look
     effects.consume([dataclasses.replace(hit(50.0), effect=element)])
     assert [effect.kind for effect in effects.fx] == kinds
     assert len(effects.sparks) == 1, "on top of the spark, not instead of it"

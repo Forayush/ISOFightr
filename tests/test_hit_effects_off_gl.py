@@ -37,6 +37,7 @@ def placed(view: Any) -> tuple[Any, ...]:
 def play(window: Any) -> list[str]:
     from isofightr.data.stage_loader import load_stage
     from isofightr.scenes.battle import BattleView
+    from isofightr.settings import HIT_EFFECTS_OFF
     from isofightr.sim.replay import Replay
 
     windows: list[str] = []
@@ -60,6 +61,7 @@ def play(window: Any) -> list[str]:
             replay=replay,
         )
         view.show_help = False
+        view.effects.hit_effects = HIT_EFFECTS_OFF
         window.show_view(view)
         running = hashlib.sha1()
         for tick in range(len(inputs)):

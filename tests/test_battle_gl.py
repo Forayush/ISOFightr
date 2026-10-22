@@ -172,7 +172,10 @@ def test_inputs_held_while_frame_advancing_reach_the_sim(window: Any) -> None:
 
 
 def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
+    from isofightr.settings import HIT_EFFECTS_OFF
+
     view = make_view(window, placeholder_art=True)
+    view.effects.hit_effects = HIT_EFFECTS_OFF  # the spark and streak (D-068's Off)
     view.match.set_damage(1, 60.0)
     view.on_draw()
     assert view.hud._damage[1].text == "60%"
@@ -461,8 +464,10 @@ def test_the_training_dummy_can_act_like_a_cpu(window: Any) -> None:
 
 def test_a_strong_hit_draws_its_streak_and_the_combo_counter_shows(window: Any) -> None:
     from isofightr.render.effects import ComboReadout
+    from isofightr.settings import HIT_EFFECTS_OFF
 
     view = make_view(window)
+    view.effects.hit_effects = HIT_EFFECTS_OFF  # the launch streak is Off's (D-068)
     view.match.set_damage(1, 80.0)
     view.on_key_press(keys().U, 0)  # forward smash at point-blank range
     ticks(view, 1)
@@ -477,6 +482,37 @@ def test_a_strong_hit_draws_its_streak_and_the_combo_counter_shows(window: Any) 
     view.effects.combos[1] = ComboReadout(3, 21.5)
     view.on_draw()
     assert view.hud._combo[1].text == "3 HITS 21%" and view.hud._combo[0].text == ""
+
+
+def splash_kinds(view: Any) -> set[str]:
+    """The kinds of hit-splash picture the effect layer is drawing (decision D-068)."""
+    renderer = view.effect_renderer
+    keys = {id(texture): key for key, texture in renderer._textures.items()}
+    drawn = [keys[id(sprite.texture)] for sprite in renderer._pool[: renderer.live]]
+    return {key[1] for key in drawn if key[0] == "splash"}
+
+
+def test_a_hit_splashes_through_its_freeze_and_disperses_on_its_launch(window: Any) -> None:
+    """Decision D-068: the burst on the contact tick and the next, the held core and its
+    directional lines for the rest of the freeze, particles from the launch; no spark."""
+    view = make_view(window, placeholder_art=True)
+    view.match.set_damage(1, 60.0)
+    view.on_key_press(keys().U, 0)  # forward smash
+    ticks(view, 1)
+    view.on_key_release(keys().U, 0)
+    target = view.match.fighters[1]
+    seen: list[tuple[int, set[str]]] = []
+    for _ in range(60):
+        ticks(view, 1)
+        view.on_draw()
+        if target.hitlag or seen:
+            seen.append((target.hitlag, splash_kinds(view)))
+    assert view.effects.sparks == [], "the splash replaces the hit's spark"
+    hitlag = seen[0][0]
+    assert [kinds for _, kinds in seen[:2]] == [{"burst"}, {"burst"}]
+    assert all(kinds == {"core", "lines"} for _, kinds in seen[2:hitlag])
+    assert seen[hitlag][1] == {"particle"}, "the launch"
+    assert seen[-1][1] == set(), "and then it is gone"
 
 
 # --- D-060: projectile art, shadows and ground decals ------------------------------------------

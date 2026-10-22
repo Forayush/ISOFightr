@@ -92,6 +92,12 @@ DEPTH_STRONG: Final[str] = "strong"
 DEPTH_AIDS: Final[tuple[str, ...]] = (DEPTH_OFF, DEPTH_STANDARD, DEPTH_STRONG)
 """How much the game draws to say where a fighter is (decision D-065): nothing new; a marker
 and a height line always; or those plus a grid on the plane under a fighter off the stage."""
+HIT_EFFECTS_OFF: Final[str] = "off"
+HIT_EFFECTS_MINIMAL: Final[str] = "minimal"
+HIT_EFFECTS_FULL: Final[str] = "full"
+HIT_EFFECTS: Final[tuple[str, ...]] = (HIT_EFFECTS_OFF, HIT_EFFECTS_MINIMAL, HIT_EFFECTS_FULL)
+"""How hits look (decision D-068): the old spark and streak; the hit splash's burst and hold
+only; or the whole splash, with its dispersal."""
 
 MIN_COUNT: Final[int] = 1
 MAX_COUNT: Final[int] = 99

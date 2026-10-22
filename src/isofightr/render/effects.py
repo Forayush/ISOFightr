@@ -14,9 +14,11 @@ from dataclasses import dataclass, field
 from typing import Final
 
 from isofightr.render.ground_items import ProjectileLooks
+from isofightr.render.hit_splash import HitSplashes
 from isofightr.render.hurt_motion import HurtMotion
 from isofightr.render.iso import project
 from isofightr.render.vfx_art import CRACK_ALPHAS, FX_KINDS, WHIRL_FRAMES, fx_lifetime
+from isofightr.settings import HIT_EFFECTS_FULL, HIT_EFFECTS_OFF
 from isofightr.sim.combat.constants import LAUNCH_SNAP
 from isofightr.sim.combat.knockback import launch_vector
 from isofightr.sim.events import (
@@ -31,6 +33,7 @@ from isofightr.sim.events import (
     JumpKind,
     KoEvent,
     LandEvent,
+    LaunchEvent,
     LedgeGrabEvent,
     ShieldBreakEvent,
     ShieldHitEvent,
@@ -466,6 +469,12 @@ class BattleEffects:
     _tick_events: list[Event] = field(default_factory=list)
     """This tick's events, until ``observe`` hands them to ``hurt`` (its hits describe a
     freeze: where the hit landed, how hard it was, its effect)."""
+    hit_effects: str = HIT_EFFECTS_FULL
+    """How hits look (``settings.HIT_EFFECTS``, decision D-068): ``off`` is the spark and the
+    launch streak as they were before the hit splash; ``minimal`` and ``full`` show a hit
+    splash instead, without and with its dispersal."""
+    splashes: HitSplashes = field(default_factory=HitSplashes)
+    """The hit splashes (decision D-068), unless hit effects are off."""
 
     def consume(self, events: Iterable[Event]) -> None:
         """React to one tick's sim events."""
@@ -478,14 +487,17 @@ class BattleEffects:
             if isinstance(event, HazardHitEvent) and event.blocked:
                 self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, HitEvent | HazardHitEvent):
-                self.sparks.append(
-                    Spark(
-                        event.position,
-                        spark_tier(event.knockback),
-                        event.effect,
-                        lifetime=spark_lifetime(event.hitlag),
+                if self.hit_effects == HIT_EFFECTS_OFF:
+                    self.sparks.append(
+                        Spark(
+                            event.position,
+                            spark_tier(event.knockback),
+                            event.effect,
+                            lifetime=spark_lifetime(event.hitlag),
+                        )
                     )
-                )
+                else:
+                    self.splashes.hit(event)
                 extra = ELEMENT_EXTRAS.get(event.effect)
                 if extra is not None:
                     kind, family = extra
@@ -502,6 +514,10 @@ class BattleEffects:
                     self.flash[event.target] = hit_flash_ticks(event.hitlag)
                     pixels = 1 + round(event.damage / HUD_POP_DAMAGE_PER_PIXEL)
                     self.hud_pop[event.target] = (HUD_POP_FRAMES, min(pixels, HUD_POP_MAX_PIXELS))
+            elif isinstance(event, LaunchEvent):
+                if self.hit_effects != HIT_EFFECTS_OFF:
+                    self.splashes.dispersal = self.hit_effects == HIT_EFFECTS_FULL
+                    self.splashes.launch(event)
             elif isinstance(event, ClankEvent):
                 self.sparks.append(Spark(event.position, CLANK_SPARK_TIER, Effect.NORMAL))
             elif isinstance(event, ShieldHitEvent):
@@ -553,8 +569,11 @@ class BattleEffects:
         dust when a dash, skid or run turn starts, and the smoke trail of a launch. ``frame``
         is the match frame (the hit poses hash it; the effects' own tick count without it)."""
         fighters = list(fighters)
-        self.hurt.step(fighters, self._tick_events, self.ticks if frame is None else frame)
+        match_frame = self.ticks if frame is None else frame
+        self.hurt.step(fighters, self._tick_events, match_frame)
         self._tick_events = []
+        if self.hit_effects != HIT_EFFECTS_OFF:
+            self.splashes.observe(fighters, stage, match_frame)
         for fighter in fighters:
             self._observe_launch(fighter)
             self._observe_path(fighter)
@@ -752,9 +771,10 @@ class BattleEffects:
             return
         self._launches[player] = launch
         if launch.knockback >= STREAK_MIN_KNOCKBACK:
-            pos = fighter.pos
-            at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
-            self.streaks.append(Streak(at, streak_angle(launch)))
+            if self.hit_effects == HIT_EFFECTS_OFF:  # the hit splash points along it instead
+                pos = fighter.pos
+                at = Vec3(pos.x, pos.y, pos.z + TRAIL_BODY_HEIGHT)
+                self.streaks.append(Streak(at, streak_angle(launch)))
             # The screen shakes along the launch, not up and down (decision D-066).
             direction = launch_vector(launch.heading, launch.elevation)
             self.shake.aim(*project(direction.x, direction.y, direction.z))
@@ -794,6 +814,7 @@ class BattleEffects:
     def tick(self) -> None:
         """Advance every effect by one sim tick."""
         self._tick_events = []
+        self.splashes.tick()
         for spark in self.sparks:
             spark.age += 1
         self.sparks = [spark for spark in self.sparks if spark.age < spark.lifetime]
@@ -844,6 +865,7 @@ class BattleEffects:
         self._last_pos = {}
         self._dashing = {}
         self._struck = set()
+        self.splashes.clear()
 
     def hud_offset(self, player_index: int) -> int:
         """Return how many pixels a player's damage number is lifted right now."""

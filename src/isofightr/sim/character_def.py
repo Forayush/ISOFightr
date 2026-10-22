@@ -189,6 +189,9 @@ class CharacterDef:
     """A few words for menus ("the heavyweight"). Text only, like ``display_name``."""
     blurb: str = ""
     """One line about the character for menus. Text only."""
+    hit_theme: str = ""
+    """How its hits look when their effect is ``normal`` (``config.HIT_THEMES``; "" is the
+    plain look). Presentation only, like ``archetype`` (decision D-068)."""
 
     def __deepcopy__(self, memo: dict[int, object]) -> Self:
         """Character data is immutable, so a copied match (snapshots, rollback) shares it."""

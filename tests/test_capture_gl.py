@@ -153,3 +153,21 @@ def test_screen_launch_points_where_the_projection_shows_it() -> None:
         heading, elevation = screen_launch(angle)
         assert abs(heading.length() - 1.0) < 1e-9 and -90.0 <= elevation <= 90.0
         assert streak_angle(Launch(100.0, heading, elevation, True)) == angle
+
+
+def test_a_splash_sheet_shows_character_themes_and_the_hit_effects_setting(window: Any) -> None:
+    """Decision D-068: a character theme (a normal hit by an attacker with that hit theme) and
+    the "Hit effects" setting, so before (off) and after can be captured from the same code."""
+    from isofightr.capture import capture_splash_sheet
+
+    def sheet(hit_effects: str) -> Any:
+        return capture_splash_sheet(
+            window, "earth", tiers=(2,), angles=(0,), ticks=[2, 12], crop=(60, 60),
+            hit_effects=hit_effects,
+        )  # fmt: skip
+
+    off, full = sheet("off"), sheet("full")
+    assert off.size == full.size == (2 * 60 * 2, 60 * 2)
+    assert off.tobytes() != full.tobytes()
+    with pytest.raises(ValueError, match="hit_effects"):
+        capture_splash_sheet(window, "slash", hit_effects="loud")

@@ -140,6 +140,9 @@ DIZZY_MIN_FRAMES: Final[int] = 90
 """Dizzy lasts ``max(DIZZY_MIN_FRAMES, DIZZY_BASE_FRAMES - damage)`` frames."""
 PARRY_WINDOW: Final[int] = 5
 """With the parry rule on: a hit in the first frames of dropping shield is parried."""
+SWEETSPOT_SHARE: Final[float] = 0.9
+"""A hitbox is its window's sweetspot when every other hitbox of the window deals at most this
+share of its damage (decision D-068; derived at load, read only by presentation)."""
 PARRY_EXTRA_HITLAG: Final[int] = 14
 """Extra frames the attacker is frozen after being parried."""
 

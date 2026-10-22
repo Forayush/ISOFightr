@@ -42,7 +42,10 @@ default 0,1,2,3) and launch direction on screen (``--angles``, steps of 22.5 deg
 counter-clockwise from right, default 0,4,8,12; ``0:15`` for all sixteen), one column per tick
 from the hit through the freeze (``--hitlag``, default 11) and the launch (``--ticks``
 overrides them), each a crop (``--follow``, default 72,72) centred on the contact point. THEME
-is an effect: normal, slash, fire, electric, ice, darkness::
+is an effect (normal, slash, fire, electric, ice, darkness) or a character theme (earth,
+wind: a normal hit by an attacker with that ``hit_theme``). ``--hit-effects off|minimal|full``
+sets the "Hit effects" setting for a splash sheet or a hit strip (``off`` is the look before
+decision D-068)::
 
     uv run python tools/capture_scene.py --splash-sheet slash --angles 0:15:5 --out slash.png
 
@@ -74,7 +77,7 @@ from isofightr.capture import (
     capture_stage_sheet,
     parse_script,
 )
-from isofightr.settings import Settings, rules_from_data
+from isofightr.settings import HIT_EFFECTS, HIT_EFFECTS_FULL, Settings, rules_from_data
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.move_def import Effect
 
@@ -137,6 +140,9 @@ def main() -> None:
     )
     parser.add_argument("--tiers", default="0,1,2,3", help="splash-sheet tiers")
     parser.add_argument(
+        "--hit-effects", default=HIT_EFFECTS_FULL, choices=HIT_EFFECTS, help="Hit effects setting"
+    )
+    parser.add_argument(
         "--angles",
         default=",".join(str(angle) for angle in SPLASH_SHEET_ANGLES),
         help="splash-sheet launch directions (sixteenths of a turn), e.g. 0:15",
@@ -193,6 +199,7 @@ def main() -> None:
             crop=(wide, tall),
             scale=args.scale,
             stage_id=args.stage,
+            hit_effects=args.hit_effects,
         )
     elif args.hit_strip:
         wide, tall = (int(value) for value in _numbers(args.follow or "160,120"))
@@ -212,6 +219,7 @@ def main() -> None:
             delay=args.delay,
             effect=Effect(args.effect) if args.effect else None,
             guard=args.guard,
+            hit_effects=args.hit_effects,
         )
     elif args.depth_lab:
         sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)

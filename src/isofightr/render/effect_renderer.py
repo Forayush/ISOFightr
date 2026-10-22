@@ -14,7 +14,7 @@ import arcade
 from PIL import Image
 
 from isofightr.render import placeholder_art as art
-from isofightr.render import projectile_art, vfx_art
+from isofightr.render import projectile_art, splash_art, vfx_art
 from isofightr.render.camera import snap
 from isofightr.render.effects import BattleEffects
 from isofightr.render.ground_items import ProjectileLooks
@@ -159,6 +159,11 @@ class EffectRenderer:
                     ),
                 )
                 placed.append((texture, base))
+        for picture in effects.splashes.sprites():
+            texture = self._texture(
+                ("splash", *picture.key), partial(splash_art.build, picture.key)
+            )
+            placed.append((texture, (picture.x, picture.y)))
 
         screen: list[tuple[arcade.Texture, tuple[float, float]]] = [
             (texture, project(position.x, position.y, position.z)) for texture, position in wanted

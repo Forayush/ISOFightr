@@ -10,6 +10,8 @@ then differ, and so do the effects they cause.
 """
 
 import effects_digest as digest
+from isofightr.render.effects import BattleEffects
+from isofightr.settings import HIT_EFFECTS_FULL, HIT_EFFECTS_OFF
 
 FIXTURE = "hit_effects_today.json"
 DESCRIPTION = (
@@ -21,8 +23,12 @@ DESCRIPTION = (
 )
 
 
+def off() -> BattleEffects:
+    return BattleEffects(hit_effects=HIT_EFFECTS_OFF)
+
+
 def test_the_hit_feedback_is_todays(update_goldens: bool) -> None:
-    played = digest.run()
+    played = digest.run(off)
     if update_goldens:
         digest.save(FIXTURE, DESCRIPTION, played)
     recorded = digest.load(FIXTURE)
@@ -43,3 +49,14 @@ def test_the_digest_sees_a_change_in_the_effects() -> None:
     marked = BattleEffects()
     marked.sparks.append(Spark(ZERO3, 0, Effect.NORMAL))
     assert digest.effects_part(plain, 4) != digest.effects_part(marked, 4)
+
+
+def test_with_the_hit_splash_the_hit_poses_and_the_hud_are_still_todays() -> None:
+    """The splash changes only the effect layer: D-067's poses and the HUD are untouched
+    (until the HUD's own reaction, M17 group 4)."""
+    played = digest.run(lambda: BattleEffects(hit_effects=HIT_EFFECTS_FULL))
+    recorded = digest.load(FIXTURE)
+    for part in ("hurt", "hud"):
+        where = digest.first_difference(recorded[part], played[part])
+        assert played[part] == recorded[part], f"{part}: {where}"
+    assert played["effects"] != recorded["effects"], "the splash replaces the spark"
