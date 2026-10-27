@@ -91,6 +91,8 @@ FIGHTER_PIVOT_FROM_BOTTOM: Final[int] = 8
 """Feet pivot at (32, 8) from the bottom-left of the canvas (plan note 09)."""
 BODY_HALF_WIDTH: Final[int] = 7
 BODY_HEIGHT: Final[int] = 40
+CROUCH_BODY_HEIGHT: Final[int] = 28
+"""The capsule crouching or in a down tilt: about the share of the crouch hurtbox."""
 """2.5 world units at 16 px per unit."""
 HEAD_HEIGHT: Final[int] = 12
 ARROW_CENTRE_ABOVE_FEET: Final[int] = 17
@@ -273,6 +275,7 @@ def build_fighter(
     spin_degrees: int = 0,
     flash: bool = False,
     dim: bool = False,
+    crouching: bool = False,
 ) -> Image.Image:
     """Return the 64x64 placeholder fighter: a capsule, a darker head and a facing arrow.
 
@@ -287,8 +290,10 @@ def build_fighter(
             screen (tumbling, rolling).
         flash: paint every pixel white (hit flash, charge blink).
         dim: darken the sprite (helpless fall).
+        crouching: draw the capsule ``CROUCH_BODY_HEIGHT`` tall (crouching, a down tilt).
     """
-    image = _build_lying(player_index) if lying else _build_standing(player_index, facing)
+    height = CROUCH_BODY_HEIGHT if crouching else BODY_HEIGHT
+    image = _build_lying(player_index) if lying else _build_standing(player_index, facing, height)
     if spin_degrees % FULL_TURN_DEGREES and not lying:
         # Pillow measures the centre from the image's top-left corner, in pixel edges.
         middle = (FIGHTER_PIVOT_X, FIGHTER_CANVAS - FIGHTER_PIVOT_FROM_BOTTOM - BODY_HEIGHT / 2)
@@ -326,7 +331,7 @@ def _build_lying(player_index: int) -> Image.Image:
     return image
 
 
-def _build_standing(player_index: int, facing: Dir8) -> Image.Image:
+def _build_standing(player_index: int, facing: Dir8, height: int = BODY_HEIGHT) -> Image.Image:
     color = player_color(player_index)
     outline = shade(color, OUTLINE_SHADE)
     image = Image.new("RGBA", (FIGHTER_CANVAS, FIGHTER_CANVAS), TRANSPARENT)
@@ -335,7 +340,8 @@ def _build_standing(player_index: int, facing: Dir8) -> Image.Image:
     feet_row = FIGHTER_CANVAS - FIGHTER_PIVOT_FROM_BOTTOM  # first row below the feet
     left = FIGHTER_PIVOT_X - BODY_HALF_WIDTH
     right = FIGHTER_PIVOT_X + BODY_HALF_WIDTH - 1
-    top = feet_row - BODY_HEIGHT
+    top = feet_row - height
+    drop = BODY_HEIGHT - height  # a crouching capsule's eyes sit this much lower, with the head
     draw.rounded_rectangle(
         (left, top, right, feet_row - 1), radius=BODY_HALF_WIDTH - 1, fill=color, outline=outline
     )
@@ -345,13 +351,14 @@ def _build_standing(player_index: int, facing: Dir8) -> Image.Image:
     length = (screen_x**2 + screen_y_up**2) ** 0.5
     direction = (screen_x / length, -screen_y_up / length)  # image space: y down
     if direction[1] >= 0:
-        eye_row = feet_row - EYE_HEIGHT_ABOVE_FEET
+        eye_row = feet_row - EYE_HEIGHT_ABOVE_FEET + drop
         eye_centre = FIGHTER_PIVOT_X + round(direction[0] * EYE_SPREAD)
         for eye in (eye_centre - EYE_SPREAD, eye_centre + EYE_SPREAD - 1):
             image.putpixel((eye, eye_row), WHITE)
             image.putpixel((eye, eye_row + 1), INK)
 
-    centre = (FIGHTER_PIVOT_X - 0.5, feet_row - ARROW_CENTRE_ABOVE_FEET - 0.5)
+    arrow = round(ARROW_CENTRE_ABOVE_FEET * height / BODY_HEIGHT)  # stays mid-body
+    centre = (FIGHTER_PIVOT_X - 0.5, feet_row - arrow - 0.5)
     _draw_arrow(draw, centre, direction)
     return image
 

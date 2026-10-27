@@ -50,17 +50,21 @@ def hurtbox_capsule(feet: Vec3, shape: HurtboxDef) -> Capsule:
     )
 
 
-def hurtbox_shape(fighter: Fighter) -> HurtboxDef:
-    """Return the capsule a fighter is hit with now: the crouch capsule while crouching or in
-    its move's low-profile frames, else the standing one (decision D-069)."""
-    body = fighter.character.body
+def low_profile(fighter: Fighter) -> bool:
+    """Return whether a fighter is low right now: crouching, or in its move's low-profile
+    frames (a down tilt; decision D-069)."""
     if fighter.state is StateId.CROUCH:
-        return body.crouch_hurtbox
+        return True
     move = fighter.move
-    low = None if move is None else move.low_profile
-    if low is not None and fighter.state_frame in low:
-        return body.crouch_hurtbox
-    return body.hurtbox
+    frames = None if move is None else move.low_profile
+    return frames is not None and fighter.state_frame in frames
+
+
+def hurtbox_shape(fighter: Fighter) -> HurtboxDef:
+    """Return the capsule a fighter is hit with now: the crouch capsule while it is low (see
+    :func:`low_profile`), else the standing one (decision D-069)."""
+    body = fighter.character.body
+    return body.crouch_hurtbox if low_profile(fighter) else body.hurtbox
 
 
 def hurtbox(fighter: Fighter) -> Capsule:

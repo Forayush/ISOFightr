@@ -7,13 +7,15 @@ capsule. Landings are Melee's: the landing lag plays standing, then a fighter st
 down crouches.
 """
 
+import tomllib
 from dataclasses import replace
 
 import pytest
 
 from helpers import hold, make_match, make_stage, neutral, place, run
 from isofightr.ai.view import view_fighter
-from isofightr.data.character_loader import list_character_ids, load_character
+from isofightr.data.character_loader import list_character_ids, load_character, parse_character
+from isofightr.data.paths import CHARACTERS_DIR
 from isofightr.sim.combat.hitbox import ActiveHitbox, hits, hurtbox, hurtbox_shape
 from isofightr.sim.constants import CROUCH_HURTBOX_SHARE
 from isofightr.sim.events import HitEvent
@@ -236,7 +238,13 @@ def test_the_crouch_capsule_is_lower_and_the_same_width(character_id: str) -> No
 
 
 def test_the_default_crouch_capsule_is_d069s_share() -> None:
-    body = load_character("rook").body
+    """A character whose ``fighter.toml`` gives no ``crouch_hurtbox`` (shipped ones give the
+    capsule measured from their drawn crouch)."""
+    rook = load_character("rook")
+    with (CHARACTERS_DIR / "rook" / "fighter.toml").open("rb") as file:
+        data = tomllib.load(file)
+    del data["body"]["crouch_hurtbox"]
+    body = parse_character(data, moves=rook.moves, source="test").body
     expected = body.hurtbox.z0 + CROUCH_HURTBOX_SHARE * (body.hurtbox.z1 - body.hurtbox.z0)
     assert body.crouch_hurtbox == body.hurtbox.lowered(CROUCH_HURTBOX_SHARE)
     assert body.crouch_hurtbox.z1 == pytest.approx(expected)

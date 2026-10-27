@@ -15,8 +15,10 @@ from typing import Final
 
 from isofightr.data.sprite_sheet import AnimInfo
 from isofightr.render.anim_select import AnimChoice, select_anim
+from isofightr.render.crouch_motion import CrouchTrack, crouch_choice
 from isofightr.render.hurt_motion import HurtTrack, hurt_choice, placeholder_spin
 from isofightr.sim.combat.constants import GETUP_FRAMES
+from isofightr.sim.combat.hitbox import low_profile
 from isofightr.sim.fighter import NO_TEAM, Fighter, StateId
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.math3d import Vec3
@@ -46,6 +48,8 @@ class Pose(Enum):
     STAND = "stand"
     TUMBLE = "tumble"
     DOWN = "down"
+    CROUCH = "crouch"
+    """Shorter: crouching or in a down tilt (decision D-069)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +120,7 @@ def fighter_look(
     hit_hitlag: int = 0,
     hurt: HurtTrack | None = None,
     afterimages: tuple[tuple[Vec3, int], ...] = (),
+    crouch: CrouchTrack | None = None,
 ) -> FighterLook:
     """Return a fighter's look.
 
@@ -132,6 +137,8 @@ def fighter_look(
         hurt: the fighter's hit-pose track (``BattleEffects.hurt``): with it a hit shows the
             freeze, flinch, damage-fly and tumble poses of decision D-066.
         afterimages: the fading copies to draw behind a hard launch (passed through).
+        crouch: the fighter's crouch track (``BattleEffects.crouch``): with it a crouch out of
+            a down tilt skips its drop and standing up shows the rise (decision D-069).
     """
     pose, spin = Pose.STAND, 0
     if fighter.state is StateId.TUMBLE:
@@ -145,6 +152,8 @@ def fighter_look(
         pose = Pose.TUMBLE
         turns = (fighter.state_frame // ROLL_SPIN_FRAMES) % QUARTER_TURNS
         spin = turns * QUARTER_TURN_DEGREES
+    elif low_profile(fighter):
+        pose = Pose.CROUCH
 
     charging = fighter.state is StateId.ATTACK and fighter.charge_frames > 0
     charge_blink = charging and (frame // CHARGE_BLINK_FRAMES) % 2 == 0
@@ -162,7 +171,7 @@ def fighter_look(
     if anims is not None:
         chosen = hurt_choice(fighter, hurt, anims)
         if chosen is None:
-            sprite = select_anim(fighter, anims)
+            sprite = crouch_choice(fighter, crouch, anims) or select_anim(fighter, anims)
         else:
             sprite = AnimChoice(chosen.anim, chosen.pose, exact=True)
             direction = chosen.direction

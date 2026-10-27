@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Final
 
+from isofightr.render.crouch_motion import CrouchMotion
 from isofightr.render.ground_items import ProjectileLooks
 from isofightr.render.hit_splash import GuardSplash, HitSplash, HitSplashes, tier_of
 from isofightr.render.hurt_motion import HurtMotion
@@ -466,6 +467,8 @@ class BattleEffects:
     """The pending launch last seen on each player, to notice a new one."""
     hurt: HurtMotion = field(default_factory=HurtMotion)
     """Each fighter's hit pose and body turn (decisions D-066, D-067), for ``fighter_look``."""
+    crouch: CrouchMotion = field(default_factory=CrouchMotion)
+    """Each fighter's crouch drop and rise (decision D-069), for ``fighter_look``."""
     _paths: dict[int, list[Vec3]] = field(default_factory=dict)
     """Where each fighter launched hard has been since the launch (for its afterimages)."""
     _tick_events: list[Event] = field(default_factory=list)
@@ -616,6 +619,7 @@ class BattleEffects:
         fighters = list(fighters)
         match_frame = self.ticks if frame is None else frame
         self.hurt.step(fighters, self._tick_events, match_frame)
+        self.crouch.step(fighters)
         self._tick_events = []
         if self.hit_effects != HIT_EFFECTS_OFF:
             self.splashes.observe(fighters, stage, match_frame)

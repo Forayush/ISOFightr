@@ -663,11 +663,13 @@ class WorldRenderer:
             position = (left + frame.width / 2, top - frame.height / 2)
         else:
             lying = look.pose is Pose.DOWN
+            low = look.pose is Pose.CROUCH
             spin = look.spin_degrees if look.pose is Pose.TUMBLE else 0
+            key = ("fighter", entity.color_index, entity.facing, lying, spin, look.flash, look.dim)
             texture = self._texture(
-                ("fighter", entity.color_index, entity.facing, lying, spin, look.flash, look.dim),
+                (*key, low) if low else key,
                 lambda: art.build_fighter(
-                    entity.color_index, entity.facing, lying, spin, look.flash, look.dim
+                    entity.color_index, entity.facing, lying, spin, look.flash, look.dim, low
                 ),
             )
             position = (

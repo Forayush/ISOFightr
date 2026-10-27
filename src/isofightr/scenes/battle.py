@@ -1107,6 +1107,7 @@ class BattleView(TickedView):
                 self.effects.hit_hitlag.get(fighter.player_index, 0),
                 self.effects.hurt.track(fighter.player_index),
                 self.effects.afterimages(fighter.player_index),
+                self.effects.crouch.track(fighter.player_index),
             )
         colors = {fighter.player_index: fighter.color_index for fighter in self.match.fighters}
         ground: list[GroundItem] = []

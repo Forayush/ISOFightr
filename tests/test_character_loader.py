@@ -45,6 +45,7 @@ land_lag = 3
 radius = 0.30
 height = 2.5
 hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.3 }
+crouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.66 }
 shield_radius_max = 1.2
 [moveset]
 jab = ["jab1", "jab2", "jab3"]
@@ -77,6 +78,7 @@ back = { damage = 10.0, angle = 42, bkb = 60, kbg = 75, release = 16, total = 38
 up = { damage = 7.0, angle = 88, bkb = 60, kbg = 70, release = 14, total = 36 }
 down = { damage = 5.0, angle = 70, bkb = 55, kbg = 40, release = 18, total = 34 }
 """
+ROOK_CROUCH = "crouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.66 }"
 MOVES = load_moves(CHARACTERS_DIR / "rook" / MOVES_DIR_NAME)
 
 
@@ -163,20 +165,12 @@ def test_invalid_toml_names_the_file(tmp_path: Path) -> None:
         ("[body]", "[body]\nshield = 1", r"body: unknown key\(s\) 'shield'"),
         ("z1 = 2.3", "z1 = 0.5", r"body\.hurtbox\.z1: must be at least"),
         (
-            "shield_radius_max = 1.2",
-            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.4 }",
+            "z1 = 1.66 }",
+            "z1 = 2.4 }",
             r"body\.crouch_hurtbox\.z1: must not be above the standing hurtbox's z1",
         ),
-        (
-            "shield_radius_max = 1.2",
-            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 0.6 }",
-            r"body\.crouch_hurtbox\.z1: must be at least",
-        ),
-        (
-            "shield_radius_max = 1.2",
-            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, top = 1.5 }",
-            r"body\.crouch_hurtbox: unknown key\(s\) 'top'",
-        ),
+        ("z1 = 1.66 }", "z1 = 0.6 }", r"body\.crouch_hurtbox\.z1: must be at least"),
+        ("z1 = 1.66 }", "top = 1.66 }", r"body\.crouch_hurtbox: unknown key\(s\) 'top'"),
         ('ftilt = "ftilt"', 'ftilt = "nope"', r"moveset\.ftilt: no move file for 'nope'"),
         ('ftilt = "ftilt"', 'ftilt = "fair"', r"moveset\.ftilt: move 'fair' is a aerial"),
         ('ftilt = "ftilt"', "", r"moveset\.ftilt: missing required key"),
@@ -189,13 +183,10 @@ def test_mistakes_are_reported_with_file_and_key(old: str, new: str, message: st
 
 
 def test_the_crouch_hurtbox_is_read_or_defaults_to_d069s_share() -> None:
-    body = parse(ROOK).body
+    assert parse(ROOK).body.crouch_hurtbox == HurtboxDef(radius=0.35, z0=0.2, z1=1.66)
+    without = ROOK.replace(f"{ROOK_CROUCH}\n", "")
+    body = parse(without).body
     assert body.crouch_hurtbox == body.hurtbox.lowered(0.62)
-    edited = ROOK.replace(
-        "shield_radius_max = 1.2",
-        "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.7 }",
-    )
-    assert parse(edited).body.crouch_hurtbox == HurtboxDef(radius=0.35, z0=0.2, z1=1.7)
 
 
 def test_zero_air_jumps_and_zero_land_lag_are_allowed() -> None:

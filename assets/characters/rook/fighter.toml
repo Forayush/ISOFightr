@@ -30,6 +30,7 @@ land_lag = 3
 radius = 0.30                # environment collision radius
 height = 2.5
 hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.3 }   # vertical capsule above the feet
+crouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.66 }   # crouching and in a down tilt: measured from the drawn crouch (D-069)
 shield_radius_max = 1.2      # shield sphere radius at full shield HP
 
 [moveset]                    # input slot -> move id (a file in moves/)

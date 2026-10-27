@@ -111,6 +111,7 @@ WINDOWLESS_MODULES = (
     "isofightr.render.splash_art",
     "isofightr.render.backdrop",
     "isofightr.render.camera",
+    "isofightr.render.crouch_motion",
     "isofightr.render.depth",
     "isofightr.render.effects",
     "isofightr.render.fighter_look",

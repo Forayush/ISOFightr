@@ -1,43 +1,111 @@
-# Down tilt: a crouching sweep at the shins (active 5-7).
+# Down tilt: from the deep crouch, a low sword thrust along the shins (active 5-7), then back
+# into the crouch (decision D-069: it starts and ends on crouch's first pose, so it comes out
+# of the crouch and returns to it without a pop).
 
 [[smears]]
-name = "sweep"
+name = "thrust"
 joint = "origin"
 shape = "arc"
-centre = [0.2, 0.0, 0.42]
-r_in = 0.45
-r_out = 1.35
-a0 = -60
-a1 = 20
+centre = [0.0, 0.0, 0.42]
+r_in = 0.35
+r_out = 1.5
+a0 = -7
+a1 = 7
 thickness = 0.05
 turn = [0.0, 0.0, 0.0]
 
 [[poses]]
 start = 1
 use = "crouch"
-shoulder_r = [30.0, 0.0, -40.0]
-elbow_r = [40.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
+offset = [0.0, 0.0, -0.57]
+chest = [-45.0, 0.0, -6.0]
+head = [36.0, 0.0, -4.0]
+cape = [27.0, 0.0, 0.0]
+shoulder_r = [40.0, 0.0, -14.0]
+elbow_r = [50.0, 0.0, 0.0]
+hand_r = [-25.0, 0.0, 0.0]
+shoulder_l = [45.0, 0.0, 22.0]
+elbow_l = [70.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
+
+[[poses]]
+start = 3
+use = "crouch"
+offset = [0.0, -0.06, -0.58]
+chest = [-44.0, 0.0, -22.0]
+head = [36.0, 0.0, 12.0]
+cape = [26.0, 0.0, 0.0]
+shoulder_r = [12.0, 0.0, -28.0]
+elbow_r = [70.0, 0.0, 0.0]
+hand_r = [-20.0, 0.0, 0.0]
+shoulder_l = [55.0, 0.0, 26.0]
+elbow_l = [62.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
 
 [[poses]]
 start = 5
 use = "crouch"
-offset = [0.0, 0.05, -0.24]
-show = ["sweep"]
-chest = [-30.0, 0.0, 20.0]
-shoulder_r = [62.0, 0.0, -5.0]
+offset = [0.0, 0.22, -0.62]
+show = ["thrust"]
+chest = [-50.0, 0.0, 16.0]
+head = [40.0, 0.0, -14.0]
+cape = [16.0, 0.0, 0.0]
+shoulder_r = [118.0, 0.0, -4.0]
 elbow_r = [5.0, 0.0, 0.0]
-hand_r = [-75.0, 0.0, 0.0]
+hand_r = [-85.0, 0.0, 0.0]
+shoulder_l = [30.0, 0.0, 30.0]
+elbow_l = [70.0, 0.0, 0.0]
+hip_r = [96.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [54.0, 0.0, 0.0]
+hip_l = [104.0, 0.0, 14.0]
+knee_l = [-152.0, 0.0, 0.0]
+ankle_l = [48.0, 0.0, -8.0]
 
 [[poses]]
 start = 8
 use = "crouch"
-offset = [0.0, 0.05, -0.24]
-chest = [-30.0, 0.0, 25.0]
-shoulder_r = [60.0, 0.0, 20.0]
-elbow_r = [5.0, 0.0, 0.0]
-hand_r = [-75.0, 0.0, 0.0]
+offset = [0.0, 0.2, -0.61]
+chest = [-49.0, 0.0, 14.0]
+head = [39.0, 0.0, -12.0]
+cape = [22.0, 0.0, 0.0]
+shoulder_r = [114.0, 0.0, -4.0]
+elbow_r = [8.0, 0.0, 0.0]
+hand_r = [-82.0, 0.0, 0.0]
+shoulder_l = [32.0, 0.0, 28.0]
+elbow_l = [70.0, 0.0, 0.0]
+hip_r = [96.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [54.0, 0.0, 0.0]
+hip_l = [104.0, 0.0, 14.0]
+knee_l = [-152.0, 0.0, 0.0]
+ankle_l = [48.0, 0.0, -8.0]
 
 [[poses]]
 start = 16
 use = "crouch"
+offset = [0.0, 0.0, -0.57]
+chest = [-45.0, 0.0, -6.0]
+head = [36.0, 0.0, -4.0]
+cape = [27.0, 0.0, 0.0]
+shoulder_r = [40.0, 0.0, -14.0]
+elbow_r = [50.0, 0.0, 0.0]
+hand_r = [-25.0, 0.0, 0.0]
+shoulder_l = [45.0, 0.0, 22.0]
+elbow_l = [70.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
