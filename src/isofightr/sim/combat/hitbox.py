@@ -7,6 +7,7 @@ Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``ran
 
 from dataclasses import dataclass
 
+from isofightr.sim.character_def import HurtboxDef
 from isofightr.sim.fighter import Fighter
 from isofightr.sim.math3d import Capsule, Vec2, Vec3, capsules_overlap
 from isofightr.sim.move_def import HitboxDef
@@ -40,15 +41,18 @@ def local_to_world(pos: Vec3, facing: Vec2, offset: Vec3) -> Vec3:
     )
 
 
-def hurtbox(fighter: Fighter) -> Capsule:
-    """Return a fighter's hurtbox: a vertical capsule above its feet."""
-    shape = fighter.character.body.hurtbox
-    pos = fighter.pos
+def hurtbox_capsule(feet: Vec3, shape: HurtboxDef) -> Capsule:
+    """Return the vertical capsule ``shape`` describes, standing on ``feet``."""
     return Capsule(
-        Vec3(pos.x, pos.y, pos.z + shape.z0 + shape.radius),
-        Vec3(pos.x, pos.y, pos.z + shape.z1 - shape.radius),
+        Vec3(feet.x, feet.y, feet.z + shape.z0 + shape.radius),
+        Vec3(feet.x, feet.y, feet.z + shape.z1 - shape.radius),
         shape.radius,
     )
+
+
+def hurtbox(fighter: Fighter) -> Capsule:
+    """Return a fighter's hurtbox: a vertical capsule above its feet."""
+    return hurtbox_capsule(fighter.pos, fighter.character.body.hurtbox)
 
 
 def active_hitboxes(fighter: Fighter) -> list[ActiveHitbox]:
