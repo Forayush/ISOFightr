@@ -11,6 +11,8 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 
 from dataclasses import dataclass
 
+from isofightr.sim.character_def import HurtboxDef
+from isofightr.sim.combat.hitbox import hurtbox_shape
 from isofightr.sim.fighter import NO_PARTNER, Fighter, GroundKind, Launch, StateId
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.match import Match
@@ -18,7 +20,7 @@ from isofightr.sim.math3d import Vec3
 from isofightr.sim.rules import MatchPhase
 
 FREE_GROUND_STATES = frozenset(
-    {StateId.IDLE, StateId.WALK, StateId.DASH, StateId.RUN, StateId.REVIVAL}
+    {StateId.IDLE, StateId.WALK, StateId.DASH, StateId.RUN, StateId.REVIVAL, StateId.CROUCH}
 )
 """Grounded states in which a fresh press starts something at once."""
 FREE_AIR_STATES = frozenset({StateId.FALL, StateId.JUMP, StateId.DOUBLE_JUMP})
@@ -61,6 +63,8 @@ class FighterView:
     stun_frames: int
     move_faf: int
     """First actionable frame of the current move, 0 outside an attack."""
+    hurtbox: HurtboxDef
+    """The capsule it is hit with now (lower while crouching or in a down tilt, D-069)."""
 
     @property
     def free(self) -> bool:
@@ -134,6 +138,7 @@ def view_fighter(fighter: Fighter) -> FighterView:
         ledge_cooldown=fighter.ledge_cooldown,
         stun_frames=fighter.stun_frames,
         move_faf=move.faf if move is not None else 0,
+        hurtbox=hurtbox_shape(fighter),
     )
 
 

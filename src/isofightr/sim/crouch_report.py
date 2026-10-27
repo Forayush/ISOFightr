@@ -40,8 +40,6 @@ SCANNED_KINDS: Final[tuple[MoveKind, ...]] = (
 )
 DEFAULT_DISTANCES: Final[tuple[float, ...]] = (1.0, 1.5)
 """How far in front of the attacker the targets stand, in units."""
-DEFAULT_CROUCH_SHARE: Final[float] = 0.62
-"""D-069's first crouch capsule: its top at this share of the standing height above ``z0``."""
 GRABS: Final[tuple[str, ...]] = ("grab", "dash_grab")
 GUARD_SLOTS: Final[tuple[str, ...]] = (
     "jab1",
@@ -119,13 +117,6 @@ class CrouchRow:
     def guard_failure(self) -> bool:
         """Whether a guarded action loses a crouching target its first window should reach."""
         return self.guarded and bool(self.loses_first)
-
-
-def crouch_shape(standing: HurtboxDef, share: float = DEFAULT_CROUCH_SHARE) -> HurtboxDef:
-    """Return a crouch capsule like ``standing`` (same radius and ``z0``) whose top is at
-    ``share`` of the standing height above ``z0``, never lower than a sphere."""
-    top = standing.z0 + share * (standing.z1 - standing.z0)
-    return HurtboxDef(standing.radius, standing.z0, max(top, standing.z0 + 2 * standing.radius))
 
 
 def guarded_actions(character: CharacterDef) -> dict[str, str]:
@@ -229,8 +220,8 @@ def scan(
     actions: Sequence[str] | None = None,
 ) -> list[CrouchRow]:
     """Return a row for every move the report covers (or ``actions``), with ``crouch`` as
-    the crouching capsule (default: D-069's first value)."""
-    shape = crouch or crouch_shape(character.body.hurtbox)
+    the crouching capsule (default: the character's own ``crouch_hurtbox``)."""
+    shape = crouch or character.body.crouch_hurtbox
     return [
         scan_action(stage, character, action, shape, distances)
         for action in (actions or scanned_actions(character))

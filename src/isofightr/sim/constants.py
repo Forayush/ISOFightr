@@ -39,6 +39,9 @@ RUN_TURN_TRACTION_MULT: Final[float] = 2.0
 
 PLATFORM_DROP_FRAMES: Final[int] = 3
 """Frames spent crouching before dropping through a soft platform."""
+CROUCH_HURTBOX_SHARE: Final[float] = 0.62
+"""A character without a ``crouch_hurtbox`` crouches with its top at this share of the
+standing hurtbox's height above ``z0`` (decision D-069)."""
 
 # --- Stage collision -----------------------------------------------------------------------
 STEP_HEIGHT: Final[float] = 0.25

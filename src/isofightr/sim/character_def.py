@@ -6,6 +6,8 @@ validation live in :mod:`isofightr.data.character_loader`.
 Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``random``.
 """
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Self
@@ -56,6 +58,12 @@ class HurtboxDef:
     z1: float
     """Height of the capsule's highest point above the feet."""
 
+    def lowered(self, share: float) -> HurtboxDef:
+        """Return a capsule as wide and as low as this one whose top is at ``share`` of its
+        height above ``z0``, never lower than a sphere (the default crouch, decision D-069)."""
+        top = self.z0 + share * (self.z1 - self.z0)
+        return HurtboxDef(self.radius, self.z0, max(top, self.z0 + 2 * self.radius))
+
 
 @dataclass(frozen=True, slots=True)
 class BodyStats:
@@ -68,6 +76,8 @@ class BodyStats:
     hurtbox: HurtboxDef
     shield_radius_max: float
     """Radius of the shield sphere at full shield HP."""
+    crouch_hurtbox: HurtboxDef
+    """The capsule while crouching or in a move's low-profile frames (decision D-069)."""
 
 
 @dataclass(frozen=True, slots=True)

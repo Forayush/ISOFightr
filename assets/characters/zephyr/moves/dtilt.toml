@@ -4,6 +4,7 @@ id = "dtilt"
 kind = "tilt"
 total = 18
 faf = 19
+low_profile = "1-18"   # hit with the crouch capsule throughout (D-069)
 
 [[windows]]
 frames = "4-6"

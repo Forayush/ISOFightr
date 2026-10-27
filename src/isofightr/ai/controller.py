@@ -147,7 +147,6 @@ class CpuController:
         self.last = NEUTRAL_INPUT
         self.plan = Plan("idle")
         self.knowledge: dict[int, CharacterKnowledge] = {}
-        self.hurtboxes: dict[int, tuple[float, float, float]] = {}
         self.gravity: dict[int, float] = {}
         self._next_decision = 0
         self._edge_lookahead = config.CPU_EDGE_LOOKAHEAD
@@ -181,8 +180,6 @@ class CpuController:
             for fighter in match.fighters:
                 index = fighter.player_index
                 self.knowledge[index] = knowledge_for(fighter.character)
-                box = fighter.character.body.hurtbox
-                self.hurtboxes[index] = (box.z0, box.z1, box.radius)
                 self.gravity[index] = fighter.character.movement.gravity
                 if index == self.player:
                     stats = fighter.character.movement
@@ -295,12 +292,14 @@ class CpuController:
         floor = ground_below(self.live, pos.x, pos.y, target.pos.z)
         return Vec3(pos.x, pos.y, max(z, floor) if floor is not None else z)
 
-    def _hurt(self, index: int, feet: Vec3) -> tuple[Vec3, Vec3, float]:
-        z0, z1, radius = self.hurtboxes[index]
+    @staticmethod
+    def _hurt(fighter: FighterView, feet: Vec3) -> tuple[Vec3, Vec3, float]:
+        """The fighter's hurtbox as it is now (crouching or not), standing on ``feet``."""
+        box = fighter.hurtbox
         return (
-            Vec3(feet.x, feet.y, feet.z + z0 + radius),
-            Vec3(feet.x, feet.y, feet.z + z1 - radius),
-            radius,
+            Vec3(feet.x, feet.y, feet.z + box.z0 + box.radius),
+            Vec3(feet.x, feet.y, feet.z + box.z1 - box.radius),
+            box.radius,
         )
 
     # --- self-centred situations ---------------------------------------------------------
@@ -549,7 +548,7 @@ class CpuController:
         (frames until it lands, a key identifying it), or ``None``."""
         if me.intangible:
             return None
-        low, high, radius = self._hurt(self.player, me.pos)
+        low, high, radius = self._hurt(me, me.pos)
         soonest: tuple[int, int] | None = None
         for other in seen.fighters:
             if other.index == self.player or not other.in_play or other.state is not StateId.ATTACK:
@@ -696,7 +695,7 @@ class CpuController:
             if frame > LOOKAHEAD_LIMIT:
                 return None
             where = self._predict(target, lead + frame)
-            low, high, radius = self._hurt(target.index, where)
+            low, high, radius = self._hurt(target, where)
             for sphere in hit_frame.spheres:
                 if sphere.grab and not target.grounded:
                     continue

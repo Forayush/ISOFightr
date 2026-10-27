@@ -64,6 +64,7 @@ STATE_ANIMS: Final[Mapping[StateId, str]] = {
     StateId.WALL_TECH: "wall_tech",
     StateId.GETUP_ROLL: "getup_roll",
     StateId.REVIVAL: "revival",
+    StateId.CROUCH: "crouch",
 }
 """The animation each non-attack state shows. Attacks are named by their move id and throws by
 their throw id (``fthrow``, ``bthrow``, ``uthrow``, ``dthrow``)."""
@@ -99,6 +100,7 @@ FALLBACKS: Final[Mapping[str, str]] = {
     "ledge_climb": "ledge_getup",
     "wall_tech": "tech",
     "revival": "idle",
+    "crouch": "land",
     "riposte_hit": "dspecial",
 }
 """What to show while an animation is not drawn yet."""

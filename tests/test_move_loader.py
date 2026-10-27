@@ -97,6 +97,16 @@ def test_frame_ranges_are_inclusive_and_one_indexed() -> None:
     assert 9 in FrameRange(7, 9) and 10 not in FrameRange(7, 9) and 6 not in FrameRange(7, 9)
 
 
+def test_a_low_profile_window_is_a_frame_range_inside_the_move() -> None:
+    """Decision D-069: ``low_profile`` frames are hit with the crouch capsule."""
+    assert parse(TILT).low_profile is None
+    assert parse(TILT.replace("faf = 31", 'faf = 31\nlow_profile = "1-"')).low_profile == (
+        FrameRange(1, 30)
+    )
+    with pytest.raises(DataError, match=r"low_profile: frames '1-40' must lie within 1\.\.30"):
+        parse(TILT.replace("faf = 31", 'faf = 31\nlow_profile = "1-40"'))
+
+
 def test_aerials_need_landing_lag_and_do_not_clank() -> None:
     move = parse(AERIAL, "nair")
     assert move.landing_lag == 7

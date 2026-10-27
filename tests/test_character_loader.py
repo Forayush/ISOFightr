@@ -14,7 +14,7 @@ from isofightr.data.character_loader import list_character_ids, load_character, 
 from isofightr.data.move_loader import load_moves
 from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError
-from isofightr.sim.character_def import CharacterDef
+from isofightr.sim.character_def import CharacterDef, HurtboxDef
 
 ROOK = """
 id = "rook"
@@ -162,6 +162,21 @@ def test_invalid_toml_names_the_file(tmp_path: Path) -> None:
         ("height = 2.5", "", r"body\.height: missing required key"),
         ("[body]", "[body]\nshield = 1", r"body: unknown key\(s\) 'shield'"),
         ("z1 = 2.3", "z1 = 0.5", r"body\.hurtbox\.z1: must be at least"),
+        (
+            "shield_radius_max = 1.2",
+            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 2.4 }",
+            r"body\.crouch_hurtbox\.z1: must not be above the standing hurtbox's z1",
+        ),
+        (
+            "shield_radius_max = 1.2",
+            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 0.6 }",
+            r"body\.crouch_hurtbox\.z1: must be at least",
+        ),
+        (
+            "shield_radius_max = 1.2",
+            "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, top = 1.5 }",
+            r"body\.crouch_hurtbox: unknown key\(s\) 'top'",
+        ),
         ('ftilt = "ftilt"', 'ftilt = "nope"', r"moveset\.ftilt: no move file for 'nope'"),
         ('ftilt = "ftilt"', 'ftilt = "fair"', r"moveset\.ftilt: move 'fair' is a aerial"),
         ('ftilt = "ftilt"', "", r"moveset\.ftilt: missing required key"),
@@ -171,6 +186,16 @@ def test_mistakes_are_reported_with_file_and_key(old: str, new: str, message: st
     assert old in ROOK
     with pytest.raises(DataError, match=r"^rook/fighter\.toml: " + message):
         parse(ROOK.replace(old, new))
+
+
+def test_the_crouch_hurtbox_is_read_or_defaults_to_d069s_share() -> None:
+    body = parse(ROOK).body
+    assert body.crouch_hurtbox == body.hurtbox.lowered(0.62)
+    edited = ROOK.replace(
+        "shield_radius_max = 1.2",
+        "shield_radius_max = 1.2\ncrouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.7 }",
+    )
+    assert parse(edited).body.crouch_hurtbox == HurtboxDef(radius=0.35, z0=0.2, z1=1.7)
 
 
 def test_zero_air_jumps_and_zero_land_lag_are_allowed() -> None:

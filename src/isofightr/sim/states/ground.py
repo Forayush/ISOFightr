@@ -1,4 +1,5 @@
-"""Ground states: Idle, Walk, Dash, Run, RunTurn, Skid, Turn, JumpSquat, Land, PlatformDrop.
+"""Ground states: Idle, Walk, Dash, Run, RunTurn, Skid, Turn, JumpSquat, Land, PlatformDrop,
+Crouch.
 
 Plan note "04 - Movement and Physics" ("Ground movement", "Jumping and air"). Fighters never
 stop at edges: walking or running off one is handled by physics, which hands the fighter to
@@ -20,7 +21,7 @@ from isofightr.sim.constants import (
 )
 from isofightr.sim.events import JumpEvent, JumpKind
 from isofightr.sim.fighter import Fighter, GroundKind, StateId
-from isofightr.sim.input_frame import Button, Press
+from isofightr.sim.input_frame import VERTICAL_DOWN, Button, Press
 from isofightr.sim.math3d import Vec2, Vec3
 from isofightr.sim.stage import NO_PLATFORM
 from isofightr.sim.states import interrupts
@@ -60,11 +61,12 @@ class Walk(GroundState):
         interrupts.face(fighter, interrupts.stick_direction(fighter))
 
     def step(self, match: Match, fighter: Fighter) -> None:
-        """Jump, dash, drop, turn around, keep walking, or stop."""
+        """Jump, dash, drop, crouch, turn around, keep walking, or stop."""
         if (
             interrupts.ground_actions(match, fighter)
             or interrupts.ground_dash(match, fighter)
             or interrupts.platform_drop_tap(match, fighter)
+            or interrupts.walk_crouch(match, fighter)
         ):
             return
         direction = interrupts.stick_direction(fighter)
@@ -271,3 +273,29 @@ class PlatformDrop(GroundState):
             fighter.drop_platform = fighter.platform
             leave_ground(fighter)
             change_state(match, fighter, StateId.FALL)
+
+
+@register
+class Crouch(GroundState):
+    """Crouching on solid ground while Down is held (decision D-069).
+
+    The fighter slides to a stop and is hit with its crouch capsule. The stick turns it on the
+    spot and never moves it; a flick does not dash. Letting go of Down (or pressing up) stands,
+    walking at once if the stick is held. Down moves, a grab, a jump and a spot dodge come out
+    of it (:data:`interrupts.CROUCHING`).
+    """
+
+    id = StateId.CROUCH
+    stops_at_edges = True
+
+    def step(self, match: Match, fighter: Fighter) -> None:
+        """Act, stand up, or turn toward the stick."""
+        if interrupts.run_interrupts(match, fighter, interrupts.CROUCHING):
+            return
+        buffer = fighter.buffer
+        buffer.consume(Press.FLICK)
+        if buffer.vertical != VERTICAL_DOWN or fighter.ground is not GroundKind.CELL:
+            if not interrupts.run_interrupts(match, fighter, interrupts.GROUND_NEUTRAL):
+                change_state(match, fighter, StateId.IDLE)
+            return
+        interrupts.face(fighter, interrupts.stick_direction(fighter))

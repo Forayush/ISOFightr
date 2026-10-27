@@ -13,7 +13,6 @@ from isofightr.sim.crouch_report import (
     STANDING,
     CrouchRow,
     Reach,
-    crouch_shape,
     findings,
     guarded_actions,
     scan,
@@ -109,14 +108,14 @@ def test_the_guard_list_reaches_a_standing_target_first(
 def test_d069s_guard_list_reaches_a_crouching_target(
     reports: dict[str, list[CrouchRow]],
 ) -> None:
-    """Decision D-069's balance guard, at its first crouch capsule."""
+    """Decision D-069's balance guard, with each character's own crouch capsule."""
     for character_id, rows in reports.items():
         assert not [row.action for row in rows if row.guard_failure], character_id
 
 
 def test_a_low_preview_capsule_lets_high_moves_pass_over() -> None:
     rook = CHARACTERS["rook"]
-    low = crouch_shape(rook.body.hurtbox, 0.0)
+    low = rook.body.hurtbox.lowered(0.0)
     rows = {row.action: row for row in scan(GRID, rook, low, actions=["utilt", "dtilt"])}
     assert rows["utilt"].reaches(1.0, STANDING)
     assert not rows["utilt"].reaches(1.0, CROUCHING)
@@ -125,12 +124,19 @@ def test_a_low_preview_capsule_lets_high_moves_pass_over() -> None:
     assert any("utilt" in line for line in findings(list(rows.values())))
 
 
-def test_the_crouch_shape_is_d069s_first_value() -> None:
+def test_the_report_crouches_with_the_characters_own_capsule() -> None:
+    rook = CHARACTERS["rook"]
+    row = scan(GRID, rook, actions=["utilt"])[0]
+    same = scan(GRID, rook, rook.body.crouch_hurtbox, actions=["utilt"])[0]
+    assert row == same
+
+
+def test_d069s_share_and_the_lowest_capsule() -> None:
     tops = {
-        character_id: crouch_shape(character.body.hurtbox).z1
+        character_id: character.body.hurtbox.lowered(0.62).z1
         for character_id, character in CHARACTERS.items()
     }
     expected = {"rook": 1.5, "bramble": 1.69, "zephyr": 1.2, "mote": 1.38}
     assert tops == pytest.approx(expected, abs=0.005)
-    shape = crouch_shape(CHARACTERS["rook"].body.hurtbox, 0.0)
+    shape = CHARACTERS["rook"].body.hurtbox.lowered(0.0)
     assert shape.z1 == pytest.approx(shape.z0 + 2 * shape.radius), "never lower than a sphere"

@@ -47,6 +47,7 @@ _MOVE_KEYS = (
     "landing_lag",
     "autocancel",
     "intangible",
+    "low_profile",
     "projectiles",
     "counter",
     "armor",
@@ -190,6 +191,7 @@ def parse_move(
         landing_lag=root.integer("landing_lag") if root.has("landing_lag") else 0,
         autocancel=autocancel,
         intangible=_optional_range(root, "intangible", total),
+        low_profile=_optional_range(root, "low_profile", total),
         projectiles=tuple(
             _projectile(table, source, index, total)
             for index, table in enumerate(root.tables("projectiles"))

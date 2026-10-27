@@ -267,6 +267,39 @@ def ground_move(match: Match, fighter: Fighter) -> bool:
     return True
 
 
+def ground_crouch(match: Match, fighter: Fighter) -> bool:
+    """Crouch while Down is held on solid ground (decision D-069). Soft platforms keep
+    :func:`platform_drop_hold`. Uses up the press, so it cannot also start anything else."""
+    if fighter.ground is GroundKind.CELL and fighter.buffer.vertical == VERTICAL_DOWN:
+        fighter.buffer.consume(Press.DOWN)
+        change_state(match, fighter, StateId.CROUCH)
+        return True
+    return False
+
+
+def walk_crouch(match: Match, fighter: Fighter) -> bool:
+    """Crouch out of a walk on a fresh Down press held on solid ground (as a walking
+    fighter's tap drops through a soft platform)."""
+    buffer = fighter.buffer
+    if (
+        fighter.ground is GroundKind.CELL
+        and buffer.vertical == VERTICAL_DOWN
+        and buffer.consume(Press.DOWN)
+    ):
+        change_state(match, fighter, StateId.CROUCH)
+        return True
+    return False
+
+
+def crouch_shield(match: Match, fighter: Fighter) -> bool:
+    """Shield out of a crouch: a shield press spot-dodges at once (Down is already held, so
+    the shield's own fresh-Down rule could never fire); a shield held from before shields."""
+    if fighter.buffer.consume(Press.SHIELD):
+        change_state(match, fighter, StateId.SPOT_DODGE)
+        return True
+    return ground_shield(match, fighter)
+
+
 def platform_drop_hold(match: Match, fighter: Fighter) -> bool:
     """Drop through a soft platform while Down is held (standing still)."""
     if fighter.ground is GroundKind.PLATFORM and fighter.buffer.vertical == VERTICAL_DOWN:
@@ -292,11 +325,24 @@ GROUND_NEUTRAL: tuple[Interrupt, ...] = (
     ground_attack,
     ground_shield,
     ground_taunt,
+    ground_crouch,
     ground_dash,
     ground_move,
     platform_drop_hold,
 )
 """Priority order for a fighter that is free to do anything on the ground."""
+
+CROUCHING: tuple[Interrupt, ...] = (
+    ground_special,
+    ground_strong,
+    ground_jump,
+    ground_grab,
+    ground_attack,
+    crouch_shield,
+)
+"""Priority order while crouching (decision D-069): with Down held these are the down
+special, the down smash, a jump, a grab, the down tilt and a spot dodge. No dash, walk or
+taunt: the stick only turns the fighter."""
 
 
 def run_interrupts(match: Match, fighter: Fighter, interrupts: tuple[Interrupt, ...]) -> bool:
@@ -311,13 +357,16 @@ GROUND_RECOVER: tuple[Interrupt, ...] = (
     ground_grab,
     ground_attack,
     ground_shield,
+    ground_crouch,
     ground_dash,
     ground_dash_held,
     ground_move,
     platform_drop_hold,
 )
 """Priority order on the first actionable frame after landing lag, a turn, a skid or a dash:
-like :data:`GROUND_NEUTRAL`, plus a fully held stick dashes without a fresh flick."""
+like :data:`GROUND_NEUTRAL`, plus a fully held stick dashes without a fresh flick. Down still
+held crouches, as in Melee: a landing plays its lag standing and then crouches, and a down
+tilt goes straight back into the crouch (decision D-069)."""
 
 
 def become_ground_neutral(match: Match, fighter: Fighter) -> None:

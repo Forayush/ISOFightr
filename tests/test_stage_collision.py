@@ -103,12 +103,14 @@ def test_holding_down_on_a_platform_drops_through_after_three_frames() -> None:
     assert not rook.fast_falling, "the drop tap is not also a fast fall"
 
 
-def test_down_does_nothing_on_solid_ground() -> None:
+def test_down_on_solid_ground_crouches_in_place() -> None:
+    """Solid ground never drops; since D-069 holding down there crouches instead."""
     match = make_match(PLATFORM_STAGE)
     rook = match.fighters[0]
     place(match, rook, 6.5, 6.5)
+    start = rook.pos
     run(match, hold(vertical=-1, frames=10))
-    assert rook.state is StateId.IDLE and rook.pos.z == 0.0
+    assert rook.state is StateId.CROUCH and rook.pos == start
 
 
 def test_tapping_down_while_walking_on_a_platform_drops_through() -> None:

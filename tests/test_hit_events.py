@@ -257,7 +257,9 @@ def test_a_hit_theme_is_optional_and_checked() -> None:
 def test_a_replay_recorded_before_the_new_events_still_verifies() -> None:
     """``replay_before_m17_events.json`` was recorded before M17 group 1 added the contact,
     sweetspot and multi-hit fields and the launch event: event data only, so it plays back
-    to the same state (the goldens check the same)."""
+    to the same state (the goldens check the same). Its final hash was re-recorded once, with
+    the goldens, when the crouch changed the sim (M18 group 1, D-069): its random input holds
+    down on the ground."""
     replay = load_replay(FIXTURES / "replay_before_m17_events.json")
     assert play_back(match_for(replay), replay)
 

@@ -25,6 +25,7 @@ from isofightr.sim.character_def import (
     PummelDef,
     ThrowDef,
 )
+from isofightr.sim.constants import CROUCH_HURTBOX_SHARE
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import MoveDef, MoveKind
 
@@ -140,7 +141,11 @@ def parse_character(
         hit_theme=_hit_theme(root),
         weight=weight,
         movement=_movement(root.subtable("movement", (*_SPEED_KEYS, *_FRAME_KEYS))),
-        body=_body(root.subtable("body", ("radius", "height", "hurtbox", "shield_radius_max"))),
+        body=_body(
+            root.subtable(
+                "body", ("radius", "height", "hurtbox", "shield_radius_max", "crouch_hurtbox")
+            )
+        ),
         moveset=_moveset(root.subtable("moveset", (_JAB_SLOT, *_SLOT_KINDS)), moves),
         grabs=_grabs(
             root.subtable("grab", ("standing", "dash", "pummel")),
@@ -287,16 +292,35 @@ def _body(reader: TableReader) -> BodyStats:
         raise reader.error("must be greater than 0", "radius")
     if height <= 0:
         raise reader.error("must be greater than 0", "height")
-    hurt = reader.subtable("hurtbox", ("radius", "z0", "z1"))
-    hurtbox = HurtboxDef(radius=hurt.number("radius"), z0=hurt.number("z0"), z1=hurt.number("z1"))
-    if hurtbox.radius <= 0:
-        raise hurt.error("must be greater than 0", "radius")
-    if hurtbox.z1 - hurtbox.z0 < 2 * hurtbox.radius:
-        raise hurt.error("must be at least z0 plus twice the radius (a capsule)", "z1")
+    hurtbox = _capsule(reader.subtable("hurtbox", ("radius", "z0", "z1")))
+    crouch = hurtbox.lowered(CROUCH_HURTBOX_SHARE)
+    if reader.has("crouch_hurtbox"):
+        low = reader.subtable("crouch_hurtbox", ("radius", "z0", "z1"))
+        crouch = _capsule(low)
+        if crouch.z1 > hurtbox.z1:
+            raise low.error(f"must not be above the standing hurtbox's z1 ({hurtbox.z1})", "z1")
     shield = reader.number("shield_radius_max")
     if shield <= 0:
         raise reader.error("must be greater than 0", "shield_radius_max")
-    return BodyStats(radius=radius, height=height, hurtbox=hurtbox, shield_radius_max=shield)
+    return BodyStats(
+        radius=radius,
+        height=height,
+        hurtbox=hurtbox,
+        shield_radius_max=shield,
+        crouch_hurtbox=crouch,
+    )
+
+
+def _capsule(reader: TableReader) -> HurtboxDef:
+    """A vertical capsule above the feet: ``radius``, ``z0`` and ``z1``."""
+    capsule = HurtboxDef(
+        radius=reader.number("radius"), z0=reader.number("z0"), z1=reader.number("z1")
+    )
+    if capsule.radius <= 0:
+        raise reader.error("must be greater than 0", "radius")
+    if capsule.z1 - capsule.z0 < 2 * capsule.radius:
+        raise reader.error("must be at least z0 plus twice the radius (a capsule)", "z1")
+    return capsule
 
 
 def _hit_theme(root: TableReader) -> str:

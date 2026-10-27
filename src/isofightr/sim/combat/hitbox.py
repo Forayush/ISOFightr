@@ -8,7 +8,7 @@ Pure sim code: never import ``arcade`` or ``pyglet``, read a clock, or use ``ran
 from dataclasses import dataclass
 
 from isofightr.sim.character_def import HurtboxDef
-from isofightr.sim.fighter import Fighter
+from isofightr.sim.fighter import Fighter, StateId
 from isofightr.sim.math3d import Capsule, Vec2, Vec3, capsules_overlap
 from isofightr.sim.move_def import HitboxDef
 
@@ -50,9 +50,22 @@ def hurtbox_capsule(feet: Vec3, shape: HurtboxDef) -> Capsule:
     )
 
 
+def hurtbox_shape(fighter: Fighter) -> HurtboxDef:
+    """Return the capsule a fighter is hit with now: the crouch capsule while crouching or in
+    its move's low-profile frames, else the standing one (decision D-069)."""
+    body = fighter.character.body
+    if fighter.state is StateId.CROUCH:
+        return body.crouch_hurtbox
+    move = fighter.move
+    low = None if move is None else move.low_profile
+    if low is not None and fighter.state_frame in low:
+        return body.crouch_hurtbox
+    return body.hurtbox
+
+
 def hurtbox(fighter: Fighter) -> Capsule:
     """Return a fighter's hurtbox: a vertical capsule above its feet."""
-    return hurtbox_capsule(fighter.pos, fighter.character.body.hurtbox)
+    return hurtbox_capsule(fighter.pos, hurtbox_shape(fighter))
 
 
 def active_hitboxes(fighter: Fighter) -> list[ActiveHitbox]:

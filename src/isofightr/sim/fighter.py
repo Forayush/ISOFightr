@@ -71,6 +71,8 @@ class StateId(Enum):
     GETUP_ROLL = "getup_roll"
     REVIVAL = "revival"
     KO = "ko"
+    CROUCH = "crouch"
+    """Appended last (decision D-069), so no older id changes."""
 
 
 class GroundKind(IntEnum):

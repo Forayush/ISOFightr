@@ -218,6 +218,8 @@ class MoveDef:
     autocancel: tuple[FrameRange, ...]
     intangible: FrameRange | None = None
     """Frames during which the fighter cannot be hit or grabbed (getup attacks)."""
+    low_profile: FrameRange | None = None
+    """Frames during which the fighter is hit with its crouch capsule (down tilts, D-069)."""
     projectiles: tuple[ProjectileDef, ...] = ()
     counter: CounterDef | None = None
     armor: tuple[ArmorDef, ...] = ()

@@ -19,7 +19,7 @@ import sys
 
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.stage_loader import load_stage
-from isofightr.sim.crouch_report import DEFAULT_CROUCH_SHARE, crouch_shape, findings, scan, table
+from isofightr.sim.crouch_report import findings, scan, table
 
 
 def main() -> None:
@@ -31,7 +31,8 @@ def main() -> None:
         "--share",
         type=float,
         default=None,
-        help="preview a crouch capsule whose top is this share of the standing height",
+        help="preview a crouch capsule whose top is this share of the standing height "
+        "(default: each character's own crouch_hurtbox)",
     )
     parser.add_argument("--stage", default="training_grid")
     args = parser.parse_args()
@@ -41,8 +42,9 @@ def main() -> None:
     for character_id in args.character or list_character_ids():
         character = load_character(character_id)
         standing = character.body.hurtbox
-        share = DEFAULT_CROUCH_SHARE if args.share is None else args.share
-        crouch = crouch_shape(standing, share)
+        crouch = character.body.crouch_hurtbox
+        if args.share is not None:
+            crouch = standing.lowered(args.share)
         rows = scan(stage, character, crouch, distances)
         print(
             f"\n{character_id}: standing z {standing.z0:g}-{standing.z1:g}, crouching z "
