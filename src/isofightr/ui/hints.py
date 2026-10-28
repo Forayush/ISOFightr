@@ -73,6 +73,7 @@ def fit_hint(template: str, labels: Mapping[str, str], width: int, drop: Sequenc
 HELP_TEMPLATES: Final[tuple[str, ...]] = (
     "{stick} move  {jump} jump  {up}/{down} up/down  {attack} attack  {special} special  "
     "{strong} smash  {grab} grab  {shield} shield",
+    "GROUND  hold {down} crouch  then {attack} down tilt  {shield} spot dodge",
     "AIR  {attack} + direction  {up} up  {down} down  {jump}+{attack} = short hop aerial",
 )
 """The in-battle help's control lines, filled in with the first player's own bindings."""

@@ -83,7 +83,10 @@ def test_tips_name_the_readers_own_controls() -> None:
     rebound = device_labels(Settings().with_key("solo", "attack", "F"), "keyboard:solo")
     assert "SPACE and F" in tip_at(first, 0, rebound)
     topics = " ".join(TIPS).lower()
-    for word in ("short-hop", "tech", "sdi", "di", "smash", "recovery"):
+    crouch = next(index for index, tip in enumerate(TIPS) if "crouch" in tip)
+    assert tip_at(crouch, 0, SOLO) == "TIP: Hold , to crouch: some high attacks miss you."
+    assert tip_at(crouch, 0, PAD).startswith("TIP: Hold RS down to crouch")
+    for word in ("short-hop", "tech", "sdi", "di", "smash", "recovery", "crouch"):
         assert word in topics, f"no tip mentions {word}"
 
 

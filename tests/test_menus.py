@@ -6,7 +6,7 @@ Plan note "13 - Game Modes UI and Flow".
 
 import pytest
 
-from helpers import hold, neutral, place
+from helpers import hold, make_match, neutral, place, run
 from isofightr.__main__ import build_parser, skips_menus
 from isofightr.ai.dummy import DummyBehavior, dummy_frame
 from isofightr.config import NATIVE_H, NATIVE_W
@@ -23,7 +23,15 @@ from isofightr.scenes.setup import (
     training_setup,
 )
 from isofightr.sim.constants import COUNTDOWN_FRAMES
-from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame, world_to_stick
+from isofightr.sim.fighter import StateId
+from isofightr.sim.input_frame import (
+    NEUTRAL_INPUT,
+    VERTICAL_DOWN,
+    Button,
+    Dir8,
+    InputFrame,
+    world_to_stick,
+)
 from isofightr.sim.match import Match, MatchRules
 from isofightr.ui.hud_layout import (
     BUBBLE_MARGIN,
@@ -194,6 +202,8 @@ def test_dummy_behaviours() -> None:
     assert dummy_frame(DummyBehavior.MANUAL, 7, manual) is manual
     assert dummy_frame(DummyBehavior.STAND, 7, manual) == NEUTRAL_INPUT
     assert dummy_frame(DummyBehavior.SHIELD, 7, manual).held == Button.SHIELD
+    crouch = dummy_frame(DummyBehavior.CROUCH, 7, manual)
+    assert crouch == InputFrame(vertical=VERTICAL_DOWN), "holds down, nothing else"
     jumps = [
         bool(dummy_frame(DummyBehavior.JUMP, f, manual).held & Button.JUMP) for f in range(140)
     ]
@@ -203,6 +213,19 @@ def test_dummy_behaviours() -> None:
     first, second = (dummy_frame(DummyBehavior.WALK, f, manual) for f in (0, 60))
     assert world_to_stick(first.move)[0] > 0 > world_to_stick(second.move)[0]
     assert first.held == Button.WALK and first.move.length() < 0.8
+
+
+def test_a_crouching_dummy_crouches_and_stays_down() -> None:
+    """D-069: the training dummy's crouch behaviour holds down on solid ground, so it is
+    crouched from the next tick on and never stands or moves."""
+    match = make_match()
+    dummy = match.fighters[1]
+    start = dummy.pos
+    states = []
+    for frame in range(90):
+        run(match, [NEUTRAL_INPUT], [dummy_frame(DummyBehavior.CROUCH, frame, NEUTRAL_INPUT)])
+        states.append(dummy.state)
+    assert set(states) == {StateId.CROUCH} and dummy.pos == start
 
 
 # --- HUD layout ---------------------------------------------------------------------------

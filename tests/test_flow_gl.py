@@ -636,6 +636,16 @@ def test_training_from_the_menu_has_the_training_tools(window: Any) -> None:
         "help",
         "quit",
     ]
+    assert menu.item("dummy").choices == (
+        "stand",
+        "walk",
+        "jump",
+        "shield",
+        "crouch",
+        "attack",
+        "cpu",
+        "manual",
+    ), "the crouch (D-069) comes after shield, so the old choices keep their places"
     press(window, keys().S)
     for _ in range(3):
         press(window, keys().D)

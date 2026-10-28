@@ -643,11 +643,13 @@ def test_the_battle_help_follows_the_bindings() -> None:
     lines = battle_help(device_labels(Settings(), SOLO))
     assert lines == [
         "WASD move  SPACE jump  I/, up/down  J attack  K special  U smash  L grab  LSHIFT shield",
+        "GROUND  hold , crouch  then J down tilt  LSHIFT spot dodge",
         "AIR  J + direction  I up  , down  SPACE+J = short hop aerial",
-    ], "with the default keys it reads as it always did"
+    ], "with the default keys it reads as it always did, plus the crouch (D-069)"
     rebound = Settings().with_key("solo", "attack", "F").with_key("solo", "jump", "V")
     changed = battle_help(device_labels(rebound, SOLO))
-    assert "F attack" in changed[0] and "V jump" in changed[0] and "V+F" in changed[1]
+    assert "F attack" in changed[0] and "V jump" in changed[0] and "V+F" in changed[2]
+    assert "then F down tilt" in changed[1]
     pad = battle_help(device_labels(Settings(), PAD0))
     assert pad[0].startswith("LS move  X/Y jump  RS up/RS down up/down  A attack")
 

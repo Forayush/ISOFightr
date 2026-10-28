@@ -63,6 +63,17 @@ def test_aerials_use_the_default_keyboard_keys() -> None:
     assert inputs_of(sections, "jab") == "J (again to combo)", "Rook has a three-hit jab"
 
 
+def test_the_crouch_is_listed_just_above_the_down_tilt_with_the_players_down() -> None:
+    """D-069: holding down crouches, and the down tilt comes out of it."""
+    moveset = load_character("rook").moveset
+    for labels, down in ((SOLO, ","), (gamepad_labels(MODIFIER_BUMPERS), "LT")):
+        rows = section(build_move_list(moveset, labels, short_hop_macro=True), "GROUND").rows
+        names = [row.name for row in rows]
+        crouch = rows[names.index("Crouch")]
+        assert crouch.slot == "" and crouch.inputs == f"hold {down}"
+        assert names[names.index("Crouch") + 1] == "Down tilt"
+
+
 def test_rebinding_a_key_changes_its_label() -> None:
     rebound = Settings().with_key(KEYBOARD_SOLO, "attack", "P")
     labels = keyboard_labels(rebound.keys[KEYBOARD_SOLO])

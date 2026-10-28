@@ -148,6 +148,7 @@ def build_move_list(
         MoveRow("jab", "Jab", jab),
         MoveRow("ftilt", "Forward tilt", f"{aside}{attack}"),
         MoveRow("utilt", "Up tilt", f"{up} + {attack}"),
+        MoveRow("", "Crouch", f"hold {down}"),
         MoveRow("dtilt", "Down tilt", f"{down} + {attack}"),
         MoveRow("dash_attack", "Dash attack", f"{attack} while running"),
         MoveRow("fsmash", "Forward smash", f"{strong}  ({aside}{strong} turns)"),

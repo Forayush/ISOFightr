@@ -16,6 +16,7 @@ TIPS: Final[tuple[str, ...]] = (
     "{jump} and {attack} together: a short-hop aerial.",
     "{strong} with a direction is a smash attack. Hold it to charge.",
     "{up} or {down} with {attack}: up and down tilts. In the air: aerials.",
+    "Hold {down} to crouch: some high attacks miss you.",
     "{up} + {special} is your recovery. Save it for getting back.",
     "Launched? Hold a direction to bend your path (DI) and live longer.",
     "Tap a direction while a hit freezes you to shift a little (SDI).",

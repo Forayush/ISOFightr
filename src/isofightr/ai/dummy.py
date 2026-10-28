@@ -1,7 +1,7 @@
 """Training dummy behaviours: simple scripted input for players 2 to 4 in training mode.
 
 Plan note "13 - Game Modes UI and Flow" ("Training mode": CPU behavior stand, walk, jump,
-shield, attack, act like a CPU, or controlled manually). The CPU behaviour is run by the
+shield, crouch, attack, act like a CPU, or controlled manually). The CPU behaviour is run by the
 battle scene, which owns the controllers; :func:`dummy_frame` covers the scripted ones.
 An input source like any other: it only produces ``InputFrame``s.
 
@@ -11,7 +11,7 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 from enum import Enum
 from typing import Final
 
-from isofightr.sim.input_frame import NEUTRAL_INPUT, Button, Dir8, InputFrame
+from isofightr.sim.input_frame import NEUTRAL_INPUT, VERTICAL_DOWN, Button, Dir8, InputFrame
 
 WALK_LEG_FRAMES: Final[int] = 50
 """A walking dummy turns around every this many frames."""
@@ -29,6 +29,8 @@ class DummyBehavior(Enum):
     WALK = "walk"
     JUMP = "jump"
     SHIELD = "shield"
+    CROUCH = "crouch"
+    """Holds down: crouches on solid ground (decision D-069), drops through a soft platform."""
     ATTACK = "attack"
     CPU = "cpu"
     """Played by a CPU opponent (:mod:`isofightr.ai.controller`) at the chosen level."""
@@ -48,6 +50,8 @@ def dummy_frame(behavior: DummyBehavior, frame: int, manual: InputFrame) -> Inpu
         return InputFrame(held=int(Button.JUMP) if frame % JUMP_EVERY < JUMP_HOLD else 0)
     if behavior is DummyBehavior.SHIELD:
         return InputFrame(held=int(Button.SHIELD))
+    if behavior is DummyBehavior.CROUCH:
+        return InputFrame(vertical=VERTICAL_DOWN)
     if behavior is DummyBehavior.ATTACK:
         return InputFrame(held=int(Button.ATTACK) if frame % ATTACK_EVERY < ATTACK_HOLD else 0)
     return NEUTRAL_INPUT
