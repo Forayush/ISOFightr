@@ -30,6 +30,7 @@ land_lag = 2
 radius = 0.26
 height = 2.0
 hurtbox = { radius = 0.3, z0 = 0.15, z1 = 1.85 }
+crouch_hurtbox = { radius = 0.3, z0 = 0.15, z1 = 1.38 }   # crouching and in a down tilt: measured from the drawn crouch (D-069)
 shield_radius_max = 1.0
 
 [moveset]

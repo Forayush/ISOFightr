@@ -24,7 +24,7 @@ from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import VERTICAL_DOWN, Button, Dir8, InputFrame
 from isofightr.sim.match import Match
 
-DRAWN = ("rook", "bramble")
+DRAWN = ("rook", "bramble", "zephyr")
 """Characters whose crouch is drawn so far (all four by the end of group 2)."""
 DIRECTIONS = [direction.name for direction in Dir8]
 AGREEMENT = 0.03

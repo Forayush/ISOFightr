@@ -1,40 +1,135 @@
-# Zephyr: down tilt, a low tail sweep (generated from move data)
+# Down tilt: from the crouch, a full spin on its haunches that sweeps the tail low
+# through the front (active 4-6), wings spread for balance, then back into the crouch
+# (decision D-069: it starts and ends on crouch's first pose, so it leaves and rejoins
+# the crouch without a pop).
 
 [[smears]]
-name = "smear0"
+name = "sweep"
 joint = "origin"
 shape = "arc"
-centre = [0.2, 0.0, 0.3]
-r_in = 0.5
-r_out = 1.3
-a0 = -75.0
-a1 = 25.0
+centre = [0.0, 0.0, 0.28]
+r_in = 0.78
+r_out = 1.12
+a0 = -100
+a1 = 100
 thickness = 0.05
 turn = [0.0, 0.0, 0.0]
 
 [[poses]]
 start = 1
 use = "crouch"
-hip_r = [30.0, 0.0, -20.0]
-knee_r = [-90.0, 0.0, 0.0]
+offset = [0.0, 0.0, -0.37]
+chest = [-50.0, 0.0, -6.0]
+head = [32.0, 0.0, -4.0]
+cape = [25.0, 0.0, 0.0]
+shoulder_r = [-25.0, 0.0, -10.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-25.0, 0.0, 10.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
+
+[[poses]]
+start = 2
+use = "crouch"
+offset = [0.0, 0.0, -0.39]
+chest = [-55.0, 0.0, -4.0]
+head = [36.0, 0.0, -4.0]
+cape = [14.0, 0.0, 0.0]
+shoulder_r = [0.0, -55.0, 0.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 55.0, 0.0]
+elbow_l = [10.0, 0.0, 0.0]
+hip_r = [103.0, 0.0, -8.0]
+knee_r = [-156.0, 0.0, 0.0]
+ankle_r = [53.0, 0.0, 0.0]
+hip_l = [98.0, 0.0, 14.0]
+knee_l = [-154.0, 0.0, 0.0]
+ankle_l = [56.0, 0.0, -8.0]
+hips = [0.0, 0.0, 95.0]
 
 [[poses]]
 start = 4
 use = "crouch"
-offset = [0.0, 0.0, -0.2]
-hip_r = [80.0, 0.0, -10.0]
-knee_r = [-5.0, 0.0, 0.0]
-ankle_r = [30.0, 0.0, 0.0]
-chest = [-20.0, 0.0, 0.0]
-show = ["smear0"]
+offset = [0.0, 0.0, -0.4]
+chest = [-55.0, 0.0, -4.0]
+head = [36.0, 0.0, -4.0]
+cape = [18.0, 0.0, 0.0]
+shoulder_r = [0.0, -55.0, 0.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 55.0, 0.0]
+elbow_l = [10.0, 0.0, 0.0]
+hip_r = [103.0, 0.0, -8.0]
+knee_r = [-156.0, 0.0, 0.0]
+ankle_r = [53.0, 0.0, 0.0]
+hip_l = [98.0, 0.0, 14.0]
+knee_l = [-154.0, 0.0, 0.0]
+ankle_l = [56.0, 0.0, -8.0]
+hips = [0.0, 0.0, 190.0]
+show = ["sweep"]
 
 [[poses]]
-start = 7
+start = 6
 use = "crouch"
-offset = [0.0, 0.0, -0.2]
-hip_r = [60.0, 0.0, 10.0]
-knee_r = [-30.0, 0.0, 0.0]
+offset = [0.0, 0.0, -0.39]
+chest = [-55.0, 0.0, -4.0]
+head = [36.0, 0.0, -4.0]
+cape = [16.0, 0.0, 0.0]
+shoulder_r = [0.0, -55.0, 0.0]
+elbow_r = [10.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 55.0, 0.0]
+elbow_l = [10.0, 0.0, 0.0]
+hip_r = [103.0, 0.0, -8.0]
+knee_r = [-156.0, 0.0, 0.0]
+ankle_r = [53.0, 0.0, 0.0]
+hip_l = [98.0, 0.0, 14.0]
+knee_l = [-154.0, 0.0, 0.0]
+ankle_l = [56.0, 0.0, -8.0]
+hips = [0.0, 0.0, 285.0]
 
 [[poses]]
-start = 14
+start = 9
 use = "crouch"
+offset = [0.0, 0.0, -0.38]
+chest = [-50.0, 0.0, -6.0]
+head = [32.0, 0.0, -4.0]
+cape = [20.0, 0.0, 4.0]
+shoulder_r = [-5.0, -30.0, -10.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-5.0, 30.0, 10.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
+hips = [0.0, 0.0, 10.0]
+
+[[poses]]
+start = 13
+use = "crouch"
+offset = [0.0, 0.0, -0.37]
+chest = [-50.0, 0.0, -6.0]
+head = [32.0, 0.0, -4.0]
+cape = [25.0, 0.0, 0.0]
+shoulder_r = [-25.0, 0.0, -10.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-25.0, 0.0, 10.0]
+elbow_l = [20.0, 0.0, 0.0]
+hip_r = [100.0, 0.0, -8.0]
+knee_r = [-150.0, 0.0, 0.0]
+ankle_r = [50.0, 0.0, 0.0]
+hip_l = [95.0, 0.0, 14.0]
+knee_l = [-148.0, 0.0, 0.0]
+ankle_l = [53.0, 0.0, -8.0]
