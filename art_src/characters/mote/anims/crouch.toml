@@ -1,0 +1,30 @@
+# Crouch: hunched low over its robe with the lantern held out just above the ground,
+# the hood lifted to watch, breathing slowly (decision D-069). The robe is rigid, so the
+# height comes from the fold, not the knees. crouch_enter, crouch_exit and the down
+# tilt start or end on its first pose.
+loop = true
+fps = 4
+
+[[poses]]
+use = "crouch"
+offset = [0.0, 0.0, -0.3]
+chest = [-62.0, 0.0, -6.0]
+head = [40.0, 0.0, -4.0]
+cape = [50.0, 0.0, 0.0]
+shoulder_r = [78.0, 0.0, -10.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-48.0, 0.0, 0.0]
+shoulder_l = [72.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]
+
+[[poses]]
+use = "crouch"
+offset = [0.0, 0.0, -0.32]
+chest = [-64.0, 0.0, -6.0]
+head = [41.0, 0.0, -4.0]
+cape = [52.0, 0.0, 2.0]
+shoulder_r = [80.0, 0.0, -10.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-48.0, 0.0, 0.0]
+shoulder_l = [74.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]

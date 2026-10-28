@@ -1,0 +1,32 @@
+# Crouch enter: folding down over the robe in three frames (D-069); also the wind-up of
+# a drop through a soft platform. The last pose dips a little past the hold.
+
+[[poses]]
+start = 1
+use = "crouch"
+
+[[poses]]
+start = 2
+use = "crouch"
+offset = [0.0, 0.0, -0.16]
+chest = [-32.0, 0.0, -6.0]
+head = [20.0, 0.0, -4.0]
+cape = [22.0, 0.0, 0.0]
+shoulder_r = [55.0, 0.0, -10.0]
+elbow_r = [35.0, 0.0, 0.0]
+hand_r = [-58.0, 0.0, 0.0]
+shoulder_l = [48.0, 0.0, 16.0]
+elbow_l = [55.0, 0.0, 0.0]
+
+[[poses]]
+start = 3
+use = "crouch"
+offset = [0.0, 0.0, -0.32]
+chest = [-65.0, 0.0, -6.0]
+head = [42.0, 0.0, -4.0]
+cape = [53.0, 0.0, 0.0]
+shoulder_r = [78.0, 0.0, -10.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-45.0, 0.0, 0.0]
+shoulder_l = [72.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]

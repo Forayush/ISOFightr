@@ -6,7 +6,7 @@ from statistics import mean
 import pytest
 
 from helpers import hold, make_match, make_stage, neutral, place, run
-from isofightr.data.character_loader import load_character
+from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import AnimInfo, load_sprite_set
 from isofightr.render.anim_select import select_anim
 from isofightr.render.crouch_motion import (
@@ -24,8 +24,8 @@ from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import VERTICAL_DOWN, Button, Dir8, InputFrame
 from isofightr.sim.match import Match
 
-DRAWN = ("rook", "bramble", "zephyr")
-"""Characters whose crouch is drawn so far (all four by the end of group 2)."""
+DRAWN = tuple(c for c in list_character_ids() if load_sprite_set(c) is not None)
+"""Every character with sprites: each needs its crouch drawn and its capsule measured."""
 DIRECTIONS = [direction.name for direction in Dir8]
 AGREEMENT = 0.03
 """How far the crouch capsule's share of the standing one may be from the drawing's."""

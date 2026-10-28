@@ -1,50 +1,114 @@
-# Mote: down tilt, an ember flick (generated from move data)
+# Down tilt: from the crouch, the lantern drawn back to the right and swung low across
+# the front, flinging an arc of fire along the ground (active 7-9), then back into the
+# crouch (decision D-069: it starts and ends on crouch's first pose, so it leaves and
+# rejoins the crouch without a pop).
 
 [[smears]]
-name = "smear0"
+name = "fire"
 joint = "origin"
 shape = "arc"
-centre = [0.2, 0.0, 0.3]
-r_in = 0.85
-r_out = 1.75
-a0 = -75.0
-a1 = 25.0
+material = "glow"
+centre = [0.0, 0.0, 0.3]
+r_in = 1.14
+r_out = 1.5
+a0 = -70
+a1 = 30
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[smears]]
+name = "embers"
+joint = "origin"
+shape = "arc"
+material = "glow"
+centre = [0.0, 0.0, 0.3]
+r_in = 1.3
+r_out = 1.48
+a0 = 10
+a1 = 55
 thickness = 0.05
 turn = [0.0, 0.0, 0.0]
 
 [[poses]]
 start = 1
 use = "crouch"
-shoulder_r = [30.0, 0.0, -40.0]
-elbow_r = [40.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
+offset = [0.0, 0.0, -0.3]
+chest = [-62.0, 0.0, -6.0]
+head = [40.0, 0.0, -4.0]
+cape = [50.0, 0.0, 0.0]
+shoulder_r = [78.0, 0.0, -10.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-48.0, 0.0, 0.0]
+shoulder_l = [72.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]
 
 [[poses]]
-start = 4
+start = 3
 use = "crouch"
-shoulder_r = [34.5, 0.0, -46.0]
-elbow_r = [46.0, 0.0, 0.0]
-hand_r = [-80.5, 0.0, 0.0]
+offset = [0.0, 0.0, -0.3]
+chest = [-58.0, 0.0, -12.0]
+head = [38.0, 0.0, 6.0]
+cape = [46.0, 0.0, 0.0]
+shoulder_r = [62.0, 0.0, -28.0]
+elbow_r = [38.0, 0.0, 0.0]
+hand_r = [-42.0, 0.0, 0.0]
+shoulder_l = [60.0, 0.0, 20.0]
+elbow_l = [48.0, 0.0, 0.0]
+hips = [0.0, 0.0, -42.0]
 
 [[poses]]
 start = 7
 use = "crouch"
-offset = [0.0, 0.05, -0.24]
-chest = [-30.0, 0.0, 20.0]
-shoulder_r = [62.0, 0.0, -5.0]
-elbow_r = [5.0, 0.0, 0.0]
-hand_r = [-75.0, 0.0, 0.0]
-show = ["smear0"]
+offset = [0.0, 0.05, -0.32]
+chest = [-64.0, 0.0, 4.0]
+head = [42.0, 0.0, -10.0]
+cape = [48.0, 0.0, -4.0]
+shoulder_r = [92.0, 0.0, 6.0]
+elbow_r = [16.0, 0.0, 0.0]
+hand_r = [-44.0, 0.0, 0.0]
+shoulder_l = [55.0, 0.0, 24.0]
+elbow_l = [40.0, 0.0, 0.0]
+hips = [0.0, 0.0, 22.0]
+show = ["fire"]
 
 [[poses]]
 start = 10
 use = "crouch"
-offset = [0.0, 0.05, -0.24]
-chest = [-30.0, 0.0, 25.0]
-shoulder_r = [60.0, 0.0, 25.0]
-elbow_r = [5.0, 0.0, 0.0]
-hand_r = [-75.0, 0.0, 0.0]
+offset = [0.0, 0.05, -0.32]
+chest = [-62.0, 0.0, 8.0]
+head = [40.0, 0.0, -14.0]
+cape = [48.0, 0.0, -4.0]
+shoulder_r = [88.0, 0.0, 22.0]
+elbow_r = [16.0, 0.0, 0.0]
+hand_r = [-42.0, 0.0, 0.0]
+shoulder_l = [55.0, 0.0, 24.0]
+elbow_l = [40.0, 0.0, 0.0]
+hips = [0.0, 0.0, 44.0]
+show = ["embers"]
+
+[[poses]]
+start = 15
+use = "crouch"
+offset = [0.0, 0.02, -0.31]
+chest = [-63.0, 0.0, 0.0]
+head = [41.0, 0.0, -8.0]
+cape = [50.0, 0.0, 0.0]
+shoulder_r = [82.0, 0.0, 4.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-48.0, 0.0, 0.0]
+shoulder_l = [72.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]
+hips = [0.0, 0.0, 24.0]
 
 [[poses]]
 start = 21
 use = "crouch"
+offset = [0.0, 0.0, -0.3]
+chest = [-62.0, 0.0, -6.0]
+head = [40.0, 0.0, -4.0]
+cape = [50.0, 0.0, 0.0]
+shoulder_r = [78.0, 0.0, -10.0]
+elbow_r = [32.0, 0.0, 0.0]
+hand_r = [-48.0, 0.0, 0.0]
+shoulder_l = [72.0, 0.0, 14.0]
+elbow_l = [48.0, 0.0, 0.0]
