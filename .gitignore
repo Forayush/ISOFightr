@@ -26,3 +26,7 @@ settings.local.toml
 *.log
 
 CLAUDE.md
+
+.claude/skills/
+.agents/
+skills-lock.json
