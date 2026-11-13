@@ -131,7 +131,7 @@ class TitleView(MenuView):
             "", NATIVE_W // 2, PROMPT_BOTTOM, TextSize.TITLE, theme.TEXT, "centre"
         )
         self.ui.write(
-            f"v{__version__}", NATIVE_W - theme.PAD, theme.PAD, TextSize.SMALL, theme.TEXT_DIM,
+            f"v{__version__}", NATIVE_W - theme.PAD, theme.PAD, TextSize.SMALL, theme.TEXT_MUTED,
             "right",
         )  # fmt: skip
         self.island = Diorama(pixel_buffer, list_character_ids()[:MAX_TITLE_FIGHTERS])

@@ -50,6 +50,7 @@ from isofightr.ui.widgets import (
     Toggle,
     UiLayer,
     add_panel,
+    icon_image,
     picture_texture,
     text_bottom,
 )
@@ -70,10 +71,11 @@ NOTICE_TICKS = 180
 ON_OFF = ("off", "on")
 LIST_WIDTH = 400
 """Width of a list menu's panel."""
-LIST_ROW_GAP = 2
-LIST_TOP_GAP = 6
-"""Gap between the header and a list menu's panel: 6 since Settings grew to 14 rows (M17), so
-the last row still clears the help line and the footer."""
+LIST_ROW_GAP = 1
+"""Gap between two rows of a list menu: 1 since D-070, so Settings' 14 rows, the help line
+and a clear gap above the footer all fit (at 2 the help line sat on the footer)."""
+LIST_TOP_GAP = 8
+"""Gap between the header and a list menu's panel."""
 LIST_VALUE_WIDTH = 96
 """Width of the well a row's value sits in."""
 LIST_SWITCH_WIDTH = 44
@@ -356,10 +358,12 @@ class ListRows:
         icons: dict[str, str] | None = None,
         bars: dict[str, int] | None = None,
         danger: tuple[str, ...] = (),
+        opens: tuple[str, ...] = (),
     ) -> None:
         """Lay the rows out hanging down from ``top``. ``icons`` gives a row's icon by its
         key; ``bars`` the top value of a row that also shows a bar; ``danger`` the rows that
-        overwrite things."""
+        overwrite things; ``opens`` the rows that lead to another screen (they end in an
+        arrow)."""
         self.left, self.top, self.width = left, top, width
         self.row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
         self.menu = menu
@@ -370,6 +374,7 @@ class ListRows:
         self._steppers: dict[str, Stepper] = {}
         self._switches: dict[str, Toggle] = {}
         self._gauges: dict[str, Gauge] = {}
+        self._arrows: dict[str, Picture] = {}
         for index, item in enumerate(menu.items):
             rect = self.rect(index)
             self._strips.append(Picture(layer, rect))
@@ -380,7 +385,11 @@ class ListRows:
             self._labels.append(layer.write_in(box, item.label.upper(), align="left"))
             well = Rect(rect.right - LIST_VALUE_WIDTH - theme.GAP, rect.bottom + 1,
                         LIST_VALUE_WIDTH, rect.height - 2)  # fmt: skip
-            if item.choices == ON_OFF:
+            if item.key in opens:
+                arrow = Rect(well.right - theme.ICON_SIZE - 2, rect.bottom + 3, theme.ICON_SIZE,
+                             theme.ICON_SIZE)  # fmt: skip
+                self._arrows[item.key] = Picture(layer, arrow)
+            elif item.choices == ON_OFF:
                 switch = Rect(well.right - LIST_SWITCH_WIDTH, well.bottom, LIST_SWITCH_WIDTH,
                               well.height)  # fmt: skip
                 self._switches[item.key] = Toggle(layer, switch)
@@ -408,16 +417,29 @@ class ListRows:
         for index, item in enumerate(self.menu.items):
             focused = index == self.menu.cursor
             rect = self.rect(index)
-            danger = item.key in self.danger and not focused
+            danger = item.key in self.danger
+            # A row that overwrites things is quiet until the cursor is on it, then red.
+            look = kit_art.Look.DANGER if focused else kit_art.Look.CAUTION
             self._strips[index].show(
                 ("list-row", rect.width, rect.height, focused, danger),
-                lambda rect=rect, focused=focused, danger=danger: (
-                    kit_art.button(rect.width, rect.height, kit_art.Look.DANGER)
+                lambda rect=rect, focused=focused, danger=danger, look=look: (
+                    kit_art.button(rect.width, rect.height, look)
                     if danger
                     else kit_art.list_row(rect.width, rect.height, focused)
                 ),
             )
-            self._labels[index].color = theme.FOCUS if focused else theme.TEXT
+            if danger:
+                self._labels[index].color = kit_art.text_color(look)
+            else:
+                self._labels[index].color = theme.FOCUS if focused else theme.TEXT
+            if item.key in self._arrows:
+                color = theme.FOCUS if focused else theme.TEXT_DIM
+                image = icon_image("arrow_right")
+                if image is not None:
+                    self._arrows[item.key].show(
+                        ("icon", "arrow_right", color),
+                        lambda image=image, color=color: kit_art.tint(image, color),
+                    )
             if item.key in self._switches:
                 self._switches[item.key].set(bool(item.index), focused)
             elif item.key in self._steppers:
@@ -434,6 +456,8 @@ class MenuListView(MenuView):
     bars: ClassVar[dict[str, int]] = {}
     """The top value of a row that also shows a bar (volumes), by its key."""
     danger: tuple[str, ...] = ()
+    opens: tuple[str, ...] = ()
+    """The rows that lead to another screen: they end in an arrow."""
     help: ClassVar[dict[str, str]] = {}
     """A line about a row, shown under the list while the cursor is on it."""
 
@@ -464,6 +488,7 @@ class MenuListView(MenuView):
             self.icons,
             self.bars,
             self.danger,
+            self.opens,
         )
         strip = Rect(panel.left, panel.bottom - LIST_HELP_HEIGHT - theme.GAP, panel.width,
                      LIST_HELP_HEIGHT)  # fmt: skip
@@ -475,6 +500,8 @@ class MenuListView(MenuView):
             strip.left,
             strip.bottom,
         )
+        self.help_rect = strip
+        """The strip the line about the row under the cursor sits on."""
         self.help_label = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
         self.refresh()
 
@@ -538,6 +565,7 @@ class SettingsView(MenuListView):
         "sfx_volume": VOLUME_MAX,
     }
     danger = ("defaults",)
+    opens = ("sound_test", "controls")
     help: ClassVar[dict[str, str]] = {
         "scale": "How many screen pixels each game pixel covers.",
         "fullscreen": "Fill the screen, keeping whole pixels.",

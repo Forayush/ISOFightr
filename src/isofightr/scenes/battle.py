@@ -534,7 +534,9 @@ class BattleView(TickedView):
             if shown and focused:
                 shown = f"{ARROW_LEFT} {shown} {ARROW_RIGHT}"
             value.text = shown.upper()
-            value.color = theme.FOCUS if focused else theme.TEXT_MUTED
+            # At rest a switch reads as the menus' switches do: mint for on, dim for off.
+            rest = {"ON": theme.ON, "OFF": theme.TEXT_DIM}.get(value.text, theme.TEXT_MUTED)
+            value.color = theme.FOCUS if focused else rest
         labels = device_labels(self.settings, self.move_list_device(0))
         self._pause_hint.text = hint_text(
             "{stick}: move   {attack}: pick   {special}: resume", labels

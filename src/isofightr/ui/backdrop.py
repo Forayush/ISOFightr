@@ -70,7 +70,9 @@ def layer_shift(tick: int, speed: float, width: int = LAYER_WIDTH) -> int:
 # --- drifting tiles ----------------------------------------------------------------------
 TILE_HALF_WIDTHS: Final[tuple[int, ...]] = (8, 12, 16)
 """Half the width of a drifting tile's top diamond, by size index."""
-TILE_ALPHA: Final[int] = 72
+TILE_ALPHA: Final[int] = 136
+"""Solid enough to keep their own colours: at 72 the blue blocks turned grey over the plum
+sky and read as missing art (decision D-070)."""
 DRIFT_MARGIN: Final[int] = 40
 """How far past the top and bottom a tile travels before it wraps round."""
 
@@ -118,17 +120,17 @@ def drift_positions(tick: int) -> list[tuple[int, int, int]]:
 
 def build_drift_tile(half: int) -> Image.Image:
     """Return a translucent isometric block ``2 * half`` pixels wide: a lit top diamond over
-    two side faces."""
+    two side faces, in the colours of the backdrop's own isles (teal tops, deep sides)."""
     width, top, side = half * 2, half, half
     image = Image.new("RGBA", (width, top + side), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     centre, middle, last = half, top // 2, width - 1
     left = [(0, middle), (centre, top), (centre, top + side - 1), (0, middle + side - 1)]
     right = [(last, middle), (centre, top), (centre, top + side - 1), (last, middle + side - 1)]
-    draw.polygon(left, fill=theme.with_alpha(theme.STEEL, TILE_ALPHA))
-    draw.polygon(right, fill=theme.with_alpha(theme.NAVY, TILE_ALPHA))
+    draw.polygon(left, fill=theme.with_alpha(theme.DEEP_TEAL, TILE_ALPHA))
+    draw.polygon(right, fill=theme.with_alpha(theme.NIGHT, TILE_ALPHA))
     diamond = [(0, middle), (centre, 0), (last, middle), (centre, top)]
-    draw.polygon(diamond, fill=theme.with_alpha(theme.ICE, TILE_ALPHA))
+    draw.polygon(diamond, fill=theme.with_alpha(theme.TEAL, TILE_ALPHA))
     return image
 
 

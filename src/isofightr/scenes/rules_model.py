@@ -96,7 +96,7 @@ RULE_ROWS: Final[tuple[RuleRow, ...]] = (
     RuleRow(
         "stage_hazards",
         "STAGE HAZARDS",
-        "burst",
+        "bolt",
         help="Moving platforms, geysers, wind, ice, springs. Off: plain stages.",
     ),
     RuleRow(

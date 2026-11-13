@@ -92,6 +92,10 @@ BUTTON_FOCUS_FILL: Final[Rgba] = with_alpha(GOLD, 255)
 BUTTON_FOCUS_BORDER: Final[Rgba] = with_alpha(PALE_GOLD, 255)
 DANGER_FILL: Final[Rgba] = with_alpha(CRIMSON, 255)
 DANGER_BORDER: Final[Rgba] = with_alpha(RED, 255)
+CAUTION_FILL: Final[Rgba] = with_alpha(INK, 255)
+CAUTION_BORDER: Final[Rgba] = with_alpha(CRIMSON, 255)
+CAUTION_TEXT: Final[Rgb] = SALMON
+"""A button that overwrites things, while the cursor is elsewhere (decision D-070)."""
 GAUGE_FILL: Final[Rgba] = with_alpha(GOLD, 255)
 GAUGE_TRACK: Final[Rgba] = with_alpha(INK, 255)
 DIM_OVERLAY: Final[Rgba] = with_alpha(NIGHT, 205)

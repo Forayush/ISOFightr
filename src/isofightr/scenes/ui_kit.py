@@ -77,7 +77,7 @@ class UiKitView(MenuView):
             "play": Button(ui, Rect(x, top - 140, 88, theme.BUTTON_HEIGHT), "VERSUS", "stock"),
             "rules": Button(ui, Rect(x + 94, top - 140, 88, theme.BUTTON_HEIGHT), "RULES", "gear"),
             "default": Button(
-                ui, Rect(x + 188, top - 140, 96, theme.BUTTON_HEIGHT), "DEFAULT", look=Look.DANGER
+                ui, Rect(x + 188, top - 140, 96, theme.BUTTON_HEIGHT), "DEFAULT", look=Look.CAUTION
             ),
         }
         ui.write("Launch rate", x, top - 162, TextSize.BODY)
@@ -111,9 +111,10 @@ class UiKitView(MenuView):
 
         ui.write("ICONS", x, top - 140, TextSize.SMALL, theme.TEXT_MUTED)
         for index, name in enumerate(load_icons()):
-            column, row = index % 8, index // 8
-            ui.icon(name, x + column * 18, top - 160 - row * 34, theme.TEXT)
-            ui.icon(name, x + column * 18, top - 176 - row * 34, theme.FOCUS)
+            # Sixteen to a row: at eight the list (32 icons since M14) ran over the next title.
+            column, row = index % 16, index // 16
+            ui.icon(name, x + column * 18, top - 156 - row * 26, theme.TEXT)
+            ui.icon(name, x + column * 18, top - 169 - row * 26, theme.FOCUS)
         ui.write("PLAYER COLOURS", x, top - 232, TextSize.SMALL, theme.TEXT_MUTED)
         for index, color in enumerate(theme.PLAYER_COLORS):
             Button(ui, Rect(x + index * 70, top - 258, 64, 18), f"P{index + 1}").label.color = color

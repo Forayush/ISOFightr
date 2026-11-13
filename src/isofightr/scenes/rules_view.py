@@ -99,7 +99,7 @@ class RulesView(MenuView):
             POOL: Button(self.ui, Rect(PANEL.left, BUTTONS_BOTTOM, 250, height), "", "dice"),
             DEFAULT: Button(
                 self.ui, Rect(PANEL.left + 262, BUTTONS_BOTTOM, 132, height), "DEFAULT",
-                look=Look.DANGER,
+                look=Look.CAUTION,
             ),
             BACK: Button(self.ui, Rect(PANEL.right - 138, BUTTONS_BOTTOM, 138, height), "BACK"),
         }  # fmt: skip
@@ -266,7 +266,7 @@ class RandomPoolView(MenuView):
             self._boxes[stage_id] = Checkbox(self.ui, rect.left + theme.GAP, bottom + 4)
             name = load_stage(stage_id).display_name
             box = Rect(rect.left + 20, bottom, rect.width - 20, rect.height)
-            self._labels[stage_id] = self.ui.write_in(box, name, align="left")
+            self._labels[stage_id] = self.ui.write_in(box, name.upper(), align="left")
         self.back_button = Button(
             self.ui, Rect(left, panel.bottom - 34, self.WIDTH, theme.BUTTON_HEIGHT), "BACK"
         )

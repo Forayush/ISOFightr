@@ -39,7 +39,10 @@ class Look(Enum):
     FOCUS = "focus"
     """Under the cursor."""
     DANGER = "danger"
-    """Something that overwrites (DEFAULT), or an unbound control."""
+    """An unbound control, or a button that overwrites things while the cursor is on it."""
+    CAUTION = "caution"
+    """A button that overwrites things (DEFAULT), at rest: dark with a red rim, so it does
+    not shout while nobody is about to press it (decision D-070)."""
     LIT = "lit"
     """Held right now (the live test)."""
     DISABLED = "disabled"
@@ -130,6 +133,7 @@ _BUTTON_LOOKS: Final[dict[Look, tuple[Rgba, Rgba]]] = {
     Look.NORMAL: (theme.BUTTON_FILL, theme.BUTTON_BORDER),
     Look.FOCUS: (theme.BUTTON_FOCUS_FILL, theme.BUTTON_FOCUS_BORDER),
     Look.DANGER: (theme.DANGER_FILL, theme.DANGER_BORDER),
+    Look.CAUTION: (theme.CAUTION_FILL, theme.CAUTION_BORDER),
     Look.LIT: (theme.with_alpha(theme.AQUA, 255), theme.with_alpha(theme.MINT, 255)),
     Look.DISABLED: (theme.with_alpha(theme.SLATE, 255), theme.with_alpha(theme.DUST, 255)),
 }
@@ -148,6 +152,8 @@ def text_color(look: Look) -> Rgb:
         return theme.TEXT_ON_FOCUS
     if look is Look.DISABLED:
         return theme.TEXT_DIM
+    if look is Look.CAUTION:
+        return theme.CAUTION_TEXT
     return theme.TEXT
 
 

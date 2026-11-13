@@ -73,12 +73,13 @@ ART_BOTTOM = 78
 """Height of the hero art's feet (the middle of its isle) above the panel's bottom."""
 ISLE_WIDTH = 68
 PLATE = (132, 18)
-PLATE_BOTTOM = 40
+PLATE_BOTTOM = 41
 SWATCH = 10
 SWATCH_GAP = 4
-SWATCH_BOTTOM = 26
-LINE1_BOTTOM = 13
-LINE2_BOTTOM = 1
+SWATCH_BOTTOM = 27
+LINE1_BOTTOM = 14
+LINE2_BOTTOM = 3
+"""The foot's last line: clear of the panel's bottom edge (it sat on it until D-070)."""
 SASH = (140, 24)
 SASH_BOTTOM = ART_BOTTOM - 8
 """The sash crosses the fighter's feet, so the fighter stays in view."""
@@ -279,7 +280,7 @@ class CharacterSelectView(MenuView):
         for index in range(MAX_PLAYERS):
             self._settle_costume(index)
 
-        self.header("TRAINING: CHARACTER" if setup.training else "CHARACTER SELECT")
+        self.header("TRAINING: CHARACTER" if setup.training else "CHARACTER SELECT", "team")
         ui = self.ui
         self.chip: Button | None = None
         if not setup.training:

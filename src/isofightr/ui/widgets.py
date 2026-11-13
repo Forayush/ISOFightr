@@ -458,7 +458,7 @@ class Button:
         """Create the button in its resting look."""
         self.rect = rect
         self.rest = look
-        """The look when the cursor is elsewhere (``NORMAL``, or ``DANGER`` for DEFAULT)."""
+        """The look when the cursor is elsewhere (``NORMAL``, or ``CAUTION`` for DEFAULT)."""
         self._layer = layer
         self._body = Picture(layer, rect)
         self._icon_name = icon if icon_image(icon or "") is not None else None
@@ -498,8 +498,10 @@ class Button:
             self._icon.texture = texture
 
     def focus(self, focused: bool) -> None:
-        """Show the button under the cursor, or back at rest."""
-        self.look = Look.FOCUS if focused else self.rest
+        """Show the button under the cursor, or back at rest. A button that overwrites
+        things (``CAUTION`` at rest) turns red under the cursor instead of gold."""
+        lit = Look.DANGER if self.rest is Look.CAUTION else Look.FOCUS
+        self.look = lit if focused else self.rest
 
 
 class Toggle:

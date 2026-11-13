@@ -59,12 +59,14 @@ OPTION_LEFT = 96
 OPTION_WIDTH = 168
 OPTION_HEIGHT = 18
 OPTION_PITCH = 22
-OPTIONS_BOTTOM = 46
 TILES_PANEL = Rect(12, 140, 616, 188)
 OPTIONS_PANEL = Rect(12, 40, 258, 96)
+"""The room the options have under the tiles. Their panel hangs from its top and is as
+tall as the device has options, so it lines up with the info panel beside it (D-070)."""
 INFO = Rect(276, 76, 352, 60)
-SIDE = Rect(424, 146, 196, 94)
-"""The panel beside the lower band: the live test, or the controller diagram."""
+SIDE = Rect(424, 146, 196, 106)
+"""The panel beside the lower band: the live test, or the controller diagram. Tall enough
+that the diagram's triggers stay under the panel's title row."""
 BLINK_TICKS = 30
 SLOT_NAMES = ("primary", "secondary")
 DEVICE, LAYOUT, STICK, DEADZONE, DEFAULT, BACK = (
@@ -154,7 +156,9 @@ class ControlsView(MenuView):
 
         add_panel(ui, SIDE, theme.PANEL_DEEP, theme.PANEL_LIGHT)
         side_title = "CONTROLLER" if self.pad else "LIVE TEST"
-        ui.write(side_title, SIDE.left + theme.PAD, SIDE.top - 12, TextSize.SMALL, theme.TEXT_MUTED)
+        self.side_title = ui.write(
+            side_title, SIDE.left + theme.PAD, SIDE.top - 12, TextSize.SMALL, theme.TEXT_MUTED
+        )
         self.side_note = ui.write(
             "", SIDE.right - theme.PAD, SIDE.top - 12, TextSize.SMALL, theme.TEXT_MUTED, "right"
         )
@@ -167,20 +171,23 @@ class ControlsView(MenuView):
             )
 
         self.steppers: dict[str, Stepper] = {}
+        # The device first: it decides which of the others there are.
         options = [(DEVICE, "DEVICE")]
         if self.pad:
-            options += [(DEADZONE, "DEADZONE"), (STICK, "RIGHT STICK"), (LAYOUT, "LAYOUT")]
+            options += [(LAYOUT, "LAYOUT"), (STICK, "RIGHT STICK"), (DEADZONE, "DEADZONE")]
+        height = len(options) * OPTION_PITCH + 2 * theme.GAP
         add_panel(
             ui,
-            Rect(
-                OPTIONS_PANEL.left,
-                OPTIONS_PANEL.bottom,
-                OPTIONS_PANEL.width,
-                len(options) * OPTION_PITCH + 2 * theme.GAP,
-            ),
+            Rect(OPTIONS_PANEL.left, OPTIONS_PANEL.top - height, OPTIONS_PANEL.width, height),
         )
         for index, (key, label) in enumerate(options):
-            bottom = OPTIONS_BOTTOM + index * OPTION_PITCH
+            bottom = (
+                OPTIONS_PANEL.top
+                - theme.GAP
+                - 2
+                - (index + 1) * OPTION_PITCH
+                + (OPTION_PITCH - OPTION_HEIGHT)
+            )
             ui.write(label, COLUMN_LEFTS[0], bottom + 6, TextSize.SMALL, theme.TEXT_MUTED)
             rect = Rect(OPTION_LEFT, bottom, OPTION_WIDTH, OPTION_HEIGHT)
             self.steppers[key] = Stepper(ui, rect)
@@ -195,7 +202,7 @@ class ControlsView(MenuView):
         ]
         self.buttons = {
             DEFAULT: Button(
-                ui, Rect(424, 46, 96, theme.BUTTON_HEIGHT), "DEFAULT", look=Look.DANGER
+                ui, Rect(424, 46, 96, theme.BUTTON_HEIGHT), "DEFAULT", look=Look.CAUTION
             ),
             BACK: Button(ui, Rect(528, 46, 96, theme.BUTTON_HEIGHT), "BACK"),
         }
