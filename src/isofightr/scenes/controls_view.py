@@ -67,6 +67,13 @@ INFO = Rect(276, 76, 352, 60)
 SIDE = Rect(424, 146, 196, 106)
 """The panel beside the lower band: the live test, or the controller diagram. Tall enough
 that the diagram's triggers stay under the panel's title row."""
+FIXED = Rect(12, 40, 258, 62)
+"""With a keyboard (one option), the room under the options: the keys nobody can rebind."""
+FIXED_KEYS = (
+    ("ENTER", "confirm, pause"),
+    ("ESC", "back, pause"),
+    ("F11", "fullscreen"),
+)
 BLINK_TICKS = 30
 SLOT_NAMES = ("primary", "secondary")
 DEVICE, LAYOUT, STICK, DEADZONE, DEFAULT, BACK = (
@@ -193,6 +200,17 @@ class ControlsView(MenuView):
             self.steppers[key] = Stepper(ui, rect)
             self.rects[key] = rect
 
+        self.fixed_lines: list[str] = []
+        """What the fixed-keys panel says (empty for a gamepad, which has no such panel)."""
+        if not self.pad:
+            add_panel(ui, FIXED, theme.PANEL_DEEP, theme.PANEL_LIGHT)
+            left = COLUMN_LEFTS[0]
+            ui.write("FIXED KEYS", left, FIXED.top - 14, TextSize.SMALL, theme.TEXT_MUTED)
+            for row, (key, use) in enumerate(FIXED_KEYS):
+                bottom = FIXED.top - 28 - row * 13
+                ui.write(key, left, bottom, TextSize.BODY, theme.TEXT)
+                ui.write(use, left + 56, bottom, TextSize.BODY, theme.TEXT_MUTED)
+                self.fixed_lines.append(f"{key} {use}")
         add_panel(ui, INFO, theme.PANEL_DEEP, theme.PANEL_LIGHT)
         text_left = INFO.left + theme.PAD
         self.info_title = ui.write("", text_left, INFO.top - 16, TextSize.BODY, theme.HEADING)

@@ -17,7 +17,7 @@ from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import rules_model
 from isofightr.scenes.menus import MenuView
-from isofightr.scenes.rules_model import ROW_KEYS, RULE_ROWS
+from isofightr.scenes.rules_model import ROW_KEYS, RULE_GROUPS, RULE_ROWS
 from isofightr.ui import kit_art, theme
 from isofightr.ui.focus import FocusMap, Rect
 from isofightr.ui.font import TextSize
@@ -28,13 +28,21 @@ from isofightr.ui.widgets import Button, Checkbox, Picture, Stepper, Toggle, add
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-ROW_HEIGHT = 17
+ROW_HEIGHT = 16
 ROW_GAP = 1
-PANEL = Rect(48, 82, NATIVE_W - 96, len(RULE_ROWS) * ROW_HEIGHT + 2 * theme.GAP)
+TITLE_HEIGHT = 9
+"""Height of a group's title line (MATCH, MECHANICS, DISPLAY) above its rows."""
+PANEL = Rect(
+    48,
+    70,
+    NATIVE_W - 96,
+    len(RULE_ROWS) * ROW_HEIGHT + len(RULE_GROUPS) * TITLE_HEIGHT + 2 * theme.GAP - 1,
+)
 STEPPER_WIDTH = 92
 SWITCH_WIDTH = 52
-BUTTONS_BOTTOM = 56
-HELP_BOTTOM = 26
+BUTTONS_BOTTOM = 44
+HELP_BOTTOM = 22
+HELP_HEIGHT = 18
 POOL, DEFAULT, BACK = "pool", "default", "back"
 BOTTOM_KEYS = (POOL, DEFAULT, BACK)
 """The buttons under the rows, left to right."""
@@ -76,8 +84,26 @@ class RulesView(MenuView):
         inner_left, inner_width = PANEL.left + theme.GAP, PANEL.width - 2 * theme.GAP
         switch_left = inner_left + inner_width - SWITCH_WIDTH - theme.GAP
         stepper_left = switch_left - STEPPER_WIDTH - theme.GAP
-        for index, row in enumerate(RULE_ROWS):
-            bottom = PANEL.top - theme.GAP - (index + 1) * ROW_HEIGHT
+        self.title_rects: dict[str, Rect] = {}
+        """Where each group's title line is, by its title."""
+        bottoms: dict[str, int] = {}
+        y = PANEL.top - theme.GAP + 1
+        for title, keys in RULE_GROUPS:
+            y -= TITLE_HEIGHT
+            self.title_rects[title] = Rect(inner_left, y, inner_width, TITLE_HEIGHT)
+            self.ui.write(title, inner_left + theme.GAP, y + 1, TextSize.SMALL, theme.HEADING)
+            rule_left = inner_left + 72
+            self.ui.picture(
+                ("rules-rule", inner_width - 72),
+                lambda: kit_art.divider(inner_width - 72),
+                rule_left,
+                y + 4,
+            )
+            for key in keys:
+                y -= ROW_HEIGHT
+                bottoms[key] = y
+        for row in RULE_ROWS:
+            bottom = bottoms[row.key]
             rect = Rect(inner_left, bottom, inner_width, ROW_HEIGHT - ROW_GAP)
             self.rects[row.key] = rect
             self._rows[row.key] = Picture(self.ui, rect)
@@ -105,7 +131,7 @@ class RulesView(MenuView):
         }  # fmt: skip
         self.rects |= {key: button.rect for key, button in self.buttons.items()}
         self.focus_map = FocusMap(self.rects)
-        strip = Rect(PANEL.left, HELP_BOTTOM, PANEL.width, 20)
+        strip = Rect(PANEL.left, HELP_BOTTOM, PANEL.width, HELP_HEIGHT)
         add_panel(self.ui, strip, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER)
         self.help = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
         self.footer("{stick}: row and value   {attack}: on / off   {special}: back   mouse: click")

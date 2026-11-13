@@ -1780,7 +1780,7 @@ def test_the_toast_says_why_a_match_cannot_start(window: Any) -> None:
     assert css._footer.text == css.notice_shown and css._notice_band.visible
     press(window, keys().D)
     assert css.message == "" and not css._notice_band.visible, "it clears on the next input"
-    assert "J: ready" in css._footer.text, "and the footer is back"
+    assert "WASD: fighter" in css._footer.text, "and the footer is back"
 
 
 # --- stage select: previews, the random pool, the rules chips (M13 group 6) -----------------
@@ -2001,7 +2001,7 @@ def test_hits_rise_as_popups_and_reduce_flashing_keeps_the_number_still(window: 
     for _ in range(20):
         calm.on_draw()
     label = calm.hud._damage[1]
-    assert label.color != theme.WHITE and label.text == "160%"
+    assert label.color != theme.WHITE and calm.hud.damage_shown(1) == "160%"
     spots = set()
     for tick in range(8):
         calm.hud_state.tick = tick
@@ -2199,7 +2199,7 @@ def test_every_prompt_shows_the_keys_of_the_device_it_is_about(window: Any) -> N
     assert prompts(css.panels[1]) == ["PRESS TO JOIN", "J  WASD KEYS", "", "V: ADD A CPU"]
     assert prompts(css.panels[2]) == ["OPEN"] == prompts(css.panels[3])
     footer = css._footer.text
-    assert "X: ready" in footer and "arrows: fighter" in footer and "V: CPUs" in footer
+    assert "C: back" in footer and "arrows: fighter" in footer and "V: CPUs" in footer
     assert "J:" not in footer and "MOTION" not in footer
     assert font.text_width(footer) <= select_text.FOOTER_WIDTH
     for panel in css.panels:
@@ -2219,7 +2219,7 @@ def test_a_gamepads_panel_shows_the_gamepads_buttons(
     assert css.panels[1].line2.text == "A: ready" and css.panels[0].line2.text == "X: ready"
     assert css.active_device == "pad:0" and css.message == "P2 JOINED ON PAD 1"
     step(window, 200)
-    assert "A: ready" in css._footer.text, "the footer follows the device that acted last"
+    assert "B: back" in css._footer.text, "the footer follows the device that acted last"
 
 
 def test_the_users_sequence_move_to_wasd_then_j_readies_and_l_reaches_a_cpu(window: Any) -> None:
@@ -2412,7 +2412,7 @@ def test_the_message_is_in_the_bottom_band_and_covers_no_panel(window: Any) -> N
     assert font.text_width(css.notice_shown) <= select_text.FOOTER_WIDTH
     assert css.notice_rect.top <= min(panel.rect.bottom for panel in css.panels)
     press(window, keys().LEFT)
-    assert css.message == "" and "X: ready" in css._footer.text, "the footer is back"
+    assert css.message == "" and "arrows: fighter" in css._footer.text, "the footer is back"
 
 
 def test_the_next_screen_keeps_the_players_device(window: Any) -> None:
@@ -2432,9 +2432,9 @@ def test_the_footer_names_the_device_once_two_people_are_in(window: Any) -> None
     assert not css._footer.text.startswith("ARROW KEYS")
     press(window, keys().J)
     step(window, 200)
-    assert css._footer.text.startswith("WASD KEYS   J: ready"), css._footer.text
+    assert css._footer.text.startswith("WASD KEYS   WASD: fighter"), css._footer.text
     press(window, keys().LEFT)
-    assert css._footer.text.startswith("ARROW KEYS   X: ready"), css._footer.text
+    assert css._footer.text.startswith("ARROW KEYS   arrows: fighter"), css._footer.text
 
 
 def test_the_controls_screen_says_when_a_key_is_on_both_keyboard_layouts(window: Any) -> None:

@@ -146,14 +146,16 @@ def test_the_footer_always_fits_the_screen(case: tuple[str, Settings, str], stat
 def test_the_footer_shows_the_devices_own_keys_and_drops_the_least_important_first() -> None:
     settings = user_settings()
     line = text.footer_line("roster", settings, ARROWS)
-    assert "X: ready" in line and "V: CPUs" in line and "arrows: fighter" in line
-    assert "S: costume" in line and "C: back" in line
-    assert "S: team" in text.footer_line("roster", settings, ARROWS, teams=True)
+    assert "V: CPUs" in line and "arrows: fighter" in line and "C: back" in line
+    assert "ready" not in line and "costume" not in line, (
+        "the player's own panel says those, in that player's keys (decision D-070)"
+    )
+    assert "team" not in text.footer_line("roster", settings, ARROWS, teams=True)
     assert "J:" not in line and "MOTION" not in line
-    assert "A: ready" in text.footer_line("roster", settings, PAD0)
+    assert "B: back" in text.footer_line("roster", settings, PAD0)
     tight = text.footer_line("roster", long_settings(), SOLO)
     assert "rules" not in tight and "fighter" not in tight, "the least important go first"
-    assert "ready" in tight and "CPUs" in tight and "back" in tight
+    assert "CPUs" in tight and "back" in tight
     solo = text.footer_line("roster", settings, ARROWS, training=True)
     assert "CPU" not in solo and "rules" not in solo, "training has neither"
     setting_up = text.footer_line("cpu", settings, ARROWS)

@@ -1,6 +1,7 @@
 """The UI polish pass (decision D-070) on the real screens: nothing sits on anything else,
 and a button that overwrites things only turns red under the cursor."""
 
+import itertools
 from typing import Any
 
 import pytest
@@ -139,3 +140,58 @@ def test_the_stage_pool_names_are_capitals_like_every_other_list(window: Any) ->
     step(window, 2)
     labels = window.current_view._labels
     assert labels and all(label.text == label.text.upper() for label in labels.values())
+
+
+# --- group 2: the proposals --------------------------------------------------------------
+
+
+def test_the_rules_are_under_three_titles_that_no_row_covers(window: Any) -> None:
+    from isofightr.scenes import rules_view
+    from isofightr.ui import theme
+
+    flow = new_flow(window)
+    flow.show_rules()
+    step(window, 2)
+    view = window.current_view
+    assert list(view.title_rects) == ["MATCH", "MECHANICS", "DISPLAY"]
+    rows = [view.rects[key] for key in rules_view.ROW_KEYS]
+    for title in view.title_rects.values():
+        assert rules_view.PANEL.bottom < title.bottom and title.top <= rules_view.PANEL.top
+        assert not any(row.overlaps(title) for row in rows)
+    assert all(a.bottom >= b.top for a, b in itertools.pairwise(rows)), "in order"
+    assert rows[-1].bottom >= rules_view.PANEL.bottom + theme.GAP - 1
+    assert view.buttons["back"].rect.top < rules_view.PANEL.bottom
+    assert rules_view.HELP_BOTTOM >= theme.FOOTER_HEIGHT + 4
+
+
+def test_the_keyboard_controls_screen_lists_the_fixed_keys(window: Any) -> None:
+    from isofightr.scenes import controls_view
+
+    flow = new_flow(window)
+    flow.show_controls(tab=0)
+    step(window, 2)
+    view = window.current_view
+    assert [line.split()[0] for line in view.fixed_lines] == ["ENTER", "ESC", "F11"]
+    device = view.rects["device"]
+    assert controls_view.FIXED.top < device.bottom, "under the device chooser"
+    assert controls_view.FIXED.right <= controls_view.INFO.left
+    flow.show_controls(tab=2)
+    step(window, 2)
+    assert window.current_view.fixed_lines == [], "a gamepad's options fill that room"
+
+
+def test_the_main_menu_shows_facts_from_the_games_own_data(window: Any) -> None:
+    from isofightr.data.character_loader import list_character_ids
+    from isofightr.data.stage_loader import list_stage_ids
+    from isofightr.scenes import front
+
+    flow = new_flow(window)
+    flow.show_main_menu()
+    step(window, 2)
+    view = window.current_view
+    facts = {caption: figure for figure, caption in view.preview_facts("versus")}
+    assert facts["FIGHTERS"] == str(len(list_character_ids()))
+    assert facts["STAGES"] == str(len(list_stage_ids()))
+    assert view.preview_facts("rules") == [], "a page that is a list has none"
+    assert front.FACT_BOTTOM + front.FACT_SIZE[1] < front.PREVIEW_SPOT[1] - 24, "under the island"
+    assert front.ISLAND_PAGES["quit"] in view.islands

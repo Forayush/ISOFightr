@@ -116,7 +116,7 @@ def test_dummy_damage_keys(window: Any) -> None:
     tap(view, keys().MINUS)
     assert [fighter.damage for fighter in view.match.fighters] == [0.0, 20.0, 20.0]
     view.on_draw()
-    assert view.hud._damage[1].text == "20%" and view.hud._damage[0].text == "0%"
+    assert view.hud.damage_shown(1) == "20%" and view.hud.damage_shown(0) == "0%"
     assert view.status_line() == "dummy damage 20%"
     tap(view, keys().MINUS)
     tap(view, keys().MINUS)
@@ -178,7 +178,7 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     view.effects.hit_effects = HIT_EFFECTS_OFF  # the spark and streak (D-068's Off)
     view.match.set_damage(1, 60.0)
     view.on_draw()
-    assert view.hud._damage[1].text == "60%"
+    assert view.hud.damage_shown(1) == "60%"
     quiet = len([sprite for sprite in view.effect_renderer.sprites if sprite.visible])
     assert quiet == 0
 
@@ -194,10 +194,10 @@ def test_a_hit_updates_the_hud_and_spawns_feedback(window: Any) -> None:
     assert len(view.effects.sparks) == 1
     view.on_draw()
     assert view.hud._damage[1].color[:3] == (255, 255, 255), "the number flashes on a hit"
-    assert view.hud._damage[1].text != "76%", "it rolls up from 60%"
+    assert view.hud.damage_shown(1) != "76%", "it rolls up from 60%"
     for _ in range(12):
         view.on_draw()
-    assert view.hud._damage[1].text == "76%"
+    assert view.hud.damage_shown(1) == "76%"
     shown = [sprite for sprite in view.effect_renderer.sprites if sprite.visible]
     swing = len(active_hitboxes(view.match.fighters[0]))
     assert len(shown) == 3 + swing, "a spark, its slash line, the launch streak and the swing"
@@ -701,15 +701,30 @@ def test_an_animated_move_shows_its_smear_instead_of_a_swing_blob(window: Any) -
     assert len(view.effect_renderer.sprites) == 0, "no blob: the sprite has the smear"
 
 
-def test_stock_icons_are_the_characters_head(window: Any) -> None:
-    from isofightr.art.portraits import ICON_SIZE
+def test_stocks_are_tile_pips_in_the_players_colour_with_sockets_for_lost_ones(
+    window: Any,
+) -> None:
+    from isofightr.ui import hud_art
 
     view = make_view(window, training=False)
-    icon = view.hud._stock_icons[0][0].texture
-    assert icon.size == (ICON_SIZE, ICON_SIZE)
-    assert view.hud._stock_icons[1][0].texture is not icon, "player 2 wears another costume"
-    placeholder = make_view(window, training=False, placeholder_art=True)
-    assert placeholder.hud._stock_icons[0][0].texture.size != (ICON_SIZE, ICON_SIZE)
+    hud = view.hud
+    pip = hud._stock_icons[0][0].texture
+    assert pip.size == hud_art.STOCK_PIP, "a small tile, not the head icon (decision D-070)"
+    assert hud._stock_icons[1][0].texture is not pip, "player 2's are in player 2's colour"
+    first, second = hud._stock_icons[0][0], hud._stock_icons[0][1]
+    assert second.left - first.right >= 1, "pips do not overlap: they are counted at a glance"
+    view.match.fighters[0].stocks = 3  # the sandbox battle has endless stocks
+    view.on_draw()
+    shown = hud.stocks_shown(0)
+    assert shown == 3 and not any(socket.visible for socket in hud._stock_sockets[0])
+    view.match.fighters[0].stocks -= 1
+    view.on_draw()
+    assert hud.stocks_shown(0) == shown - 1
+    sockets = [socket.visible for socket in hud._stock_sockets[0]]
+    assert sockets.count(True) == 1 and sockets[shown - 1], "the lost stock leaves its socket"
+    assert hud.damage_shown(0).endswith("%") and "%" not in hud._damage[0].text, (
+        "the sign is its own, smaller label"
+    )
 
 
 def test_stepped_zoom_draws_the_world_twice_as_big(window: Any) -> None:

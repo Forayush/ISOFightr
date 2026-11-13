@@ -63,10 +63,11 @@ NO_SLOT: Final[str] = "NO SLOT FOR A CPU"
 
 FOOTERS: Final[dict[str, tuple[str, tuple[str, ...]]]] = {
     "unjoined": ("{attack}: join   {special}: back", ()),
+    # Ready and costume are on the player's own panel, in that player's keys: the footer
+    # does not say them again (decision D-070).
     "roster": (
-        "{attack}: ready   {stick}: fighter   {strong}: costume   {grab}: CPUs   "
-        "↑: rules   {special}: back",
-        ("rules", "stick", "strong"),
+        "{stick}: fighter   {grab}: CPUs   ↑: rules   {special}: back",
+        ("rules", "stick"),
     ),
     "chip": ("{attack}: open the rules   ↓: fighters   {special}: back", ()),
     "ready": ("{special}: cancel   waiting for everyone", ("waiting",)),

@@ -78,6 +78,9 @@ class ResultsView(MenuView):
     ) -> None:
         """Build the whole screen from the finished match; :meth:`refresh` animates it."""
         super().__init__(pixel_buffer, flow)
+        # The dusk shows, as on every other menu: this screen's text sits on panels, and the
+        # banner reads better on the night sky than on a grey veil (decision D-070).
+        self.dim = None
         self.setup = setup
         self.match = match
         self.table_lines = results_table(match)

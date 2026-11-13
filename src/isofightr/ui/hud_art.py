@@ -63,11 +63,57 @@ def card(
     return image
 
 
+def bust_mask(size: int, inset: int = 0) -> Image.Image:
+    """Return the shape of a bust's well, ``inset`` pixels in: a square with the angled
+    corners every panel has (decision D-070), so the portrait is cut like the card it is on."""
+    inner = size - 2 * inset
+    mask = Image.new("L", (size, size), 0)
+    mask.paste(kit_art.shape_mask(inner, inner, max(theme.CORNER - inset, 1)), (inset, inset))
+    return mask
+
+
 def bust_well(size: int, ramp: Ramp) -> Image.Image:
-    """Return the dark square a bust sits in, ringed in the player's light shade."""
-    image = Image.new("RGBA", (size, size), (*theme.INK, 255))
+    """Return the dark well a bust sits in, ringed in the player's light shade, with the
+    panels' angled corners."""
+    return kit_art.filled(bust_mask(size), theme.INK, ramp[0])
+
+
+def clip_bust(image: Image.Image, size: int) -> Image.Image:
+    """Return a bust centred on a ``size`` square and cut to the inside of its well, so
+    nothing of it shows past the well's angled corners."""
+    canvas = Image.new("RGBA", (size, size), kit_art.TRANSPARENT)
+    source = image.convert("RGBA")
+    canvas.alpha_composite(
+        source.crop((0, 0, min(source.width, size), min(source.height, size))),
+        (max((size - source.width) // 2, 0), max((size - source.height) // 2, 0)),
+    )
+    blank = Image.new("RGBA", (size, size), kit_art.TRANSPARENT)
+    return Image.composite(canvas, blank, bust_mask(size, 1))
+
+
+STOCK_PIP: Final[tuple[int, int]] = (8, 7)
+"""A stock pip: one small isometric tile."""
+
+
+def stock_pip(ramp: Ramp, lost: bool = False) -> Image.Image:
+    """Return a stock pip (decision D-070): a tiny isometric tile in the player's colours,
+    lit on top, so stocks are counted at a glance; a ``lost`` one is the same shape in the
+    player's deepest shade, an empty socket."""
+    light, base, dark, deep = ramp
+    width, height = STOCK_PIP
+    image = Image.new("RGBA", (width, height), kit_art.TRANSPARENT)
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, size - 1, size - 1), outline=ramp[0])
+    half, last = width // 2, width - 1
+    top = [(0, 2), (half - 1, 0), (half, 0), (last, 2), (half, 4), (half - 1, 4)]
+    left = [(0, 2), (half - 1, 4), (half - 1, height - 1), (0, height - 3)]
+    right = [(last, 2), (half, 4), (half, height - 1), (last, height - 3)]
+    if lost:
+        for shape in (left, right, top):
+            draw.polygon(shape, fill=deep)
+        return image
+    draw.polygon(left, fill=base)
+    draw.polygon(right, fill=dark)
+    draw.polygon(top, fill=light)
     return image
 
 

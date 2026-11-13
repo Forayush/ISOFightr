@@ -33,7 +33,6 @@ from isofightr.ui.hud_layout import (
     BUBBLE_SIZE,
     KO_TEXT,
     MAX_STOCK_ICONS,
-    STOCK_SLOT_SIZE,
     bubble_layout,
     combo_text,
     damage_color,
@@ -92,7 +91,13 @@ class DamageHud:
         """Each card's CPU and team badges, hidden with the name while the number punches."""
         self._names: list[TextLabel] = []
         self._score: list[TextLabel] = []
+        self._sign: list[TextLabel] = []
+        """The percent sign beside each damage number, a size smaller (decision D-070)."""
         self._stock_icons: list[list[arcade.Sprite]] = []
+        self._stock_sockets: list[list[arcade.Sprite]] = []
+        """The empty sockets of the stocks a player has lost, under the pips."""
+        self._stock_most: list[int] = [0] * len(cards)
+        """The most pips each card has shown: how many sockets it has."""
         self._stock_text: list[TextLabel] = []
         self._crowns: list[arcade.Sprite] = []
         self._combo: list[TextLabel] = []
@@ -123,9 +128,13 @@ class DamageHud:
             rect.left + well.left,
             rect.bottom + well.bottom,
         )
-        bust = card.bust or card.icon or self._placeholder_icon(card.color)
-        bust_left = rect.left + well.left + (well.width - bust.width) // 2
-        bust_bottom = rect.bottom + well.bottom + (well.height - bust.height) // 2
+        source = card.bust or card.icon or self._placeholder_icon(card.color)
+        # Cut to the well's angled corners, so the portrait is framed like the card.
+        bust = arcade.Texture(
+            hud_art.clip_bust(source.image, well.width), hash=f"hud-bust:{id(source)}"
+        )
+        bust_left = rect.left + well.left
+        bust_bottom = rect.bottom + well.bottom
         ui.image(bust, bust_left, bust_bottom)
         white = ui.image(self._white_copy(bust), bust_left, bust_bottom)
         white.visible = False
@@ -167,31 +176,44 @@ class DamageHud:
             parts += [plate, caption]
             badge_left += width + 3
 
-        icon = card.icon or self._placeholder_icon(card.color)
-        row = []
-        for slot in range(MAX_STOCK_ICONS):
-            sprite = arcade.Sprite(
-                icon,
-                center_x=rect.left + layout.STOCK_LEFT + slot * layout.CARD_STOCK_STEP + 6,
-                center_y=rect.bottom + layout.STOCK_BOTTOM + STOCK_SLOT_SIZE / 2,
-            )
-            sprite.visible = False
-            ui.panels.append(sprite)
-            row.append(sprite)
+        # Stocks are tile pips in the player's colours; a lost one leaves its socket.
+        icon = picture_texture(("hud-pip", ramp), lambda: hud_art.stock_pip(ramp))
+        socket = picture_texture(("hud-socket", ramp), lambda: hud_art.stock_pip(ramp, True))
+        row: list[arcade.Sprite] = []
+        sockets: list[arcade.Sprite] = []
+        for texture, sprites in ((socket, sockets), (icon, row)):
+            for slot in range(MAX_STOCK_ICONS):
+                x, y = self._pip_corner(rect, slot)
+                sprite = arcade.Sprite(
+                    texture, center_x=x + texture.width / 2, center_y=y + texture.height / 2
+                )
+                sprite.visible = False
+                ui.panels.append(sprite)
+                sprites.append(sprite)
         self._stock_icons.append(row)
+        self._stock_sockets.append(sockets)
         self._shard_textures.append(self._shard_pieces(icon))
         self._stock_text.append(
             ui.write(
                 "",
-                rect.left + layout.STOCK_LEFT + 15,
-                rect.bottom + layout.STOCK_BOTTOM + 2,
+                rect.left + layout.STOCK_LEFT + 11,
+                rect.bottom + layout.STOCK_BOTTOM,
                 TextSize.SMALL,
+            )
+        )
+        self._sign.append(
+            ui.write(
+                "%",
+                rect.right - layout.DAMAGE_RIGHT,
+                rect.bottom + layout.DAMAGE_BOTTOM - self._sign_drop(),
+                TextSize.TITLE,
+                align="right",
             )
         )
         self._damage.append(
             ui.write(
-                "0%",
-                rect.right - layout.DAMAGE_RIGHT,
+                "0",
+                rect.right - layout.DAMAGE_RIGHT - self._sign[-1].width - layout.SIGN_GAP,
                 rect.bottom + layout.DAMAGE_BOTTOM,
                 TextSize.NUMERAL,
                 align="right",
@@ -283,6 +305,26 @@ class DamageHud:
         two share a baseline."""
         return font.face(TextSize.PUNCH).descent - font.face(TextSize.NUMERAL).descent
 
+    @staticmethod
+    def _sign_drop() -> int:
+        """How much lower the percent sign's line starts than the number's, so the two
+        share a baseline."""
+        return font.face(TextSize.TITLE).descent - font.face(TextSize.NUMERAL).descent
+
+    @staticmethod
+    def _pip_corner(rect: Rect, slot: int) -> tuple[int, int]:
+        """Return the bottom-left corner of a card's stock pip."""
+        return (
+            rect.left + layout.STOCK_LEFT + slot * layout.CARD_STOCK_STEP,
+            rect.bottom + layout.STOCK_BOTTOM,
+        )
+
+    def damage_shown(self, player_index: int) -> str:
+        """Return the damage a player's card reads: the number and its sign ("--" when the
+        player is out)."""
+        sign = self._sign[player_index]
+        return self._damage[player_index].text + (sign.text if sign.visible else "")
+
     def _placeholder_icon(self, color: int) -> arcade.Texture:
         return picture_texture(("hud-disc", color), lambda: art.build_stock_icon(color))
 
@@ -331,10 +373,11 @@ class DamageHud:
             self._score[index].text = "" if scores is None else score_text(scores[index])
             self._crowns[index].visible = crowned == index
             shown = fighter.damage if state is None else state.shown_damage(index)
-            label = self._damage[index]
-            label.text = damage_text(shown) if fighter.in_play else KO_TEXT
+            label, sign = self._damage[index], self._sign[index]
+            whole = damage_text(shown) if fighter.in_play else KO_TEXT
+            label.text, mark = layout.damage_parts(whole)
             hit = state is not None and flashing and state.flash.get(index, 0) > 0
-            label.color = theme.WHITE if hit else damage_color(shown)
+            label.color = sign.color = theme.WHITE if hit else damage_color(shown)
             # The hit reaction (decision D-068): nothing unless hit effects are on.
             attacker = reactions.frame_attacker(index) if flashing else None
             lit = hit or (flashing and reactions.frame_white(index))
@@ -350,23 +393,28 @@ class DamageHud:
             lift = effects.hud_offset(index)
             x = rect.right - layout.DAMAGE_RIGHT + jitter_x
             bottom = rect.bottom + layout.DAMAGE_BOTTOM + lift + jitter_y
-            label.move_to(x, bottom)
+            sign.move_to(x, bottom - self._sign_drop())
+            label.move_to(x - (sign.width + layout.SIGN_GAP if mark else 0), bottom)
             punch = self._punch[index]
             punched = fighter.in_play and reactions.punched(index)
             if punched:
-                punch.text = label.text
+                punch.text = whole
                 punch.color = label.color
                 punch.move_to(x, bottom - self._punch_drop())
             punch.visible = punched
             label.visible = not punched
+            sign.visible = bool(mark) and not punched
             # The punched number is as tall as the name row is high: it takes the row over.
             self._names[index].visible = not punched
             self._score[index].visible = not punched
             for part in self._badge_parts[index]:
                 part.visible = not punched
             shown_icons = stock_icons_shown(fighter.stocks)
+            self._stock_most[index] = max(self._stock_most[index], shown_icons)
             for slot, sprite in enumerate(self._stock_icons[index]):
                 sprite.visible = slot < shown_icons
+            for slot, sprite in enumerate(self._stock_sockets[index]):
+                sprite.visible = shown_icons <= slot < self._stock_most[index]
             self._stock_text[index].text = stock_count_text(fighter.stocks)
             self._update_combo(index, effects)
         self._update_shards(state)
@@ -398,8 +446,8 @@ class DamageHud:
             sprite.visible = False
         for number, shatter in enumerate(shatters):
             rect = self.rects[shatter.player]
-            x0 = rect.left + layout.STOCK_LEFT + shatter.slot * layout.CARD_STOCK_STEP
-            y0 = rect.bottom + layout.STOCK_BOTTOM + STOCK_SLOT_SIZE
+            x0, pip_bottom = self._pip_corner(rect, shatter.slot)
+            y0 = pip_bottom + hud_art.STOCK_PIP[1]
             age = shatter.age
             for piece, (texture, (dx, dy)) in enumerate(self._shard_textures[shatter.player]):
                 sprite = self._shards[4 * number + piece]

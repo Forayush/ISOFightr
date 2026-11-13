@@ -13,8 +13,10 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr import __version__
+from isofightr.ai.dummy import DummyBehavior
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import list_character_ids
+from isofightr.data.stage_loader import list_stage_ids
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model, rules_model
 from isofightr.scenes.diorama import PAD_GRID, PAD_SPOTS, Diorama
@@ -60,9 +62,15 @@ BUTTON_HEIGHT = 36
 BUTTON_PITCH = 41
 BUTTONS_TOP = 322
 PREVIEW = Rect(288, 44, 336, 278)
-PREVIEW_SPOT = (PREVIEW.left + PREVIEW.width // 2, PREVIEW.bottom + 96)
-"""Where a preview's island is drawn."""
+PREVIEW_SPOT = (PREVIEW.left + PREVIEW.width // 2, PREVIEW.bottom + 120)
+"""Where a preview's island is drawn: between the page's text and its row of facts."""
 LINE_HEIGHT = 14
+FACT_SIZE = (100, 36)
+FACT_GAP = 8
+FACT_BOTTOM = PREVIEW.bottom + 10
+"""A page's facts are a row of small plates along the foot of the preview (decision D-070)."""
+ISLAND_PAGES = {"versus": "versus", "training": "training", "quit": "versus"}
+"""The island each page shows, by page: the others are text."""
 
 MENU_ENTRIES: tuple[tuple[str, str, str, str], ...] = (
     ("versus", "VERSUS", "2 to 4 players, people or CPUs", "team"),
@@ -252,6 +260,22 @@ class MainMenuView(MenuView):
             page.write(caption, left, top, TextSize.TITLE, theme.HEADING)
             for row, (line, color) in enumerate(self.preview_lines(key)):
                 page.write(line, left, top - 18 - row * LINE_HEIGHT, TextSize.BODY, color)
+            facts = self.preview_facts(key)
+            total = len(facts) * FACT_SIZE[0] + (len(facts) - 1) * FACT_GAP
+            first = PREVIEW.left + (PREVIEW.width - total) // 2
+            for index, (figure, caption) in enumerate(facts):
+                plate = Rect(first + index * (FACT_SIZE[0] + FACT_GAP), FACT_BOTTOM, *FACT_SIZE)
+                page.picture(
+                    ("fact-plate", *FACT_SIZE),
+                    lambda: kit_art.panel(
+                        *FACT_SIZE, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER
+                    ),
+                    plate.left,
+                    plate.bottom,
+                )
+                middle = plate.left + plate.width // 2
+                page.write(figure, middle, plate.bottom + 14, TextSize.TITLE, theme.FOCUS, "centre")
+                page.write(caption, middle, plate.bottom + 4, TextSize.SMALL, theme.FOG, "centre")
         self.footer("{stick}: move   {attack}: pick   {special}: back   mouse: click")
         self.refresh()
 
@@ -298,6 +322,17 @@ class MainMenuView(MenuView):
             ]
         return [("See you on the islands.", plain)]
 
+    def preview_facts(self, key: str) -> list[tuple[str, str]]:
+        """Return the row of facts along the foot of a button's preview page: a figure and
+        what it counts, from the game's own data (none for the pages that are lists)."""
+        fighters, stages = len(list_character_ids()), len(list_stage_ids())
+        if key == "versus":
+            return [(str(fighters), "FIGHTERS"), (str(stages), "STAGES"), ("2-4", "PLAYERS")]
+        if key == "training":
+            modes = len(DummyBehavior)
+            return [(str(fighters), "FIGHTERS"), (str(modes), "DUMMY MODES"), ("1-9", "CPU LEVELS")]
+        return []
+
     @property
     def selected(self) -> str:
         """The key of the button under the cursor."""
@@ -337,7 +372,7 @@ class MainMenuView(MenuView):
 
     def tick(self) -> None:
         """Run the menu and the preview island that is showing."""
-        island = self.islands.get(self.selected)
+        island = self.islands.get(ISLAND_PAGES.get(self.selected, ""))
         if island is not None:
             island.tick()
         super().tick()
@@ -354,7 +389,7 @@ class MainMenuView(MenuView):
             self.backdrop.draw(self.flow.menu_ticks)
             self.ui.draw()
             self.pages[self.selected].draw()
-            island = self.islands.get(self.selected)
+            island = self.islands.get(ISLAND_PAGES.get(self.selected, ""))
             if island is not None:
                 island.draw(*PREVIEW_SPOT)
             self.draw_fade()

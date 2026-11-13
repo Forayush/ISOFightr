@@ -126,6 +126,14 @@ RULE_ROWS: Final[tuple[RuleRow, ...]] = (
 )
 """The rows, top to bottom. The switch rows' keys are :class:`MatchSetup` fields."""
 ROW_KEYS: Final[tuple[str, ...]] = tuple(row.key for row in RULE_ROWS)
+RULE_GROUPS: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
+    ("MATCH", ("time", "stock", "launch_rate", "start_damage", "team_play", "friendly_fire")),
+    ("MECHANICS", ("parry", "short_hop_macro", "air_dodge_helpless", "stage_hazards")),
+    ("DISPLAY", ("hud_display", "score_display", "player_tags", "pausing")),
+)
+"""The rows under their titles on the screen, top to bottom (decision D-070): every row
+once, in :data:`RULE_ROWS` order."""
+assert tuple(key for _, keys in RULE_GROUPS for key in keys) == ROW_KEYS
 _SWITCH_FIELDS: Final[frozenset[str]] = frozenset(RULE_FLAGS)
 
 

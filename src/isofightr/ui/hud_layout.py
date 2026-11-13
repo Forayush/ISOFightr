@@ -55,7 +55,11 @@ NAME_BOTTOM: Final[int] = 26
 STOCK_LEFT: Final[int] = 40
 STOCK_BOTTOM: Final[int] = 6
 CARD_STOCK_STEP: Final[int] = 9
-"""Stock icons on a card overlap a little, so five fit beside a three-digit percent."""
+"""Stock pips on a card are 8 px tiles a pixel apart (decision D-070; they were overlapping
+head icons), so five fit beside a three-digit percent."""
+SIGN_GAP: Final[int] = -2
+"""Pixels between the damage number and its smaller percent sign (negative: the sign's
+glyph has room of its own on its left)."""
 DAMAGE_RIGHT: Final[int] = 6
 """Gap between the damage number's right edge and the card's."""
 DAMAGE_BOTTOM: Final[int] = 4
@@ -92,6 +96,14 @@ def combo_text(hits: int, damage: float) -> str:
 def damage_text(percent: float) -> str:
     """Return the HUD text for a damage value: whole percent, rounded down."""
     return f"{int(percent)}%"
+
+
+def damage_parts(text: str) -> tuple[str, str]:
+    """Split a card's damage text into the number and its sign, which the card draws
+    smaller (decision D-070): ``"37%"`` is ``("37", "%")``; the KO dashes have no sign."""
+    if text.endswith("%"):
+        return text[:-1], "%"
+    return text, ""
 
 
 def panel_lefts(player_count: int) -> list[int]:
