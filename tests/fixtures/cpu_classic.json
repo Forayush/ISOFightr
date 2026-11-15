@@ -1,0 +1,64 @@
+[
+  {
+    "stage": "sky_ruins",
+    "characters": [
+      "rook",
+      "zephyr"
+    ],
+    "levels": [
+      9,
+      5
+    ],
+    "seed": 3,
+    "ticks": 2000,
+    "hash": "9f92ab8bf0864eadb0da66f6af1d3806"
+  },
+  {
+    "stage": "lily_pads",
+    "characters": [
+      "rook",
+      "bramble",
+      "zephyr",
+      "mote"
+    ],
+    "levels": [
+      9,
+      7,
+      5,
+      3
+    ],
+    "seed": 4,
+    "ticks": 1500,
+    "hash": "119abc190130a4a4d8ad95ce9a66c2c0"
+  },
+  {
+    "stage": "storm_galleon",
+    "characters": [
+      "mote",
+      "bramble"
+    ],
+    "levels": [
+      9,
+      9
+    ],
+    "seed": 5,
+    "ticks": 2000,
+    "hash": "f382cb6195a69ef11d09664a020a5f69"
+  },
+  {
+    "stage": "twin_isles",
+    "characters": [
+      "bramble",
+      "mote",
+      "rook"
+    ],
+    "levels": [
+      1,
+      9,
+      6
+    ],
+    "seed": 6,
+    "ticks": 2000,
+    "hash": "cc19cf0a5a5f8a1d4ca29051cdade938"
+  }
+]
