@@ -71,7 +71,8 @@ def play(match: Match, cpus: list[CpuController | None], ticks: int) -> list[obj
 
 
 def test_levels_follow_the_plan_table_and_interpolate_between_anchors() -> None:
-    assert cpu_level(1).reaction_frames == 40 and cpu_level(9).reaction_frames == 7
+    # Level 9 reacts in about 12 frames, as a fast person does (decision D-071; it was 7).
+    assert cpu_level(1).reaction_frames == 40 and cpu_level(9).reaction_frames == 12
     assert cpu_level(5).defend_chance == pytest.approx(0.40)
     assert cpu_level(2).reaction_frames == 34, "halfway between levels 1 and 3"
     assert cpu_level(9).tech_chance == pytest.approx(0.90)
@@ -241,32 +242,49 @@ def test_a_cpu_lets_its_shield_drop_once_the_threat_has_passed() -> None:
     assert StateId.SHIELD not in states, "and it does not come back up by itself"
 
 
-def test_a_cpu_shields_a_smash_it_sees_coming_at_high_levels() -> None:
-    def shields(level: int) -> int:
-        count = 0
-        for seed in range(10):
-            match, cpus = cpu_match("final_plateau", ("rook", "rook"), (level, 0), seed=seed)
-            cpu, attacker = match.fighters
-            place(match, cpu, 7.0, 5.0, facing=Dir8.NW)
-            place(match, attacker, 5.6, 5.0, facing=Dir8.SE)
-            smash = InputFrame(held=int(Button.STRONG))
-            controller = cpus[0]
-            assert controller is not None
-            # Only the defence layer is under test: the CPU neither attacks nor moves.
-            controller._next_decision = 10**9
-            controller._move_goal = cpu.pos
-            for tick in range(40):
-                frames = [controller.think(match), NEUTRAL_INPUT]
-                if tick == 0:
-                    frames[1] = smash
-                match.tick(frames)
-                if cpu.state is StateId.SHIELD:
-                    count += 1
-                    break
-        return count
+def shield_reaction(level: int, seed: int, charge: int) -> int | None:
+    """A Rook smashes a CPU Rook 1.4 units away, holding the smash ``charge`` frames: the
+    tick, counted from the smash's start, on which the CPU's shield is up (``None`` if it
+    never is before the hit). Only the defence layer is under test: the CPU neither attacks
+    nor moves."""
+    match, cpus = cpu_match("final_plateau", ("rook", "rook"), (level, 0), seed=seed)
+    cpu, attacker = match.fighters
+    place(match, cpu, 7.0, 5.0, facing=Dir8.NW)
+    place(match, attacker, 5.6, 5.0, facing=Dir8.SE)
+    controller = cpus[0]
+    assert controller is not None
+    controller._next_decision = 10**9
+    controller._move_goal = cpu.pos
+    smash = InputFrame(held=int(Button.STRONG))
+    for tick in range(90):
+        frames = [controller.think(match), smash if tick <= charge else NEUTRAL_INPUT]
+        match.tick(frames)
+        if cpu.state is StateId.SHIELD:
+            return tick
+        if cpu.hitlag > 0:
+            return None
+    return None
 
-    assert shields(9) >= 5
+
+def test_a_cpu_shields_a_charged_smash_at_high_levels_and_not_at_low_ones() -> None:
+    """A smash held for a moment gives time to react (decision D-071: strength from
+    decisions, not reflexes)."""
+
+    def shields(level: int) -> int:
+        return sum(shield_reaction(level, seed, 20) is not None for seed in range(10))
+
+    assert shields(9) >= 8
+    assert shields(5) >= 6
     assert shields(1) <= 3
+
+
+def test_no_cpu_reacts_to_an_attack_sooner_than_its_level_allows() -> None:
+    """The shield goes up no sooner than the reaction time after the smash starts, so an
+    unheld close smash is not blocked on reaction even at level 9."""
+    for level in (9, 5):
+        reactions = [shield_reaction(level, seed, 20) for seed in range(10)]
+        assert all(r is None or r >= cpu_level(level).reaction_frames for r in reactions)
+    assert all(shield_reaction(9, seed, 0) is None for seed in range(10))
 
 
 def test_a_grabbed_cpu_mashes_out_sooner_than_an_idle_player() -> None:

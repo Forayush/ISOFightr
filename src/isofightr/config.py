@@ -169,7 +169,7 @@ CPU_MIN_LEVEL: Final[int] = 1
 CPU_MAX_LEVEL: Final[int] = 9
 CPU_DEFAULT_LEVEL: Final[int] = 5
 CPU_LEVEL_ANCHORS: Final[tuple[int, ...]] = (1, 3, 5, 7, 9)
-CPU_REACTION_FRAMES: Final[tuple[float, ...]] = (40, 28, 18, 12, 7)
+CPU_REACTION_FRAMES: Final[tuple[float, ...]] = (40, 28, 20, 15, 12)
 """How old the CPU's view of its opponents is, in frames."""
 CPU_TRACKING_FRAMES: Final[tuple[float, ...]] = (10, 8, 6, 4, 2)
 """M20 (decision D-071): how late a CPU sees what changes smoothly (where an opponent is,
@@ -179,6 +179,100 @@ CPU_REACTION_SPREAD: Final[int] = 4
 """A reaction takes its level's frames plus up to this many, drawn per event: never fewer."""
 CPU_ATTENTION_FRAMES: Final[int] = 8
 """Extra reaction time for an opponent the CPU is not focused on (a free-for-all)."""
+CPU_CHOICE_TEMPERATURE: Final[tuple[float, ...]] = (8.0, 5.0, 3.0, 2.0, 1.0)
+"""M20: how loosely a CPU picks among the things worth doing, in value points: at 1 it
+almost always takes the best, at 8 it often takes something a good deal worse."""
+
+# The expected-value formula of ``ai/intercept.py`` (decision D-071). Values are in percent
+# of damage: a candidate is worth the damage it is likely to deal, plus and minus the rest.
+CPU_KO_VALUE: Final[float] = 45.0
+"""What taking a stock is worth on top of the hit's damage."""
+CPU_HIT_VALUE: Final[float] = 6.0
+"""What landing any clean hit is worth beyond its damage: it stops whatever the opponent
+was about to do and hands the CPU the next move. Without it a jab is never worth throwing."""
+CPU_ADVANTAGE_VALUE: Final[float] = 0.4
+"""What each frame of advantage on hit is worth (counted between -15 and +15 frames)."""
+CPU_PUNISH_VALUE: Final[float] = 14.0
+"""What a full punish costs: about one solid hit."""
+CPU_PUNISH_FRAMES: Final[float] = 20.0
+"""Frames handed to an opponent that amount to a full punish (fewer cost in proportion)."""
+CPU_GUARD_GUESS: Final[float] = 0.15
+"""How likely a free, grounded opponent is taken to block (the habit model replaces it)."""
+CPU_STUFF_GUESS: Final[float] = 0.7
+"""How likely a slow move started inside a free opponent's reach is taken to be hit first
+(a move as quick as the opponent's quickest: not at all; ``CPU_STUFF_FRAMES`` slower: this)."""
+CPU_STUFF_FRAMES: Final[float] = 14.0
+CPU_STUFF_REACH: Final[float] = 0.5
+CPU_PASSIVE_DISCOUNT: Final[float] = 0.8
+"""How much of that risk goes once the opponent has not attacked for ``CPU_PATIENCE_FRAMES``:
+someone who never swings is not about to. Without it two careful CPUs stood a jab apart
+for minutes, each waiting for the other."""
+CPU_CLOSE_INSIDE: Final[float] = 0.3
+"""When it closes in, it comes this far inside the reach of its own jab."""
+"""An opponent this far outside its quick reach still counts as inside it (it steps in)."""
+CPU_TARGET_MOBILITY: Final[float] = 0.5
+"""Share of the distance a free target could cover that it is assumed to: at 1 nothing ever
+looks likely to hit a free opponent, at 0 everything in reach looks certain."""
+CPU_REACH_MARGIN: Final[float] = 0.1
+"""Overlap a hitbox needs with the target before it counts as reaching (as the M10 CPU's slack
+did: a move that only grazes on paper whiffs in play)."""
+CPU_MIN_CHANCE: Final[float] = 0.25
+"""A candidate less likely than this to reach is not weighed at all."""
+CPU_PROJECTILE_MIN_CHANCE: Final[float] = 0.5
+"""A projectile needs a better chance than that: thrown at nothing it is only noise."""
+CPU_ACT_VALUE: Final[float] = 1.5
+"""A candidate must be worth more than this to be done."""
+CPU_TIME_COST: Final[float] = 0.03
+"""Value lost per frame a hit takes to arrive: sooner is better, all else equal."""
+CPU_CAUTION_PERCENT: Final[float] = 150.0
+"""Costs grow with the CPU's own damage: doubled at this percent."""
+CPU_IMPATIENCE_VALUE: Final[float] = 7.0
+"""Added to a likely hit's value after a long wait, so that two careful CPUs still fight."""
+CPU_PATIENCE_FRAMES: Final[int] = 100
+"""Frames without attacking after which the impatience is full."""
+
+# Spacing in neutral.
+CPU_HOVER_MARGIN: Final[float] = 0.35
+"""How far outside an opponent's quick reach a CPU stands while it waits."""
+CPU_HOVER_BAND: Final[float] = 0.35
+"""It does not move while it is within this of where it wants to stand."""
+CPU_HOVER_MAX: Final[float] = 3.2
+"""The farthest a brawler stands off, however long the opponent's reach."""
+CPU_SWAY: Final[tuple[float, float]] = (-0.3, 0.5)
+"""The standing distance drifts within this range, so the CPU does not stand still."""
+CPU_SWAY_FRAMES: Final[tuple[int, int]] = (25, 60)
+"""How long one drift lasts, at least and at most."""
+CPU_RESPECT_RANGE: Final[float] = 4.0
+"""Distance kept from an opponent that cannot be hit (just respawned)."""
+CPU_OPENING_FRAMES: Final[int] = 10
+"""An opponent locked for this long is walked up to instead of kept at arm's length."""
+CPU_ABORT_DRIFT: Final[float] = 1.0
+CPU_CLIMB_RETRY_FRAMES: Final[int] = 300
+"""After a climb toward an opponent on other ground drops it over a gap, a CPU waits this long
+before it tries that again (a route on Frostpeak looped a Zephyr between a jump and the ledge)."""
+CPU_DRIFT_LOOKAHEAD: Final[int] = 8
+"""During a move in the air, a CPU checks for ground where its speed carries it this many
+frames ahead before drifting on toward its goal."""
+CPU_PATH_STEP: Final[float] = 0.25
+"""Spacing of the checks for ground along the way to a place to stand."""
+CPU_PATH_CHECK: Final[int] = 4
+"""An action's recorded path is checked against the blast zone and the ground every this many
+frames."""
+CPU_BLAST_MARGIN: Final[float] = 2.0
+"""No action may carry the CPU nearer than this to a blast zone."""
+CPU_FOOTED_HEIGHT: Final[float] = 0.05
+"""Feet this close to where an action started count as still on the ground in its recording."""
+CPU_STILL_SPEED: Final[float] = 0.03
+"""A CPU moving slower than this counts as standing still (run-ups and walk-ups are recorded
+from a standstill)."""
+"""Spacing of the checks for ground along the way to a place to stand."""
+CPU_GUARD_HORIZON: Final[int] = 30
+"""How far ahead a CPU looks for a hit of a move it has noticed (M10 looked 8 frames)."""
+CPU_GUARD_NOW: Final[int] = 12
+"""A hit this close is guarded at once; one further off may still be beaten to the punch."""
+CPU_OUT_OF_SHIELD_CHANCE: Final[float] = 0.9
+"""How sure a grab out of shield must be before it is tried."""
+"""A run-up is called off if its target turns out this far from where it was expected."""
 CPU_DECISION_FRAMES: Final[tuple[float, ...]] = (30, 20, 12, 8, 4)
 """How often a CPU in neutral picks a new plan, in frames."""
 CPU_DEFEND_CHANCE: Final[tuple[float, ...]] = (0.05, 0.20, 0.40, 0.60, 0.80)
@@ -203,9 +297,6 @@ CPU_MASH_EVERY: Final[tuple[float, ...]] = (8, 6, 4, 3, 2)
 CPU_PUNISH_MARGIN: Final[tuple[float, ...]] = (0, 1, 2, 3, 4)
 """Frames of an opponent's end lag the CPU leaves spare when it picks a punish."""
 
-CPU_HIT_SLACK: Final[float] = -0.1
-"""Units added to hitbox reach when the CPU judges whether a move will connect: negative, so
-it only counts on hits with some overlap to spare (a borderline swing would whiff forever)."""
 CPU_THREAT_SLACK: Final[float] = 0.15
 """Units added to an opponent's hitbox reach when the CPU judges whether it is in danger."""
 CPU_THREAT_FRAMES: Final[int] = 8
@@ -254,14 +345,9 @@ CPU_TECH_PRESS_FRAMES: Final[int] = 5
 """A tumbling CPU presses shield this many frames (or fewer) before it lands."""
 CPU_AIR_DODGE_FRAMES: Final[int] = 5
 """An airborne CPU air dodges a hit it sees landing within this many frames."""
-CPU_DOWNED_OPENING_FRAMES: Final[int] = 11
-"""The least a CPU counts on a downed opponent (knocked down, dizzy, helpless) staying open."""
 CPU_SHIELD_HOLD_EXTRA: Final[int] = 4
 """Frames the CPU keeps its shield up after the threat it saw has passed."""
 CPU_GETUP_MIN_LOCK: Final[int] = 2
-CPU_KILL_HEADROOM: Final[float] = 1.0
-"""A launch that would carry the target this many units short of the blast zone still counts
-as a KO (it keeps flying a little after its knockback runs out)."""
 CPU_SOFTLOCK_FRAMES: Final[int] = 20 * 60
 """The soak test's soft-lock limit: no fighter may stay in one state longer than this."""
 

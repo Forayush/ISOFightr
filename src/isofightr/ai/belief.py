@@ -93,7 +93,8 @@ class Beliefs:
             while seen.pending and seen.pending[0][0] <= now.frame:
                 _, happened, view = seen.pending.pop(0)
                 seen.believed, seen.believed_frame = view, happened
-            self._views[index] = self._compose(tracked.fighters[index], seen, now.frame)
+            lag = now.frame - tracked.frame
+            self._views[index] = self._compose(tracked.fighters[index], seen, now.frame, lag)
 
     def _reaction(self, me: FighterView, other: FighterView, focus: int | None) -> int:
         frames = self.reaction_frames
@@ -105,14 +106,24 @@ class Beliefs:
         return frames
 
     @staticmethod
-    def _compose(tracked: FighterView, seen: _Seen, frame: int) -> FighterView:
-        """Smooth values as tracked, the doing as last noticed and run on to now."""
+    def _compose(tracked: FighterView, seen: _Seen, frame: int, lag: int) -> FighterView:
+        """Smooth values as tracked, the doing as last noticed and run on to now.
+
+        Once the tracked snapshot shows the same state and move as the one noticed, its own
+        frame count is the better one: a charging smash holds its frame still in the sim
+        (counting on would make the CPU think the hit had passed)."""
         doing = seen.believed
         elapsed = frame - seen.believed_frame
+        state_frame = doing.state_frame + elapsed
+        if (tracked.state, tracked.move_id) == (doing.state, doing.move_id):
+            if tracked.charge_frames > 0:
+                state_frame = tracked.state_frame
+            else:
+                state_frame = tracked.state_frame + lag
         return replace(
             tracked,
             state=doing.state,
-            state_frame=doing.state_frame + elapsed,
+            state_frame=state_frame,
             move_id=doing.move_id,
             move_faf=doing.move_faf,
             hitlag=max(doing.hitlag - elapsed, 0),
@@ -125,6 +136,7 @@ class Beliefs:
             armored=doing.armored,
             countering=doing.countering,
             reflecting=doing.reflecting,
+            intangible_left=max(doing.intangible_left - elapsed, 0),
         )
 
     def of(self, index: int) -> FighterView:

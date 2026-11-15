@@ -3,7 +3,6 @@ decision D-071): the wider view, beliefs (tracking is fast, reacting is slow), a
 additions to the recorded move knowledge. None of it may change how the CPU plays yet.
 """
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +13,6 @@ from isofightr import config
 from isofightr.ai import knowledge as know
 from isofightr.ai.belief import CLOSE_ATTENTION, Beliefs
 from isofightr.ai.classic.knowledge import knowledge_for as classic_knowledge_for
-from isofightr.ai.controller import CpuController
 from isofightr.ai.knowledge import knowledge_for
 from isofightr.ai.levels import cpu_level
 from isofightr.ai.view import WorldView, observe
@@ -46,26 +44,6 @@ def idle(match: Match) -> list[InputFrame]:
 
 
 # --- nothing changes how the CPU plays, yet -----------------------------------------------
-
-
-@pytest.mark.parametrize("index", range(4))
-def test_until_group_2_the_games_cpu_plays_what_the_frozen_one_plays(index: int) -> None:
-    """Group 1 only adds what the CPU can see and know. This test goes when group 2 gives the
-    game's CPU its new decisions (the frozen one stays pinned in ``test_cpu_report``)."""
-    case = json.loads(PINNED.read_text(encoding="utf-8"))[index]
-    stage = load_stage(case["stage"])
-    characters = [load_character(name) for name in case["characters"]]
-    match = Match.create(
-        stage, characters, seed=case["seed"], rules=MatchRules(stocks=3, stage_hazards=True)
-    )
-    cpus = [
-        CpuController(player, level, case["seed"], stage)
-        for player, level in enumerate(case["levels"])
-    ]
-    for _ in range(case["ticks"]):
-        world = observe(match)
-        match.tick([cpu.think(match, world) for cpu in cpus])
-    assert match.state_hash() == case["hash"]
 
 
 @pytest.mark.parametrize("character_id", CHARACTERS)

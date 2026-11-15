@@ -133,7 +133,8 @@ def test_a_launch_is_predicted_from_the_hit_and_from_the_middle_of_the_flight(
     play_on(match, victim, wait + 6)
     if victim.hitstun > 0:
         track = track_of(match, victim, 40)
-        assert track.locked == victim.hitstun
+        # Certain for the rest of its hitstun, or until a tumble lands (it may tech then).
+        assert 0 < track.locked <= victim.hitstun
         assert_follows(track, play_on(match, victim, 40), track.locked, slack)
 
 

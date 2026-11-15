@@ -1,20 +1,23 @@
-"""The CPU opponent: sees the match a little late, decides by utility, acts through inputs.
+"""The CPU opponent: sees the match a little late, weighs what it could do, acts through
+inputs.
 
-Plan note "15 - CPU AI". Three layers:
+Plan note "15 - CPU AI" and decision D-071 (M20). Three layers:
 
-1. **Perception.** Each tick the CPU copies the match into a :class:`~isofightr.ai.view.
-   WorldView` and keeps a short history. It reads its opponents ``reaction_frames`` in the past
-   (and extrapolates their motion by a level-dependent share of that delay); it knows its own
-   state as it is now.
+1. **Perception.** Each tick the CPU takes (or is handed) a :class:`~isofightr.ai.view.
+   WorldView` and updates its :class:`~isofightr.ai.belief.Beliefs`: where an opponent is, it
+   tracks almost at once; what an opponent has just started, it notices a reaction time
+   later. It knows its own state as it is now.
 2. **Decision.** Situations that only concern itself (being launched, tumbling, lying down,
    hanging from a ledge, being grabbed, holding someone, being off the stage) are handled
-   every frame. In neutral it re-plans every ``decision_frames``: defend against a hit it
-   sees coming, punish end lag, attack with the move that best reaches the predicted target
-   (scored by damage, KO potential and speed), or move: approach to its preferred range,
-   jump to higher ground or across a gap, or guard the ledge.
+   every frame, still by the M10 rules (M20 groups 3 and 4 replace them). In neutral it
+   re-plans every ``decision_frames``: it predicts where its target can be
+   (:mod:`isofightr.ai.predict`), searches everything it could do, with or without a run-up
+   (:mod:`isofightr.ai.intercept`), and does the best of what is worth doing. If nothing is,
+   it takes up a distance: just outside the opponent's quick reach, never standing still.
 3. **Execution.** Attacks and other multi-frame inputs are queued as ``InputFrame``s built
    from the recorded recipe of each action (:mod:`isofightr.ai.knowledge`), with a release
-   frame first whenever a press would otherwise not be fresh.
+   frame first whenever a press would otherwise not be fresh. A run-up is called off if its
+   target is not where it was expected.
 
 A CPU only ever returns ``InputFrame``s, so replays record it like any player, and all its
 randomness comes from its own seeded :class:`~isofightr.sim.rng.Rng`: the same match seed
@@ -28,12 +31,16 @@ from __future__ import annotations
 import math
 from collections import deque
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from itertools import chain
 from typing import Final
 
 from isofightr import config
+from isofightr.ai import intercept, predict
+from isofightr.ai.belief import Beliefs
 from isofightr.ai.knowledge import Action, CharacterKnowledge, Start, frames_for, knowledge_for
 from isofightr.ai.levels import CpuLevel, cpu_level
+from isofightr.ai.situation import Situation, Standing, classify
 from isofightr.ai.terrain import (
     ground_below,
     level_ground_ahead,
@@ -44,8 +51,8 @@ from isofightr.ai.terrain import (
     safe_spot,
 )
 from isofightr.ai.view import FighterView, WorldView, observe
+from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat import constants as combat
-from isofightr.sim.combat.knockback import knockback, launch_speed
 from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import (
     NEUTRAL_INPUT,
@@ -76,16 +83,10 @@ DOWNED: Final[frozenset[StateId]] = frozenset(
 IGNORED: Final[frozenset[StateId]] = frozenset({StateId.KO})
 JUMP_PRESS_FRAMES: Final[int] = 10
 """Jump is held this long for a full hop toward higher ground or across a gap."""
-LOOKAHEAD_LIMIT: Final[int] = 70
-"""Hit frames later than this are not counted on when picking an attack."""
 PREDICT_LIMIT: Final[int] = 30
 """Motion is extrapolated at most this many frames ahead."""
-KILL_BONUS: Final[float] = 3.0
-GRAB_SHIELD_BONUS: Final[float] = 2.5
-SHIELDED_PENALTY: Final[float] = 0.35
-LATE_PUNISH_PENALTY: Final[float] = 0.3
-SPEED_SCALE: Final[float] = 12.0
-"""A move whose hit comes this many frames later is worth half as much."""
+BELIEF_SALT: Final[int] = 0x0B5E_12FE
+"""Seeds the dice of the CPU's reaction times apart from its other dice."""
 HELPLESS_ARRIVAL: Final[float] = 0.3
 """A helpless move must end at least this far inside the stage to be considered."""
 TECH_ROLL_SHARE: Final[float] = 0.4
@@ -142,7 +143,31 @@ class CpuController:
         self.live = stage
         """The stage on the current frame (``match.stage``): where its moving platforms are
         now. Routes are planned on ``stage``, where they rest and are left out (D-063)."""
-        self.history: deque[WorldView] = deque(maxlen=self.level.reaction_frames + 1)
+        self.history: deque[WorldView] = deque(maxlen=self.level.tracking_frames + 1)
+        self.beliefs = Beliefs(
+            player_index,
+            self.level.tracking_frames,
+            self.level.reaction_frames,
+            Rng.seeded((seed ^ BELIEF_SALT) * 31 + player_index),
+        )
+        self.characters: dict[int, CharacterDef] = {}
+        self.standing = Standing(Situation.NEUTRAL)
+        """The situation the CPU last found itself in (for debugging and the trace)."""
+        self._believed: WorldView | None = None
+        self._focus: int | None = None
+        self._last_attack = 0
+        self._queued: tuple[Action, int] | None = None
+        """The ground action whose inputs are queued, and the frame it was started on."""
+        self._climb_blocked_until = 0
+        """Until this frame it does not try to climb to an opponent on other ground."""
+        self._their_attack: dict[int, int] = {}
+        """The frame each opponent was last seen attacking (or grabbing)."""
+        """The frame it last chose to attack: waiting makes it less patient."""
+        self._sway = 0.0
+        self._sway_until = 0
+        self._committed: tuple[int, int, int, Vec3] | None = None
+        """A run-up in progress: (frame the hit is due, frame the run ends, the target,
+        where the target was expected to be)."""
         self.queue: deque[InputFrame] = deque()
         self.last = NEUTRAL_INPUT
         self.plan = Plan("idle")
@@ -180,6 +205,7 @@ class CpuController:
             for fighter in match.fighters:
                 index = fighter.player_index
                 self.knowledge[index] = knowledge_for(fighter.character)
+                self.characters[index] = fighter.character
                 self.gravity[index] = fighter.character.movement.gravity
                 if index == self.player:
                     stats = fighter.character.movement
@@ -191,16 +217,29 @@ class CpuController:
         if world is None:
             world = observe(match)
         self.history.append(world)
+        self.beliefs.update(self.history, self._focus)
+        for view in self.beliefs.views():
+            if view.state in (StateId.ATTACK, StateId.GRAB, StateId.DASH_GRAB):
+                self._their_attack[view.index] = world.frame
+        self._believed = WorldView(
+            frame=world.frame,
+            playing=world.playing,
+            fighters=self.beliefs.views(),
+            projectiles=self.history[0].projectiles,
+            hazards=world.hazards,
+            platforms=world.platforms,
+            time_left=world.time_left,
+            sudden_death=world.sudden_death,
+        )
         frame = self._decide(world)
         self.last = frame
         return frame
 
     def _seen(self) -> WorldView:
-        """The world as the CPU perceives its opponents: ``reaction_frames`` ago."""
-        return self.history[0]
-
-    def _delay(self, now: WorldView) -> int:
-        return now.frame - self._seen().frame
+        """The world as the CPU believes it to be: its opponents where it tracks them, doing
+        what it has had time to notice."""
+        assert self._believed is not None
+        return self._believed
 
     def _roll(self, key: str) -> float:
         """A die rolled once per situation (the same key returns the same value until the
@@ -240,11 +279,25 @@ class CpuController:
             self._pummels_done = 0
         elif not self.queue:
             self._throw(world, me)
+        if self.queue and self._run_up_fails(world):
+            self.queue.clear()
+        if self.queue and self._queued is not None and not me.grounded:
+            # A ground move whose inputs are still coming, and the fighter is in the air while
+            # the recording still had it on its feet (it slid or ran off something): the rest
+            # would come out as an aerial. Stop.
+            action, started = self._queued
+            if action.offset_at(world.frame - started).z <= config.CPU_FOOTED_HEIGHT:
+                self.queue.clear()
+                self._queued = None
         if self.queue:
             return self._emit()
+        self._committed = None
         if me.state in SHIELDING:
             return self._shielding(world, me)
         if not me.grounded and not over_ground(self.live, me.pos):
+            if self.plan.kind == "space" and self.plan.detail == "climb":
+                # The way up it took dropped it over a gap: leave that climb for a while.
+                self._climb_blocked_until = world.frame + config.CPU_CLIMB_RETRY_FRAMES
             return self._recover(me)
         if me.grounded:
             self._destination = None
@@ -423,16 +476,55 @@ class CpuController:
         """Keep the shield up until the threat has passed, then let go. Not while it drops:
         a shield held through the drop comes straight back up when the drop ends, and two
         CPUs facing each other then raised and dropped their shields forever."""
+        if me.state is StateId.SHIELD and self._grab_out_of_shield(world, me):
+            self.plan = Plan("attack", "grab out of shield")
+            self._last_attack = world.frame
+            return InputFrame(held=int(Button.SHIELD) | int(Button.GRAB))
         if me.state is not StateId.SHIELD_STUN and world.frame >= self._shield_until:
             return NEUTRAL_INPUT
         return InputFrame(held=int(Button.SHIELD))
+
+    def _grab_out_of_shield(self, world: WorldView, me: FighterView) -> bool:
+        """Whether the opponent is stuck in front of the shield long enough to be grabbed
+        (the sim lets a shielding fighter grab without dropping the shield first)."""
+        if self.level.level <= BASIC_LEVEL or self.last.held & int(Button.GRAB):
+            return False
+        target = self._target(self._seen(), me)
+        if target is None or not target.grounded or target.intangible or target.invincible:
+            return False
+        reading = self._read(world, me, target, None)
+        grab = self.knowledge[self.player].action("grab")
+        frame, chance = intercept.connect(me, target, grab, me.facing.world, reading.track)
+        return chance >= config.CPU_OUT_OF_SHIELD_CHANCE and reading.track.sure(frame)
 
     def _hold_course(self, me: FighterView) -> InputFrame:
         """Busy (attacking, landing, dodging): keep drifting toward the goal in the air, and
         keep aiming the up special while it is still being steered."""
         if me.grounded:
             return NEUTRAL_INPUT
-        return self._steer_air(me, self._waypoint or self._move_goal)
+        goal = self._waypoint or self._move_goal
+        if self._waypoint is None and goal is not None:
+            # Drifting during a move in neutral: never toward a landing with no ground under it
+            # (Bramble drifted into one of Ember Forge's pits after a short-hop aerial).
+            ahead = me.pos + Vec3(me.vel.x, me.vel.y, 0.0) * float(config.CPU_DRIFT_LOOKAHEAD)
+            if not over_ground(self.live, ahead) or not self._ground_between(me.pos, goal):
+                here = over_ground(self.live, me.pos)
+                goal = Vec3(me.pos.x, me.pos.y, me.pos.z) if here else None
+                if goal is None:
+                    home = self.stage.respawn
+                    goal = Vec3(home.x, home.y, me.pos.z)
+        return self._steer_air(me, goal)
+
+    def _ground_between(self, start: Vec3, end: Vec3) -> bool:
+        """Whether there is ground under every step of the straight way from ``start`` to
+        ``end`` (at ``start``'s height): a place to go must not be across a gap."""
+        delta = end.xy - start.xy
+        steps = max(int(delta.length() / config.CPU_PATH_STEP), 1)
+        for index in range(1, steps + 1):
+            point = start.xy + delta * (index / steps)
+            if ground_below(self.live, point.x, point.y, start.z + config.CPU_STEP_HEIGHT) is None:
+                return False
+        return True
 
     # --- recovery ------------------------------------------------------------------------
 
@@ -516,35 +608,226 @@ class CpuController:
 
     def _neutral(self, world: WorldView, me: FighterView) -> InputFrame:
         seen = self._seen()
-        delay = self._delay(world)
-        threat = self._threat(seen, me, delay)
-        if threat is not None:
+        threat = self._threat(seen, me, self.level.tracking_frames, config.CPU_GUARD_HORIZON)
+        if threat is not None and threat[0] <= config.CPU_GUARD_NOW:
             defended = self._defend(world, me, threat)
             if defended is not None:
                 return defended
         target = self._target(seen, me)
         if target is None:
             self._move_goal = None
+            self._focus = None
+            self.standing = classify(me, None, None)
             return NEUTRAL_INPUT
+        self._focus = target.index
         self._facing_target = target.pos
         if world.frame >= self._next_decision:
-            self._next_decision = world.frame + self.level.decision_frames
-            lead = delay * self.level.prediction
-            choice = self._choose_attack(me, target, lead)
+            reading = self._read(world, me, target, threat)
+            off = not target.grounded and not over_ground(self.live, target.pos)
+            self.standing = classify(me, target, reading.track, target_off_stage=off)
+            ahead = self.standing.situation is Situation.ADVANTAGE
+            # With the opponent open, every frame counts: look again at once.
+            self._next_decision = world.frame + (1 if ahead else self.level.decision_frames)
+            choice = self._choose(reading)
             if choice is not None:
-                action, aim, _value = choice
-                self.plan = Plan("attack", action.name)
-                self._enqueue(frames_for(action.steps, aim))
-                return self._emit()
-            self._move_goal = self._goal(me, target, lead)
+                return self._attack(world, target, choice, reading)
+            if threat is not None:
+                # Nothing beats it to the punch: guard the hit that is on its way.
+                defended = self._defend(world, me, threat)
+                if defended is not None:
+                    return defended
+            self._move_goal = self._position(world, me, target, reading)
         if self._move_goal is None:
-            self._move_goal = self._goal(me, target, delay * self.level.prediction)
+            self._move_goal = me.pos
         return self._move_toward(me, self._move_goal)
+
+    def _read(
+        self, world: WorldView, me: FighterView, target: FighterView, threat: tuple[int, int] | None
+    ) -> intercept.Reading:
+        """Read the situation once for everything this decision weighs."""
+        index = target.index
+        theirs = self.knowledge[index]
+        # Where the target is, the CPU sees a few frames late: start the track from then and
+        # drop those frames, so that a launched or running target is where it is now.
+        lead = round(self.level.tracking_frames * self.level.prediction)
+        stale = replace(
+            target,
+            state_frame=max(target.state_frame - lead, 1),
+            hitstun=target.hitstun + lead if target.hitstun > 0 else 0,
+            hitlag=target.hitlag + lead if target.hitlag > 0 else 0,
+        )
+        ahead = predict.track(
+            self.live, stale, self.characters[index], theirs, intercept.LOOKAHEAD + lead
+        )
+        track = predict.Track(ahead.points[lead:], ahead.spread[lead:], max(ahead.locked - lead, 0))
+        their_action = None
+        if target.state is StateId.ATTACK:
+            table = theirs.ground_by_move if target.grounded else theirs.air_by_move
+            their_action = (
+                table.get(target.move_id)
+                or theirs.ground_by_move.get(target.move_id)
+                or theirs.air_by_move.get(target.move_id)
+            )
+        waited = (world.frame - self._last_attack) / config.CPU_PATIENCE_FRAMES
+        return intercept.Reading(
+            stage=self.live,
+            me=me,
+            target=target,
+            track=track,
+            character=self.characters[index],
+            theirs=theirs,
+            their_action=their_action,
+            their_frame=(their_action.move_start + target.state_frame - 1 if their_action else 0),
+            caution=1.0 + me.damage / config.CPU_CAUTION_PERCENT,
+            urge=min(max(waited, 0.0), 1.0) * config.CPU_IMPATIENCE_VALUE,
+            threat_frames=threat[0] if threat is not None else 0,
+            passive=min(
+                max(
+                    (world.frame - self._their_attack.get(index, 0)) / config.CPU_PATIENCE_FRAMES,
+                    0.0,
+                ),
+                1.0,
+            ),
+        )
+
+    def _choose(self, reading: intercept.Reading) -> intercept.Candidate | None:
+        """The best of everything that could reach the target, if any of it is worth doing."""
+        me, target = reading.me, reading.target
+        if target.invincible or (target.intangible and reading.track.locked == 0):
+            return None
+        if reading.track.locked == 0 and self.rng.random() >= self.level.aggression:
+            return None  # the lower levels let a free opponent be (until M20 group 7)
+        knowledge = self.knowledge[self.player]
+        # Run-ups and walk-ups are recorded from a standstill: from a run they go further.
+        still = me.grounded and me.vel.xy.length() <= config.CPU_STILL_SPEED
+        approaches = knowledge.approaches if still else ()
+        actions = chain(knowledge.actions, knowledge.extras, approaches)
+        found = intercept.search(reading, actions, lambda action, aim: self._safe(me, action, aim))
+        return intercept.choose(found, self.level.temperature, self.rng.random())
+
+    def _attack(
+        self,
+        world: WorldView,
+        target: FighterView,
+        choice: intercept.Candidate,
+        reading: intercept.Reading,
+    ) -> InputFrame:
+        """Start the chosen action; remember a run-up so it can be called off."""
+        action = choice.action
+        self.plan = Plan("attack", action.name)
+        self._last_attack = world.frame
+        self._enqueue(frames_for(action.steps, self._jitter(choice.aim)))
+        self._queued = (action, world.frame) if action.start is Start.GROUND else None
+        if action.lead > 0:
+            expected, _spread = reading.track.at(choice.frame)
+            self._committed = (
+                world.frame + choice.frame,
+                world.frame + action.lead,
+                target.index,
+                expected,
+            )
+        return self._emit()
+
+    def _run_up_fails(self, world: WorldView) -> bool:
+        """Whether the target of a run-up in progress is no longer where it was expected
+        (looked at every few frames while the CPU is still running)."""
+        committed = self._committed
+        if committed is None:
+            return False
+        due, run_ends, index, expected = committed
+        left = run_ends - world.frame
+        if left <= 0:
+            self._committed = None
+            return False
+        if left % 4:
+            return False
+        target = self._seen().fighters[index]
+        frames = max(due - world.frame, 1)
+        track = predict.track(
+            self.live, target, self.characters[index], self.knowledge[index], frames
+        )
+        feet, _spread = track.at(frames)
+        if target.in_play and (feet - expected).length() <= config.CPU_ABORT_DRIFT:
+            return False
+        self._committed = None
+        self.plan = Plan("attack", "called off")
+        return True
+
+    def _position(
+        self, world: WorldView, me: FighterView, target: FighterView, reading: intercept.Reading
+    ) -> Vec3:
+        """Where to stand when nothing is worth doing: just outside the opponent's quick
+        reach (never quite still), on top of an opponent that is open, well away from one that
+        cannot be hit, and at the ledge or in the middle when it is off the stage."""
+        where = target.pos
+        if not target.grounded and not over_ground(self.live, where):
+            return self._goal(me, target, 0.0)
+        away = me.pos.xy - where.xy
+        distance = away.length()
+        direction = away.normalized() if distance > 0.0 else me.facing.world * -1.0
+        if target.invincible:
+            self.plan = Plan("space", "give way")
+            spot = where.xy + direction * config.CPU_RESPECT_RANGE
+            return safe_spot(self.stage, Vec3(spot.x, spot.y, where.z), me.pos)
+        if reading.track.locked >= config.CPU_OPENING_FRAMES:
+            self.plan = Plan("space", "close in")
+            return where
+        if world.frame >= self._sway_until:
+            low, high = config.CPU_SWAY
+            self._sway = low + (high - low) * self.rng.random()
+            short, long = config.CPU_SWAY_FRAMES
+            self._sway_until = world.frame + short + int(self.rng.random() * (long - short))
+        mine = self.knowledge[self.player]
+        hover = reading.theirs.threat_reach + target.hurtbox.radius + config.CPU_HOVER_MARGIN
+        hover = min(hover, config.CPU_HOVER_MAX)
+        under = me.pos.z if me.grounded else ground_below(self.live, me.pos.x, me.pos.y, me.pos.z)
+        level = abs(where.z - (me.pos.z if under is None else under)) <= config.CPU_ZONER_HEIGHT
+        if not level and target.grounded and world.frame >= self._climb_blocked_until:
+            # On other ground (a platform, a higher island): go there, by the route.
+            self.plan = Plan("space", "climb")
+            return where
+        if not level and target.grounded:
+            # A climb that failed a moment ago: wait on its own ground for the opponent.
+            self.plan = Plan("space", "wait below")
+            return me.pos
+        if mine.projectile_reach >= config.CPU_ZONER_REACH and level:
+            hover = max(hover, config.CPU_ZONER_RANGE)
+        # The longer nothing has been worth doing, the closer it comes: an opponent that
+        # never approaches must not stall the match (the shield bot did, forever).
+        waited = (world.frame - self._last_attack) / config.CPU_PATIENCE_FRAMES
+        closing = min(max(waited - 1.0, 0.0), 1.0)
+        jab = mine.action("jab").envelope
+        reach = jab.radius if jab is not None else config.CPU_CLOSE_RANGE
+        close = min(config.CPU_CLOSE_RANGE, reach + target.hurtbox.radius - config.CPU_CLOSE_INSIDE)
+        hover -= closing * max(hover - close, 0.0)
+        hover += self._sway * (1.0 - closing)
+        if abs(distance - hover) <= config.CPU_HOVER_BAND and level:
+            self.plan = Plan("space", "hold")
+            return me.pos
+        spot = where.xy + direction * hover
+        floor = ground_below(self.live, spot.x, spot.y, where.z + config.CPU_STEP_HEIGHT)
+        blocked = floor is None or abs(floor - me.pos.z) > config.CPU_STEP_HEIGHT
+        if not blocked and floor is not None:
+            blocked = not self._ground_between(me.pos, Vec3(spot.x, spot.y, floor))
+        if distance < hover and blocked:
+            # Nowhere to back off to: go at the opponent instead of waiting on the edge.
+            self.plan = Plan("space", "cornered")
+            return where
+        self.plan = Plan("space", "back off" if distance < hover else "close in")
+        if floor is None or blocked:
+            return where
+        return Vec3(spot.x, spot.y, floor)
 
     # --- defence -------------------------------------------------------------------------
 
-    def _threat(self, seen: WorldView, me: FighterView, delay: int) -> tuple[int, int] | None:
-        """The soonest hit the CPU can see coming at it within ``CPU_THREAT_FRAMES``:
+    def _threat(
+        self,
+        seen: WorldView,
+        me: FighterView,
+        delay: int,
+        horizon: int = config.CPU_THREAT_FRAMES,
+    ) -> tuple[int, int] | None:
+        """The soonest hit the CPU can see coming at it within ``horizon`` frames:
         (frames until it lands, a key identifying it), or ``None``."""
         if me.intangible:
             return None
@@ -564,13 +847,13 @@ class CpuController:
             )
             if action is None:
                 continue
-            now = action.move_start + other.state_frame - 1 + delay
+            now = action.move_start + other.state_frame - 1  # a belief's count runs on
             here = action.offset_at(now)
             forward = other.facing.world
             for hit_frame in action.hit_frames:
                 if hit_frame.frame <= now:
                     continue
-                if hit_frame.frame > now + config.CPU_THREAT_FRAMES:
+                if hit_frame.frame > now + horizon:
                     break
                 for sphere in hit_frame.spheres:
                     if sphere.grab:
@@ -586,7 +869,7 @@ class CpuController:
         for projectile in seen.projectiles:
             if projectile.owner == self.player:
                 continue
-            for frame in range(1, config.CPU_THREAT_FRAMES + 1):
+            for frame in range(1, horizon + 1):
                 t = frame + delay
                 centre = projectile.pos + projectile.vel * t
                 if _segment_distance(centre, low, high) <= projectile.radius + radius:
@@ -603,6 +886,8 @@ class CpuController:
         frames, key = threat
         if (self.player, key) in self._defended:
             return None
+        if not me.grounded and (me.air_dodge_used or frames > config.CPU_AIR_DODGE_FRAMES):
+            return None  # too soon to dodge in the air: look again nearer the hit
         self._defended.add((self.player, key))
         if self.rng.random() >= self.level.defend_chance:
             return None
@@ -611,129 +896,45 @@ class CpuController:
             self.plan = Plan("defend", "shield")
             self.queue.clear()
             return InputFrame(held=int(Button.SHIELD))
-        if not me.air_dodge_used and frames <= config.CPU_AIR_DODGE_FRAMES:
-            self.plan = Plan("defend", "air dodge")
-            return self._press(InputFrame(held=int(Button.SHIELD)))
-        return None
+        self.plan = Plan("defend", "air dodge")
+        return self._press(InputFrame(held=int(Button.SHIELD)))
 
     # --- attacking -----------------------------------------------------------------------
 
-    def _choose_attack(
-        self, me: FighterView, target: FighterView, lead: float
-    ) -> tuple[Action, Vec2, float] | None:
-        """The best action that reaches the target, if the CPU feels like attacking."""
-        if target.intangible or target.invincible:
-            return None
-        lag = self._opening(target)
-        if lag is None and self.rng.random() >= self.level.aggression:
-            return None
-        knowledge = self.knowledge[self.player]
-        start = Start.GROUND if me.grounded else Start.AIR
-        best: tuple[Action, Vec2, float] | None = None
-        for action in knowledge.actions:
-            if action.start is not start or not action.hit_frames:
-                continue
-            if action.grab and (not target.grounded or not me.grounded):
-                continue
-            aim = self._aim_for(me, target, action)
-            if not self._safe(me, action, aim):
-                continue
-            frame = self._connects(me, target, action, aim, lead)
-            if frame is None:
-                continue
-            value = self._value(action, target, frame, lag)
-            if best is None or value > best[2]:
-                best = (action, aim, value)
-        return best
-
-    def _opening(self, target: FighterView) -> int | None:
-        """Frames the target is stuck for (end lag, landing lag, a broken shield), or
-        ``None`` when it can act."""
-        if target.state in DOWNED:
-            return max(target.stun_frames, config.CPU_DOWNED_OPENING_FRAMES)
-        if target.state is StateId.LAND and target.land_lag > 0:
-            return max(target.land_lag - target.state_frame, 0)
-        if target.state is StateId.ATTACK:
-            action = self.knowledge[target.index].ground_by_move.get(target.move_id)
-            if action is None:
-                action = self.knowledge[target.index].air_by_move.get(target.move_id)
-            if action is not None:
-                now = action.move_start + target.state_frame - 1
-                if now > action.last_hit:
-                    return max(action.commit - now, 0)
-        return None
-
-    def _aim_for(self, me: FighterView, target: FighterView, action: Action) -> Vec2:
-        """The facing an action would be performed with: toward the target for actions that
-        turn, the current facing otherwise."""
-        if not action.turns:
-            return me.facing.world
-        toward = target.pos.xy - me.pos.xy
-        facing = facing_from_move(self._jitter(toward.normalized())) if toward.length() else None
-        return (facing or me.facing).world
-
     def _safe(self, me: FighterView, action: Action, aim: Vec2) -> bool:
-        """Whether an action keeps the CPU over ground (it never lunges off the stage)."""
+        """Whether an action keeps the CPU over ground (it never lunges off the stage), well
+        inside the blast zone (a Zephyr high up once flew its up special out through the
+        top), and, for a move that never leaves the ground, on the ground all the way."""
+        drift = Vec3(me.vel.x, me.vel.y, 0.0) if action.start is Start.AIR else None
+        zone = self.stage.blast_zone
+        margin = config.CPU_BLAST_MARGIN
+        on_ground = action.start is Start.GROUND
+        for frame in range(config.CPU_PATH_CHECK, action.commit + 1, config.CPU_PATH_CHECK):
+            point = me.pos + _rotate(action.offset_at(frame), aim)
+            if drift is not None:
+                point = point + drift * float(frame)
+            if point.z > zone.z_max - margin or point.z < zone.z_min + margin:
+                return False
+            if not zone.x_min + margin < point.x < zone.x_max - margin:
+                return False
+            if not zone.y_min + margin < point.y < zone.y_max - margin:
+                return False
+            # Every frame its feet were on the ground in the recording must be over ground here
+            # (a run-up into a short hop ran off an edge on Twin Isles before it jumped).
+            footed = on_ground and action.offset_at(frame).z <= config.CPU_FOOTED_HEIGHT
+            if footed and not over_ground(self.live, Vec3(point.x, point.y, me.pos.z)):
+                return False
         end = me.pos + _rotate(action.offset_at(action.commit), aim)
-        if action.start is Start.AIR:
-            end = end + Vec3(me.vel.x, me.vel.y, 0.0) * float(action.commit)
+        if drift is not None:
+            end = end + drift * float(action.commit)
         if not over_ground(self.live, Vec3(end.x, end.y, me.pos.z + 1.0)):
             return False
         if action.helpless:
             inside = end.xy + (self.stage.respawn - end.xy).normalized() * HELPLESS_ARRIVAL
-            return over_ground(self.live, Vec3(inside.x, inside.y, end.z))
+            # Probed from above, like the end: the recording's own landing height is where it
+            # came down on the flat test stage, not anything here.
+            return over_ground(self.live, Vec3(inside.x, inside.y, me.pos.z + 1.0))
         return True
-
-    def _connects(
-        self, me: FighterView, target: FighterView, action: Action, aim: Vec2, lead: float
-    ) -> int | None:
-        """The first action frame on which the action would hit the target, or ``None``."""
-        drift = Vec3(me.vel.x, me.vel.y, me.vel.z) if action.start is Start.AIR else None
-        slack = config.CPU_HIT_SLACK
-        for hit_frame in action.hit_frames:
-            frame = hit_frame.frame
-            if frame > LOOKAHEAD_LIMIT:
-                return None
-            where = self._predict(target, lead + frame)
-            low, high, radius = self._hurt(target, where)
-            for sphere in hit_frame.spheres:
-                if sphere.grab and not target.grounded:
-                    continue
-                centre = me.pos + _rotate(sphere.centre, aim)
-                if drift is not None and not sphere.projectile:
-                    centre = centre + drift * float(min(frame, PREDICT_LIMIT))
-                if _segment_distance(centre, low, high) <= sphere.radius + radius + slack:
-                    return frame
-        return None
-
-    def _value(self, action: Action, target: FighterView, frame: int, lag: int | None) -> float:
-        """How good landing ``action`` on ``target`` at ``frame`` would be."""
-        value = max(action.damage, 1.0)
-        if self._kills(action, target):
-            value *= 1.0 + KILL_BONUS
-        if target.state in SHIELDING:
-            value *= GRAB_SHIELD_BONUS if action.grab else SHIELDED_PENALTY
-        value /= 1.0 + frame / SPEED_SCALE
-        if lag is not None and frame + self.level.punish_margin > lag:
-            value *= LATE_PUNISH_PENALTY
-        noise = (config.CPU_MAX_LEVEL - self.level.level) / config.CPU_MAX_LEVEL
-        return value * (1.0 + (self.rng.random() - 0.5) * noise)
-
-    def _kills(self, action: Action, target: FighterView) -> bool:
-        """Whether the action's strongest hit would carry the target past the blast zone."""
-        box = action.strongest
-        if box is None:
-            return False
-        percent = target.damage + box.damage
-        kb = knockback(percent, box.damage, target.weight, box.bkb, box.kbg, box.fkb)
-        speed = launch_speed(kb)
-        travel = speed * speed / (2.0 * combat.KB_DECAY)
-        zone = self.stage.blast_zone
-        pos = target.pos
-        nearest_side = min(
-            pos.x - zone.x_min, zone.x_max - pos.x, pos.y - zone.y_min, zone.y_max - pos.y
-        )
-        return travel + config.CPU_KILL_HEADROOM >= nearest_side
 
     # --- movement ------------------------------------------------------------------------
 
@@ -792,6 +993,9 @@ class CpuController:
             return self._press(InputFrame(vertical=VERTICAL_DOWN))
         knowledge = self.knowledge[self.player]
         if rise > config.CPU_STEP_HEIGHT and distance < config.CPU_WALK_RANGE * 2:
+            # Keep where it means to land, so that if the jump takes it over a gap the
+            # recovery carries on to it instead of turning back to the ledge (a floe at rest).
+            self._waypoint = goal
             return self._jump_toward(me, goal, direction)
         if not level_ground_ahead(self.live, me.pos, direction, self._edge_lookahead):
             ahead = me.pos.xy + direction * self._edge_lookahead

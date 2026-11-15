@@ -83,6 +83,8 @@ class FighterView:
     """It is inside a counter window: hitting it now gets answered."""
     reflecting: bool = False
     """It sends reflectable projectiles back on this frame."""
+    intangible_left: int = 0
+    """Frames for which hits and grabs still pass through it."""
 
     @property
     def free(self) -> bool:
@@ -223,6 +225,7 @@ def view_fighter(fighter: Fighter, stats: PlayerStats | None = None) -> FighterV
         and move is not None
         and move.reflect is not None
         and frame in move.reflect,
+        intangible_left=fighter.intangible_frames,
     )
 
 

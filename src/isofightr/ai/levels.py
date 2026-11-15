@@ -33,6 +33,8 @@ class CpuLevel:
     punish_margin: int
     tracking_frames: int = 0
     """M20: how late smooth changes are seen (``config.CPU_TRACKING_FRAMES``)."""
+    temperature: float = 1.0
+    """M20: how loosely it picks among what is worth doing (``CPU_CHOICE_TEMPERATURE``)."""
 
 
 def _at(values: Sequence[float], level: int) -> float:
@@ -71,4 +73,5 @@ def cpu_level(level: int) -> CpuLevel:
         mash_every=max(1, round(_at(config.CPU_MASH_EVERY, level))),
         punish_margin=round(_at(config.CPU_PUNISH_MARGIN, level)),
         tracking_frames=round(_at(config.CPU_TRACKING_FRAMES, level)),
+        temperature=_at(config.CPU_CHOICE_TEMPERATURE, level),
     )

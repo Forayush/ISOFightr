@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from functools import cache
 from typing import Final
@@ -67,6 +67,14 @@ RUN_FRAMES: Final[int] = 40
 """How long the run, the walk and the air drift are held for their recordings."""
 WALK_TILT: Final[float] = 0.55
 TURN_TILT: Final[float] = 0.3
+RUN_LEADS: Final[tuple[int, ...]] = (6, 12, 20)
+"""Frames of running put in front of a move for the run-up approaches."""
+WALK_LEADS: Final[tuple[int, ...]] = (8, 16)
+"""Frames of walking put in front of a move for the walk-up approaches."""
+QUICK_FRAMES: Final[int] = 12
+"""A move that hits by this frame counts toward a character's threat range."""
+STRIKE_FRAMES: Final[int] = 20
+"""A move that hits by this frame counts toward a character's striking range."""
 
 
 class Start(Enum):
@@ -243,6 +251,15 @@ class Action:
     roles: frozenset[str] = frozenset()
     charge: float = 1.0
     """Damage multiplier of this recording (above 1 for a fully charged smash)."""
+    lead: int = 0
+    """Frames of running or walking before its move's input (an approach), else 0."""
+    travel: float = 0.0
+    """The farthest its feet get from where it started, on the ground plane."""
+
+    @property
+    def peak(self) -> float:
+        """The highest its feet get above where it started."""
+        return max((offset.z for offset in self.path), default=0.0)
 
     def remaining(self, frame: int) -> int:
         """Frames of the action left after ``frame``, until the fighter is free again."""
@@ -286,6 +303,17 @@ class CharacterKnowledge:
     special at other aims. Kept apart from ``actions`` so nothing that reads those changes."""
     utilities: dict[str, Utility] = field(default_factory=dict)
     """Movement options by name (M20): see ``_utility_recipes``."""
+    approaches: tuple[Action, ...] = ()
+    """Moves with a run or a walk in front (M20): "move a little, then act", recorded whole
+    so that where the hitboxes end up is exact. They are aimed with the stick."""
+    threat_reach: float = 0.0
+    """How far its quick moves reach from where it stands (the farthest edge of any hitbox or
+    grab box out by ``QUICK_FRAMES``): closer than this, it can hit before anyone reacts."""
+    fastest_hit: int = 0
+    """The first frame its quickest ground move hits on."""
+    strike_reach: float = 0.0
+    """How far any of its ground moves reaches by ``STRIKE_FRAMES``, a dash attack's run
+    included: inside this, starting something slow invites being hit first."""
 
     def extra(self, name: str) -> Action:
         """Return one of the ``extras`` by name."""
@@ -649,7 +677,7 @@ def _action(
             for s in steps
         )
         turns = _record(character, backwards, start).final_facing is not FACING
-    grab = name in ("grab", "dash_grab")
+    grab = name.endswith("grab")
     if grab:
         damage, kb = _throw_strength(character)
         strongest = None
@@ -677,7 +705,45 @@ def _action(
         envelope=_envelope(hit_frames),
         roles=roles_of(character.moves.get(recording.move_id)),
         charge=charge,
+        travel=max((math.hypot(point.x, point.y) for point in recording.path), default=0.0),
     )
+
+
+def _approach_recipes(jumpsquat: int) -> list[tuple[str, tuple[Step, ...], int]]:
+    """(name, steps, lead) for every move with a run or a walk put in front of it. From a
+    run the sim allows the dash attack, the dash grab, smashes and jumps; from a walk, after a
+    frame of letting go, everything a standing fighter can do."""
+    fwd = Stick.FORWARD
+    attack, strong, grab, jump = Button.ATTACK, Button.STRONG, Button.GRAB, Button.JUMP
+    hold = jumpsquat + 1
+    recipes: list[tuple[str, tuple[Step, ...], int]] = []
+    for lead in RUN_LEADS:
+        run = _f(stick=fwd, frames=lead)
+        recipes += [
+            (f"run{lead}_dash_attack", (run, _f(attack, stick=fwd)), lead),
+            (f"run{lead}_dash_grab", (run, _f(grab, stick=fwd)), lead),
+            (f"run{lead}_fsmash", (run, _f(strong, stick=fwd)), lead),
+            (f"run{lead}_usmash", (run, _f(strong, vertical=VERTICAL_UP)), lead),
+            (
+                f"run{lead}_sh_nair",
+                (run, _f(jump | attack), _f(frames=hold)),
+                lead,
+            ),
+            (
+                f"run{lead}_sh_fair",
+                (run, _f(jump | attack, stick=fwd), _f(stick=fwd, frames=hold)),
+                lead,
+            ),
+        ]
+    for lead in WALK_LEADS:
+        walk = (_f(stick=fwd, frames=lead, tilt=WALK_TILT), _f())
+        recipes += [
+            (f"walk{lead}_jab", (*walk, _f(attack)), lead),
+            (f"walk{lead}_ftilt", (*walk, _f(attack, stick=fwd)), lead),
+            (f"walk{lead}_dtilt", (*walk, _f(attack, vertical=VERTICAL_DOWN)), lead),
+            (f"walk{lead}_grab", (*walk, _f(grab)), lead),
+        ]
+    return recipes
 
 
 def _extra_recipes(
@@ -822,6 +888,18 @@ def _build(character: CharacterDef) -> CharacterKnowledge:
         name: _record_utility(character, name, steps, start)
         for name, steps, start in _utility_recipes()
     }
+    approaches = tuple(
+        replace(_action(character, name, steps, False, Start.GROUND), turns=True, lead=lead)
+        for name, steps, lead in _approach_recipes(character.movement.jumpsquat)
+    )
+    quick = [
+        action
+        for action in actions
+        if action.start is Start.GROUND
+        and not action.projectile
+        and action.envelope is not None
+        and 0 < action.first_hit <= QUICK_FRAMES
+    ]
     ground_by_move: dict[str, Action] = {}
     air_by_move: dict[str, Action] = {}
     for action in actions:
@@ -853,6 +931,20 @@ def _build(character: CharacterDef) -> CharacterKnowledge:
         projectile_reach=reach,
         extras=extras,
         utilities=utilities,
+        approaches=approaches,
+        threat_reach=max((a.envelope.radius for a in quick if a.envelope), default=0.0),
+        fastest_hit=min((a.first_hit for a in quick), default=0),
+        strike_reach=max(
+            (
+                a.envelope.radius
+                for a in actions
+                if a.start is Start.GROUND
+                and not a.projectile
+                and a.envelope is not None
+                and 0 < a.first_hit <= STRIKE_FRAMES
+            ),
+            default=0.0,
+        ),
     )
 
 

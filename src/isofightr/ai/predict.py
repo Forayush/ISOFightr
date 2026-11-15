@@ -46,6 +46,10 @@ FREE_SPREAD_SHARE: Final[float] = 1.0
 """A free fighter can be anywhere its top speed takes it: this share of it is counted on (a
 fighter that keeps running leaves a smaller disc, which the tests caught)."""
 DI_SIDES: Final[tuple[float, ...]] = (1.0, -1.0)
+AIR_MOVE_TRAVEL: Final[float] = 1.0
+"""An air move whose recording travels further than this moves the fighter by itself."""
+DRIFT_DOUBT: Final[float] = 0.6
+"""Share of its air speed a stunned fighter is taken to be able to change its drift by."""
 STILL: Final[frozenset[StateId]] = frozenset(
     {
         StateId.SHIELD_STUN,
@@ -89,6 +93,8 @@ STATE_LENGTH: Final[dict[StateId, int]] = {
 }
 """How long the fixed-length states last, from the sim's constants."""
 UNKNOWN_LOCK: Final[int] = 8
+ROOTED: Final[frozenset[StateId]] = frozenset({StateId.SHIELD, StateId.SHIELD_STUN, StateId.CROUCH})
+"""States a fighter cannot run out of: it can roll or dodge, or leave the state first."""
 """Frames a locked state of unknown length is counted on for."""
 
 
@@ -160,6 +166,7 @@ def _launched(stage: Stage, view: FighterView, character: CharacterDef, frames: 
         forecast.flight(stage, launch, view.pos, view.grounded, character, across * side)
         for side in DI_SIDES
     ]
+    drift = character.movement.air_speed * DRIFT_DOUBT
     points: list[Vec3] = []
     spread: list[float] = []
     for frame in range(1, frames + 1):
@@ -169,18 +176,57 @@ def _launched(stage: Stage, view: FighterView, character: CharacterDef, frames: 
             continue
         here = flown.at(frame - wait)
         points.append(here)
-        spread.append(max((side.at(frame - wait) - here).length() for side in sides))
+        bent = max((side.at(frame - wait) - here).length() for side in sides)
+        spread.append(bent + drift * (frame - wait))
     return Track(tuple(points), tuple(spread), wait + flown.hitstun)
 
 
+def _tech_doubt(after_landing: int) -> float:
+    """How far from where it came down a tumbling fighter may be ``after_landing`` frames
+    later: it may have tech rolled either way (the roll travels while it is intangible)."""
+    if after_landing <= 0:
+        return 0.0
+    return combat.TECH_ROLL_DISTANCE * min(after_landing / combat.TECH_INTANGIBLE, 1.0)
+
+
 def _stunned(stage: Stage, view: FighterView, character: CharacterDef, frames: int) -> Track:
-    """Already flying: the rest of the flight from its knockback velocity."""
-    fall = view.vel.z - view.kb_vel.z
-    flown = forecast.coast(
-        stage, view.pos, view.kb_vel, fall, view.hitstun, view.grounded, character
-    )
-    points = tuple(flown.at(frame) for frame in range(1, frames + 1))
-    return Track(points, (0.0,) * frames, view.hitstun)
+    """Already flying: the rest of the flight from its knockback velocity. Three things make
+    it less than certain. In the air it can still drift at its air speed while stunned (the
+    sim lets it), so its own sideways speed is carried on and part of what its air speed
+    allows is doubt. Once the hitstun is over it can go where it likes. And a tumble that
+    comes down may tech and roll away."""
+    own = view.vel - view.kb_vel
+    stun = view.hitstun
+    flown = forecast.coast(stage, view.pos, view.kb_vel, own.z, stun, view.grounded, character)
+    movement = character.movement
+    tumbling = view.state is StateId.TUMBLE
+    if view.grounded:
+        if tumbling:
+            # A tumble on the ground has landed: by now it is teching or lying there, and the
+            # CPU has not had time to notice which.
+            doubts = tuple(_tech_doubt(frame) for frame in range(1, frames + 1))
+            return Track((view.pos,) * frames, doubts, 0)
+        slid = tuple(flown.at(frame) for frame in range(1, frames + 1))
+        free = tuple(
+            max(frame - stun, 0) * movement.run_speed * FREE_SPREAD_SHARE
+            for frame in range(1, frames + 1)
+        )
+        return Track(slid, free, stun)
+    doubt = movement.air_speed * DRIFT_DOUBT
+    last = len(flown.path)
+    landed = flown.land_frame
+    points: list[Vec3] = []
+    spread: list[float] = []
+    for frame in range(1, frames + 1):
+        here = flown.at(frame)
+        airborne = min(frame, last) if landed or flown.ko_frame else frame
+        points.append(Vec3(here.x + own.x * airborne, here.y + own.y * airborne, here.z))
+        loose = doubt * airborne + max(frame - stun, 0) * movement.air_speed * FREE_SPREAD_SHARE
+        if landed and tumbling:
+            loose += _tech_doubt(frame - landed)
+        spread.append(loose)
+    locked = min(stun, landed) if landed and tumbling else stun
+    return Track(tuple(points), tuple(spread), locked)
 
 
 def _attacking(view: FighterView, action: Action, frames: int, character: CharacterDef) -> Track:
@@ -197,6 +243,17 @@ def _attacking(view: FighterView, action: Action, frames: int, character: Charac
         points.append(view.pos + _rotate(step, forward))
         spread.append(max(frame - left, 0) * reach)
     return Track(tuple(points), tuple(spread), left)
+
+
+def _rooted(view: FighterView, frames: int, locked: int) -> Track:
+    """In place, and after ``locked`` frames no further off than a roll could carry it."""
+    first, last = combat.ROLL_MOVE_FRAMES
+    span = max(last - first, 1)
+    doubts = tuple(
+        combat.ROLL_DISTANCE * min(max(frame - locked - first, 0) / span, 1.0)
+        for frame in range(1, frames + 1)
+    )
+    return Track((view.pos,) * frames, doubts, locked)
 
 
 def _free_ground(view: FighterView, character: CharacterDef, frames: int, locked: int) -> Track:
@@ -260,10 +317,24 @@ def track(
         return _stunned(stage, view, character, frames)
     if view.state is StateId.ATTACK and not view.free:
         action = _move_action(view, knowledge)
-        if action is not None:
-            return _attacking(view, action, frames, character)
         left = max(view.move_faf - view.state_frame, 0)
+        if action is not None:
+            if view.grounded or action.travel > AIR_MOVE_TRAVEL:
+                return _attacking(view, action, frames, character)
+            # An aerial is recorded from a standstill at a jump's top: in play the attacker
+            # keeps the arc it was on, so follow that.
+            left = max(action.commit - (action.move_start + view.state_frame - 1), 0)
+        if not view.grounded:
+            arc = _free_air(stage, view, character, frames)
+            reach = character.movement.air_speed * DRIFT_DOUBT
+            doubt = tuple(reach * frame for frame in range(1, frames + 1))
+            return Track(arc.points, doubt, left)
         return _free_ground(view, character, frames, left)
+    if view.state in ROOTED:
+        # Shielding or crouching it cannot run: it must drop the shield or stand first, or
+        # roll. The doubt grows as fast as a roll carries it.
+        left = view.stun_frames if view.state is StateId.SHIELD_STUN else 0
+        return _rooted(view, frames, left)
     if view.state in STILL:
         if view.state is StateId.LAND:
             left = max(view.land_lag - view.state_frame, 0)
@@ -274,8 +345,22 @@ def track(
         else:
             left = UNKNOWN_LOCK
         return _free_ground(view, character, frames, left)
-    if view.state in (StateId.KNOCKDOWN, StateId.LEDGE_HANG):
-        return _hold(view.pos, frames, 0)
+    if view.state is StateId.KNOCKDOWN:
+        # It must lie for a moment, then it stands, attacks or rolls: until the CPU has seen
+        # which, it may be a roll away.
+        lie = max(combat.KNOCKDOWN_LOCK_FRAMES - view.state_frame, 0)
+        doubts = tuple(
+            combat.GETUP_ROLL_DISTANCE
+            * min(max(frame - lie, 0) / combat.GETUP_ROLL_INTANGIBLE, 1.0)
+            for frame in range(1, frames + 1)
+        )
+        return Track((view.pos,) * frames, doubts, lie)
+    if view.state is StateId.LEDGE_HANG:
+        doubts = tuple(
+            combat.LEDGE_ROLL_DISTANCE * min(frame / combat.LEDGE_GETUP_FRAMES, 1.0)
+            for frame in range(1, frames + 1)
+        )
+        return Track((view.pos,) * frames, doubts, 0)
     if view.grounded:
         return _free_ground(view, character, frames, 0)
     return _free_air(stage, view, character, frames)
