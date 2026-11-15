@@ -171,6 +171,14 @@ CPU_DEFAULT_LEVEL: Final[int] = 5
 CPU_LEVEL_ANCHORS: Final[tuple[int, ...]] = (1, 3, 5, 7, 9)
 CPU_REACTION_FRAMES: Final[tuple[float, ...]] = (40, 28, 18, 12, 7)
 """How old the CPU's view of its opponents is, in frames."""
+CPU_TRACKING_FRAMES: Final[tuple[float, ...]] = (10, 8, 6, 4, 2)
+"""M20 (decision D-071): how late a CPU sees what changes smoothly (where an opponent is,
+how fast it moves, its damage). What starts suddenly (a move, a jump, a shield) takes the
+longer reaction time. Used by ``ai/belief.py``; the M10 decisions do not read it."""
+CPU_REACTION_SPREAD: Final[int] = 4
+"""A reaction takes its level's frames plus up to this many, drawn per event: never fewer."""
+CPU_ATTENTION_FRAMES: Final[int] = 8
+"""Extra reaction time for an opponent the CPU is not focused on (a free-for-all)."""
 CPU_DECISION_FRAMES: Final[tuple[float, ...]] = (30, 20, 12, 8, 4)
 """How often a CPU in neutral picks a new plan, in frames."""
 CPU_DEFEND_CHANCE: Final[tuple[float, ...]] = (0.05, 0.20, 0.40, 0.60, 0.80)

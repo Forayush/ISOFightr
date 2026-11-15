@@ -501,3 +501,24 @@ def test_loading_cards_show_hero_art_standing_on_the_name_plate(window: Any) -> 
         assert rect.left <= left and left + art.texture.width <= rect.right, "inside its card"
         assert bottom + art.texture.height <= rect.top - 17, "under the card's coloured strip"
         assert float(left).is_integer() and float(bottom).is_integer(), "on whole pixels"
+
+
+def test_the_loading_screen_records_what_a_cpu_must_know(window: Any) -> None:
+    """Decision D-071: a CPU learns every fighter's moves by performing them in a private
+    sim. That takes about 0.1 s a character, so it is done here and not on the first tick."""
+    from isofightr.ai import knowledge
+
+    knowledge._CACHE.clear()
+    _flow, view = to_loading(window)
+    while not view.ready:
+        step(window, 1)
+    assert knowledge._CACHE == {}, "nobody to think for: nothing recorded"
+    _flow, view = to_loading(window, versus(cpus=(0, 5)))
+    while not view.ready:
+        step(window, 1)
+    assert view.battle is not None
+    fighters = view.battle.match.fighters
+    assert set(knowledge._CACHE) == {fighter.character.id for fighter in fighters}
+    for fighter in fighters:
+        cached = knowledge._CACHE[fighter.character.id][1]
+        assert knowledge.knowledge_for(fighter.character) is cached

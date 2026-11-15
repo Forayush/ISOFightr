@@ -12,11 +12,19 @@ Because the recording runs the real sim, scripted specials, scripted motion, jum
 projectiles and landing lag are all measured, and a new character needs no hand tuning. The
 recording never touches a live match.
 
+Since M20 (decision D-071) a recording also keeps what the new CPU needs, beside what the
+M10 one reads and without changing it: each hitbox an action brought out and when
+(:class:`Outcome`, for the forecasts of :mod:`isofightr.ai.forecast`), how far it reaches in
+each direction (:class:`Envelope`), what its move is for (``roles``, from data keys), and three
+more families of recordings: movement options (:class:`Utility`: runs, hops, rolls, dodges),
+and in ``extras`` the jab chains, the fully charged smashes and other up-special aims.
+
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
@@ -39,7 +47,7 @@ from isofightr.sim.input_frame import (
 )
 from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.math3d import Vec2, Vec3
-from isofightr.sim.move_def import HitboxDef
+from isofightr.sim.move_def import HitboxDef, MoveDef
 from isofightr.sim.stage import Stage, build_stage
 
 RECORD_FRAMES: Final[int] = 150
@@ -53,6 +61,12 @@ FACING: Final[Dir8] = Dir8.SE
 """Every recording starts facing this way; it defines the local frame."""
 REFERENCE_PERCENT: Final[float] = 100.0
 """Percent at which moves are compared by knockback."""
+UTILITY_FRAMES: Final[int] = 150
+"""Longest a movement option is recorded for."""
+RUN_FRAMES: Final[int] = 40
+"""How long the run, the walk and the air drift are held for their recordings."""
+WALK_TILT: Final[float] = 0.55
+TURN_TILT: Final[float] = 0.3
 
 
 class Start(Enum):
@@ -80,6 +94,8 @@ class Step:
     frames: int = 1
     cstick: bool = False
     """Flick the right stick along ``stick`` instead of moving the left stick."""
+    tilt: float = 1.0
+    """How far the stick is pushed (below 1 walks or only turns)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +114,102 @@ class HitFrame:
 
     frame: int
     spheres: tuple[Sphere, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Outcome:
+    """A hitbox an action brought out: what it is and the first action frame it was out."""
+
+    frame: int
+    box: HitboxDef
+    projectile: bool = False
+
+
+ENVELOPE_DIRECTIONS: Final[int] = 8
+"""Reach is kept for this many local directions: forward, then every 45 degrees leftward."""
+
+
+@dataclass(frozen=True, slots=True)
+class Envelope:
+    """How far an action's own hitboxes and grab boxes get from where it started."""
+
+    reach: tuple[float, ...]
+    """Farthest edge along each of ``ENVELOPE_DIRECTIONS`` local directions, in units (0 if
+    nothing ever points that way)."""
+    first_frame: tuple[int, ...]
+    """The first action frame anything is out along each direction (0 = never)."""
+    radius: float
+    """Farthest edge in any horizontal direction: one comparison rules an action out."""
+    z_low: float
+    z_high: float
+    """The lowest and highest edge of anything it brings out, relative to its feet at start."""
+
+    def along(self, local: Vec2) -> float:
+        """Reach toward a local direction (the nearest of the kept ones)."""
+        if local.length() == 0.0:
+            return self.radius
+        turn = math.degrees(math.atan2(local.y, local.x)) % 360.0
+        return self.reach[round(turn / (360.0 / ENVELOPE_DIRECTIONS)) % ENVELOPE_DIRECTIONS]
+
+
+ROLE_COUNTER: Final[str] = "counter"
+ROLE_REFLECT: Final[str] = "reflect"
+ROLE_ARMOR: Final[str] = "armor"
+ROLE_CHARGE: Final[str] = "charge"
+ROLE_PROJECTILE: Final[str] = "projectile"
+ROLE_TRAP: Final[str] = "trap"
+ROLE_SHOCKWAVE: Final[str] = "shockwave"
+ROLE_ESCAPE: Final[str] = "escape"
+ROLE_RECOVERY: Final[str] = "recovery"
+
+
+def roles_of(move: MoveDef | None) -> frozenset[str]:
+    """What a move is for, read from its data keys: no hand-written list per character."""
+    if move is None:
+        return frozenset()
+    found: set[str] = set()
+    if move.counter is not None:
+        found.add(ROLE_COUNTER)
+    if move.reflect is not None:
+        found.add(ROLE_REFLECT)
+    if move.armor:
+        found.add(ROLE_ARMOR)
+    if move.charge is not None:
+        found.add(ROLE_CHARGE)
+    if move.intangible is not None:
+        found.add(ROLE_ESCAPE)
+    if move.helpless or move.ledge_grab_from > 0:
+        found.add(ROLE_RECOVERY)
+    for projectile in move.projectiles:
+        still = projectile.speed == 0.0 and projectile.rise == 0.0
+        found.add(ROLE_TRAP if still and projectile.max_per_owner > 0 else ROLE_PROJECTILE)
+        if projectile.burst is not None:
+            found.add(ROLE_SHOCKWAVE)
+    return frozenset(found)
+
+
+@dataclass(frozen=True, slots=True)
+class Utility:
+    """A way of moving with no hitbox, recorded like an action: a run, a hop, a roll."""
+
+    name: str
+    start: Start
+    steps: tuple[Step, ...]
+    path: tuple[Vec3, ...]
+    """The feet offset after each frame (index 0 = frame 1), in local space."""
+    free: int
+    """The first frame, once its inputs are over, on which the fighter can act again."""
+    intangible: tuple[int, int] | None
+    """The first and last frame on which it could not be hit, if any."""
+    landed: int
+    """The frame an airborne one touched down (0 = it never left the ground, or never
+    landed within the recording)."""
+    states: tuple[str, ...]
+    """The states it went through, in order (so a test can tell a roll really rolled)."""
+
+    def offset_at(self, frame: int) -> Vec3:
+        """The feet offset after ``frame`` (clamped to the recording)."""
+        return self.path[min(max(frame, 1), len(self.path)) - 1]
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +237,16 @@ class Action:
     strongest: HitboxDef | None
     grab: bool = False
     projectile: bool = False
+    outcomes: tuple[Outcome, ...] = ()
+    """Every hitbox it brought out, in the order they first appeared (M20)."""
+    envelope: Envelope | None = None
+    roles: frozenset[str] = frozenset()
+    charge: float = 1.0
+    """Damage multiplier of this recording (above 1 for a fully charged smash)."""
+
+    def remaining(self, frame: int) -> int:
+        """Frames of the action left after ``frame``, until the fighter is free again."""
+        return max(self.commit - frame, 0)
 
     @property
     def first_hit(self) -> int:
@@ -159,6 +281,18 @@ class CharacterKnowledge:
     """How far a full hop plus an air jump carries, landing back at the starting height."""
     projectile_reach: float = 0.0
     """How far ahead its longest-reaching projectile hits, in units (0 = none)."""
+    extras: tuple[Action, ...] = ()
+    """Actions the M10 CPU never had (M20): jab chains, fully charged smashes, the up
+    special at other aims. Kept apart from ``actions`` so nothing that reads those changes."""
+    utilities: dict[str, Utility] = field(default_factory=dict)
+    """Movement options by name (M20): see ``_utility_recipes``."""
+
+    def extra(self, name: str) -> Action:
+        """Return one of the ``extras`` by name."""
+        for candidate in self.extras:
+            if candidate.name == name:
+                return candidate
+        raise KeyError(name)
 
     def action(self, name: str) -> Action:
         """Return an action by name."""
@@ -272,6 +406,7 @@ def frames_for(steps: Sequence[Step], facing: Vec2) -> list[InputFrame]:
             direction = facing
         elif step.stick is Stick.BACK:
             direction = facing * -1.0
+        direction = direction * step.tilt
         if step.cstick:
             frame = InputFrame(vertical=step.vertical, held=int(step.buttons), cstick=direction)
         else:
@@ -362,6 +497,8 @@ class _Recording:
     helpless: bool = False
     final_facing: Dir8 = FACING
     move_id: str = ""
+    outcomes: list[Outcome] = field(default_factory=list)
+    seen: set[int] = field(default_factory=set)
 
 
 def _record(character: CharacterDef, steps: Sequence[Step], start: Start) -> _Recording:
@@ -377,6 +514,15 @@ def _record(character: CharacterDef, steps: Sequence[Step], start: Start) -> _Re
         spheres = _spheres(match, fighter, origin, facing)
         if spheres:
             recording.hit_frames.append(HitFrame(frame, spheres))
+        for box in active_hitboxes(fighter):
+            if id(box.definition) not in recording.seen:
+                recording.seen.add(id(box.definition))
+                recording.outcomes.append(Outcome(frame, box.definition))
+        for projectile in match.projectiles:
+            mine = projectile.alive and projectile.owner == fighter.player_index
+            if mine and id(projectile.hitbox) not in recording.seen:
+                recording.seen.add(id(projectile.hitbox))
+                recording.outcomes.append(Outcome(frame, projectile.hitbox, projectile=True))
         if fighter.state in (StateId.ATTACK, StateId.GRAB, StateId.DASH_GRAB):
             if not started:
                 recording.move_start = frame - fighter.state_frame + 1
@@ -453,52 +599,229 @@ def _jump_distance(character: CharacterDef) -> float:
     return frames * stats.air_speed
 
 
-def _build(character: CharacterDef) -> CharacterKnowledge:
-    actions: list[Action] = []
-    recipes = [(r, Start.GROUND) for r in _ground_recipes(character.movement.jumpsquat)]
-    recipes += [(r, Start.AIR) for r in _air_recipes()]
-    for (name, steps, aimable), start in recipes:
-        recording = _record(character, steps, start)
-        turns = False
-        if aimable:
-            backwards = tuple(
-                Step(
-                    s.buttons,
-                    Stick.BACK if s.stick is Stick.FORWARD else s.stick,
-                    s.vertical,
-                    s.frames,
-                    s.cstick,
-                )
-                for s in steps
+def _envelope(hit_frames: Sequence[HitFrame]) -> Envelope | None:
+    """How far an action's own spheres (not its projectiles) get in each local direction."""
+    reach = [0.0] * ENVELOPE_DIRECTIONS
+    first = [0] * ENVELOPE_DIRECTIONS
+    radius = 0.0
+    z_low, z_high = math.inf, -math.inf
+    for hit_frame in hit_frames:
+        for sphere in hit_frame.spheres:
+            if sphere.projectile:
+                continue
+            centre = sphere.centre
+            radius = max(radius, math.hypot(centre.x, centre.y) + sphere.radius)
+            z_low = min(z_low, centre.z - sphere.radius)
+            z_high = max(z_high, centre.z + sphere.radius)
+            for index in range(ENVELOPE_DIRECTIONS):
+                turn = math.radians(index * 360.0 / ENVELOPE_DIRECTIONS)
+                extent = centre.x * math.cos(turn) + centre.y * math.sin(turn) + sphere.radius
+                if extent > reach[index]:
+                    reach[index] = extent
+                    if first[index] == 0:
+                        first[index] = hit_frame.frame
+    if radius == 0.0:
+        return None
+    return Envelope(tuple(reach), tuple(first), radius, z_low, z_high)
+
+
+def _action(
+    character: CharacterDef,
+    name: str,
+    steps: tuple[Step, ...],
+    aimable: bool,
+    start: Start,
+    charge: float = 1.0,
+) -> Action:
+    """Record one action and work out everything a CPU keeps about it."""
+    recording = _record(character, steps, start)
+    turns = False
+    if aimable:
+        backwards = tuple(
+            Step(
+                s.buttons,
+                Stick.BACK if s.stick is Stick.FORWARD else s.stick,
+                s.vertical,
+                s.frames,
+                s.cstick,
+                s.tilt,
             )
-            turns = _record(character, backwards, start).final_facing is not FACING
-        grab = name in ("grab", "dash_grab")
-        if grab:
-            damage, kb = _throw_strength(character)
-            strongest = None
-        else:
-            damage, kb, strongest = _strength(character, recording.move_id)
-        hit_frames = tuple(recording.hit_frames)
-        projectile = any(s.projectile for f in hit_frames for s in f.spheres)
-        actions.append(
-            Action(
-                name=name,
-                start=start,
-                steps=steps,
-                move_id=recording.move_id,
-                turns=turns,
-                path=tuple(recording.path),
-                hit_frames=hit_frames,
-                move_start=recording.move_start,
-                commit=recording.commit,
-                helpless=recording.helpless,
-                damage=damage,
-                knockback_100=kb,
-                strongest=strongest,
-                grab=grab,
-                projectile=projectile,
+            for s in steps
+        )
+        turns = _record(character, backwards, start).final_facing is not FACING
+    grab = name in ("grab", "dash_grab")
+    if grab:
+        damage, kb = _throw_strength(character)
+        strongest = None
+    else:
+        damage, kb, strongest = _strength(character, recording.move_id)
+    hit_frames = tuple(recording.hit_frames)
+    projectile = any(s.projectile for f in hit_frames for s in f.spheres)
+    return Action(
+        name=name,
+        start=start,
+        steps=steps,
+        move_id=recording.move_id,
+        turns=turns,
+        path=tuple(recording.path),
+        hit_frames=hit_frames,
+        move_start=recording.move_start,
+        commit=recording.commit,
+        helpless=recording.helpless,
+        damage=damage,
+        knockback_100=kb,
+        strongest=strongest,
+        grab=grab,
+        projectile=projectile,
+        outcomes=tuple(recording.outcomes),
+        envelope=_envelope(hit_frames),
+        roles=roles_of(character.moves.get(recording.move_id)),
+        charge=charge,
+    )
+
+
+def _extra_recipes(
+    character: CharacterDef,
+) -> list[tuple[str, tuple[Step, ...], bool, Start, float]]:
+    """(name, steps, aimable, start, charge) for the actions the M10 CPU never had: each
+    longer jab chain, each smash held to full charge, and the up special aimed straight up."""
+    fwd = Stick.FORWARD
+    attack, strong, special = Button.ATTACK, Button.STRONG, Button.SPECIAL
+    recipes: list[tuple[str, tuple[Step, ...], bool, Start, float]] = []
+    steps: list[Step] = [_f(attack)]
+    pressed = 1
+    """The action frame of the last press: a jab's frame 1 is the tick its press arrives."""
+    for count, move_id in enumerate(character.moveset.jab[:-1], start=2):
+        cancel = character.moves[move_id].cancel
+        if cancel is None:
+            break
+        # The next press goes in on the first frame of the cancel window.
+        gap = cancel.frames.first - 2
+        steps += [_f(frames=gap), _f(attack)] if gap > 0 else [_f(), _f(attack)]
+        pressed += max(gap, 1) + 1
+        recipes.append((f"jab_x{count}", tuple(steps), False, Start.GROUND, 1.0))
+    held = (
+        ("fsmash", character.moveset.fsmash, {"stick": fwd}, True),
+        ("usmash", character.moveset.usmash, {"vertical": VERTICAL_UP}, False),
+        ("dsmash", character.moveset.dsmash, {"vertical": VERTICAL_DOWN}, False),
+    )
+    for name, move_id, aim, aimable in held:
+        charge = character.moves[move_id].charge
+        if charge is None:
+            continue
+        frames = charge.frame + charge.max_frames
+        recipes.append(
+            (
+                f"{name}_charged",
+                (_f(strong, frames=frames, **aim),),
+                aimable,
+                Start.GROUND,
+                charge.damage_mult,
             )
         )
+    up = VERTICAL_UP
+    recipes.append(
+        (
+            "air_uspecial_up",
+            (_f(special, vertical=up), _f(vertical=up, frames=60)),
+            False,
+            Start.AIR,
+            1.0,
+        )
+    )
+    return recipes
+
+
+def _utility_recipes() -> list[tuple[str, tuple[Step, ...], Start]]:
+    """(name, steps, start) for every movement option a CPU can put in front of an action
+    or use to get away."""
+    fwd, back = Stick.FORWARD, Stick.BACK
+    jump, shield = Button.JUMP, Button.SHIELD
+    down = VERTICAL_DOWN
+    ground, air = Start.GROUND, Start.AIR
+    return [
+        ("run", (_f(stick=fwd, frames=RUN_FRAMES),), ground),
+        ("walk", (_f(stick=fwd, frames=RUN_FRAMES, tilt=WALK_TILT),), ground),
+        ("turn", (_f(stick=back, frames=3, tilt=TURN_TILT),), ground),
+        ("short_hop", (_f(jump),), ground),
+        ("short_hop_fwd", (_f(jump, stick=fwd), _f(stick=fwd, frames=RUN_FRAMES)), ground),
+        ("full_hop", (_f(jump, frames=12),), ground),
+        (
+            "full_hop_fwd",
+            (_f(jump, stick=fwd, frames=12), _f(stick=fwd, frames=RUN_FRAMES)),
+            ground,
+        ),
+        (
+            "full_hop_back",
+            (_f(jump, stick=back, frames=12), _f(stick=back, frames=RUN_FRAMES)),
+            ground,
+        ),
+        ("roll_fwd", (_f(shield, frames=3), _f(shield, stick=fwd, frames=2)), ground),
+        ("roll_back", (_f(shield, frames=3), _f(shield, stick=back, frames=2)), ground),
+        ("spot_dodge", (_f(shield, frames=3), _f(shield, vertical=down, frames=2)), ground),
+        ("drift_fwd", (_f(stick=fwd, frames=RUN_FRAMES),), air),
+        ("air_jump", (_f(jump),), air),
+        ("air_jump_fwd", (_f(jump, stick=fwd), _f(stick=fwd, frames=RUN_FRAMES)), air),
+        ("fast_fall", (_f(vertical=down, frames=2),), air),
+        ("air_dodge", (_f(shield),), air),
+        ("air_dodge_fwd", (_f(shield, stick=fwd),), air),
+    ]
+
+
+def _record_utility(
+    character: CharacterDef, name: str, steps: tuple[Step, ...], start: Start
+) -> Utility:
+    """Perform a movement option alone on the test stage and record where it goes."""
+    match, fighter = _fresh(character, airborne=start is Start.AIR)
+    origin = fighter.pos
+    facing = FACING.world
+    inputs = frames_for(steps, facing)
+    path: list[Vec3] = []
+    states = [fighter.state.value]
+    free = landed = first_safe = last_safe = 0
+    airborne = not fighter.grounded
+    for frame in range(1, UTILITY_FRAMES + 1):
+        match.tick([inputs[frame - 1] if frame <= len(inputs) else NEUTRAL_INPUT])
+        path.append(_to_local(fighter.pos - origin, facing))
+        if fighter.state.value != states[-1]:
+            states.append(fighter.state.value)
+        if fighter.intangible:
+            first_safe = first_safe or frame
+            last_safe = frame
+        if not fighter.grounded:
+            airborne = True
+        elif airborne and landed == 0:
+            landed = frame
+        if free == 0 and frame > len(inputs) and view_fighter(fighter).free:
+            free = frame
+        if free and fighter.grounded:
+            break
+    return Utility(
+        name=name,
+        start=start,
+        steps=steps,
+        path=tuple(path),
+        free=free or UTILITY_FRAMES,
+        intangible=(first_safe, last_safe) if first_safe else None,
+        landed=landed,
+        states=tuple(states),
+    )
+
+
+def _build(character: CharacterDef) -> CharacterKnowledge:
+    recipes = [(r, Start.GROUND) for r in _ground_recipes(character.movement.jumpsquat)]
+    recipes += [(r, Start.AIR) for r in _air_recipes()]
+    actions = [
+        _action(character, name, steps, aimable, start) for (name, steps, aimable), start in recipes
+    ]
+    extras = tuple(
+        _action(character, name, steps, aimable, start, charge)
+        for name, steps, aimable, start, charge in _extra_recipes(character)
+    )
+    utilities = {
+        name: _record_utility(character, name, steps, start)
+        for name, steps, start in _utility_recipes()
+    }
     ground_by_move: dict[str, Action] = {}
     air_by_move: dict[str, Action] = {}
     for action in actions:
@@ -528,6 +851,8 @@ def _build(character: CharacterDef) -> CharacterKnowledge:
         air_jump_rise=_rise(character, stats.double_jump_vz),
         jump_distance=_jump_distance(character),
         projectile_reach=reach,
+        extras=extras,
+        utilities=utilities,
     )
 
 
@@ -538,7 +863,8 @@ def knowledge_for(character: CharacterDef) -> CharacterKnowledge:
     """Return (and cache) what a CPU knows about a character. Reloaded character data
     (a new ``CharacterDef``) is recorded again."""
     cached = _CACHE.get(character.id)
-    if cached is not None and cached[0] is character:
+    # The same data loaded twice (two players on one character) is the same knowledge.
+    if cached is not None and (cached[0] is character or cached[0] == character):
         return cached[1]
     built = _build(character)
     _CACHE[character.id] = (character, built)

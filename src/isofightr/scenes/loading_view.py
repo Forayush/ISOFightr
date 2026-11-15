@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 import arcade
 
+from isofightr.ai.knowledge import knowledge_for
 from isofightr.config import NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
@@ -230,6 +231,10 @@ class LoadingView(MenuView):
                 for player, character in enumerate(setup.characters):
                     if character == name:
                         bank.warm(player_costume(setup, player, costumes))
+            if any(setup.cpus):
+                # A CPU performs every move of every fighter once to learn it (about 0.1 s
+                # a character): here, not on the match's first tick.
+                knowledge_for(next(c for c in self._characters if c.id == name))
             yield
         self.battle = BattleView(
             self.pixel_buffer,

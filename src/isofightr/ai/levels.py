@@ -31,6 +31,8 @@ class CpuLevel:
     ledge_wait_max: int
     mash_every: int
     punish_margin: int
+    tracking_frames: int = 0
+    """M20: how late smooth changes are seen (``config.CPU_TRACKING_FRAMES``)."""
 
 
 def _at(values: Sequence[float], level: int) -> float:
@@ -68,4 +70,5 @@ def cpu_level(level: int) -> CpuLevel:
         ledge_wait_max=round(_at(config.CPU_LEDGE_WAIT_MAX, level)),
         mash_every=max(1, round(_at(config.CPU_MASH_EVERY, level))),
         punish_margin=round(_at(config.CPU_PUNISH_MARGIN, level)),
+        tracking_frames=round(_at(config.CPU_TRACKING_FRAMES, level)),
     )
