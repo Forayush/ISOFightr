@@ -1,8 +1,9 @@
 """The game's pixel font, drawn at exact native sizes with anti-aliasing off.
 
 Plan note "13 - Game Modes UI and Flow" ("UI implementation notes") and decision D-061. The
-faces are Departure Mono for body text, the Jersey family for headings and numbers, and
-Tiny5 for fine print (all under the SIL Open Font License 1.1: the licence files are in
+faces are Departure Mono for fixed-width text, Micro 5 for sentences (decision D-072), the
+Jersey family for headings and numbers, and Tiny5 for fine print (all under the SIL Open
+Font License 1.1: the licence files are in
 ``assets/fonts/`` and the credits in ``assets/CREDITS.md``), each used only at a size where
 its outlines land on whole pixels.
 Pillow rasterises them (it is already a dependency); there is no text layout engine here,
@@ -48,7 +49,10 @@ class TextSize(Enum):
     SMALL = "small"
     """Tags and fine print: capitals 5 px tall."""
     BODY = "body"
-    """Labels, values and sentences: fixed width, capitals 8 px tall."""
+    """Key names, numbers and columns: fixed width, capitals 8 px tall."""
+    TEXT = "text"
+    """Sentences and labels in mixed case (decision D-072): proportional, capitals 7 px
+    tall. Narrower and softer than the fixed-width face, which made menus read as tables."""
     TITLE = "title"
     """Names and button captions: capitals 12 px tall."""
     DISPLAY = "display"
@@ -63,6 +67,7 @@ class TextSize(Enum):
 _SPECS: Final[dict[TextSize, tuple[str, int, int]]] = {
     TextSize.SMALL: ("Tiny5-Regular.ttf", 8, 1),
     TextSize.BODY: ("DepartureMono-Regular.otf", 11, 1),
+    TextSize.TEXT: ("Micro5-Regular.ttf", 15, 1),
     TextSize.TITLE: ("Jersey25-Regular.ttf", 20, 1),
     TextSize.DISPLAY: ("Jersey25-Regular.ttf", 25, 1),
     TextSize.NUMERAL: ("Jersey10-Regular.ttf", 30, 3),
@@ -164,10 +169,27 @@ def _arrow_size(loaded: Face) -> int:
     return loaded.cap_height | 1
 
 
+_SHIFTS: dict[tuple[int, str], int] = {}
+
+
+def _shift(loaded: Face, character: str) -> int:
+    """Return how many pixels a character's ink starts left of its own cell (Micro 5's "j"
+    hooks back under the letter before it). Labels draw one sprite per character, so such a
+    character is given a cell that much wider and drawn that much further right: it keeps
+    its whole shape and never needs its neighbour."""
+    key = (id(loaded.font), character)
+    found = _SHIFTS.get(key)
+    if found is None:
+        found = max(-int(loaded.font.getbbox(character)[0]), 0) if character.strip() else 0
+        _SHIFTS[key] = found
+    return found
+
+
 def _run_width(loaded: Face, arrow: bool, run: str) -> int:
     if arrow:
         return _arrow_size(loaded) + loaded.scale
-    return math.ceil(loaded.font.getlength(run)) * loaded.scale
+    shifts = sum(_shift(loaded, character) for character in run)
+    return (math.ceil(loaded.font.getlength(run)) + shifts) * loaded.scale
 
 
 def text_width(text: str, size: TextSize = TextSize.BODY, fonts_dir: Path = FONTS_DIR) -> int:
@@ -221,7 +243,15 @@ def mask(text: str, size: TextSize = TextSize.BODY, fonts_dir: Path = FONTS_DIR)
             small = Image.new("L", (run_width // loaded.scale, loaded.height // loaded.scale), 0)
             draw = ImageDraw.Draw(small)
             draw.fontmode = "1"
-            draw.text((0, -loaded.top), run, fill=255, font=loaded.font)
+            if any(_shift(loaded, character) for character in run):
+                # One character at a time, each in its own (widened) cell.
+                at = 0
+                for character in run:
+                    at += _shift(loaded, character)
+                    draw.text((at, -loaded.top), character, fill=255, font=loaded.font)
+                    at += math.ceil(loaded.font.getlength(character))
+            else:
+                draw.text((0, -loaded.top), run, fill=255, font=loaded.font)
             if loaded.scale > 1:
                 small = small.resize(
                     (small.width * loaded.scale, small.height * loaded.scale),

@@ -1,16 +1,18 @@
-"""The UI kit sheet: every font size, widget and icon on one screen, with a live cursor.
+"""The UI kit sheet: every font size, block and widget on one screen, with a live cursor.
 
-Plan note "13 - Game Modes UI and Flow" (decision D-061, group 0). Not part of the game's
-flow: ``tools/capture_scene.py --screen kit`` shows it so the kit can be reviewed, and it
-exercises the things every rebuilt screen relies on (the focus map with a stick, keys and
-the mouse; widget looks; the tweens).
+Plan note "13 - Game Modes UI and Flow" (decisions D-061 group 0 and D-072 group 1). Not part
+of the game's flow: ``tools/capture_scene.py --screen kit`` shows it so the kit can be
+reviewed. The same sampler is laid out twice, once on each surface: stone on the left (the
+menus'; it is the live half, with the cursor) and ink on the right (what is drawn over a
+match). It exercises what every screen relies on: the focus map with a stick, keys and the
+mouse, the widgets' looks, the blocks that rise and sink, the tweens.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from isofightr.config import NATIVE_H, NATIVE_W
+from isofightr.config import NATIVE_W
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.menus import MenuView
 from isofightr.ui import theme
@@ -26,105 +28,165 @@ from isofightr.ui.widgets import (
     FocusFrame,
     Gauge,
     KeyCap,
+    PipGauge,
+    Sign,
     Stepper,
-    Tab,
+    TabStrip,
     Toggle,
-    add_panel,
+    UiLayer,
+    add_plate,
+    add_slab,
+    text_bottom,
 )
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-LEFT_PANEL = Rect(theme.MARGIN, 40, 300, 270)
-RIGHT_PANEL = Rect(328, 40, 300, 270)
+LEFT_SLAB = Rect(theme.MARGIN, 26, 304, 302)
+RIGHT_SLAB = Rect(324, 26, 304, 302)
 GAUGE_TICKS = 180
-"""The demo gauge fills, then starts again, over this many ticks."""
-KEY_CAPTIONS = ("J", "K", "SPACE", "L-SHIFT", "n/a")
+"""The demo gauges fill, then start again, over this many ticks."""
+KEY_CAPTIONS = ("J", "K", "SPACE", "n/a")
 STEPS = ("0.5x", "1.0x", "1.5x", "2.0x")
+TABS = ("RULES", "CONTROLS", "DISPLAY")
+PIPS = 8
+ICONS_SHOWN = 6
+
+
+class Sampler:
+    """One of everything, on one surface."""
+
+    def __init__(self, ui: UiLayer, slab: Rect, surface: theme.Surface) -> None:
+        """Lay the kit out on a slab of ``surface``."""
+        add_slab(ui, slab, surface)
+        x, top, right = slab.left + theme.PAD, slab.top, slab.right - theme.PAD
+        plate = Rect(x, top - 30, 100, 23)
+        add_plate(ui, plate, surface)
+        ui.write_in(
+            Rect(plate.left, plate.bottom + theme.LIP, plate.width, 14),
+            surface.name.upper(),
+            TextSize.TITLE,
+            surface.text,
+            shadow=False,
+        )
+        self.prompt = ui.write(
+            "PRESS A KEY", x + 110, top - 26, TextSize.TITLE, surface.accent, shadow=False
+        )
+        self.number = ui.write(
+            "0%", right, top - 34, TextSize.NUMERAL, surface.text, "right", surface.shadow
+        )
+
+        def write(text: str, y: int, size: TextSize, color: theme.Rgb) -> None:
+            ui.write(text, x, top - y, size, color, shadow=surface.shadow)
+
+        write("Title: Bramble, the heavyweight", 52, TextSize.TITLE, surface.text)
+        write(
+            "Text: a mossy stone golem. Slow, with a huge reach.", 66, TextSize.TEXT, surface.text
+        )
+        write("Second rank: who it is for and what it does.", 78, TextSize.TEXT, surface.text_muted)
+        write("Body: 0123456789% (3:00) <1.0x> [J]", 92, TextSize.BODY, surface.text)
+        arrows = f"small: tags and fine print   {ARROW_LEFT} {ARROW_RIGHT} ↑ ↓"
+        write(arrows, 103, TextSize.SMALL, surface.text_muted)
+
+        self.buttons = {
+            "play": Button(
+                ui, Rect(x, top - 134, 88, theme.BUTTON_HEIGHT), "VERSUS", "stock", surface=surface
+            ),
+            "rules": Button(
+                ui,
+                Rect(x + 94, top - 134, 88, theme.BUTTON_HEIGHT),
+                "RULES",
+                "gear",
+                surface=surface,
+            ),
+            "default": Button(
+                ui,
+                Rect(x + 188, top - 134, 96, theme.BUTTON_HEIGHT),
+                "DEFAULT",
+                look=Look.CAUTION,
+                surface=surface,
+            ),
+        }
+        write("Launch rate", 156, TextSize.TEXT, surface.text)
+        self.stepper = Stepper(ui, Rect(x + 150, top - 160, 86, 16), STEPS[1], surface)
+        write("Parry", 176, TextSize.TEXT, surface.text)
+        self.toggle = Toggle(ui, Rect(x + 196, top - 181, 40, 17), surface=surface, block=True)
+        write("In the random pool", 196, TextSize.TEXT, surface.text)
+        self.checkbox = Checkbox(ui, x + 225, top - 198)
+        write("Power", 214, TextSize.TEXT, surface.text_muted)
+        self.pips = PipGauge(ui, x + 44, top - 213, PIPS)
+        self.gauge = Gauge(ui, Rect(x + 130, top - 214, 70, 9), segmented=True)
+        self.plain_gauge = Gauge(ui, Rect(x + 210, top - 214, 74, 9), fill=theme.ON)
+
+        self.caps: dict[str, KeyCap] = {}
+        cap_x = x
+        for caption in KEY_CAPTIONS:
+            width = 28 if len(caption) <= 1 else 50
+            look = Look.DANGER if caption == "n/a" else Look.NORMAL
+            self.caps[caption] = KeyCap(
+                ui, Rect(cap_x, top - 250, width, 28), caption, look, surface=surface
+            )
+            cap_x += width + theme.GAP
+        KeyCap(ui, Rect(cap_x + 8, top - 250, 28, 28), "U", Look.LIT, surface=surface)
+        KeyCap(ui, Rect(cap_x + 40, top - 250, 28, 28), "T", Look.DISABLED, surface=surface)
+        for index, name in enumerate(list(load_icons())[:ICONS_SHOWN]):
+            ui.icon(
+                name,
+                right - 44 + (index % 3) * 15,
+                top - 235 - (index // 3) * 14,
+                surface.text,
+            )
+
+        self.tabs = TabStrip(ui, x, top - 276, TABS, 20, surface)
+        self.sign = Sign(
+            ui,
+            Rect(x, slab.bottom + theme.LIP + 4, slab.width - 2 * theme.PAD, 16),
+            "A sign holds one line of help, in sentence case.",
+            surface,
+        )
 
 
 class UiKitView(MenuView):
     """Shows the kit. The stick, keys or mouse move the cursor; confirm presses a widget."""
 
+    surface = theme.STONE
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Lay everything out."""
         super().__init__(pixel_buffer, flow)
         self.dim = None
-        ui = self.ui
-        ui.write("UI KIT", theme.MARGIN, NATIVE_H - 34, TextSize.DISPLAY, theme.HEADING)
-        self.tabs = [
-            Tab(ui, Rect(388 + index * 60, NATIVE_H - 32, 64, 20), f"P{index + 1}", color)
-            for index, color in enumerate(theme.PLAYER_COLORS)
-        ]
-        self.tab = 0
-
-        add_panel(ui, LEFT_PANEL)
-        x, top = LEFT_PANEL.left + theme.PAD, LEFT_PANEL.top
-        ui.write("Display 87%", x, top - 30, TextSize.DISPLAY)
-        ui.write("Title: Bramble, the heavyweight", x, top - 50, TextSize.TITLE)
-        ui.write("Body: a mossy stone golem. Slow, huge reach.", x, top - 66, TextSize.BODY)
-        ui.write(
-            "Muted: 0123456789% (3:00) <1.0x> [J]", x, top - 80, TextSize.BODY,
-            theme.TEXT_MUTED,
-        )  # fmt: skip
-        ui.write("small: tags and fine print 0123456789", x, top - 93, TextSize.SMALL, theme.FOG)
-        self.number = ui.write("0%", LEFT_PANEL.right - theme.PAD, top - 34, TextSize.NUMERAL,
-                               theme.AMBER, "right")  # fmt: skip
-        arrows = f"{ARROW_LEFT} arrows {ARROW_RIGHT} ↑ ↓"
-        ui.write(arrows, x, top - 108, TextSize.BODY, theme.FOCUS)
-
-        self.buttons = {
-            "play": Button(ui, Rect(x, top - 140, 88, theme.BUTTON_HEIGHT), "VERSUS", "stock"),
-            "rules": Button(ui, Rect(x + 94, top - 140, 88, theme.BUTTON_HEIGHT), "RULES", "gear"),
-            "default": Button(
-                ui, Rect(x + 188, top - 140, 96, theme.BUTTON_HEIGHT), "DEFAULT", look=Look.CAUTION
-            ),
-        }
-        ui.write("Launch rate", x, top - 162, TextSize.BODY)
-        self.stepper = Stepper(ui, Rect(x + 150, top - 166, 86, 16), STEPS[1])
+        self.header("UI kit", "gear")
+        self.live = Sampler(self.ui, LEFT_SLAB, theme.STONE)
+        """The stone half: the one the cursor moves on."""
+        self.still = Sampler(self.ui, RIGHT_SLAB, theme.INKED)
+        """The ink half: the same things at rest (with its first button under a cursor of
+        its own, so both looks show)."""
+        self.still.buttons["play"].focus(True)
+        self.still.toggle.set(True)
+        self.still.pips.lit = 5
+        self.still.gauge.value = 0.6
+        self.still.plain_gauge.value = 0.4
+        self.still.number.text = "87%"
+        self.still.tabs.set(1, False)
+        self.buttons = self.live.buttons
+        self.stepper, self.toggle, self.checkbox = (
+            self.live.stepper,
+            self.live.toggle,
+            self.live.checkbox,
+        )
+        self.caps = self.live.caps
         self.step = 1
-        ui.write("Parry", x, top - 184, TextSize.BODY)
-        self.toggle = Toggle(ui, Rect(x + 196, top - 188, 40, 16))
         self.parry = False
-        ui.write("In the random pool", x, top - 206, TextSize.BODY)
-        self.checkbox = Checkbox(ui, x + 225, top - 208)
         self.pooled = True
-        ui.write("Power", x, top - 228, TextSize.BODY, theme.TEXT_MUTED)
-        self.gauge = Gauge(ui, Rect(x + 60, top - 228, 120, 9), segmented=True)
-        self.plain_gauge = Gauge(ui, Rect(x + 190, top - 228, 94, 9), fill=theme.ON)
-        self.prompt = ui.write("PRESS A KEY", x, top - 252, TextSize.TITLE, theme.FOCUS)
-
-        add_panel(ui, RIGHT_PANEL)
-        x, top = RIGHT_PANEL.left + theme.PAD, RIGHT_PANEL.top
-        ui.write("KEY CAPS", x, top - 18, TextSize.SMALL, theme.TEXT_MUTED)
-        self.caps: dict[str, KeyCap] = {}
-        cap_x = x
-        for caption in KEY_CAPTIONS:
-            width = 28 if len(caption) <= 1 else 62 if len(caption) > 5 else 50
-            look = Look.DANGER if caption == "n/a" else Look.NORMAL
-            self.caps[caption] = KeyCap(ui, Rect(cap_x, top - 50, width, 28), caption, look)
-            cap_x += width + theme.GAP
-        self.lit = KeyCap(ui, Rect(x, top - 86, 28, 28), "U", Look.LIT)
-        ui.write("held right now (live test)", x + 36, top - 78, TextSize.BODY, theme.TEXT_MUTED)
-        self.disabled = KeyCap(ui, Rect(x, top - 120, 28, 28), "T", Look.DISABLED)
-        ui.write("not available", x + 36, top - 112, TextSize.BODY, theme.TEXT_MUTED)
-
-        ui.write("ICONS", x, top - 140, TextSize.SMALL, theme.TEXT_MUTED)
-        for index, name in enumerate(load_icons()):
-            # Sixteen to a row: at eight the list (32 icons since M14) ran over the next title.
-            column, row = index % 16, index // 16
-            ui.icon(name, x + column * 18, top - 156 - row * 26, theme.TEXT)
-            ui.icon(name, x + column * 18, top - 169 - row * 26, theme.FOCUS)
-        ui.write("PLAYER COLOURS", x, top - 232, TextSize.SMALL, theme.TEXT_MUTED)
-        for index, color in enumerate(theme.PLAYER_COLORS):
-            Button(ui, Rect(x + index * 70, top - 258, 64, 18), f"P{index + 1}").label.color = color
+        self.tab = 0
 
         rects = {name: button.rect for name, button in self.buttons.items()}
         rects |= {"step": self.stepper.rect, "parry": self.toggle.rect, "pool": self.checkbox.rect}
         rects |= {f"key:{caption}": cap.rect for caption, cap in self.caps.items()}
+        rects |= {"tabs": self.live.tabs.rect}
         self.focus_map = FocusMap(rects)
         self.cursor = "play"
-        self.frame = FocusFrame(ui)
+        self.frame = FocusFrame(self.ui)
         self.footer("{stick}: move   {attack}: press   {special}: back   mouse: hover and click")
         self.refresh()
 
@@ -141,13 +203,18 @@ class UiKitView(MenuView):
         if action is MenuAction.BACK:
             self.flow.show_main_menu()
         elif action is MenuAction.EXTRA:
-            self.tab = (self.tab + 1) % len(self.tabs)
+            self.tab = (self.tab + 1) % len(TABS)
         elif action is not MenuAction.CONFIRM:
-            if self.cursor == "step" and action in (MenuAction.LEFT, MenuAction.RIGHT):
-                change = 1 if action is MenuAction.RIGHT else -1
+            sideways = action in (MenuAction.LEFT, MenuAction.RIGHT)
+            change = 1 if action is MenuAction.RIGHT else -1
+            if self.cursor == "step" and sideways:
                 self.step = min(max(self.step + change, 0), len(STEPS) - 1)
+            elif self.cursor == "tabs" and sideways:
+                self.tab = min(max(self.tab + change, 0), len(TABS) - 1)
             else:
                 self.cursor = self.focus_map.move(self.cursor, action)
+        elif self.cursor in self.buttons:
+            self.buttons[self.cursor].press(self.tick_count)
         elif self.cursor == "parry":
             self.parry = not self.parry
         elif self.cursor == "pool":
@@ -160,23 +227,25 @@ class UiKitView(MenuView):
         tick = self.tick_count
         for name, button in self.buttons.items():
             button.focus(name == self.cursor)
+            button.settle(tick)
         self.stepper.set(STEPS[self.step], self.cursor == "step")
         self.toggle.set(self.parry, self.cursor == "parry")
         self.checkbox.set(self.pooled, self.cursor == "pool")
         for caption, cap in self.caps.items():
             rest = Look.DANGER if caption == "n/a" else Look.NORMAL
             cap.set(caption, Look.FOCUS if self.cursor == f"key:{caption}" else rest)
-        for index, tab in enumerate(self.tabs):
-            tab.active = index == self.tab
+        self.live.tabs.set(self.tab, self.cursor == "tabs")
         fill = ease_out(progress(tick % GAUGE_TICKS, 0, GAUGE_TICKS // 2))
-        self.gauge.value = fill
-        self.plain_gauge.value = pulse(tick, GAUGE_TICKS)
-        self.number.text = f"{count_up(tick % GAUGE_TICKS, 0, GAUGE_TICKS // 2, 187)}%"
-        self.prompt.visible = blink(tick, 40)
-        if self.cursor in self.buttons:
+        self.live.gauge.value = fill
+        self.live.pips.lit = round(fill * PIPS)
+        self.live.plain_gauge.value = pulse(tick, GAUGE_TICKS)
+        self.live.number.text = f"{count_up(tick % GAUGE_TICKS, 0, GAUGE_TICKS // 2, 187)}%"
+        self.live.prompt.visible = blink(tick, 40)
+        if self.cursor in self.buttons or self.cursor == "tabs":
             self.frame.hide()
         else:
             self.frame.show(self.focus_map.rects[self.cursor], tick)
 
 
-assert LEFT_PANEL.right < RIGHT_PANEL.left <= NATIVE_W
+assert LEFT_SLAB.right < RIGHT_SLAB.left and RIGHT_SLAB.right <= NATIVE_W
+assert text_bottom  # the kit's own layout helper, kept in the screen's namespace for tools

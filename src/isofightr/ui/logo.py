@@ -58,22 +58,24 @@ def build_logo(
     text: str = LOGO_TEXT,
     scale: int = LETTER_SCALE,
     colors: tuple[Rgb, Rgb, Rgb, Rgb] = GOLD_LETTERS,
+    depth: int = DEPTH,
 ) -> Image.Image:
     """Return the logo (or any word in its lettering, such as the countdown's): letters
     with their depth and an ink outline, on transparency. ``colors`` are the face, its lit
-    rim, the near depth and the far depth."""
+    rim, the near depth and the far depth; ``depth`` is how many 2:1 steps deep the letters
+    are (a screen's title, at the font's own size, is shallower than the logo)."""
     face_color, light_color, side_color, deep_color = colors
     letters = letter_mask(text, scale)
     pad = OUTLINE
-    size = (letters.width + 2 * DEPTH + 2 * pad, letters.height + DEPTH + 2 * pad)
+    size = (letters.width + 2 * depth + 2 * pad, letters.height + depth + 2 * pad)
     face = Image.new("L", size, 0)
     face.paste(letters, (pad, pad))
 
     # The depth: the face repeated down and to the right, two pixels across per pixel down.
     near = Image.new("L", size, 0)
     far = Image.new("L", size, 0)
-    for step in range(1, DEPTH + 1):
-        layer = far if step > DEPTH // 2 else near
+    for step in range(1, depth + 1):
+        layer = far if step > depth // 2 else near
         layer.paste(255, (pad + 2 * step, pad + step), letters)
         layer.paste(255, (pad + 2 * step - 1, pad + step), letters)
     solid = ImageChops.lighter(face, ImageChops.lighter(near, far))
@@ -102,6 +104,16 @@ def _with_seam(image: Image.Image, face: Image.Image) -> Image.Image:
     edge = ImageChops.subtract(ImageChops.lighter(shifted_right, shifted_down), face)
     image.paste((*EDGE, 255), (0, 0), edge)
     return image
+
+
+TITLE_DEPTH: Final[int] = 3
+"""Depth of a screen's title: the lettering at the display font's own size."""
+
+
+def build_title(text: str, colors: tuple[Rgb, Rgb, Rgb, Rgb] = GOLD_LETTERS) -> Image.Image:
+    """Return a screen's title in the logo's lettering, at the display font's own size
+    (decision D-072: a title is part of the world's signage, not a bar across the top)."""
+    return build_logo(text, 1, colors, TITLE_DEPTH)
 
 
 def logo_size(text: str = LOGO_TEXT) -> tuple[int, int]:

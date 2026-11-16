@@ -36,15 +36,16 @@ from isofightr.settings import (
     Settings,
 )
 from isofightr.sim.input_frame import InputFrame
-from isofightr.ui import font, kit_art, theme
+from isofightr.ui import font, kit_art, logo, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
-from isofightr.ui.hints import device_labels, fit_hint
+from isofightr.ui.hints import device_labels, fit_hint, is_pad
 from isofightr.ui.menu import MENU_SOUNDS, Menu, MenuAction, MenuInput, MenuItem
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
     Gauge,
     Picture,
+    PromptBar,
     Stepper,
     TextLabel,
     Toggle,
@@ -52,7 +53,6 @@ from isofightr.ui.widgets import (
     add_panel,
     icon_image,
     picture_texture,
-    text_bottom,
 )
 
 if TYPE_CHECKING:
@@ -86,13 +86,17 @@ LIST_HELP_HEIGHT = 18
 class MenuView(TickedView):
     """Base of the menu scenes: polls every device each tick and draws one UI layer."""
 
+    surface: ClassVar[theme.Surface] = theme.INKED
+    """What the scene's blocks are made of (decision D-072): a screen rebuilt in M21 is
+    ``theme.STONE``; one still to be rebuilt keeps the dark panels it was laid out for."""
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Create an empty scene with its own input devices."""
         super().__init__(pixel_buffer, flow.max_ticks)
         self.flow = flow
         self.hub = flow.hub()
         self.menu_input = MenuInput()
-        self.ui = UiLayer(GlyphAtlas())
+        self.ui = UiLayer(GlyphAtlas(), self.surface)
         self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
         self._clicks: list[tuple[int, int]] = []
@@ -118,7 +122,7 @@ class MenuView(TickedView):
         self._footer_template = ""
         self._footer_drop: tuple[str, ...] = ()
         self._footer_shown: tuple[str, str, str] | None = None
-        self._footer: TextLabel | None = None
+        self._footer: PromptBar | None = None
         self._notice_band: arcade.Sprite | None = None
         self._notice = ""
         self._notice_ticks = 0
@@ -169,39 +173,45 @@ class MenuView(TickedView):
         return Rect(0, 0, NATIVE_W, theme.FOOTER_HEIGHT)
 
     def header(self, text: str, icon: str | None = None) -> None:
-        """Add the title bar across the top of a rebuilt screen (decision D-061)."""
-        bar = Rect(0, NATIVE_H - theme.HEADER_HEIGHT, NATIVE_W, theme.HEADER_HEIGHT)
-        self.ui.picture(
-            ("header", NATIVE_W),
-            lambda: art.build_panel(bar.width, bar.height, theme.PANEL_DEEP, theme.PANEL_DEEP),
-            bar.left,
-            bar.bottom,
-        )
-        self.ui.picture(("header-rule", NATIVE_W), lambda: kit_art.divider(NATIVE_W), 0, bar.bottom)
+        """Add the screen's title at the top left: the logo's lettering, standing on the
+        sky like a sign, with its icon on a small block (decision D-072; it was a dark bar
+        across the screen)."""
+        band = Rect(0, NATIVE_H - theme.HEADER_HEIGHT, NATIVE_W, theme.HEADER_HEIGHT)
         left = theme.MARGIN
-        if icon is not None and self.ui.icon(icon, left, bar.bottom + 8, theme.HEADING):
-            left += theme.ICON_SIZE + theme.GAP + 2
-        self.ui.write(
-            text, left, text_bottom(bar, TextSize.DISPLAY), TextSize.DISPLAY, theme.HEADING
+        if icon is not None and icon_image(icon) is not None:
+            side = theme.ICON_SIZE + 6
+            block = Rect(left, band.bottom + (band.height - side - theme.LIP) // 2, side, side)
+            self.ui.picture(
+                ("title-icon-block", side),
+                lambda: kit_art.block_button(side, side + theme.LIP, surface=theme.STONE),
+                block.left,
+                block.bottom,
+            )
+            self.ui.icon(icon, block.left + 3, block.bottom + theme.LIP + 3, theme.INK)
+            left += side + theme.GAP + 2
+        caption = text.upper()
+        title = logo.build_title(caption)
+        self.title = caption
+        """The screen's title, as shown."""
+        self.ui.picture(
+            ("title", caption),
+            lambda: title,
+            left,
+            band.bottom + (band.height - title.height) // 2,
         )
 
     def footer(self, template: str, drop: tuple[str, ...] = ()) -> None:
-        """Set the hint line at the bottom. ``{attack}``, ``{special}``, ``{grab}``,
+        """Set the prompts along the bottom. ``{attack}``, ``{special}``, ``{grab}``,
         ``{stick}`` and the other action names are replaced by the real controls of the
-        device that acted last. The line is measured: if it is wider than the screen its
-        items named in ``drop`` go first (see :func:`isofightr.ui.hints.fit_hint`)."""
+        device that acted last, each drawn as a key cap (or a gamepad button) with its
+        words beside it (decision D-072). The line is measured: if it is wider than the
+        screen its items named in ``drop`` go first (see
+        :func:`isofightr.ui.hints.fit_hint`)."""
         self._footer_template = template
         self._footer_drop = drop
         if self._footer is None:
             strip = Rect(0, 0, NATIVE_W, theme.FOOTER_HEIGHT)
-            self.ui.picture(
-                ("footer", NATIVE_W),
-                lambda: art.build_panel(
-                    NATIVE_W, theme.FOOTER_HEIGHT, theme.PANEL_DEEP, theme.PANEL_DEEP
-                ),
-                0,
-                0,
-            )
+            self._footer = PromptBar(self.ui, strip, theme.STONE)
             self._notice_band = self.ui.picture(
                 ("notice-band", NATIVE_W),
                 lambda: kit_art.filled(
@@ -213,7 +223,6 @@ class MenuView(TickedView):
                 0,
             )
             self._notice_band.visible = False
-            self._footer = self.ui.write_in(strip, "", TextSize.BODY, theme.TEXT_MUTED)
         self._footer_shown = None
         self._sync_footer()
 
@@ -229,13 +238,15 @@ class MenuView(TickedView):
         self._footer_shown = shown
         if self._notice_band is not None:
             self._notice_band.visible = warning
-        self._footer.color = theme.TEXT if warning else theme.FOCUS if notice else theme.TEXT_MUTED
         if notice:
-            self._footer.text = notice
+            # A message: plain text, white on the red band for a warning, else in the
+            # ledge's accent colour.
+            self._footer.set(notice, False, theme.WHITE if warning else theme.STONE.accent)
             return
         labels = device_labels(self.flow.settings, self.active_device)
         width = NATIVE_W - 2 * theme.PAD
-        self._footer.text = fit_hint(self._footer_template, labels, width, self._footer_drop)
+        line = fit_hint(self._footer_template, labels, width, self._footer_drop)
+        self._footer.set(line, is_pad(self.active_device))
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Track held keys; Enter and Escape confirm and go back."""

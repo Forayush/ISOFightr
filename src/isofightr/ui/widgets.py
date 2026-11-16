@@ -77,9 +77,12 @@ class TextBlock:
 class UiLayer:
     """One batched layer of UI sprites: panels first, then text on top of them."""
 
-    def __init__(self, glyphs: GlyphAtlas) -> None:
-        """Create an empty layer that builds its text from ``glyphs``."""
+    def __init__(self, glyphs: GlyphAtlas, surface: theme.Surface = theme.INKED) -> None:
+        """Create an empty layer that builds its text from ``glyphs``. ``surface`` is what
+        its blocks are made of unless a widget says otherwise (decision D-072): stone for a
+        menu, ink for anything over a match."""
         self.glyphs = glyphs
+        self.surface = surface
         self.panels: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         self.shadows: arcade.SpriteList[arcade.Sprite] = arcade.SpriteList()
         """The drop shadows of :class:`TextLabel` text: under the text, over the panels."""
@@ -143,21 +146,33 @@ class UiLayer:
         x: int,
         bottom: int,
         size: TextSize = TextSize.BODY,
-        color: theme.Rgb = theme.TEXT,
+        color: theme.Rgb | None = None,
         align: "Align" = "left",
-        shadow: bool = True,
+        shadow: bool | None = None,
     ) -> "TextLabel":
-        """Add a line of text in the game's font. See :class:`TextLabel`."""
-        return TextLabel(self, x, bottom, text, size, color, align, shadow)
+        """Add a line of text in the game's font. See :class:`TextLabel`. Without a
+        ``color`` it is the surface's text colour; without ``shadow`` it has the ink drop
+        shadow only where the surface's text is light."""
+        return TextLabel(self, x, bottom, text, size, *self._ink(color, shadow, align))
+
+    def _ink(
+        self, color: theme.Rgb | None, shadow: bool | None, align: "Align"
+    ) -> tuple[theme.Rgb, "Align", bool]:
+        """Fill in a label's colour and shadow from the layer's surface."""
+        return (
+            self.surface.text if color is None else color,
+            align,
+            self.surface.shadow if shadow is None else shadow,
+        )
 
     def write_in(
         self,
         rect: Rect,
         text: str,
         size: TextSize = TextSize.BODY,
-        color: theme.Rgb = theme.TEXT,
+        color: theme.Rgb | None = None,
         align: "Align" = "centre",
-        shadow: bool = True,
+        shadow: bool | None = None,
         pad: int = theme.PAD,
     ) -> "TextLabel":
         """Add a line of text inside a rectangle, its capitals centred vertically."""
@@ -166,14 +181,16 @@ class UiLayer:
             "centre": rect.left + rect.width // 2,
             "right": rect.right - pad,
         }[align]
-        return TextLabel(self, x, text_bottom(rect, size), text, size, color, align, shadow)
+        return TextLabel(
+            self, x, text_bottom(rect, size), text, size, *self._ink(color, shadow, align)
+        )
 
     def icon(
-        self, name: str, left: int, bottom: int, color: theme.Rgb = theme.TEXT
+        self, name: str, left: int, bottom: int, color: theme.Rgb | None = None
     ) -> arcade.Sprite | None:
-        """Add a UI icon in a colour (its white parts take it), or nothing if the icon sheet
-        has no such icon."""
-        texture = icon_texture(name, color)
+        """Add a UI icon in a colour (its white parts take it; the surface's text colour if
+        none is given), or nothing if the icon sheet has no such icon."""
+        texture = icon_texture(name, self.surface.text if color is None else color)
         return None if texture is None else self.image(texture, left, bottom)
 
     def draw(self) -> None:
@@ -442,8 +459,52 @@ def add_panel(
     )
 
 
+def add_slab(
+    layer: UiLayer,
+    rect: Rect,
+    surface: theme.Surface | None = None,
+    corner: int = theme.CORNER,
+    corners: kit_art.Corners = kit_art.TILE_CORNERS,
+    lip: int = theme.LIP,
+) -> arcade.Sprite:
+    """Add a slab (decision D-072): the block a group of things sits on. ``rect`` is the
+    whole block; its top face is everything above the bottom ``lip`` rows."""
+    surface = surface or layer.surface
+    return layer.picture(
+        ("slab", rect.width, rect.height, surface.name, corner, corners, lip),
+        lambda: kit_art.slab(rect.width, rect.height, surface, corner, corners, lip),
+        rect.left,
+        rect.bottom,
+    )
+
+
+def slab_face(rect: Rect, lip: int = theme.LIP) -> Rect:
+    """Return a slab's top face: where things are laid out on it."""
+    return Rect(rect.left, rect.bottom + lip, rect.width, rect.height - lip)
+
+
+def add_plate(layer: UiLayer, rect: Rect, surface: theme.Surface | None = None) -> arcade.Sprite:
+    """Add a header plate: a slab with turf along its top."""
+    surface = surface or layer.surface
+    return layer.picture(
+        ("plate", rect.width, rect.height, surface.name),
+        lambda: kit_art.plate(rect.width, rect.height, surface),
+        rect.left,
+        rect.bottom,
+    )
+
+
+PRESS_TICKS = 4
+"""How long a pressed block stays sunk."""
+
+
 class Button:
-    """A captioned button, optionally with an icon on its left."""
+    """A captioned button, optionally with an icon on its left: a block (decision D-072).
+
+    ``rect`` is the block at rest, lip included. Under the cursor its face stands
+    ``theme.RAISE`` higher (the picture grows upward, past ``rect.top``); for
+    :data:`PRESS_TICKS` after :meth:`press` it is sunk into its lip.
+    """
 
     def __init__(
         self,
@@ -454,13 +515,17 @@ class Button:
         size: TextSize = TextSize.BODY,
         look: Look = Look.NORMAL,
         align: Align = "centre",
+        surface: theme.Surface | None = None,
     ) -> None:
         """Create the button in its resting look."""
         self.rect = rect
         self.rest = look
         """The look when the cursor is elsewhere (``NORMAL``, or ``CAUTION`` for DEFAULT)."""
+        self.surface = surface or layer.surface
+        self.size = size
         self._layer = layer
-        self._body = Picture(layer, rect)
+        self._body = arcade.Sprite()
+        layer.panels.append(self._body)
         self._icon_name = icon if icon_image(icon or "") is not None else None
         self._icon: arcade.Sprite | None = None
         inset = theme.PAD + (theme.ICON_SIZE + ICON_GAP if self._icon_name else 0)
@@ -473,6 +538,9 @@ class Button:
             layer.panels.append(self._icon)
         self.label = layer.write_in(rect, caption, size, align=align, shadow=False, pad=inset)
         self._look: Look | None = None
+        self._pressed_until = -1
+        self._lift: int | None = None
+        self._low = False
         self.look = look
 
     @property
@@ -486,16 +554,57 @@ class Button:
         if value is self._look:
             return
         self._look = value
-        width, height = self.rect.width, self.rect.height
-        self._body.show(
-            ("button", width, height, value), lambda: kit_art.button(width, height, value)
+        self._show(pressed=False)
+
+    @property
+    def lift(self) -> int:
+        """How far the face stands above (or, pressed, below) its resting place."""
+        assert self._lift is not None
+        return self._lift
+
+    @property
+    def face(self) -> Rect:
+        """The button's top face as it stands now: where its caption is."""
+        rows, tall = kit_art.face_span(self.rect.height, self.lift)
+        return Rect(self.rect.left, self.rect.bottom + rows, self.rect.width, tall)
+
+    @property
+    def low(self) -> bool:
+        """Whether the button lies sunk at rest, its caption second-rank: a tab that is not
+        the page on show."""
+        return self._low
+
+    @low.setter
+    def low(self, value: bool) -> None:
+        if value != self._low:
+            self._low = value
+            self._show(pressed=False)
+
+    def _show(self, pressed: bool) -> None:
+        look = self.look
+        lift = kit_art.lift_of(look, pressed or (self._low and look is Look.NORMAL))
+        self._lift = lift
+        width, height, surface = self.rect.width, self.rect.height, self.surface
+        texture = picture_texture(
+            ("block-button", width, height, look, surface.name, lift),
+            lambda: kit_art.block_button(width, height, look, surface, lift),
         )
-        color = kit_art.text_color(value)
+        self._body.texture = texture
+        self._body.position = (
+            self.rect.left + width / 2,
+            self.rect.bottom + texture.height / 2,
+        )
+        face = self.face
+        color = kit_art.look_text(look, surface)
+        if self._low and look is Look.NORMAL:
+            color = surface.text_muted
         self.label.color = color
+        self.label.move_to(self.label.x, text_bottom(face, self.size))
         if self._icon is not None and self._icon_name is not None:
             texture = icon_texture(self._icon_name, color)
             assert texture is not None
             self._icon.texture = texture
+            self._icon.center_y = face.bottom + face.height / 2
 
     def focus(self, focused: bool) -> None:
         """Show the button under the cursor, or back at rest. A button that overwrites
@@ -503,15 +612,42 @@ class Button:
         lit = Look.DANGER if self.rest is Look.CAUTION else Look.FOCUS
         self.look = lit if focused else self.rest
 
+    def press(self, tick: int) -> None:
+        """Sink the button for a few ticks: it was pressed on ``tick``. What the press
+        does happens at once; this is only how it looks. Call :meth:`settle` every tick."""
+        self._pressed_until = tick + PRESS_TICKS
+        self._show(pressed=True)
+
+    def settle(self, tick: int) -> None:
+        """Let a pressed button come back up when its time is over."""
+        if self._pressed_until >= 0 and tick >= self._pressed_until:
+            self._pressed_until = -1
+            self._show(pressed=False)
+
+    @property
+    def pressed(self) -> bool:
+        """Whether the button is shown sunk right now."""
+        return self._pressed_until >= 0
+
 
 class Toggle:
     """An ON/OFF switch."""
 
     ON_TEXT, OFF_TEXT = "ON", "OFF"
 
-    def __init__(self, layer: UiLayer, rect: Rect, on: bool = False) -> None:
-        """Create the switch."""
+    def __init__(
+        self,
+        layer: UiLayer,
+        rect: Rect,
+        on: bool = False,
+        surface: theme.Surface | None = None,
+        block: bool = False,
+    ) -> None:
+        """Create the switch. With ``block`` it is a block (decision D-072): standing up
+        and mint when on, sunk into its lip when off; without, the flat switch of D-061."""
         self.rect = rect
+        self.surface = surface or layer.surface
+        self.block = block
         self._body = Picture(layer, rect)
         self.label = layer.write_in(rect, "", TextSize.BODY, shadow=False, pad=0)
         self._state: tuple[bool, bool] | None = None
@@ -523,12 +659,23 @@ class Toggle:
             return
         self._state = (on, focused)
         width, height = self.rect.width, self.rect.height
-        self._body.show(
-            ("toggle", width, height, on, focused),
-            lambda: kit_art.toggle(width, height, on, focused),
-        )
         self.label.text = self.ON_TEXT if on else self.OFF_TEXT
-        self.label.color = theme.TEXT_ON_FOCUS if on else theme.TEXT_MUTED
+        if not self.block:
+            self._body.show(
+                ("toggle", width, height, on, focused),
+                lambda: kit_art.toggle(width, height, on, focused),
+            )
+            self.label.color = theme.TEXT_ON_FOCUS if on else theme.TEXT_MUTED
+            return
+        surface = self.surface
+        self._body.show(
+            ("toggle-block", width, height, on, focused, surface.name),
+            lambda: kit_art.toggle_block(width, height, on, focused, surface),
+        )
+        rows, tall = kit_art.face_span(height, 0 if on else kit_art.lift_of(Look.NORMAL, True))
+        face = Rect(self.rect.left, self.rect.bottom + rows, width, tall)
+        self.label.color = kit_art.toggle_text(on, surface)
+        self.label.move_to(self.label.x, text_bottom(face, TextSize.BODY))
 
     @property
     def on(self) -> bool:
@@ -539,9 +686,16 @@ class Toggle:
 class Stepper:
     """A ``< value >`` chooser: a well with the value in it and an arrow at each end."""
 
-    def __init__(self, layer: UiLayer, rect: Rect, text: str = "") -> None:
-        """Create the stepper."""
+    def __init__(
+        self,
+        layer: UiLayer,
+        rect: Rect,
+        text: str = "",
+        surface: theme.Surface | None = None,
+    ) -> None:
+        """Create the stepper. On the stone surface its well is pale and its value ink."""
         self.rect = rect
+        self.surface = surface or layer.surface
         self._body = Picture(layer, rect)
         middle = rect.bottom + (rect.height - theme.ICON_SIZE) // 2
         self._arrows = [
@@ -562,11 +716,21 @@ class Stepper:
             return
         self._focused = focused
         width, height = self.rect.width, self.rect.height
-        self._body.show(
-            ("stepper", width, height, focused), lambda: kit_art.stepper(width, height, focused)
-        )
-        color = theme.FOCUS if focused else theme.TEXT_DIM
-        self.label.color = theme.TEXT if not focused else theme.FOCUS_GLOW
+        surface = self.surface
+        if surface is theme.STONE:
+            self._body.show(
+                ("stepper-well", width, height, focused, surface.name),
+                lambda: kit_art.well(width, height, surface, focused),
+            )
+            color = surface.text if focused else surface.text_dim
+            self.label.color = surface.text
+        else:
+            self._body.show(
+                ("stepper", width, height, focused),
+                lambda: kit_art.stepper(width, height, focused),
+            )
+            color = theme.FOCUS if focused else theme.TEXT_DIM
+            self.label.color = theme.TEXT if not focused else theme.FOCUS_GLOW
         for picture, name in zip(self._arrows, ("arrow_left", "arrow_right"), strict=True):
             image = icon_image(name)
             if image is None:
@@ -623,9 +787,11 @@ class KeyCap:
         caption: str = "",
         look: Look = Look.NORMAL,
         size: TextSize = TextSize.TITLE,
+        surface: theme.Surface | None = None,
     ) -> None:
         """Create the cap."""
         self.rect = rect
+        self.surface = surface or layer.surface
         self._body = Picture(layer, rect)
         face = Rect(
             rect.left, rect.bottom + kit_art.KEY_LIP, rect.width, rect.height - kit_art.KEY_LIP
@@ -645,7 +811,11 @@ class KeyCap:
             return
         self._state = (caption, look)
         width, height = self.rect.width, self.rect.height
-        self._body.show(("key", width, height, look), lambda: kit_art.key_cap(width, height, look))
+        surface = self.surface
+        self._body.show(
+            ("key-block", width, height, look, surface.name),
+            lambda: kit_art.block_button(width, height, look, surface, corners=kit_art.ALL_CORNERS),
+        )
         room = width - 4
         chosen = next(
             (each for each in self._sizes if font.text_width(caption, each) <= room),
@@ -653,7 +823,7 @@ class KeyCap:
         )
         for each, label in self._labels.items():
             label.text = font.fit(caption, room, each) if each is chosen else ""
-            label.color = kit_art.text_color(look)
+            label.color = kit_art.look_text(look, surface)
 
 
 class Tab:
@@ -781,3 +951,326 @@ class SlideGroup:
         self._offset = (dx, dy)
         for sprite, (x, y) in zip(self._sprites, self._home, strict=True):
             sprite.position = (x + dx, y + dy)
+
+
+# --- the block kit's own widgets (decision D-072) ------------------------------------------
+
+SIGN_LIP = 2
+PROMPT_GAP = 12
+"""Pixels between two prompts of a prompt bar."""
+PROMPT_MIN_GAP = 5
+PROMPT_CAP_GAP = 3
+"""Pixels between a prompt's cap and its word."""
+PROMPT_CAP_PAD = 4
+"""Pixels of cap either side of a control's name."""
+
+
+class Sign:
+    """A line of help on a plate of its own: a note, not a button."""
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        rect: Rect,
+        text: str = "",
+        surface: theme.Surface | None = None,
+        size: TextSize = TextSize.TEXT,
+    ) -> None:
+        """Create the sign showing ``text`` (shortened if it is too wide)."""
+        self.rect = rect
+        self.size = size
+        surface = surface or layer.surface
+        layer.picture(
+            ("sign", rect.width, rect.height, surface.name),
+            lambda: kit_art.sign(rect.width, rect.height, surface),
+            rect.left,
+            rect.bottom,
+        )
+        face = Rect(rect.left, rect.bottom + SIGN_LIP, rect.width, rect.height - SIGN_LIP)
+        self.label = layer.write_in(face, "", size, surface.text, shadow=False)
+        self.text = text
+
+    @property
+    def text(self) -> str:
+        """The line shown."""
+        return self.label.text
+
+    @text.setter
+    def text(self, value: str) -> None:
+        self.label.text = font.fit(value, self.rect.width - 2 * theme.PAD, self.size)
+
+
+class PipGauge:
+    """A gauge that counts: a row of pips, some of them lit."""
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        left: int,
+        bottom: int,
+        count: int,
+        lit: int = 0,
+        ramp: theme.Ramp = kit_art.GOLD_RAMP,
+    ) -> None:
+        """Create a row of ``count`` pips with the first ``lit`` lit."""
+        self.count = count
+        self.ramp = ramp
+        self.rect = Rect(left, bottom, kit_art.pips_width(count), kit_art.PIP_SIZE[1])
+        self._body = Picture(layer, self.rect)
+        self._lit = -1
+        self.lit = lit
+
+    @property
+    def lit(self) -> int:
+        """How many pips are lit."""
+        return self._lit
+
+    @lit.setter
+    def lit(self, value: int) -> None:
+        value = min(max(int(value), 0), self.count)
+        if value == self._lit:
+            return
+        self._lit = value
+        count, ramp = self.count, self.ramp
+        self._body.show(("pips", count, value, ramp), lambda: kit_art.pips(count, value, ramp))
+
+
+class PromptBar:
+    """A row of prompts: each a key cap (or a gamepad button) and a word or two.
+
+    It shows a filled hint line such as ``"J: pick   K: back"`` (see
+    :func:`isofightr.ui.hints.prompts`), so a screen still writes its hints as one template
+    and a test still reads them as one string (:attr:`text`). A line with no controls in it
+    (a message) is shown as plain text.
+    """
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        rect: Rect,
+        surface: theme.Surface | None = None,
+        strip: bool = True,
+    ) -> None:
+        """Create an empty bar centred in ``rect``. With ``strip`` it stands on a ledge of
+        its surface that fills the rect."""
+        from isofightr.ui.hints import prompts
+
+        self._parse = prompts
+        self.rect = rect
+        self.surface = surface or layer.surface
+        self._layer = layer
+        if strip:
+            band = self.surface
+            layer.picture(
+                ("prompt-strip", rect.width, rect.height, band.name),
+                lambda: kit_art.block(
+                    rect.width + 2,
+                    rect.height + 1,
+                    (band.face, band.light, band.lip, band.outline),
+                    0,
+                    0,
+                ),
+                rect.left - 1,
+                rect.bottom - 1,
+            )
+        self._caps: list[arcade.Sprite] = []
+        self._cap_labels: list[TextLabel] = []
+        self._words: list[TextLabel] = []
+        self._state: tuple[str, bool, theme.Rgb | None] | None = None
+        self.set("")
+
+    @property
+    def text(self) -> str:
+        """The hint line shown."""
+        return self._state[0] if self._state is not None else ""
+
+    @text.setter
+    def text(self, value: str) -> None:
+        self.set(value, self.pad, self.color)
+
+    @property
+    def pad(self) -> bool:
+        """Whether controls are drawn as gamepad buttons."""
+        return self._state is not None and self._state[1]
+
+    @property
+    def color(self) -> theme.Rgb | None:
+        """The colour of the words (``None``: the surface's second-rank text colour)."""
+        return self._state[2] if self._state is not None else None
+
+    @color.setter
+    def color(self, value: theme.Rgb | None) -> None:
+        self.set(self.text, self.pad, value)
+
+    def widths(self, text: str, pad: bool = False) -> list[tuple[int, int]]:
+        """Return each prompt's ``(cap width, word width)`` for a line (0 = it has none)."""
+        return [
+            (self._cap_width(control, pad), font.text_width(words, TextSize.TEXT))
+            for control, words in self._parse(text)
+        ]
+
+    @staticmethod
+    def _disc(control: str, pad: bool) -> bool:
+        return pad and control.upper() in kit_art.PAD_BUTTON_COLOURS
+
+    def _cap_width(self, control: str, pad: bool) -> int:
+        if not control:
+            return 0
+        if self._disc(control, pad):
+            return kit_art.PAD_BUTTON
+        return max(
+            font.text_width(control, TextSize.BODY) + 2 * PROMPT_CAP_PAD, theme.PROMPT_HEIGHT
+        )
+
+    def set(self, text: str, pad: bool = False, color: theme.Rgb | None = None) -> None:
+        """Show a hint line, with keyboard caps or (``pad``) gamepad buttons."""
+        state = (text, pad, color)
+        if state == self._state:
+            return
+        self._state = state
+        items = self._parse(text)
+        sizes = self.widths(text, pad)
+        widths = [cap + (PROMPT_CAP_GAP if cap and word else 0) + word for cap, word in sizes]
+        room = self.rect.width - 2 * theme.PAD
+        gaps = max(len(items) - 1, 0)
+        gap = PROMPT_GAP
+        if gaps and sum(widths) + gap * gaps > room:
+            gap = max((room - sum(widths)) // gaps, PROMPT_MIN_GAP)
+        x = self.rect.left + (self.rect.width - sum(widths) - gap * gaps) // 2
+        bottom = self.rect.bottom + (self.rect.height - theme.PROMPT_HEIGHT) // 2
+        face = Rect(0, bottom + theme.PROMPT_LIP, 1, theme.PROMPT_HEIGHT - theme.PROMPT_LIP)
+        surface = self.surface
+        words_color = surface.text_muted if color is None else color
+        used = 0
+        for index, ((control, words), (cap, _)) in enumerate(zip(items, sizes, strict=True)):
+            while index >= len(self._words):
+                self._words.append(self._layer.write("", 0, 0, TextSize.TEXT, shadow=False))
+            if control:
+                if used == len(self._caps):
+                    sprite = arcade.Sprite()
+                    self._layer.panels.append(sprite)
+                    self._caps.append(sprite)
+                    self._cap_labels.append(
+                        self._layer.write("", 0, 0, TextSize.BODY, align="centre", shadow=False)
+                    )
+                sprite, label = self._caps[used], self._cap_labels[used]
+                if self._disc(control, pad):
+                    sprite.texture = picture_texture(
+                        ("pad-button", control.upper()),
+                        lambda control=control: kit_art.pad_button(control),
+                    )
+                    label.color = kit_art.pad_button_text(control)
+                    centre = Rect(0, bottom, 1, theme.PROMPT_HEIGHT)
+                else:
+                    sprite.texture = picture_texture(
+                        ("prompt-cap", cap, surface.name),
+                        lambda cap=cap: kit_art.block(
+                            cap,
+                            theme.PROMPT_HEIGHT,
+                            kit_art.look_colours(Look.NORMAL, surface),
+                            theme.PROMPT_LIP,
+                            1,
+                            kit_art.ALL_CORNERS,
+                        ),
+                    )
+                    label.color = kit_art.look_text(Look.NORMAL, surface)
+                    centre = face
+                sprite.position = (x + cap / 2, bottom + theme.PROMPT_HEIGHT / 2)
+                sprite.visible = True
+                label.text = control
+                label.move_to(x + cap // 2, text_bottom(centre, TextSize.BODY))
+                used += 1
+                x += cap + (PROMPT_CAP_GAP if words else 0)
+            word = self._words[index]
+            word.text = words
+            word.color = words_color
+            word.move_to(x, text_bottom(face, TextSize.TEXT))
+            x += font.text_width(words, TextSize.TEXT) + gap
+        for index in range(used, len(self._caps)):
+            self._caps[index].visible = False
+            self._cap_labels[index].text = ""
+        for index in range(len(items), len(self._words)):
+            self._words[index].text = ""
+
+    @property
+    def shown(self) -> list[tuple[str, str]]:
+        """The prompts on show, as ``(control, words)``: what a player reads."""
+        return self._parse(self.text)
+
+    @property
+    def right(self) -> int:
+        """The right edge of the last thing drawn (tests: nothing runs off the bar)."""
+        edges = [label.left + label.width for label in self._words if label.text]
+        edges += [round(cap.right) for cap in self._caps if cap.visible]
+        return max(edges, default=self.rect.left)
+
+    @property
+    def left(self) -> int:
+        """The left edge of the first thing drawn."""
+        edges = [label.left for label in self._words if label.text]
+        edges += [round(cap.left) for cap in self._caps if cap.visible]
+        return min(edges, default=self.rect.left)
+
+
+TAB_GAP = 2
+
+
+class TabStrip:
+    """A row of block tabs, one of them the page on show (decision D-072).
+
+    The page's tab stands up, pale; under the cursor (the strip is focused) it is the gold
+    block. The others lie low. A tab's width follows its caption.
+    """
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        left: int,
+        bottom: int,
+        names: Sequence[str],
+        height: int = theme.BUTTON_HEIGHT,
+        surface: theme.Surface | None = None,
+        size: TextSize = TextSize.TITLE,
+    ) -> None:
+        """Create the strip with its first tab on show."""
+        self.names = tuple(names)
+        self.rects: list[Rect] = []
+        self._buttons: list[Button] = []
+        x = left
+        for name in self.names:
+            width = font.text_width(name, size) + 2 * theme.PAD + 4
+            rect = Rect(x, bottom, width, height)
+            self.rects.append(rect)
+            self._buttons.append(Button(layer, rect, name, size=size, surface=surface))
+            x += width + TAB_GAP
+        self.rect = Rect(left, bottom, x - TAB_GAP - left, height)
+        self._state: tuple[int, bool] | None = None
+        self.set(0, False)
+
+    def set(self, active: int, focused: bool = False) -> None:
+        """Show tab ``active`` as the page on show, with or without the cursor on the
+        strip."""
+        active = min(max(active, 0), len(self.names) - 1)
+        if (active, focused) == self._state:
+            return
+        self._state = (active, focused)
+        for index, button in enumerate(self._buttons):
+            button.low = index != active
+            button.look = Look.FOCUS if focused and index == active else Look.NORMAL
+
+    @property
+    def active(self) -> int:
+        """The index of the page on show."""
+        return self._state[0] if self._state is not None else 0
+
+    @property
+    def focused(self) -> bool:
+        """Whether the cursor is on the strip."""
+        return self._state is not None and self._state[1]
+
+    def at(self, x: float, y: float) -> int | None:
+        """Return the tab under a native pixel, or ``None`` (the mouse)."""
+        for index, rect in enumerate(self.rects):
+            if rect.contains(x, y):
+                return index
+        return None

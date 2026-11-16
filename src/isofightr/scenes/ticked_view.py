@@ -12,6 +12,7 @@ from isofightr.render import placeholder_art as art
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import ScaledViewport, integer_scale_viewport
 from isofightr.timestep import FixedTimestep
+from isofightr.ui import wipe
 
 
 class TickedView(arcade.View):
@@ -33,6 +34,8 @@ class TickedView(arcade.View):
         self.fade_ticks = 0
         """The scene fades in from black over this many ticks (0 = it cuts in)."""
         self._fade_layer: arcade.SpriteList[arcade.Sprite] | None = None
+        self._wipe_start: int | None = None
+        self._wipe_layer: arcade.SpriteList[arcade.Sprite] | None = None
 
     def on_update(self, delta_time: float) -> None:
         """Convert the variable frame time into whole ticks and run them."""
@@ -57,8 +60,41 @@ class TickedView(arcade.View):
             director = self._silent
         return director  # type: ignore[no-any-return]
 
+    def start_wipe(self, from_kept: bool = True) -> None:
+        """Open this scene through the cloud wipe (decision D-072) instead of the fade from
+        black. With ``from_kept`` the cloud first rises over the frame the pixel buffer has
+        put aside (the scene that is ending); without, the scene starts fully covered."""
+        closing = from_kept and self.pixel_buffer.has_kept
+        self._wipe_start = self.tick_count - (0 if closing else wipe.CLOSE_TICKS)
+        self.fade_ticks = 0
+
+    @property
+    def wiping(self) -> bool:
+        """Whether the cloud wipe is still on screen."""
+        return self._wipe_start is not None and wipe.running(self.tick_count - self._wipe_start)
+
+    def _draw_wipe(self) -> None:
+        assert self._wipe_start is not None
+        tick = self.tick_count - self._wipe_start
+        bottom = wipe.band_bottom(tick)
+        if bottom is None:
+            self._wipe_start = None
+            return
+        if wipe.shows_old(tick):
+            self.pixel_buffer.draw_kept()
+        if self._wipe_layer is None:
+            band = arcade.Texture(wipe.build_band(), hash="ui:wipe-band")
+            self._wipe_layer = arcade.SpriteList()
+            self._wipe_layer.append(arcade.Sprite(band, center_x=NATIVE_W / 2))
+        self._wipe_layer[0].center_y = bottom + wipe.BAND_HEIGHT / 2
+        self._wipe_layer.draw(pixelated=True)
+
     def draw_fade(self) -> None:
-        """Draw the fade-in from black, if it is still going (call last, inside the buffer)."""
+        """Draw what still covers the scene as it opens: the cloud wipe if one was started,
+        else the fade-in from black (call last, inside the buffer)."""
+        if self._wipe_start is not None:
+            self._draw_wipe()
+            return
         if self.tick_count >= self.fade_ticks:
             return
         if self._fade_layer is None:

@@ -15,9 +15,10 @@ committed, with a license that allows redistribution in this project.
 | Departure Mono (`assets/fonts/DepartureMono-Regular.otf`; body text) | Helena Zhang | https://departuremono.com, https://github.com/rektdeckard/departure-mono | SIL Open Font License 1.1 (`assets/fonts/DepartureMono-OFL.txt`, shipped with the font). Unmodified. |
 | Jersey 10, Jersey 25 (`assets/fonts/Jersey*-Regular.ttf`; headings and the damage number) | The Soft Type Project Authors (Sarah Cadigan-Fried) | https://github.com/scfried/soft-type-jersey, via https://github.com/google/fonts | SIL Open Font License 1.1 (`assets/fonts/Jersey-OFL.txt`, shipped with the fonts). Unmodified. |
 | Tiny5 (`assets/fonts/Tiny5-Regular.ttf`; fine print) | The Tiny5 Project Authors (Stefan Schmidt) | https://github.com/Gissio/font_tiny5, via https://github.com/google/fonts | SIL Open Font License 1.1 (`assets/fonts/Tiny5-OFL.txt`, shipped with the font). Unmodified. |
+| Micro 5 (`assets/fonts/Micro5-Regular.ttf`; sentences and labels in the menus, M21) | The Soft Type Project Authors (Sarah Cadigan-Fried) | https://github.com/scfried/soft-type-micro, via https://github.com/google/fonts | SIL Open Font License 1.1 (`assets/fonts/Micro5-OFL.txt`, shipped with the font). Unmodified. |
 
-The three font licences were read on 2026-10-06: each is the standard OFL 1.1 text with no
-Reserved Font Name. The fonts are bundled unmodified, never sold on their own, and each ships
+The first three font licences were read on 2026-10-06 and Micro 5's on 2026-11-16: each is
+the standard OFL 1.1 text with no Reserved Font Name. The fonts are bundled unmodified, never sold on their own, and each ships
 with its copyright notice and licence, which is what the OFL asks for.
 
 ## Original and generated assets

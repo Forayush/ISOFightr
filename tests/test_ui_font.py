@@ -10,6 +10,7 @@ from isofightr.ui.font import ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, ARROW_UP, PRI
 CAP_HEIGHTS = {
     TextSize.SMALL: 5,
     TextSize.BODY: 8,
+    TextSize.TEXT: 7,
     TextSize.TITLE: 12,
     TextSize.DISPLAY: 16,
     TextSize.NUMERAL: 16,
@@ -23,11 +24,11 @@ def test_every_size_loads_its_own_font_file_with_a_licence_beside_it() -> None:
         assert (font.FONTS_DIR / name).is_file()
     licences = [path.read_text(encoding="utf-8") for path in font.FONTS_DIR.glob("*-OFL.txt")]
     families = {name.split("-")[0].rstrip("0123456789") for name in font.FONT_FILES}
-    assert len(licences) == len(families) == 3, "one licence file per font family"
+    assert len(licences) == len(families) == 4, "one licence file per font family"
     for text in licences:
         assert "SIL Open Font License, Version 1.1" in text and "Copyright" in text
     credits = (font.FONTS_DIR.parent / "CREDITS.md").read_text(encoding="utf-8")
-    for family in ("Departure Mono", "Jersey", "Tiny5"):
+    for family in ("Departure Mono", "Jersey", "Tiny5", "Micro 5"):
         assert family in credits
 
 

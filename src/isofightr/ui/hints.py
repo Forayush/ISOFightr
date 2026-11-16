@@ -70,6 +70,32 @@ def fit_hint(template: str, labels: Mapping[str, str], width: int, drop: Sequenc
     return font.fit(line, width)
 
 
+HINT_SEPARATOR: Final[str] = ": "
+"""What separates a control from what it does inside one item of a hint line."""
+
+
+def prompts(line: str) -> list[tuple[str, str]]:
+    """Split a filled hint line into ``(control, words)`` items for a prompt bar (decision
+    D-072): ``"J: pick   K: back"`` is a J cap with "pick" and a K cap with "back". An item
+    without a control (``"WASD KEYS"``, or a message) has an empty control and is plain
+    text."""
+    found: list[tuple[str, str]] = []
+    for item in (item.strip() for item in line.split(HINT_GAP)):
+        if not item:
+            continue
+        control, separator, words = item.partition(HINT_SEPARATOR)
+        if separator and control and " " not in control.strip():
+            found.append((control.strip(), words.strip()))
+        else:
+            found.append(("", item))
+    return found
+
+
+def is_pad(device: str) -> bool:
+    """Whether a device is a gamepad: its prompts show buttons, not key caps."""
+    return device.startswith(PAD_PREFIX)
+
+
 HELP_TEMPLATES: Final[tuple[str, ...]] = (
     "{stick} move  {jump} jump  {up}/{down} up/down  {attack} attack  {special} special  "
     "{strong} smash  {grab} grab  {shield} shield",

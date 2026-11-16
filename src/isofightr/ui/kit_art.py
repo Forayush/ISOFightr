@@ -318,3 +318,280 @@ def tint(image: Image.Image, color: Rgb) -> Image.Image:
                 white.putpixel((x, y), 255)
     result.paste(_solid(color), (0, 0), white)
     return result
+
+
+# --- the block kit (decision D-072) ----------------------------------------------------------
+#
+# Every widget is a block seen like a tile: a top face, a front lip under it, a 1 px outline
+# and the tiles' 2:1 corners. A block comes in one of two surfaces (stone for menus, ink over
+# a match) and one of the looks above; the cursor's block stands ``theme.RAISE`` higher.
+
+PIP_SIZE: Final[tuple[int, int]] = (8, 7)
+"""A pip: one small isometric tile (gauges, steppers and the HUD's stocks count in them)."""
+PIP_STEP: Final[int] = 9
+TURF_ROWS: Final[int] = 4
+"""Rows of grass along the top of a header plate."""
+TURF_TUFTS: Final[tuple[int, ...]] = (0, 1, 0, 2, 1, 0, 0, 1, 2, 0, 1, 0, 0, 2, 0, 1)
+"""How much further the turf hangs down, column by column (a fixed pattern: no shimmer)."""
+PAD_BUTTON: Final[int] = 13
+"""Diameter of a gamepad button's disc in a prompt."""
+PAD_BUTTON_COLOURS: Final[dict[str, Rgb]] = {
+    "A": theme.GREEN,
+    "B": theme.RED,
+    "X": theme.SKY,
+    "Y": theme.GOLD,
+}
+"""Face buttons in the colours players know them by; every other control is a plain cap."""
+
+BlockColours = tuple[Rgb | Rgba, Rgb, Rgb, Rgb]
+"""A block's face, the lit line along its top, its lip and its outline."""
+
+
+def block(
+    width: int,
+    height: int,
+    colours: BlockColours,
+    lip: int = theme.LIP,
+    corner: int = theme.SMALL_CORNER,
+    corners: Corners = TILE_CORNERS,
+) -> Image.Image:
+    """Return a block: its top face over a front lip ``lip`` pixels tall, all inside an
+    outline. The picture is ``width`` by ``height``; the face is its top ``height - lip``
+    rows."""
+    face, light, lip_colour, outline = colours
+    width, height = max(width, 3), max(height, 3)
+    lip = min(max(lip, 0), height - 3)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    base = shape_mask(width, height, corner, corners)
+    image.paste(_solid(lip_colour), (0, 0), base)
+    image.paste(_solid(outline), (0, 0), _edge(base))
+    top = Image.new("L", (width, height), 0)
+    top.paste(shape_mask(width, height - lip, corner, corners), (0, 0))
+    rim = _edge(top)
+    inside = ImageChops.subtract(top, rim)
+    # Replace, not blend: a translucent face must not show its own lip through.
+    image.paste(_solid(face), (0, 0), inside)
+    image.paste(_solid(outline), (0, 0), rim)
+    # The lit line: the face's pixels that have the outline right above them.
+    above = Image.new("L", top.size, 0)
+    above.paste(inside, (0, 1))
+    image.paste(_solid(light), (0, 0), ImageChops.subtract(inside, above))
+    return image
+
+
+def look_colours(look: Look, surface: theme.Surface) -> BlockColours:
+    """Return the colours of a button or key cap in a look, on a surface."""
+    if look is Look.FOCUS:
+        return (theme.GOLD, theme.PALE_GOLD, theme.AMBER, theme.INK)
+    if look is Look.DANGER:
+        return (theme.CRIMSON, theme.RED, theme.MAROON, theme.INK)
+    if look is Look.LIT:
+        return (theme.AQUA, theme.MINT, theme.TEAL, theme.INK)
+    if look is Look.CAUTION:
+        if surface is theme.STONE:
+            return (surface.button, surface.button_light, surface.button_lip, theme.CRIMSON)
+        return (theme.INK, theme.SLATE, theme.MAROON, theme.CRIMSON)
+    if look is Look.DISABLED:
+        if surface is theme.STONE:
+            return (theme.MIST, theme.FOG, theme.DUST, theme.ASH)
+        return (theme.SLATE, theme.ASH, theme.INK, theme.INK)
+    return (surface.button, surface.button_light, surface.button_lip, surface.outline)
+
+
+def look_text(look: Look, surface: theme.Surface) -> Rgb:
+    """Return the colour of the caption on a block in a look, on a surface."""
+    if look in (Look.FOCUS, Look.LIT):
+        return theme.INK
+    if look is Look.DANGER:
+        return theme.WHITE
+    if look is Look.CAUTION:
+        return surface.warning
+    if look is Look.DISABLED:
+        return surface.text_dim
+    return surface.text
+
+
+def lift_of(look: Look, pressed: bool = False) -> int:
+    """Return how far a block's face stands from its resting place: up by ``theme.RAISE``
+    under the cursor, down by all but one row of its lip while it is pressed."""
+    if pressed:
+        return -(theme.LIP - 1)
+    return theme.RAISE if look in (Look.FOCUS, Look.DANGER) else 0
+
+
+def block_button(
+    width: int,
+    height: int,
+    look: Look = Look.NORMAL,
+    surface: theme.Surface = theme.STONE,
+    lift: int = 0,
+    corner: int = theme.SMALL_CORNER,
+    corners: Corners = TILE_CORNERS,
+) -> Image.Image:
+    """Return a button as a block. ``lift`` above 0 makes the picture that many rows taller
+    (the face rises and the lip grows: the cursor's block); below 0 the face sinks into its
+    lip (a pressed block) and the picture keeps its size, empty along the top."""
+    return _lifted(width, height, look_colours(look, surface), lift, corner, corners)
+
+
+def _lifted(
+    width: int, height: int, colours: BlockColours, lift: int, corner: int, corners: Corners
+) -> Image.Image:
+    if lift >= 0:
+        return block(width, height + lift, colours, theme.LIP + lift, corner, corners)
+    sunk = block(width, height + lift, colours, theme.LIP + lift, corner, corners)
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    image.paste(sunk, (0, -lift))
+    return image
+
+
+def toggle_block(
+    width: int, height: int, on: bool, focused: bool, surface: theme.Surface = theme.STONE
+) -> Image.Image:
+    """Return an ON/OFF switch as a block: standing and mint when on, sunk into its lip and
+    dull when off, so the state shows in the shape as well as the colour and the word. Its
+    outline is gold under the cursor."""
+    outline = theme.FOCUS if focused else surface.outline
+    if on:
+        colours: BlockColours = (theme.MINT, theme.WHITE, theme.AQUA, outline)
+        return _lifted(width, height, colours, 0, theme.SMALL_CORNER, TILE_CORNERS)
+    face = theme.MIST if surface is theme.STONE else theme.SLATE
+    lip = theme.DUST if surface is theme.STONE else theme.INK
+    return _lifted(
+        width, height, (face, face, lip, outline), lift_of(Look.NORMAL, True),
+        theme.SMALL_CORNER, TILE_CORNERS,
+    )  # fmt: skip
+
+
+def toggle_text(on: bool, surface: theme.Surface) -> Rgb:
+    """Return the colour of the word on a block switch."""
+    if on or surface is theme.STONE:
+        return theme.INK
+    return theme.MIST
+
+
+def face_span(height: int, lift: int = 0) -> tuple[int, int]:
+    """Return a block button's face as ``(rows above the button's bottom, its height)``:
+    where its caption is centred at rest, raised or pressed."""
+    lip = theme.LIP + lift
+    return (lip, height + lift - lip)
+
+
+def slab(
+    width: int,
+    height: int,
+    surface: theme.Surface = theme.STONE,
+    corner: int = theme.CORNER,
+    corners: Corners = TILE_CORNERS,
+    lip: int = theme.LIP,
+) -> Image.Image:
+    """Return a slab: the block a group of things sits on (a panel, in the block kit)."""
+    colours = (surface.face, surface.light, surface.lip, surface.outline)
+    return block(width, height, colours, lip, corner, corners)
+
+
+def well(
+    width: int,
+    height: int,
+    surface: theme.Surface = theme.STONE,
+    focused: bool = False,
+    corner: int = theme.SMALL_CORNER,
+) -> Image.Image:
+    """Return something sunk into a slab (a stepper's value): flat, with an edge that turns
+    gold under the cursor."""
+    edge = theme.FOCUS if focused else surface.well_edge
+    return filled(shape_mask(width, height, corner), surface.well, edge)
+
+
+def sign(width: int, height: int, surface: theme.Surface = theme.STONE) -> Image.Image:
+    """Return the plate a line of help is written on: a thin block of its own in the
+    surface's well colours, so it reads as a note and not as a button."""
+    colours = (surface.well, _solid(surface.well)[:3], surface.well_edge, surface.outline)
+    return block(width, height, colours, 2, theme.SMALL_CORNER)
+
+
+def plate(width: int, height: int, surface: theme.Surface = theme.STONE) -> Image.Image:
+    """Return a header plate: a slab with turf along its top, like the Isle's rim. The turf
+    hangs over the face in tufts."""
+    image = slab(width, height, surface, theme.CORNER)
+    top = Image.new("L", (width, height), 0)
+    top.paste(shape_mask(width, height - theme.LIP, theme.CORNER), (0, 0))
+    inside = ImageChops.subtract(top, _edge(top))
+    turf = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(turf)
+    for x in range(width):
+        first = _first_row(inside, x)
+        depth = TURF_ROWS + TURF_TUFTS[x % len(TURF_TUFTS)]
+        for row in range(depth):
+            if row < 2:
+                colour = theme.GRASS_LIGHT
+            elif row < depth - 1:
+                colour = theme.GRASS
+            else:
+                colour = theme.GRASS_DARK
+            if first + row < height:
+                draw.point((x, first + row), fill=_solid(colour))
+    image.paste(turf, (0, 0), ImageChops.multiply(inside, turf.getchannel("A")))
+    return image
+
+
+def _first_row(mask: Image.Image, x: int) -> int:
+    """Return the first row of a mask that is set in column ``x`` (its height if none)."""
+    for y in range(mask.height):
+        if mask.getpixel((x, y)):
+            return y
+    return mask.height
+
+
+def pip(ramp: theme.Ramp, lit: bool = True) -> Image.Image:
+    """Return a pip: a tiny isometric tile in a colour ramp, lit on top; an unlit one is the
+    same shape in the ramp's deepest shade, an empty socket."""
+    light, base, dark, deep = ramp
+    width, height = PIP_SIZE
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    half, last = width // 2, width - 1
+    top = [(0, 2), (half - 1, 0), (half, 0), (last, 2), (half, 4), (half - 1, 4)]
+    left = [(0, 2), (half - 1, 4), (half - 1, height - 1), (0, height - 3)]
+    right = [(last, 2), (half, 4), (half, height - 1), (last, height - 3)]
+    if not lit:
+        for shape in (left, right, top):
+            draw.polygon(shape, fill=deep)
+        return image
+    draw.polygon(left, fill=base)
+    draw.polygon(right, fill=dark)
+    draw.polygon(top, fill=light)
+    return image
+
+
+GOLD_RAMP: Final[theme.Ramp] = (theme.PALE_GOLD, theme.GOLD, theme.AMBER, theme.DUST)
+"""The pips of a gauge that is nobody's in particular (a volume, a stat)."""
+
+
+def pips(count: int, lit: int, ramp: theme.Ramp = GOLD_RAMP) -> Image.Image:
+    """Return a row of ``count`` pips, the first ``lit`` of them lit: a gauge to count."""
+    count = max(count, 1)
+    image = Image.new("RGBA", (pips_width(count), PIP_SIZE[1]), TRANSPARENT)
+    for index in range(count):
+        image.alpha_composite(pip(ramp, index < lit), (index * PIP_STEP, 0))
+    return image
+
+
+def pips_width(count: int) -> int:
+    """Return the width of a row of ``count`` pips."""
+    return PIP_STEP * (max(count, 1) - 1) + PIP_SIZE[0]
+
+
+def pad_button(label: str, size: int = PAD_BUTTON) -> Image.Image:
+    """Return the disc of a gamepad button for a prompt: in its usual colour for a face
+    button, slate otherwise. The widget draws the letter over it."""
+    colour = PAD_BUTTON_COLOURS.get(label.upper(), theme.SLATE)
+    image = Image.new("RGBA", (size, size), TRANSPARENT)
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((0, 0, size - 1, size - 1), fill=_solid(colour), outline=_solid(theme.INK))
+    return image
+
+
+def pad_button_text(label: str) -> Rgb:
+    """Return the colour of the letter on a gamepad button's disc."""
+    return theme.INK if label.upper() == "Y" else theme.WHITE

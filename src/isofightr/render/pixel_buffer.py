@@ -79,6 +79,33 @@ class PixelBuffer:
             fragment_shader=_BLIT_FRAGMENT_SHADER,
         )
         self._program["native_buffer"] = _NATIVE_BUFFER_TEXTURE_UNIT
+        # A second buffer the last frame can be put aside in: what a scene that is ending
+        # looked like, for the wipe to the next one to cover (decision D-072).
+        self._kept_texture = ctx.texture(
+            (NATIVE_W, NATIVE_H),
+            components=4,
+            filter=(ctx.NEAREST, ctx.NEAREST),
+            wrap_x=ctx.CLAMP_TO_EDGE,
+            wrap_y=ctx.CLAMP_TO_EDGE,
+        )
+        self._kept: Framebuffer = ctx.framebuffer(color_attachments=[self._kept_texture])
+        self.has_kept = False
+        """Whether a frame has been put aside with :meth:`keep`."""
+
+    def keep(self) -> None:
+        """Put the frame now in the native buffer aside: the last picture of a scene."""
+        active = self._ctx.active_framebuffer
+        self._ctx.copy_framebuffer(self.framebuffer, self._kept, depth=False)
+        # The copy leaves its target bound without telling Arcade, so whatever is drawn or
+        # cleared next would land in the frame just put aside: bind the real target again.
+        active.use(force=True)
+        self.has_kept = True
+
+    def draw_kept(self) -> None:
+        """Draw the frame put aside over the whole native buffer. Call inside
+        :meth:`drawing`."""
+        self._kept_texture.use(_NATIVE_BUFFER_TEXTURE_UNIT)
+        self._quad.render(self._program)
 
     @contextmanager
     def drawing(self, clear_color: RGBOrA255 = arcade.color.BLACK) -> Iterator[None]:

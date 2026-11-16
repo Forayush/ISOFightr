@@ -8,6 +8,7 @@ have the angled 2:1 corners of the isometric tiles.
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
 
+from dataclasses import dataclass
 from typing import Final
 
 Rgb = tuple[int, int, int]
@@ -130,7 +131,102 @@ def player_ramp(index: int) -> Ramp:
     return PLAYER_RAMPS[index % len(PLAYER_RAMPS)]
 
 
+# --- surfaces (decision D-072) ---------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Surface:
+    """What a block is made of: the colours of a slab, of the things set into it and of the
+    text written on it. Every widget is a block seen like a tile (a top face, a front lip,
+    an outline), in one of two surfaces: :data:`STONE` for menus, :data:`INKED` for anything
+    drawn over a match."""
+
+    name: str
+    face: Rgba
+    """A slab's top face."""
+    light: Rgb
+    """The lit line along the top of a face."""
+    lip: Rgb
+    """A slab's front face, under its top."""
+    outline: Rgb
+    well: Rgba
+    """Things sunk into a slab: a stepper's value, a bar's track, a row's strip."""
+    well_edge: Rgb
+    button: Rgb
+    """A resting button's top face (it must read on the slab it sits on)."""
+    button_light: Rgb
+    button_lip: Rgb
+    text: Rgb
+    text_muted: Rgb
+    """Second-rank text; still 4.5:1 on the face (tested)."""
+    text_dim: Rgb
+    """Text that is switched off or not available: the one role allowed to be faint."""
+    accent: Rgb
+    """Section titles and other text that should stand out without being the cursor."""
+    warning: Rgb
+    """The caption of a button that overwrites things, at rest (decision D-070)."""
+    shadow: bool
+    """Whether text on this surface gets the ink drop shadow (light text does)."""
+
+
+STONE: Final[Surface] = Surface(
+    name="stone",
+    face=with_alpha(FOG, 255),
+    light=WHITE,
+    lip=MIST,
+    outline=INK,
+    well=with_alpha(WHITE, 255),
+    well_edge=MIST,
+    button=WHITE,
+    button_light=WHITE,
+    button_lip=MIST,
+    text=INK,
+    text_muted=ASH,
+    text_dim=DUST,
+    accent=DEEP_TEAL,
+    warning=CRIMSON,
+    shadow=False,
+)
+"""Carved marble, the Isle's own stuff: the menus' surface."""
+INKED: Final[Surface] = Surface(
+    name="ink",
+    face=with_alpha(NIGHT, PANEL_ALPHA),
+    light=NAVY,
+    lip=INK,
+    outline=INK,
+    well=with_alpha(INK, 255),
+    well_edge=NAVY,
+    button=NAVY,
+    button_light=STEEL,
+    button_lip=NIGHT,
+    text=WHITE,
+    text_muted=MIST,
+    text_dim=DUST,
+    accent=GOLD,
+    warning=SALMON,
+    shadow=True,
+)
+"""Dark blocks with light text: what is drawn over a match (the HUD, the pause menu), where
+a pale slab would glare."""
+SURFACES: Final[tuple[Surface, ...]] = (STONE, INKED)
+
+GRASS_LIGHT: Final[Rgb] = LEAF
+GRASS: Final[Rgb] = GREEN
+GRASS_DARK: Final[Rgb] = FOREST
+"""The turf along the top of a header plate: the Isle's rim."""
+
 # --- sizes -----------------------------------------------------------------------------------
+LIP: Final[int] = 3
+"""Height of a block's front lip."""
+RAISE: Final[int] = 2
+"""How far the block under the cursor stands above its resting place."""
+ROW_TALL: Final[int] = 24
+"""Height of one row of an options tab (decision D-072: few rows, big enough to read)."""
+PROMPT_HEIGHT: Final[int] = 14
+"""Height of a key cap in a prompt bar."""
+PROMPT_LIP: Final[int] = 2
+"""Its lip: a row less than a button's, so the fixed-width capitals (8 px) have a clear row
+above and below them on the cap's face."""
 CORNER: Final[int] = 4
 """Height of a panel's angled corner in pixels; it is twice as wide (the tiles' 2:1 slope)."""
 SMALL_CORNER: Final[int] = 2
