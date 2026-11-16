@@ -12,6 +12,7 @@ import logging
 import math
 from collections.abc import Callable, Mapping, Sequence
 from enum import IntEnum
+from pathlib import Path
 from typing import Protocol
 
 import arcade
@@ -164,13 +165,17 @@ class WorldRenderer:
         pixel_buffer: PixelBuffer,
         stage: Stage,
         banks: Mapping[str, SpriteBank] | None = None,
+        backdrop_dir: Path | None = None,
     ) -> None:
         """Build the static stage sprites and the world camera.
 
         ``banks`` holds the packed sprites of characters that have them, by character id;
-        everyone else is drawn as the placeholder capsule.
+        everyone else is drawn as the placeholder capsule. ``backdrop_dir`` is the folder
+        the stage's ``[[background]]`` pictures are in, for a stage that does not live in
+        ``assets/stages/`` (the menus' island, decision D-072).
         """
         self.stage = stage
+        self._backdrop_dir = backdrop_dir if backdrop_dir is not None else STAGES_DIR / stage.id
         self.banks: Mapping[str, SpriteBank] = banks or {}
         try:
             tileset = load_tileset_art(stage.tileset)
@@ -371,7 +376,7 @@ class WorldRenderer:
         ``frames`` holds that many pictures stacked top to bottom."""
         layers = []
         for layer in self.stage.backgrounds:
-            path = STAGES_DIR / self.stage.id / layer.image
+            path = self._backdrop_dir / layer.image
             try:
                 image = Image.open(path).convert("RGBA")
             except OSError as error:
@@ -381,7 +386,7 @@ class WorldRenderer:
             textures = [
                 arcade.Texture(
                     image.crop((0, index * tall, image.width, (index + 1) * tall)),
-                    hash=f"backdrop:{self.stage.id}:{layer.image}:{index}",
+                    hash=f"backdrop:{self._backdrop_dir.name}:{layer.image}:{index}",
                 )
                 for index in range(layer.frames)
             ]
@@ -416,7 +421,7 @@ class WorldRenderer:
         self,
         camera_centre: tuple[int, int],
         overlays: Sequence[Overlay] = (),
-        zoom: int = 1,
+        zoom: float = 1,
         background: bool = True,
     ) -> None:
         """Draw the background, then the sorted world as seen from ``camera_centre``.
@@ -424,7 +429,9 @@ class WorldRenderer:
         Call inside ``pixel_buffer.drawing()``. ``camera_centre`` is in whole world pixels.
         ``overlays`` are drawn last and in order, in the same world pixel space (the VFX
         layer, debug overlays). ``background=False`` leaves out the stage's backdrop, for a
-        world drawn over something else (a menu's island).
+        world drawn over something else (a menu's island). ``zoom`` is 1 or exactly 2 in a
+        battle (decision D-048); the menus' camera passes a fraction while it glides between
+        two of its stations (decision D-072).
         """
         if background:
             self._place_backdrop(camera_centre)
@@ -601,7 +608,7 @@ class WorldRenderer:
         kind = ambient.kind
         return self._texture(("mote", kind, frame), lambda: build_mote(kind, frame))
 
-    def _place_motes(self, camera_centre: tuple[int, int], zoom: int) -> None:
+    def _place_motes(self, camera_centre: tuple[int, int], zoom: float) -> None:
         """Put every ambient sprite where it is this tick; the ones in front are placed in
         world pixels (they are drawn with the world) and hidden where they would cover a
         fighter."""

@@ -141,6 +141,7 @@ WINDOWLESS_MODULES = (
     "isofightr.scenes.roster_model",
     "isofightr.scenes.select_text",
     "isofightr.scenes.rules_model",
+    "isofightr.scenes.menu_world_model",
     "isofightr.ui.anim",
     "isofightr.ui.backdrop",
     "isofightr.ui.focus",

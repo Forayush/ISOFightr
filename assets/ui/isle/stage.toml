@@ -1,0 +1,170 @@
+# The Isle: the island every menu is drawn on (decision D-072). It is a real stage, drawn by
+# the battle's renderer, but nobody fights on it: it lives here, not in assets/stages/, so it
+# is never listed as a playable stage.
+# The grid is top-down in WORLD space: row = world y (row 0 = smallest y), column = world x.
+# On screen, +x runs toward the bottom-right and +y toward the bottom-left, so the island is
+# a diamond: its back corner is the top left of this grid, its front corner the bottom right.
+id = "isle"
+display_name = "The Isle"
+description = "Where the fighters wait between matches."
+tileset = "sky_marble"
+
+# The mosaic band is "the ring": it runs across the screen (constant x + y), and the four
+# fighters of character select and of the results stand on it (RING_SPOTS in
+# scenes/menu_world_model.py). The open marble in front of it is the plaza the fighters
+# stroll on; the back corner is the workshop the options are shown at.
+grid = """
+...gggggggg...
+..gmmmmmmmmg..
+.gmMMMMMMMImg.
+gmMMMMMMMIIImg
+gmMMMMMMIIIMmg
+gmMMMMMIIIMMmg
+gmMMMMIIIMMMmg
+gmMMMIIIMMMMmg
+gmMMIIIMMMMMmg
+gmMIIIMMMMMMmg
+gmIIIMMMMMMMmg
+.gmIMMMMMMMmg.
+..gmmmmmmmmg..
+...gggggggg...
+"""
+
+[legend]
+"g" = { height = 0, tile = "grass" }     # the rim
+"m" = { height = 0, tile = "mossy" }     # marble the grass is taking back
+"M" = { height = 0, tile = "marble" }    # the plaza
+"I" = { height = 0, tile = "inlay" }     # the ring
+
+[spawns]                     # where the strolling fighters start: a row across the plaza
+p1 = [7.25, 11.75]
+p2 = [8.75, 10.25]
+p3 = [10.25, 8.75]
+p4 = [11.75, 7.25]
+respawn = [9.5, 9.5]
+
+[blast_zone]
+side = 7.0
+top = 12.0
+bottom = -8.0
+
+[camera]
+bounds_margin = 4.0
+
+# Parallax backdrop (tools/build_backdrop.py isle --theme cloud_sea --seed 21 --out
+# assets/ui/isle): the layers of Sky Ruins' theme, painted from another seed.
+[[background]]
+image = "bg_0_sky.png"
+parallax = 0.0
+
+[[background]]
+image = "bg_1_far_clouds.png"
+parallax = 0.06
+scroll = 0.015
+
+[[background]]
+image = "bg_2_birds.png"
+parallax = 0.1
+scroll = 0.11
+frames = 2
+frame_ticks = 13
+
+[[background]]
+image = "bg_3_islands.png"
+parallax = 0.14
+
+[[background]]
+image = "bg_4_far_bank.png"
+parallax = 0.2
+scroll = 0.03
+
+[[background]]
+image = "bg_5_near_bank.png"
+parallax = 0.35
+scroll = 0.07
+
+[underside]
+depth = 3.0
+hang = ["vine", "roots", "vine", "stalactite"]
+
+[ambient]
+kind = "leaves"
+count = 12
+front = 4
+
+# Tall props stand behind the ring or in the gaps between its four spots (which are at
+# x - y = -7.5, -2.5, 2.5 and 7.5), never in front of a spot: a fighter there is drawn at
+# twice its size and must not be covered.
+
+# The workshop, in the back corner: an arch across the screen with a banner either side.
+[[props]]
+sprite = "arch"
+at = [3.5, 3.5]
+[[props]]
+sprite = "banner"
+at = [1.6, 5.4]
+[[props]]
+sprite = "banner"
+at = [5.4, 1.6]
+phase = 6
+[[props]]
+sprite = "urn"
+at = [2.5, 6.5]
+[[props]]
+sprite = "urn"
+at = [6.5, 2.5]
+
+# Behind the ring, in the gaps either side of the middle two spots.
+[[props]]
+sprite = "column"
+at = [3.4, 8.4]
+[[props]]
+sprite = "column"
+at = [8.4, 3.4]
+
+# The side corners, beyond the outer spots.
+[[props]]
+sprite = "cypress"
+at = [0.5, 9.9]
+phase = 4
+[[props]]
+sprite = "cypress"
+at = [9.9, 0.5]
+phase = 9
+
+# The front rim: a ruin in a gap, and low things only along the plaza.
+[[props]]
+sprite = "arch_broken"
+at = [8.2, 13.2]
+[[props]]
+sprite = "bush"
+at = [0.5, 5.5]
+[[props]]
+sprite = "bush"
+at = [5.5, 0.5]
+phase = 5
+[[props]]
+sprite = "rubble"
+at = [11.5, 11.4]
+[[props]]
+sprite = "stump"
+at = [13.4, 6.5]
+[[props]]
+sprite = "flowers"
+at = [4.5, 12.5]
+[[props]]
+sprite = "flowers"
+at = [12.5, 4.5]
+phase = 7
+[[props]]
+sprite = "flowers"
+at = [12.6, 9.4]
+phase = 3
+[[props]]
+sprite = "flowers"
+at = [1.5, 8.5]
+phase = 11
+[[props]]
+sprite = "flowers"
+at = [10.5, 12.5]
+phase = 8

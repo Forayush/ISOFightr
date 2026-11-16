@@ -24,6 +24,7 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
 from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
+from isofightr.scenes.menu_world import MenuWorld
 from isofightr.scenes.menus import KEYBOARD_DEVICE, SettingsView
 from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import to_saved, with_saved
@@ -85,6 +86,7 @@ class GameFlow:
         self.menu_ticks = 0
         """Ticks spent in menus this session: the backdrop drifts on from scene to scene."""
         self._backdrop: MenuBackdrop | None = None
+        self._world: MenuWorld | None = None
         self._hub: DeviceHub | None = None
 
     def hub(self) -> DeviceHub:
@@ -102,6 +104,14 @@ class GameFlow:
         if self._backdrop is None:
             self._backdrop = MenuBackdrop()
         return self._backdrop
+
+    def world(self) -> MenuWorld:
+        """Return the Isle, the piece of the game's world every menu is drawn on (decision
+        D-072). One per session: it carries on from scene to scene. (:meth:`hub` is the
+        input devices.)"""
+        if self._world is None:
+            self._world = MenuWorld(self.pixel_buffer)
+        return self._world
 
     # --- settings --------------------------------------------------------------------------
 

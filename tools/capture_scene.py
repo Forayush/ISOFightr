@@ -117,6 +117,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--screen", choices=SCREENS, help="capture a screen, not a battle")
     parser.add_argument("--players", type=int, default=2, help="fighters on a --screen")
+    parser.add_argument("--station", default="", help="--screen isle: the station to show")
+    parser.add_argument(
+        "--glide", default="", metavar="FROM:TO", help="the menu camera's glide, as a strip"
+    )
     parser.add_argument("--stage-sheet", default="", metavar="ID", help="a stage's review sheet")
     parser.add_argument(
         "--depth-lab",
@@ -235,17 +239,20 @@ def main() -> None:
             seed=args.seed,
             scale=args.scale,
         )
-    elif args.screen:
+    elif args.screen or args.glide:
+        start, _, goal = args.glide.partition(":")
         sheet = capture_screen(
             window,
-            args.screen,
+            "isle" if args.glide else args.screen,
             parse_script(args.script),
-            ticks,
+            ticks if args.ticks or not args.glide else list(range(3, 28, 3)),
             crop=crop,
             scale=args.scale,
             players=args.players,
             seed=args.seed,
             settings=replace(Settings(), rules=rules_from_data(_rules(args.rules))),
+            station=start or args.station,
+            goal=goal,
         )
     else:
         sheet = capture(

@@ -30,6 +30,8 @@ from isofightr.render.hit_splash import CRITICAL
 from isofightr.render.iso import project
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.flow import GameFlow
+from isofightr.scenes.menu_world import IsleView
+from isofightr.scenes.menu_world_model import STATIONS
 from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import with_saved
 from isofightr.scenes.setup import MatchSetup, training_setup
@@ -63,6 +65,7 @@ SCREENS: tuple[str, ...] = (
     "pause",
     "training",
     "kit",
+    "isle",
 )
 """The screens :func:`capture_screen` can show."""
 ROSTER: tuple[str, ...] = ("rook", "bramble", "zephyr", "mote")
@@ -222,14 +225,28 @@ def versus_setup(players: int, cpus: bool = False, rules: SavedRules | None = No
     )
 
 
-def open_screen(window: GameWindow, flow: GameFlow, screen: str, players: int = 2) -> None:
-    """Show one of :data:`SCREENS`, set up so there is something to look at.
+def open_screen(
+    window: GameWindow,
+    flow: GameFlow,
+    screen: str,
+    players: int = 2,
+    station: str = "",
+    goal: str = "",
+) -> None:
+    """Show one of :data:`SCREENS`, set up so there is something to look at. ``station``
+    and ``goal`` are for the ``isle`` screen: the station of the menus' island to show, and
+    the one to glide to from it.
 
     Raises:
         ValueError: the name is unknown, or the screen is not built yet.
     """
     rules = flow.settings.rules
-    if screen == "title":
+    if screen == "isle":
+        for name in (station, goal):
+            if name and name not in STATIONS:
+                raise ValueError(f"unknown station {name!r}: expected one of {', '.join(STATIONS)}")
+        window.show_view(IsleView(window.pixel_buffer, flow.world(), station or "gate", goal))
+    elif screen == "title":
         flow.show_title()
     elif screen == "main":
         flow.show_main_menu()
@@ -302,6 +319,8 @@ def capture_screen(
     players: int = 2,
     seed: int = 0,
     settings: Settings | None = None,
+    station: str = "",
+    goal: str = "",
 ) -> Image.Image:
     """Show a screen of the game's flow and return the frames at ``ticks`` side by side.
 
@@ -315,10 +334,12 @@ def capture_screen(
         players: how many fighters, where the screen has fighters.
         seed: the session seed.
         settings: the user settings to show (the defaults if not given; never saved).
+        station: for the ``isle`` screen, the station to show.
+        goal: for the ``isle`` screen, the station to glide to (the frames are the glide).
     """
     window.switch_to()
     flow = GameFlow(window, window.pixel_buffer, seed=seed, settings=settings)
-    open_screen(window, flow, screen, players)
+    open_screen(window, flow, screen, players, station, goal)
     return _run(window, script, ticks, crop, scale)
 
 
