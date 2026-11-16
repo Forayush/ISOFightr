@@ -1,4 +1,4 @@
-"""The UI theme, widget art, icons, backdrop, tweens, focus map and hints (decision D-061).
+"""The UI theme, widget art, icons, tweens, focus map and hints (decision D-061).
 
 All pure: no window. The drawing side is covered by ``tests/test_ui_gl.py``.
 """
@@ -10,12 +10,11 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.paths import REPO_ROOT
 from isofightr.input.gamepad import MODIFIER_BUMPERS
 from isofightr.render import placeholder_art
 from isofightr.settings import KEYBOARD_ARROWS, KEYBOARD_SOLO, Settings
-from isofightr.ui import anim, backdrop, icons, kit_art, select_art, theme
+from isofightr.ui import anim, icons, kit_art, select_art, theme
 from isofightr.ui.focus import FocusMap, Rect
 from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.kit_art import Look
@@ -234,56 +233,6 @@ def test_bad_icon_recipes_are_rejected_and_a_missing_sheet_is_survived(tmp_path:
     with pytest.raises(icons.IconError, match="unknown operation"):
         icons.parse_icons({**base, "icons": {"a": "#.\n.#"}, "derived": {"c": "spin:a"}})
     assert icons.load_icons(tmp_path / "none.png", tmp_path / "none.json") == {}
-
-
-# --- backdrop --------------------------------------------------------------------------------
-
-
-def test_the_backdrop_layers_are_up_to_date_and_palette_locked() -> None:
-    painted = backdrop.paint_layers()
-    assert list(painted) == [layer.image for layer in backdrop.LAYERS]
-    palette = resurrect64()
-    for name, image in painted.items():
-        with Image.open(backdrop.BACKDROP_DIR / name) as saved:
-            assert saved.convert("RGBA").tobytes() == image.convert("RGBA").tobytes(), (
-                f"{name}: run tools/build_ui_art.py"
-            )
-        assert colours(image) <= palette, name
-        assert image.height == NATIVE_H and image.width >= NATIVE_W
-
-
-def test_layers_scroll_slowly_and_wrap() -> None:
-    speeds = [layer.speed for layer in backdrop.LAYERS]
-    assert speeds[0] == 0.0 and speeds == sorted(speeds), "nearer layers move faster"
-    assert max(speeds) <= 0.25, "slow: it is a backdrop"
-    assert backdrop.layer_shift(0, 0.2) == 0
-    assert backdrop.layer_shift(100, 0.2) == 20
-    assert backdrop.layer_shift(10_000_000, 0.2, 1280) < 1280
-    assert backdrop.layer_shift(6400, 0.2, 1280) == 0, "back where it started"
-
-
-def test_drifting_tiles_climb_sway_and_stay_near_the_screen() -> None:
-    start, later = backdrop.drift_positions(0), backdrop.drift_positions(600)
-    assert len(start) == len(backdrop.DRIFT_TILES)
-    assert all(b[1] != a[1] for a, b in zip(start, later, strict=True)), "every tile moved"
-    for tick in range(0, 40_000, 997):
-        for (x, y, size), tile in zip(
-            backdrop.drift_positions(tick), backdrop.DRIFT_TILES, strict=True
-        ):
-            assert abs(x - tile.x) <= tile.sway
-            assert -backdrop.DRIFT_MARGIN <= y < NATIVE_H + backdrop.DRIFT_MARGIN
-            assert size == tile.size
-    assert backdrop.drift_positions(123) == backdrop.drift_positions(123), "a pure function"
-
-
-def test_a_drift_tile_is_a_translucent_palette_block() -> None:
-    for half in backdrop.TILE_HALF_WIDTHS:
-        image = backdrop.build_drift_tile(half)
-        assert image.size == (half * 2, half * 2)
-        assert colours(image) <= resurrect64()
-        alphas = {pixel[3] for pixel in image.getdata()}
-        assert alphas == {0, backdrop.TILE_ALPHA}
-        assert image.width % 2 == 0, "even, so it sits on whole pixels"
 
 
 # --- tweens ----------------------------------------------------------------------------------

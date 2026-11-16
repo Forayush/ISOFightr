@@ -21,7 +21,6 @@ from isofightr.config import (
 )
 from isofightr.input.devices import KEYBOARD_PREFIX
 from isofightr.input.keyboard import KeyLatch
-from isofightr.render import placeholder_art as art
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.pixel_scale import window_to_native
 from isofightr.scenes.ticked_view import TickedView
@@ -52,7 +51,6 @@ from isofightr.ui.widgets import (
     UiLayer,
     add_panel,
     icon_image,
-    picture_texture,
 )
 
 if TYPE_CHECKING:
@@ -64,10 +62,8 @@ KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
 """The device Enter and Escape act as."""
 MOUSE_LEFT = arcade.MOUSE_BUTTON_LEFT
 MOUSE_RIGHT = arcade.MOUSE_BUTTON_RIGHT
-FADE_TICKS = 10
 NOTICE_TICKS = 180
 """How long a message stays in the bottom band (about three seconds)."""
-"""A scene fades in from black over this many ticks."""
 ON_OFF = ("off", "on")
 LIST_WIDTH = 400
 """Width of a list menu's panel."""
@@ -100,23 +96,8 @@ class MenuView(TickedView):
         self._keys = KeyLatch()
         self._key_actions: list[MenuAction] = []
         self._clicks: list[tuple[int, int]] = []
-        self.fade_ticks = FADE_TICKS
-        self.backdrop = flow.backdrop()
-        self.dim: arcade.SpriteList[arcade.Sprite] | None = arcade.SpriteList()
-        """A veil over the backdrop so plain text reads on it; ``None`` for scenes that
-        put their text on panels."""
-        self.dim.append(
-            arcade.Sprite(
-                picture_texture(
-                    ("dim", NATIVE_W, NATIVE_H),
-                    lambda: art.build_panel(
-                        NATIVE_W, NATIVE_H, theme.DIM_OVERLAY, theme.DIM_OVERLAY
-                    ),
-                ),
-                center_x=NATIVE_W / 2,
-                center_y=NATIVE_H / 2,
-            )
-        )
+        self.world = flow.world()
+        """The Isle: the piece of the game's world the scene is drawn on (decision D-072)."""
         if not self.hub.connected(flow.active_device):
             flow.active_device = KEYBOARD_DEVICE
         self._footer_template = ""
@@ -297,9 +278,14 @@ class MenuView(TickedView):
     """The song a menu scene plays (it carries on from scene to scene)."""
     music_loops = True
 
+    station: ClassVar[str] = "plaza"
+    """The framing of the Isle the scene is shown at: the camera glides there when the
+    scene opens (see :mod:`isofightr.scenes.menu_world_model`)."""
+
     def on_show_view(self) -> None:
-        """Start (or keep) the scene's music."""
+        """Start (or keep) the scene's music, and send the camera to the scene's station."""
         self.audio.play_music(self.music, self.music_loops)
+        self.world.go(self.station)
 
     def tick(self) -> None:
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""
@@ -310,6 +296,7 @@ class MenuView(TickedView):
         self.hub.end_tick()
         fired = self.menu_input.update([frames[device] for device in devices], extras)
         self.flow.menu_ticks += 1
+        self.world.tick()
         if self._notice_ticks > 0:
             self._notice_ticks -= 1
         for action in self._key_actions:
@@ -341,14 +328,21 @@ class MenuView(TickedView):
     def refresh(self) -> None:
         """Update labels from the scene's state. Override in scenes."""
 
+    def draw_under(self) -> None:
+        """Draw what the scene puts between the world and its own layer. Override."""
+
+    def draw_over(self) -> None:
+        """Draw what the scene puts over its own layer. Override."""
+
     def on_draw(self) -> None:
-        """Draw the scene at native resolution, then upscale it to the window."""
+        """Draw the Isle, then the scene over it, at native resolution; then upscale it to
+        the window."""
         self.clear()
         with self.pixel_buffer.drawing(theme.BACKGROUND):
-            self.backdrop.draw(self.flow.menu_ticks)
-            if self.dim is not None:
-                self.dim.draw(pixelated=True)
+            self.world.draw()
+            self.draw_under()
             self.ui.draw()
+            self.draw_over()
             self.draw_fade()
         self.blit_to_window()
 
@@ -482,7 +476,6 @@ class MenuListView(MenuView):
     ) -> None:
         """Build the title bar, the panel and the menu's rows."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.menu = menu
         self.header(title, icon)
         row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
@@ -553,6 +546,8 @@ class MenuListView(MenuView):
 
 class SettingsView(MenuListView):
     """Video, audio and control settings. Every change is applied and saved at once."""
+
+    station = "workshop"
 
     icons: ClassVar[dict[str, str]] = {
         "scale": "hud",
@@ -691,8 +686,8 @@ class SettingsView(MenuListView):
             self.back()
 
     def back(self) -> None:
-        """Back to the main menu."""
-        self.flow.show_main_menu()
+        """Back to the options."""
+        self.flow.show_options("settings")
 
 
 def _setting[T](

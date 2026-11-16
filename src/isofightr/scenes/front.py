@@ -1,9 +1,10 @@
 """The front of the game: the boot splash, the title screen and the main menu.
 
-Plan note "13 - Game Modes UI and Flow" ("Screen flow", decision D-061, wireframes
-``m13_wf_title.png`` and ``m13_wf_mainmenu.png``). The title shows the logo over a floating
-island where the fighters stand idling; the main menu is a column of buttons, each with an
-icon and a line saying what it leads to, beside a preview of the one under the cursor.
+Plan note "13 - Game Modes UI and Flow" ("Planned (M21)", decision D-072; first built for
+D-061). All three are drawn on the Isle, the piece of the game's world the menus live on:
+the title shows the whole island under the logo with the fighters strolling on it, and the
+main menu is four block buttons beside it, the camera leaning toward whatever the cursor is
+on.
 """
 
 from __future__ import annotations
@@ -13,74 +14,63 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr import __version__
-from isofightr.ai.dummy import DummyBehavior
 from isofightr.config import NATIVE_H, NATIVE_W
-from isofightr.data.character_loader import list_character_ids
-from isofightr.data.stage_loader import list_stage_ids
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model, rules_model
-from isofightr.scenes.diorama import PAD_GRID, PAD_SPOTS, Diorama
 from isofightr.scenes.menus import KEYBOARD_DEVICE, MenuView
 from isofightr.scenes.setup import training_setup
 from isofightr.scenes.ticked_view import TickedView
-from isofightr.ui import kit_art, theme
-from isofightr.ui.anim import blink, bounce, pulse, slide
+from isofightr.ui import theme
+from isofightr.ui.anim import bounce, pulse, slide
 from isofightr.ui.focus import FocusMap, Rect
 from isofightr.ui.font import TextSize
 from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.kit_art import Look
 from isofightr.ui.logo import build_logo
 from isofightr.ui.menu import Menu, MenuAction, MenuItem
-from isofightr.ui.pixel_text import GlyphAtlas
-from isofightr.ui.widgets import (
-    Picture,
-    UiLayer,
-    add_panel,
-    icon_texture,
-    picture_texture,
-)
+from isofightr.ui.widgets import BigButton, Button, Sign, picture_texture
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-LOGO_BOTTOM = 268
+LOGO_BOTTOM = 276
 """Where the logo rests on the title screen (its bottom edge, native pixels, y up)."""
 LOGO_DROP_TICKS = 36
 """The logo falls into place and bounces over this many ticks."""
 LOGO_BOB_TICKS = 180
-ISLAND_SPOT = (NATIVE_W // 2, 150)
-"""Where the middle of the title island's top is drawn."""
-PROMPT_BOTTOM = 44
-PROMPT_BLINK_TICKS = 50
-MAX_TITLE_FIGHTERS = 4
+PROMPT = Rect(NATIVE_W // 2 - 104, 18, 208, 27)
+"""The title's one button: what to press to start."""
+PROMPT_PRESS_TICKS = 90
+"""The prompt presses itself every this many ticks: a hint that it is a thing to press."""
 BOOT_TICKS = 2
-"""The splash is drawn once, then the work of opening the devices starts."""
+"""The splash is drawn once, then the work of opening the devices and the Isle starts."""
+BOOT_SKY = theme.SKY
+"""What the splash clears to: the Isle's own sky, so the cloud that follows rises into it."""
 
-BUTTON_LEFT = 24
-BUTTON_WIDTH = 248
-BUTTON_HEIGHT = 36
-BUTTON_PITCH = 41
-BUTTONS_TOP = 322
-PREVIEW = Rect(288, 44, 336, 278)
-PREVIEW_SPOT = (PREVIEW.left + PREVIEW.width // 2, PREVIEW.bottom + 120)
-"""Where a preview's island is drawn: between the page's text and its row of facts."""
-LINE_HEIGHT = 14
-FACT_SIZE = (100, 36)
-FACT_GAP = 8
-FACT_BOTTOM = PREVIEW.bottom + 10
-"""A page's facts are a row of small plates along the foot of the preview (decision D-070)."""
-ISLAND_PAGES = {"versus": "versus", "training": "training", "quit": "versus"}
-"""The island each page shows, by page: the others are text."""
+BUTTON_LEFT = 20
+BUTTON_WIDTH = 196
+BUTTON_HEIGHT = 40
+BUTTON_PITCH = 48
+BUTTONS_TOP = 300
+NOTE = Rect(BUTTON_LEFT, 82, BUTTON_WIDTH + 44, 16)
+"""The sign under the buttons: a line about the entry under the cursor."""
 
 MENU_ENTRIES: tuple[tuple[str, str, str, str], ...] = (
     ("versus", "VERSUS", "2 to 4 players, people or CPUs", "team"),
-    ("training", "TRAINING", "practise with a dummy", "stage"),
-    ("rules", "RULES", "stocks, time, launch rate...", "gear"),
-    ("controls", "CONTROLS", "keyboard and gamepad", "controller"),
-    ("settings", "SETTINGS", "video, sound, accessibility", "speaker"),
-    ("quit", "QUIT", "close the game", "cross"),
+    ("training", "TRAINING", "Practise against a dummy", "stage"),
+    ("options", "OPTIONS", "Rules, controls, display, sound", "gear"),
+    ("quit", "QUIT", "Close the game", "cross"),
 )
-"""Key, caption, what it leads to, and icon of each main menu button, top to bottom."""
+"""Key, caption, what it leads to, and icon of each main menu button, top to bottom. Four,
+not six: rules, controls and settings are the tabs of Options (decision D-072)."""
+LEANS: dict[str, tuple[int, int]] = {
+    "versus": (0, 6),
+    "training": (14, -8),
+    "options": (-16, 14),
+    "quit": (0, 0),
+}
+"""How far the camera leans from the plaza for each entry, in world pixels: toward the
+ring, the plaza's front, and the workshop at the back."""
 
 
 def logo_texture() -> arcade.Texture:
@@ -89,8 +79,8 @@ def logo_texture() -> arcade.Texture:
 
 
 class BootView(TickedView):
-    """The first thing on screen: the logo, at once, while the input devices are opened
-    (asking Windows for its controllers takes most of a second). Then the title."""
+    """The first thing on screen: the logo, at once, while the input devices are opened and
+    the Isle is built (most of a second). Then the title, through the cloud."""
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Make the logo; nothing slow."""
@@ -105,44 +95,57 @@ class BootView(TickedView):
         )
 
     def tick(self) -> None:
-        """Once the splash has been drawn, go on to the title (which opens the devices)."""
+        """Once the splash has been drawn, go on to the title (which opens the devices).
+        The splash is painted into the buffer first, so the cloud the title opens through
+        rises over it whether or not a frame was drawn since."""
         if self.tick_count >= BOOT_TICKS:
-            self.flow.show_title()
+            self.paint()
+            self.flow.show_title(wipe=True)
+
+    def paint(self) -> None:
+        """Paint the logo on the sky into the native buffer."""
+        with self.pixel_buffer.drawing(BOOT_SKY):
+            self.sprites.draw(pixelated=True)
 
     def on_draw(self) -> None:
-        """Draw the logo on the menu's night colour."""
+        """Draw the splash, then upscale it to the window."""
         self.clear()
-        with self.pixel_buffer.drawing(theme.BACKGROUND):
-            self.sprites.draw(pixelated=True)
+        self.paint()
         self.blit_to_window()
 
 
 class TitleView(MenuView):
-    """The title screen: any confirm goes to the main menu."""
+    """The title screen: the logo over the whole Isle; any confirm goes to the main menu."""
+
+    station = "gate"
+    surface = theme.STONE
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the logo, the island and the prompt."""
+        """Build the logo and the prompt."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         texture = logo_texture()
         self.logo = arcade.Sprite(texture)
         self.ui.panels.append(self.logo)
+        # Straight on the sky: ink, with no shadow to thicken its thin strokes.
         self.ui.write(
             "an isometric platform fighter",
             NATIVE_W // 2,
-            LOGO_BOTTOM - 20,
-            TextSize.BODY,
-            theme.FOG,
+            LOGO_BOTTOM - 16,
+            TextSize.TEXT,
+            theme.INK,
             "centre",
+            shadow=False,
         )
-        self.prompt = self.ui.write(
-            "", NATIVE_W // 2, PROMPT_BOTTOM, TextSize.TITLE, theme.TEXT, "centre"
-        )
+        self.prompt = Button(self.ui, PROMPT, "", size=TextSize.TITLE, look=Look.FOCUS)
         self.ui.write(
-            f"v{__version__}", NATIVE_W - theme.PAD, theme.PAD, TextSize.SMALL, theme.TEXT_MUTED,
+            f"v{__version__}",
+            NATIVE_W - theme.PAD,
+            theme.PAD,
+            TextSize.SMALL,
+            theme.INK,
             "right",
-        )  # fmt: skip
-        self.island = Diorama(pixel_buffer, list_character_ids()[:MAX_TITLE_FIGHTERS])
+            shadow=False,
+        )
         self.refresh()
 
     def act(self, device: str, action: MenuAction) -> None:
@@ -161,177 +164,55 @@ class TitleView(MenuView):
         other = "ENTER" if self.active_device.startswith("keyboard") else "START"
         return f"PRESS {confirm.upper()} OR {other}"
 
-    def tick(self) -> None:
-        """Run the menu, and let the fighters on the island breathe."""
-        self.island.tick()
-        super().tick()
-
     def refresh(self) -> None:
-        """Drop the logo in, bob it, and blink the prompt."""
+        """Drop the logo in, bob it, and let the prompt press itself now and then."""
         tick = self.tick_count
         texture = self.logo.texture
         rest = LOGO_BOTTOM + texture.height / 2
         dropped = slide(tick, 0, LOGO_DROP_TICKS, NATIVE_H + texture.height, round(rest), bounce)
         bob = round(pulse(max(tick - LOGO_DROP_TICKS, 0), LOGO_BOB_TICKS) * 2)
         self.logo.position = (NATIVE_W / 2 + (texture.width % 2) / 2, dropped + bob)
-        self.prompt.text = self.prompt_text()
-        self.prompt.visible = blink(tick, PROMPT_BLINK_TICKS)
-
-    def on_draw(self) -> None:
-        """Backdrop, island, then the logo and text over them."""
-        self.clear()
-        with self.pixel_buffer.drawing(theme.BACKGROUND):
-            self.backdrop.draw(self.flow.menu_ticks)
-            self.island.draw(*ISLAND_SPOT)
-            self.ui.draw()
-            self.draw_fade()
-        self.blit_to_window()
-
-
-class MenuButton:
-    """A main menu button: an icon, a caption and a line of description."""
-
-    def __init__(self, layer: UiLayer, rect: Rect, caption: str, text: str, icon: str) -> None:
-        """Create the button at rest."""
-        self.rect = rect
-        self.icon_name = icon
-        self._body = Picture(layer, rect)
-        self._icon = arcade.Sprite(
-            icon_texture(icon),
-            center_x=rect.left + theme.PAD + theme.ICON_SIZE / 2,
-            center_y=rect.bottom + rect.height - 13,
-        )
-        layer.panels.append(self._icon)
-        left = rect.left + theme.PAD + theme.ICON_SIZE + theme.PAD
-        self.caption = layer.write(caption, left, rect.bottom + 16, TextSize.TITLE, shadow=False)
-        self.text = layer.write(text, left, rect.bottom + 3, TextSize.BODY, shadow=False)
-        self._focused: bool | None = None
-        self.focus(False)
-
-    def focus(self, focused: bool) -> None:
-        """Show the button under the cursor, or at rest."""
-        if focused == self._focused:
-            return
-        self._focused = focused
-        look = Look.FOCUS if focused else Look.NORMAL
-        width, height = self.rect.width, self.rect.height
-        self._body.show(
-            ("button", width, height, look), lambda: kit_art.button(width, height, look)
-        )
-        color = kit_art.text_color(look)
-        self.caption.color = color
-        self.text.color = theme.TEXT_ON_FOCUS if focused else theme.TEXT_MUTED
-        texture = icon_texture(self.icon_name, color)
-        if texture is not None:
-            self._icon.texture = texture
+        self.prompt.label.text = self.prompt_text()
+        if tick and tick % PROMPT_PRESS_TICKS == 0:
+            self.prompt.press(tick)
+        self.prompt.settle(tick)
 
 
 class MainMenuView(MenuView):
-    """Versus, Training, Rules, Controls, Settings, Quit, with a preview of each."""
+    """Versus, Training, Options, Quit: four blocks beside the Isle."""
+
+    station = "plaza"
+    surface = theme.STONE
 
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the buttons and a preview page for each."""
+        """Build the buttons and the sign under them."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.menu = Menu([MenuItem(key, caption) for key, caption, _, _ in MENU_ENTRIES])
-        self.header("MAIN MENU")
-        self.buttons: dict[str, MenuButton] = {}
+        self.header("Main menu")
+        self.buttons: dict[str, BigButton] = {}
         for index, (key, caption, text, icon) in enumerate(MENU_ENTRIES):
             rect = Rect(
-                BUTTON_LEFT, BUTTONS_TOP - (index + 1) * BUTTON_PITCH, BUTTON_WIDTH, BUTTON_HEIGHT
-            )
-            self.buttons[key] = MenuButton(self.ui, rect, caption, text, icon)
+                BUTTON_LEFT, BUTTONS_TOP - index * BUTTON_PITCH - BUTTON_HEIGHT, BUTTON_WIDTH,
+                BUTTON_HEIGHT,
+            )  # fmt: skip
+            self.buttons[key] = BigButton(self.ui, rect, caption, text, icon)
         self.focus_map = FocusMap({key: button.rect for key, button in self.buttons.items()})
-        add_panel(self.ui, PREVIEW)
-
-        characters = list_character_ids()
-        self.islands: dict[str, Diorama] = {
-            "versus": Diorama(pixel_buffer, characters[:MAX_TITLE_FIGHTERS]),
-            "training": Diorama(
-                pixel_buffer, characters[:1], PAD_GRID, PAD_SPOTS, tileset="grid", tile="grid"
-            ),
-        }
-        glyphs = GlyphAtlas()
-        self.pages: dict[str, UiLayer] = {}
-        for key, caption, _, _ in MENU_ENTRIES:
-            page = UiLayer(glyphs)
-            self.pages[key] = page
-            left, top = PREVIEW.left + theme.PAD + 2, PREVIEW.top - 22
-            page.write(caption, left, top, TextSize.TITLE, theme.HEADING)
-            for row, (line, color) in enumerate(self.preview_lines(key)):
-                page.write(line, left, top - 18 - row * LINE_HEIGHT, TextSize.BODY, color)
-            facts = self.preview_facts(key)
-            total = len(facts) * FACT_SIZE[0] + (len(facts) - 1) * FACT_GAP
-            first = PREVIEW.left + (PREVIEW.width - total) // 2
-            for index, (figure, caption) in enumerate(facts):
-                plate = Rect(first + index * (FACT_SIZE[0] + FACT_GAP), FACT_BOTTOM, *FACT_SIZE)
-                page.picture(
-                    ("fact-plate", *FACT_SIZE),
-                    lambda: kit_art.panel(
-                        *FACT_SIZE, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER
-                    ),
-                    plate.left,
-                    plate.bottom,
-                )
-                middle = plate.left + plate.width // 2
-                page.write(figure, middle, plate.bottom + 14, TextSize.TITLE, theme.FOCUS, "centre")
-                page.write(caption, middle, plate.bottom + 4, TextSize.SMALL, theme.FOG, "centre")
+        self.note = Sign(self.ui, NOTE)
         self.footer("{stick}: move   {attack}: pick   {special}: back   mouse: click")
         self.refresh()
 
-    def preview_lines(self, key: str) -> list[tuple[str, theme.Rgb]]:
-        """Return the text of a button's preview page: lines and their colours."""
+    def note_line(self, key: str) -> str:
+        """Return the line the sign shows for an entry: where things stand, from the game's
+        own data, so the menu says something true about what the button leads to."""
         settings, setup = self.flow.settings, self.flow.setup
-        plain, muted = theme.TEXT, theme.TEXT_MUTED
         if key == "versus":
-            chips = "  ".join(rules_model.rule_chips(setup))
-            return [("Join with any keyboard or gamepad.", plain), (chips, muted)]
+            return "   ".join(chip.capitalize() for chip in rules_model.rule_chips(setup))
         if key == "training":
-            return [
-                ("One fighter and a dummy on the grid.", plain),
-                ("Set its damage, make it a CPU, read the move list.", muted),
-            ]
-        if key == "rules":
-            lines = []
-            for row in rules_model.RULE_ROWS:
-                on = rules_model.row_on(setup, row.key)
-                value = rules_model.row_value(setup, row.key)
-                state = "" if on is None else ("ON" if on else "OFF")
-                shown = f"{value} {state}".strip()
-                label = row.label if len(row.label) <= 30 else row.label[:28] + ".."
-                lines.append((f"{label:<32}{shown:>10}", plain if on is not False else muted))
-            return lines
-        if key == "controls":
+            return "Set its damage, make it a CPU, read the move list."
+        if key == "options":
             device = controls_model.tab_device(settings, 0)
-            labels = device_labels(settings, device)
-            lines = [(f"Player 1: {controls_model.DEVICE_NAMES[device]}", plain)]
-            for action in ("stick", "jump", "attack", "special", "strong", "grab", "shield"):
-                name = "MOVE" if action == "stick" else action.upper()
-                lines.append((f"{name:<10}{labels.get(action, '')}", muted))
-            lines.append(("Every key and button can be rebound.", plain))
-            return lines
-        if key == "settings":
-            return [
-                (f"Window scale      {settings.scale}x", muted),
-                (f"Fullscreen        {'on' if settings.fullscreen else 'off'}", muted),
-                (f"Screen shake      {settings.screen_shake}%", muted),
-                (f"Master volume     {settings.master_volume}", muted),
-                (f"Music volume      {settings.music_volume}", muted),
-                (f"Effects volume    {settings.sfx_volume}", muted),
-                (f"Reduce flashing   {'on' if settings.reduce_flashing else 'off'}", muted),
-            ]
-        return [("See you on the islands.", plain)]
-
-    def preview_facts(self, key: str) -> list[tuple[str, str]]:
-        """Return the row of facts along the foot of a button's preview page: a figure and
-        what it counts, from the game's own data (none for the pages that are lists)."""
-        fighters, stages = len(list_character_ids()), len(list_stage_ids())
-        if key == "versus":
-            return [(str(fighters), "FIGHTERS"), (str(stages), "STAGES"), ("2-4", "PLAYERS")]
-        if key == "training":
-            modes = len(DummyBehavior)
-            return [(str(fighters), "FIGHTERS"), (str(modes), "DUMMY MODES"), ("1-9", "CPU LEVELS")]
-        return []
+            return f"Player 1 plays on {controls_model.DEVICE_NAMES[device]}."
+        return "See you on the islands."
 
     @property
     def selected(self) -> str:
@@ -345,6 +226,7 @@ class MainMenuView(MenuView):
             return
         chosen = self.menu.apply(action)
         if chosen is not None:
+            self.buttons[chosen].press(self.tick_count)
             self.choose(chosen)
 
     def choose(self, key: str) -> None:
@@ -353,12 +235,8 @@ class MainMenuView(MenuView):
             self.flow.show_character_select(self.flow.setup)
         elif key == "training":
             self.flow.show_character_select(training_setup())
-        elif key == "rules":
-            self.flow.show_rules()
-        elif key == "controls":
-            self.flow.show_controls()
-        elif key == "settings":
-            self.flow.show_settings()
+        elif key == "options":
+            self.flow.show_options()
         else:
             self.window.close()
 
@@ -370,30 +248,18 @@ class MainMenuView(MenuView):
         self.menu.cursor = [item.key for item in self.menu.items].index(key)
         return True
 
-    def tick(self) -> None:
-        """Run the menu and the preview island that is showing."""
-        island = self.islands.get(ISLAND_PAGES.get(self.selected, ""))
-        if island is not None:
-            island.tick()
-        super().tick()
-
     def refresh(self) -> None:
-        """Show the cursor."""
+        """Show the cursor, say a line about what it is on, and lean the camera that way."""
         for key, button in self.buttons.items():
             button.focus(key == self.selected)
+            button.settle(self.tick_count)
+        self.note.text = self.note_line(self.selected)
+        self.world.nudge(*LEANS[self.selected])
 
-    def on_draw(self) -> None:
-        """Backdrop, buttons and panel, then the preview page and its island."""
-        self.clear()
-        with self.pixel_buffer.drawing(theme.BACKGROUND):
-            self.backdrop.draw(self.flow.menu_ticks)
-            self.ui.draw()
-            self.pages[self.selected].draw()
-            island = self.islands.get(ISLAND_PAGES.get(self.selected, ""))
-            if island is not None:
-                island.draw(*PREVIEW_SPOT)
-            self.draw_fade()
-        self.blit_to_window()
+    def on_hide_view(self) -> None:
+        """Stand the camera straight again for whoever is next."""
+        self.world.nudge(0, 0)
 
 
 assert KEYBOARD_DEVICE.startswith("keyboard")
+assert set(LEANS) == {key for key, _, _, _ in MENU_ENTRIES}

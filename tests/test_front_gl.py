@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from isofightr.config import NATIVE_H, NATIVE_W, TICK_SECONDS
+from ui_helpers import MAX_COVER, ui_cover
 
 pytestmark = pytest.mark.gl
 
@@ -144,62 +145,74 @@ def test_a_sandbox_battle_still_opens_and_closes_its_own_devices(window: Any) ->
 
 
 def test_the_boot_splash_shows_the_logo_then_the_title(window: Any) -> None:
+    from isofightr.ui import logo, wipe
+
     flow = flow_for(window)
     flow.show_boot()
     assert name(window) == "BootView" and NoControllers.opened == 0, "nothing slow yet"
     window.current_view.on_draw()
     splash = frame(window)
     colours = {colour[:3] for _, colour in splash.getcolors(maxcolors=100000)}
-    from isofightr.ui import logo
-
     assert {logo.FACE, logo.SIDE} <= colours, "the logo is on screen at once"
     step(window, 1)
     assert name(window) == "BootView", "it is drawn before anything else happens"
     step(window, 2)
     assert name(window) == "TitleView" and NoControllers.opened == 1
+    title = window.current_view
+    assert title.wiping, "the title opens through the cloud, over the splash"
+    assert not flow.world().gliding, "and the camera is already at its gate"
+    step(window, wipe.WIPE_TICKS)
+    assert not title.wiping
 
 
-def test_the_title_drops_its_logo_in_and_shows_the_fighters_idling(window: Any) -> None:
+def test_the_title_drops_its_logo_in_over_the_isle(window: Any) -> None:
     from isofightr.data.character_loader import list_character_ids
     from isofightr.scenes import front
-    from isofightr.sim.fighter import StateId
+    from isofightr.scenes.menu_world_model import STATIONS, STROLL_BOUNDS
 
     flow = flow_for(window)
     flow.show_title()
     view = window.current_view
+    world = flow.world()
+    assert view.world is world and world.station is STATIONS["gate"]
     step(window, 1)
     high = view.logo.center_y
     assert high > front.LOGO_BOTTOM + view.logo.texture.height, "it starts above its place"
     step(window, front.LOGO_DROP_TICKS + 2)
-    rest = view.logo.center_y - view.logo.texture.height / 2
+    rest = view.logo.center_y - view.logo.height / 2
     assert abs(rest - front.LOGO_BOTTOM) <= 2, "and comes to rest"
-    assert float(view.logo.left).is_integer() and float(view.logo.bottom).is_integer()
+    assert float(view.logo.center_x - view.logo.width / 2).is_integer()
 
-    fighters = view.island.match.fighters
+    fighters = world.match.fighters
     assert [fighter.character.id for fighter in fighters] == list_character_ids()[:4]
-    assert all(fighter.state is StateId.IDLE for fighter in fighters)
-    before = fighters[0].state_frame
+    assert world.strollers_shown, "the roster strolls on the plaza"
+    before = world.match.frame
     step(window, 10)
-    assert fighters[0].state_frame == before + 10, "their idle animation runs"
-    assert len({(round(f.pos.x + f.pos.y, 3)) for f in fighters}) == 1, "one row: none in front"
-    xs = [fighter.pos.x - fighter.pos.y for fighter in fighters]
-    assert xs == sorted(xs), "left to right across the screen"
+    assert world.match.frame == before + 10, "the island lives while the title is up"
+    assert all(STROLL_BOUNDS.holds(f.pos.x, f.pos.y) for f in fighters)
 
     shot = frame(window)
     colours = shot.getcolors(maxcolors=200000)
     assert colours is not None and len(colours) > 60, "sky, island, sprites and logo"
+    assert ui_cover(window, view) <= MAX_COVER, "the world is the screen"
 
 
 def test_the_title_prompt_names_the_control_and_any_confirm_starts(window: Any) -> None:
+    from isofightr.scenes import front
+    from isofightr.ui.kit_art import Look
+
     flow = flow_for(window)
     flow.settings = flow.settings.with_key("solo", "attack", "F")
     flow.show_title()
     step(window, 2)
     view = window.current_view
     assert view.prompt_text() == "PRESS F OR ENTER"
-    assert view.prompt.visible
-    step(window, 30)
-    assert not view.prompt.visible, "it blinks"
+    assert view.prompt.label.text == "PRESS F OR ENTER", "on the one button of the screen"
+    assert view.prompt.look is Look.FOCUS and not view.prompt.pressed
+    step(window, front.PROMPT_PRESS_TICKS - 2)
+    assert view.prompt.pressed, "it presses itself now and then: it is a thing to press"
+    step(window, 6)
+    assert not view.prompt.pressed
     press(window, keys().F)
     assert name(window) == "MainMenuView"
     press(window, keys().K)
@@ -211,36 +224,38 @@ def test_the_title_prompt_names_the_control_and_any_confirm_starts(window: Any) 
 # --- main menu -----------------------------------------------------------------------------
 
 
-def test_the_main_menu_has_a_button_and_a_preview_for_everything(window: Any) -> None:
+def test_the_main_menu_is_four_blocks_beside_the_isle(window: Any) -> None:
     from isofightr.scenes import front
-    from isofightr.scenes.rules_model import RULE_ROWS
+    from isofightr.scenes.menu_world_model import STATIONS
+    from isofightr.ui import theme
 
     flow = flow_for(window)
     flow.show_main_menu()
     step(window, 2)
     view = window.current_view
     entries = [key for key, _, _, _ in front.MENU_ENTRIES]
-    assert entries == ["versus", "training", "rules", "controls", "settings", "quit"]
+    assert entries == ["versus", "training", "options", "quit"], "four, not six (D-072)"
     assert [item.key for item in view.menu.items] == entries == list(view.buttons)
-    assert set(view.pages) == set(entries)
+    assert view.title == "MAIN MENU" and view.world.station is STATIONS["plaza"]
     rects = [button.rect for button in view.buttons.values()]
     for upper, lower in itertools.pairwise(rects):
-        assert lower.top <= upper.bottom, "the buttons do not overlap"
-    assert all(not rect.overlaps(front.PREVIEW) for rect in rects)
-    assert rects[-1].bottom >= 18 and front.PREVIEW.right <= NATIVE_W
-    assert len(view.preview_lines("rules")) == len(RULE_ROWS), "every rule, at a glance"
-    assert "Keyboard (WASD)" in view.preview_lines("controls")[0][0]
-    assert set(view.islands) == {"versus", "training"}
-    assert len(view.islands["training"].match.fighters) == 1
+        assert lower.top + theme.RAISE <= upper.bottom, "room for the cursor's block to rise"
+    assert rects[-1].bottom > front.NOTE.top > theme.FOOTER_HEIGHT
+    assert all(rect.right <= NATIVE_W // 2 for rect in rects), "the island has the rest"
 
-    shots = {}
+    notes, leans = set(), set()
     for key in entries:
         assert view.selected == key
-        view.on_draw()
-        shots[key] = frame(window).crop((300, 40, 630, 320)).tobytes()
+        assert view.buttons[key].button.lift == theme.RAISE, "the cursor's block stands up"
+        assert sum(button.button.lift > 0 for button in view.buttons.values()) == 1
+        notes.add(view.note.text)
+        leans.add(view.world._nudge_goal)
         press(window, keys().S)
     assert view.selected == "versus", "the cursor wraps"
-    assert len(set(shots.values())) == len(entries), "each button has its own preview"
+    assert len(notes) == len(entries), "the sign says a line about each entry"
+    assert len(leans) >= 3, "and the camera leans toward what the cursor is on"
+    assert "Stock 3" in view.note_line("versus") and "Keyboard (WASD)" in view.note_line("options")
+    assert ui_cover(window, view) <= MAX_COVER
 
 
 def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
@@ -248,16 +263,16 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
     where = {
         "versus": "CharacterSelectView",
         "training": "CharacterSelectView",
-        "rules": "RulesView",
-        "controls": "ControlsView",
-        "settings": "SettingsView",
+        "options": "OptionsView",
     }
     for key, scene in where.items():
         flow.show_main_menu()
         step(window, 2)
         view = window.current_view
-        while view.selected != key:
-            press(window, keys().S)
+        for _ in range(len(view.buttons)):
+            if view.selected != key:
+                press(window, keys().S)
+        assert view.selected == key
         press(window, keys().J)
         assert name(window) == scene, key
         if key == "training":
@@ -266,6 +281,39 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
             if name(window) != "MainMenuView":
                 press(window, keys().ESCAPE)
         assert name(window) == "MainMenuView", f"{key} leads back"
+        assert flow.world()._nudge_goal == (0, 0) or name(window) == "MainMenuView"
+
+
+def test_options_lead_to_rules_controls_and_settings_and_back(window: Any) -> None:
+    from isofightr.scenes import options_view
+    from isofightr.scenes.menu_world_model import STATIONS
+
+    flow = flow_for(window)
+    flow.show_options()
+    step(window, 2)
+    view = window.current_view
+    assert name(window) == "OptionsView" and view.world.station is STATIONS["workshop"]
+    entries = [key for key, _, _, _ in options_view.OPTION_ENTRIES]
+    assert entries == ["rules", "controls", "settings", "back"] == list(view.buttons)
+    where = {"rules": "RulesView", "controls": "ControlsView", "settings": "SettingsView"}
+    for key, scene in where.items():
+        flow.show_options()
+        step(window, 2)
+        view = window.current_view
+        for _ in range(len(entries)):
+            if view.selected != key:
+                press(window, keys().S)
+        press(window, keys().J)
+        assert name(window) == scene, key
+        press(window, keys().ESCAPE)
+        assert name(window) == "OptionsView", f"{key} comes back to the options"
+        assert window.current_view.selected == key, "with the cursor where it was"
+    press(window, keys().ESCAPE)
+    assert name(window) == "MainMenuView"
+    flow.show_options("back")
+    step(window, 2)
+    press(window, keys().J)
+    assert name(window) == "MainMenuView", "BACK is an entry too"
 
 
 def test_the_mouse_picks_main_menu_buttons(window: Any) -> None:
@@ -273,17 +321,41 @@ def test_the_mouse_picks_main_menu_buttons(window: Any) -> None:
     flow.show_main_menu()
     step(window, 2)
     view = window.current_view
-    rect = view.buttons["controls"].rect
+    rect = view.buttons["options"].rect
     viewport = view.window_viewport()
     x = round(viewport.left + (rect.left + 20.5) * viewport.scale)
     y = round(viewport.bottom + (rect.bottom + 10.5) * viewport.scale)
     view.on_mouse_motion(x, y, 1, 0)
     step(window, 1)
-    assert view.selected == "controls"
-    click(window, 4, 100)
+    assert view.selected == "options"
+    click(window, 4, 60)
     assert name(window) == "MainMenuView", "a click beside the buttons does nothing"
     click(window, rect.left + 20, rect.bottom + 10)
-    assert name(window) == "ControlsView"
+    assert name(window) == "OptionsView"
+
+
+def test_the_world_carries_on_from_screen_to_screen(window: Any) -> None:
+    from isofightr.scenes.menu_world_model import GLIDE_TICKS, STATIONS, rest_pose
+
+    flow = flow_for(window)
+    flow.show_title()
+    step(window, 5)
+    world = flow.world()
+    lived = world.ticks
+    assert lived == 5 and flow.menu_ticks == 5
+    flow.show_main_menu()
+    assert window.current_view.world is world, "one Isle for every menu"
+    assert world.station is STATIONS["plaza"] and world.gliding, "the camera glides there"
+    step(window, 3)
+    assert world.ticks == lived + 3 and flow.menu_ticks == 8, "and time does not start again"
+    step(window, GLIDE_TICKS)
+    assert not world.gliding
+    flow.show_options()
+    step(window, GLIDE_TICKS + 1)
+    assert world.pose == rest_pose(STATIONS["workshop"]), "the lean is gone with the menu"
+    shot = frame(window)
+    colours = shot.getcolors(maxcolors=200000)
+    assert colours is not None and len(colours) > 40, "the Isle is behind every menu"
 
 
 # --- diorama -------------------------------------------------------------------------------

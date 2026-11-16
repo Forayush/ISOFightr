@@ -99,6 +99,8 @@ def tile_key(action: str, slot: int) -> str:
 class ControlsView(MenuView):
     """Rebind the device a player uses."""
 
+    station = "workshop"
+
     def __init__(
         self,
         pixel_buffer: PixelBuffer,
@@ -112,12 +114,11 @@ class ControlsView(MenuView):
         Args:
             pixel_buffer: the native render target.
             flow: the router; it holds and saves the settings.
-            on_back: where BACK goes (the main menu if not given).
+            on_back: where BACK goes (the options if not given).
             tab: the player whose device to show (0 to 3).
             cursor: the focus name to start on (the first tile if empty or unknown).
         """
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.on_back = on_back
         self.tab = min(max(tab, 0), MAX_PLAYERS - 1)
         self.device = model.tab_device(flow.settings, self.tab)
@@ -386,7 +387,7 @@ class ControlsView(MenuView):
 
     def leave(self) -> None:
         """Go back to where the screen was opened from."""
-        (self.on_back or self.flow.show_main_menu)()
+        (self.on_back or self.flow.show_options)()
 
     def hover(self, x: int, y: int) -> bool:
         """Put the cursor on whatever is under the mouse (not while a cap is waiting)."""

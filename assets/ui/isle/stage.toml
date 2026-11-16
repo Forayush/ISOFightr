@@ -132,10 +132,13 @@ sprite = "cypress"
 at = [9.9, 0.5]
 phase = 9
 
-# The front rim: a ruin in a gap, and low things only along the plaza.
+# A ruin on the back rim, left of the workshop. Nothing tall stands in front of the
+# plaza: a fighter strolling behind it would be drawn as an outline.
 [[props]]
 sprite = "arch_broken"
-at = [8.2, 13.2]
+at = [1.2, 7.4]
+
+# The front rim: low things only.
 [[props]]
 sprite = "bush"
 at = [0.5, 5.5]

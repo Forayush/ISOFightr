@@ -26,6 +26,7 @@ from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
 from isofightr.scenes.menu_world import MenuWorld
 from isofightr.scenes.menus import KEYBOARD_DEVICE, SettingsView
+from isofightr.scenes.options_view import OptionsView
 from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
@@ -33,10 +34,10 @@ from isofightr.scenes.select_view import CharacterSelectView
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
 from isofightr.scenes.sound_test_view import SoundTestView
 from isofightr.scenes.stage_select_view import StageSelectView
+from isofightr.scenes.ticked_view import TickedView
 from isofightr.settings import Settings, save_settings
 from isofightr.sim.match import Match
 from isofightr.sim.rng import Rng
-from isofightr.ui.backdrop_layer import MenuBackdrop
 
 
 class GameFlow:
@@ -84,8 +85,8 @@ class GameFlow:
         self.rng = Rng.seeded(seed)
         self.matches_started = 0
         self.menu_ticks = 0
-        """Ticks spent in menus this session: the backdrop drifts on from scene to scene."""
-        self._backdrop: MenuBackdrop | None = None
+        """Ticks spent in menus this session."""
+        self.seed = seed
         self._world: MenuWorld | None = None
         self._hub: DeviceHub | None = None
 
@@ -99,18 +100,12 @@ class GameFlow:
             self._hub.apply_settings(self.settings)
         return self._hub
 
-    def backdrop(self) -> MenuBackdrop:
-        """Return the menu backdrop, shared by every menu scene."""
-        if self._backdrop is None:
-            self._backdrop = MenuBackdrop()
-        return self._backdrop
-
     def world(self) -> MenuWorld:
         """Return the Isle, the piece of the game's world every menu is drawn on (decision
         D-072). One per session: it carries on from scene to scene. (:meth:`hub` is the
         input devices.)"""
         if self._world is None:
-            self._world = MenuWorld(self.pixel_buffer)
+            self._world = MenuWorld(self.pixel_buffer, self.seed)
         return self._world
 
     # --- settings --------------------------------------------------------------------------
@@ -141,16 +136,35 @@ class GameFlow:
         """Show the logo at once, then the title: what the game starts with."""
         self.window.show_view(BootView(self.pixel_buffer, self))
 
-    def show_title(self) -> None:
-        """Go to the title screen."""
-        self.window.show_view(TitleView(self.pixel_buffer, self))
+    def through_cloud(self, view: TickedView) -> None:
+        """Show a scene through the cloud wipe (decision D-072): the frame on screen now is
+        put aside for the cloud to rise over, then the new scene is uncovered. For a change
+        of world: the Isle to a stage and back. Between screens of the Isle the camera
+        glides instead."""
+        self.pixel_buffer.keep()
+        view.start_wipe()
+        self.window.show_view(view)
+
+    def show_title(self, wipe: bool = False) -> None:
+        """Go to the title screen (``wipe``: through the cloud, as the game opens)."""
+        view = TitleView(self.pixel_buffer, self)
+        if wipe:
+            self.world().settle(view.station)
+            self.through_cloud(view)
+        else:
+            self.window.show_view(view)
+
+    def show_options(self, cursor: str = "") -> None:
+        """Go to the options: rules, controls and settings (decision D-072). ``cursor``
+        names the entry to start on."""
+        self.window.show_view(OptionsView(self.pixel_buffer, self, cursor))
 
     def show_main_menu(self) -> None:
         """Go to the main menu."""
         self.window.show_view(MainMenuView(self.pixel_buffer, self))
 
     def show_rules(self, on_back: Callable[[], None] | None = None, cursor: str = "") -> None:
-        """Go to the versus rules. ``on_back`` says where BACK leads (the main menu if not
+        """Go to the versus rules. ``on_back`` says where BACK leads (the options if not
         given); ``cursor`` names the row or button to start on."""
         self.window.show_view(RulesView(self.pixel_buffer, self, on_back, cursor))
 
@@ -171,7 +185,7 @@ class GameFlow:
         self, on_back: Callable[[], None] | None = None, tab: int = 0, cursor: str = ""
     ) -> None:
         """Go to the controls screen: ``tab`` is the player whose device it shows,
-        ``on_back`` where BACK leads (the main menu if not given)."""
+        ``on_back`` where BACK leads (the options if not given)."""
         self.window.show_view(ControlsView(self.pixel_buffer, self, on_back, tab, cursor))
 
     def show_character_select(self, setup: MatchSetup) -> None:

@@ -180,18 +180,22 @@ def test_the_keyboard_controls_screen_lists_the_fixed_keys(window: Any) -> None:
     assert window.current_view.fixed_lines == [], "a gamepad's options fill that room"
 
 
-def test_the_main_menu_shows_facts_from_the_games_own_data(window: Any) -> None:
-    from isofightr.data.character_loader import list_character_ids
-    from isofightr.data.stage_loader import list_stage_ids
-    from isofightr.scenes import front
+def test_the_main_menu_says_how_things_are_set_from_the_games_own_data(window: Any) -> None:
+    """D-070's fact plates went with the preview panel (decision D-072); what they were for
+    stays: the menu says something true, read from the game, about what a button leads to."""
+    from dataclasses import replace
+
+    from isofightr.scenes import controls_model
 
     flow = new_flow(window)
+    flow.setup = replace(flow.setup, stocks=5)
     flow.show_main_menu()
     step(window, 2)
     view = window.current_view
-    facts = {caption: figure for figure, caption in view.preview_facts("versus")}
-    assert facts["FIGHTERS"] == str(len(list_character_ids()))
-    assert facts["STAGES"] == str(len(list_stage_ids()))
-    assert view.preview_facts("rules") == [], "a page that is a list has none"
-    assert front.FACT_BOTTOM + front.FACT_SIZE[1] < front.PREVIEW_SPOT[1] - 24, "under the island"
-    assert front.ISLAND_PAGES["quit"] in view.islands
+    assert "Stock 5" in view.note_line("versus"), "the rules as they are now"
+    assert view.note.text == view.note_line(view.selected) or view.note.text.endswith("..")
+    device = controls_model.tab_device(flow.settings, 0)
+    assert controls_model.DEVICE_NAMES[device] in view.note_line("options")
+    lines = [view.note_line(key) for key in view.buttons]
+    assert len(set(lines)) == len(lines) and all(lines)
+    assert all(line == line.strip() and not line.isupper() for line in lines), "sentences"

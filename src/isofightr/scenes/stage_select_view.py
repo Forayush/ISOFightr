@@ -93,7 +93,6 @@ class StageSelectView(MenuView):
         """Draw every stage's picture (once a session), lay out the grid, and put the
         cursor on the setup's stage."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.setup = setup
         self.stages: dict[str, Stage] = {name: load_stage(name) for name in list_stage_ids()}
         self.stage_ids = [*self.stages, RANDOM_STAGE]

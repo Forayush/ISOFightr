@@ -1,19 +1,21 @@
-"""Build the UI art: the icon sheet from its text recipes, and the menu backdrop layers.
+"""Build the UI art: the icon sheet from its text recipes.
 
 Usage::
 
     uv run python tools/build_ui_art.py
 
-Writes ``assets/ui/icons.png`` and ``icons.json`` from ``art_src/ui/icons.toml``, and the
-dusk backdrop layers into ``assets/ui/backdrop/``. Commit the result with the source change:
-``tests/test_ui_art.py`` fails if they are out of date. Plan note "09 - Art Direction"
-("UI theme", decision D-061).
+Writes ``assets/ui/icons.png`` and ``icons.json`` from ``art_src/ui/icons.toml``. Commit the
+result with the source change: ``tests/test_ui_kit.py`` fails if they are out of date. Plan
+note "09 - Art Direction" ("UI theme", decision D-061).
+
+The menus' backdrop is not built here any more: since decision D-072 it is the Isle, a
+stage, whose layers come from ``tools/build_backdrop.py isle --theme cloud_sea --seed 21
+--out assets/ui/isle``.
 """
 
 import json
 import tomllib
 
-from isofightr.ui.backdrop import BACKDROP_DIR, paint_layers
 from isofightr.ui.icons import ICON_INDEX, ICON_SHEET, ICON_SOURCE, build_sheet, parse_icons
 
 
@@ -26,10 +28,6 @@ def main() -> None:
     sheet.save(ICON_SHEET, optimize=True)
     ICON_INDEX.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"{ICON_SHEET}: {len(icons)} icons")
-    BACKDROP_DIR.mkdir(parents=True, exist_ok=True)
-    for name, image in paint_layers().items():
-        image.save(BACKDROP_DIR / name, optimize=True)
-        print(BACKDROP_DIR / name)
 
 
 if __name__ == "__main__":

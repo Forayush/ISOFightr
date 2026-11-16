@@ -11,14 +11,21 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Final
 
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.paths import ASSETS_DIR, STAGE_FILE_NAME
+from isofightr.data.sprite_sheet import AnimInfo
 from isofightr.data.stage_loader import load_stage_file
+from isofightr.render.anim_select import AnimChoice
+from isofightr.render.fighter_look import FighterLook
 from isofightr.render.iso import project
+from isofightr.sim.input_frame import Dir8
+from isofightr.sim.math3d import ZERO3, Vec3
 from isofightr.sim.stage import Stage
 from isofightr.ui.anim import ease_in_out, lerp
 
@@ -46,6 +53,11 @@ RING_SPOTS: Final[tuple[tuple[float, float], ...]] = tuple(
 """Where the four players' fighters stand at the ring, left to right on screen (world x, y)."""
 WORKSHOP_SPOT: Final[tuple[float, float]] = (4.75, 4.75)
 """Where the options show a setting on the world: in front of the arch in the back corner."""
+RING_PAD_BASE: Final[int] = 1 << 17
+"""Ground item ids of the markers under the ring's spots (between the battle effects' ids
+and the hazard marks': see ``render/ground_items.py``)."""
+NUDGE_EASE: Final[float] = 0.18
+"""The share of the way to its goal the camera's lean covers each tick."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,3 +178,123 @@ def screen_point(pose: Pose, x: float, y: float, z: float = 0.0) -> tuple[int, i
 def load_isle() -> Stage:
     """Load the Isle's stage."""
     return load_stage_file(ISLE_DIR / STAGE_FILE_NAME)
+
+
+# --- the ring's fighters -----------------------------------------------------------------------
+#
+# At the ring a player's fighter is shown by a stand-in: something the world renderer can
+# draw (a place, a facing, a look) that is not a sim fighter. Character select changes it
+# whenever a slot changes; the results put the winners in their victory animation.
+
+RING_ENTITY_BASE: Final[int] = 100
+"""Entity ids of stand-ins start here, clear of the strolling fighters' (0 to 3)."""
+RING_FACING: Final[Dir8] = Dir8.S
+"""Stand-ins face out of the screen."""
+DROP_HEIGHT: Final[float] = 5.5
+"""How high above its spot a fighter appears when its player joins (tiles)."""
+DROP_TICKS: Final[int] = 14
+LAND_TICKS: Final[int] = 10
+"""Ticks of the landing animation after the drop."""
+READY_TICKS: Final[int] = 64
+"""Ticks the ready pose (the taunt) plays before the fighter stands easy again."""
+IDLE_ANIM: Final[str] = "idle"
+
+
+class Mood(Enum):
+    """What a stand-in is doing."""
+
+    IDLE = "idle"
+    DROP_IN = "drop_in"
+    """Falling onto its spot, then landing: a player joined, or picked another fighter."""
+    READY = "ready"
+    WIN = "win"
+    LOST = "lost"
+
+
+@dataclass(frozen=True, slots=True)
+class RingPose:
+    """How a stand-in is shown on a tick of its mood."""
+
+    lift: float
+    """Tiles above its spot."""
+    anim: str
+    frame: int
+    """1-indexed frame of the animation."""
+    dim: bool = False
+
+
+def ring_pose(mood: Mood, ticks: int) -> RingPose:
+    """Return what a stand-in shows ``ticks`` after its mood began."""
+    ticks = max(ticks, 0)
+    if mood is Mood.DROP_IN:
+        if ticks < DROP_TICKS:
+            fallen = (ticks / DROP_TICKS) ** 2  # it speeds up as it falls
+            return RingPose(DROP_HEIGHT * (1.0 - fallen), "fall", ticks + 1)
+        if ticks < DROP_TICKS + LAND_TICKS:
+            return RingPose(0.0, "land", ticks - DROP_TICKS + 1)
+        return RingPose(0.0, IDLE_ANIM, ticks - DROP_TICKS - LAND_TICKS + 1)
+    if mood is Mood.READY:
+        if ticks < READY_TICKS:
+            return RingPose(0.0, "taunt", ticks + 1)
+        return RingPose(0.0, IDLE_ANIM, ticks - READY_TICKS + 1)
+    if mood is Mood.WIN:
+        return RingPose(0.0, "victory", ticks + 1)
+    if mood is Mood.LOST:
+        return RingPose(0.0, IDLE_ANIM, ticks + 1, dim=True)
+    return RingPose(0.0, IDLE_ANIM, ticks + 1)
+
+
+def ring_look(
+    character: str, anims: Mapping[str, AnimInfo], pose: RingPose, costume: int
+) -> FighterLook:
+    """Return the look of a stand-in: the pose's animation from the character's sheets (its
+    ``idle`` if the animation is missing; the placeholder capsule if it has no sheets)."""
+    name = pose.anim if pose.anim in anims else IDLE_ANIM
+    if name not in anims:
+        return FighterLook(dim=pose.dim)
+    choice = AnimChoice(name, anims[name].pose_at(pose.frame), exact=name == pose.anim)
+    return FighterLook(sprite=choice, costume=costume, character=character, dim=pose.dim)
+
+
+@dataclass(slots=True)
+class StandIn:
+    """One fighter standing at the ring. It has what the world renderer asks of an entity
+    (``WorldEntity``) and nothing of the sim."""
+
+    index: int
+    """Which of the four spots it stands on."""
+    character: str
+    costume: int = 0
+    color_index: int = 0
+    """The player colour its ground marker is drawn in."""
+    mood: Mood = Mood.IDLE
+    since: int = 0
+    """The world tick its mood began on."""
+    invincible: bool = False
+    on_revival_platform: bool = False
+    pos: Vec3 = ZERO3
+    """Where it is on the tick being drawn (the world sets it before each draw)."""
+
+    @property
+    def entity_id(self) -> int:
+        """Its id among the world's entities."""
+        return RING_ENTITY_BASE + self.index
+
+    @property
+    def player_index(self) -> int:
+        """The slot it stands for."""
+        return self.index
+
+    @property
+    def facing(self) -> Dir8:
+        """The way it faces."""
+        return RING_FACING
+
+    def pose(self, tick: int) -> RingPose:
+        """Return how it is shown on a world tick."""
+        return ring_pose(self.mood, tick - self.since)
+
+    def pos_at(self, tick: int) -> Vec3:
+        """Return where it is on a world tick: over its spot, as high as its pose says."""
+        x, y = RING_SPOTS[self.index]
+        return Vec3(x, y, self.pose(tick).lift)

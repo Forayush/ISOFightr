@@ -152,26 +152,47 @@ def to_main_menu(window: Any, **flow_options: Any) -> Any:
     return flow
 
 
+def open_options_page(window: Any, page: str) -> None:
+    """From the main menu: Options, then one of its pages (rules, controls or settings).
+    Rules, Controls and Settings were main menu entries until decision D-072."""
+    assert name(window) == "MainMenuView"
+    menu = window.current_view
+    for _ in range(len(menu.buttons)):
+        if menu.selected != "options":
+            press(window, keys().S)
+    press(window, keys().ENTER)
+    assert name(window) == "OptionsView"
+    options = window.current_view
+    for _ in range(len(options.buttons)):
+        if options.selected != page:
+            press(window, keys().S)
+    assert options.selected == page
+    press(window, keys().ENTER)
+
+
+def back_to_main_menu(window: Any) -> None:
+    """Leave an options page: back to the options, then to the main menu."""
+    press(window, keys().ESCAPE)
+    assert name(window) == "OptionsView"
+    press(window, keys().ESCAPE)
+    assert name(window) == "MainMenuView"
+
+
 def set_one_stock(window: Any) -> None:
     """From the main menu: open Rules, take stocks down to 1, and come back."""
-    press(window, keys().S)
-    press(window, keys().S)
-    press(window, keys().ENTER)
+    open_options_page(window, "rules")
     assert name(window) == "RulesView"
     press(window, keys().S)
     press(window, keys().A)
     press(window, keys().A)
     assert window.current_view.setup.stocks == 1
-    press(window, keys().ESCAPE)
-    assert name(window) == "MainMenuView"
+    back_to_main_menu(window)
 
 
 def test_the_rules_screen_turns_the_short_hop_macro_off(window: Any) -> None:
     flow = to_main_menu(window)
     assert flow.setup.short_hop_macro, "on by default (decision D-053)"
-    press(window, keys().S)
-    press(window, keys().S)
-    press(window, keys().ENTER)
+    open_options_page(window, "rules")
     assert name(window) == "RulesView"
     from isofightr.scenes.rules_model import ROW_KEYS
 
@@ -264,9 +285,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert [item.key for item in window.current_view.menu.items] == [
         "versus",
         "training",
-        "rules",
-        "controls",
-        "settings",
+        "options",
         "quit",
     ]
     set_one_stock(window)
@@ -376,9 +395,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
 
 def test_time_mode_shows_a_clock_and_ends_on_time(window: Any) -> None:
     to_main_menu(window)
-    press(window, keys().S)
-    press(window, keys().S)
-    press(window, keys().ENTER)
+    open_options_page(window, "rules")
     rules = window.current_view
     press(window, keys().J)  # the time limit's switch
     assert rules.setup.time_on and rules.setup.stock_on
@@ -389,6 +406,9 @@ def test_time_mode_shows_a_clock_and_ends_on_time(window: Any) -> None:
     press(window, keys().J)  # stock off: the old time mode
     assert rules.setup.time_on and not rules.setup.stock_on
     press(window, keys().K)
+    assert name(window) == "OptionsView", "special goes back, to the options"
+    press(window, keys().K)
+    assert name(window) == "MainMenuView"
     two_players_to_stage_select(window)
     press(window, keys().ENTER)
     battle = window.current_view
@@ -488,14 +508,12 @@ def test_slots_remember_their_devices_across_a_session(window: Any, tmp_path: Pa
 
 def test_team_match_from_the_menus(window: Any, pads: list[FakeController]) -> None:
     flow = to_main_menu(window)
-    press(window, keys().S)
-    press(window, keys().S)
-    press(window, keys().ENTER)
+    open_options_page(window, "rules")
     while window.current_view.cursor != "team_play":
         press(window, keys().S)
     press(window, keys().D)  # teams on
     assert window.current_view.setup.team_play
-    press(window, keys().ESCAPE)
+    back_to_main_menu(window)
     assert flow.setup.team_play
 
     press(window, keys().ENTER)
@@ -708,9 +726,7 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
 
     path = tmp_path / "settings.toml"
     flow = to_main_menu(window, settings_path=path)
-    for _ in range(4):
-        press(window, keys().S)
-    press(window, keys().ENTER)
+    open_options_page(window, "settings")
     view = window.current_view
     assert name(window) == "SettingsView"
     assert view.menu.selected.text == "Window scale: < 2x >"
@@ -752,8 +768,8 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
     )
     press(window, keys().ESCAPE)
     assert name(window) == "SettingsView", "back to where it was opened from"
-    press(window, keys().ESCAPE)
-    assert name(window) == "MainMenuView"
+    back_to_main_menu(window)
+    assert window.current_view.selected == "versus", "a new main menu starts at the top"
     press(window, keys().ENTER)
     assert window.current_view.hub.settings.deadzone == 0.25, "new scenes use the new settings"
 
@@ -835,10 +851,7 @@ def test_rebinding_a_key(window: Any, tmp_path: Path) -> None:
 
     path = tmp_path / "settings.toml"
     flow = to_main_menu(window, settings_path=path)
-    for _ in range(3):
-        press(window, keys().S)
-    assert window.current_view.menu.selected.key == "controls"
-    press(window, keys().ENTER)
+    open_options_page(window, "controls")
     view = window.current_view
     assert name(window) == "ControlsView" and view.device == "keyboard:solo"
     assert view.cursor == "move_up:0", "it opens on the first cap"
@@ -876,7 +889,7 @@ def test_rebinding_a_key(window: Any, tmp_path: Path) -> None:
 
     # The new key works at once: F is now "special" = back.
     press(window, keys().F)
-    assert name(window) == "MainMenuView"
+    assert name(window) == "OptionsView"
 
 
 def test_enter_cannot_be_bound_and_keeps_the_cap_waiting(window: Any) -> None:
@@ -1026,7 +1039,7 @@ def test_rebinding_a_gamepad_button_changes_what_the_game_does(
     tap_pad(window, pad, "start")
     assert view.listening is None and flow.settings.pad(0).special == ()
     tap_pad(window, pad, "b")
-    assert name(window) == "MainMenuView", "B goes back although it is bound to attack"
+    assert name(window) == "OptionsView", "B goes back although it is bound to attack"
 
 
 def test_a_gamepad_that_is_not_plugged_in_can_be_looked_at_but_not_rebound(window: Any) -> None:
@@ -1310,7 +1323,7 @@ def test_default_restores_every_rule_at_once(window: Any) -> None:
     press(window, keys().D)
     assert rules.cursor == "back", "the buttons do not wrap"
     press(window, keys().J)
-    assert name(window) == "MainMenuView"
+    assert name(window) == "OptionsView", "the rules are a page of the options"
 
 
 def test_the_rules_cursor_wraps_through_rows_and_buttons(window: Any) -> None:

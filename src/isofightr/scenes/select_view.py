@@ -245,7 +245,6 @@ class CharacterSelectView(MenuView):
         """Build the roster, the detail strip and four panels, and rejoin the devices that
         were here last time."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.setup = setup
         self.character_ids = tuple(list_character_ids())
         self.tiles = roster_model.roster_tiles(self.character_ids)

@@ -1,5 +1,5 @@
 """The UI foundation on a real window (``pytest -m gl``): the game's font as sprites, the
-widgets, the menu backdrop, the mouse, control hints and the screen capture tool.
+widgets, the menus' world, the mouse, control hints and the screen capture tool.
 
 Plan note "13 - Game Modes UI and Flow", decision D-061 (M13 group 0).
 """
@@ -164,30 +164,33 @@ def test_widgets_swap_their_art_without_new_sprites(window: Any) -> None:
     assert len(layer.panels) == before > panels
 
 
-def test_the_backdrop_fills_the_screen_and_drifts(window: Any) -> None:
+def test_the_isle_fills_the_screen_and_lives(window: Any) -> None:
+    """What the dusk backdrop's test held, of what replaced it (decision D-072): one world
+    for every menu, no gap anywhere on the screen, and it moves."""
     from isofightr.capture import read_frame
-    from isofightr.ui.backdrop import LAYERS, layer_shift
 
     window.switch_to()
     flow = flow_for(window)
-    backdrop = flow.backdrop()
-    assert flow.backdrop() is backdrop, "one shared backdrop"
+    world = flow.world()
+    assert flow.world() is world, "one shared world"
 
-    def shot(tick: int) -> Any:
+    def shot() -> Any:
         with window.pixel_buffer.drawing((255, 0, 255, 255)):
-            backdrop.draw(tick)
+            world.draw()
         return read_frame(window)
 
-    first = shot(0)
+    first = shot()
     colours = first.getcolors(maxcolors=100000)
-    assert colours is not None and len(colours) > 4
+    assert colours is not None and len(colours) > 20
     assert all(colour[:3] != (255, 0, 255) for _, colour in colours), "no gap in the sky"
-    assert shot(0).tobytes() == first.tobytes()
-    assert shot(600).tobytes() != first.tobytes(), "it moves"
-    slow = LAYERS[1]
-    seam = next(tick for tick in range(0, 40000, 20) if layer_shift(tick, slow.speed) > 640)
-    late = shot(seam)
-    assert all(colour[:3] != (255, 0, 255) for _, colour in late.getcolors(maxcolors=100000))
+    assert shot().tobytes() == first.tobytes(), "drawing changes nothing"
+    for _ in range(600):
+        world.tick()
+    assert shot().tobytes() != first.tobytes(), "it lives: clouds drift, fighters stroll"
+    for name in ("plaza", "ring", "workshop"):
+        world.settle(name)
+        late = shot()
+        assert all(colour[:3] != (255, 0, 255) for _, colour in late.getcolors(maxcolors=100000))
 
 
 def test_menu_ticks_carry_from_scene_to_scene(window: Any) -> None:
@@ -197,7 +200,7 @@ def test_menu_ticks_carry_from_scene_to_scene(window: Any) -> None:
     assert flow.menu_ticks == 5
     flow.show_main_menu()
     step(window, 3)
-    assert flow.menu_ticks == 8, "the backdrop drifts on across scenes"
+    assert flow.menu_ticks == 8 and flow.world().ticks == 8, "the world lives on across scenes"
 
 
 def test_the_mouse_moves_the_cursor_and_clicks_on_the_kit_screen(window: Any) -> None:
@@ -248,7 +251,7 @@ def test_the_mouse_works_on_the_list_menus(window: Any) -> None:
     assert view.menu.cursor == back
     view.on_mouse_press(*to_window(window, *native), arcade.MOUSE_BUTTON_LEFT, 0)
     step(window)
-    assert type(window.current_view).__name__ == "MainMenuView"
+    assert type(window.current_view).__name__ == "OptionsView", "settings is a page of options"
 
 
 def test_the_mouse_is_mapped_through_the_letterbox(
@@ -295,6 +298,7 @@ CAPTURED = (
     "boot",
     "title",
     "main",
+    "options",
     "loading",
     "rules",
     "pool",
@@ -325,6 +329,7 @@ def test_every_screen_can_be_captured(window: Any, screen: str) -> None:
         "loading": "LoadingView",
         "title": "TitleView",
         "main": "MainMenuView",
+        "options": "OptionsView",
         "rules": "RulesView",
         "pool": "RandomPoolView",
         "controls": "ControlsView",

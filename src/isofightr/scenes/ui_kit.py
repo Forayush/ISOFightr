@@ -154,7 +154,6 @@ class UiKitView(MenuView):
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Lay everything out."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.header("UI kit", "gear")
         self.live = Sampler(self.ui, LEFT_SLAB, theme.STONE)
         """The stone half: the one the cursor moves on."""

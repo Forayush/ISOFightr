@@ -630,6 +630,61 @@ class Button:
         return self._pressed_until >= 0
 
 
+class BigButton:
+    """A button with a caption and a line under it saying what it leads to: an entry of
+    the main menu or of the options. A block like any other; its two lines ride its face."""
+
+    CAPTION_UP = 19
+    """Rows from the face's bottom to the caption's line box."""
+    TEXT_UP = 5
+
+    def __init__(
+        self,
+        layer: UiLayer,
+        rect: Rect,
+        caption: str,
+        text: str,
+        icon: str | None = None,
+        surface: theme.Surface | None = None,
+    ) -> None:
+        """Create the button at rest."""
+        self.rect = rect
+        self.button = Button(layer, rect, "", icon, TextSize.TITLE, surface=surface)
+        self.surface = self.button.surface
+        left = rect.left + theme.PAD + (theme.ICON_SIZE + theme.PAD if icon else 0)
+        self.caption = layer.write(caption, left, 0, TextSize.TITLE, shadow=False)
+        self.text = layer.write(text, left, 0, TextSize.TEXT, shadow=False)
+        self._shown: tuple[Look, int] | None = None
+        self.focus(False)
+
+    def focus(self, focused: bool) -> None:
+        """Show the button under the cursor, or at rest."""
+        self.button.focus(focused)
+        self._place()
+
+    def press(self, tick: int) -> None:
+        """Sink the button for a few ticks (see :meth:`Button.press`)."""
+        self.button.press(tick)
+        self._place()
+
+    def settle(self, tick: int) -> None:
+        """Let a pressed button come back up."""
+        self.button.settle(tick)
+        self._place()
+
+    def _place(self) -> None:
+        look, lift = self.button.look, self.button.lift
+        if (look, lift) == self._shown:
+            return
+        self._shown = (look, lift)
+        face = self.button.face
+        self.caption.color = kit_art.look_text(look, self.surface)
+        self.caption.move_to(self.caption.x, face.bottom + self.CAPTION_UP)
+        lit = look in (Look.FOCUS, Look.DANGER)
+        self.text.color = kit_art.look_text(look, self.surface) if lit else self.surface.text_muted
+        self.text.move_to(self.text.x, face.bottom + self.TEXT_UP)
+
+
 class Toggle:
     """An ON/OFF switch."""
 

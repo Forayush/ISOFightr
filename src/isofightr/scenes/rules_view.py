@@ -53,6 +53,8 @@ class RulesView(MenuView):
     """The versus rules. Up and down pick a row, left and right step its value, confirm flips
     its switch; DEFAULT puts every rule back."""
 
+    station = "workshop"
+
     def __init__(
         self,
         pixel_buffer: PixelBuffer,
@@ -65,13 +67,12 @@ class RulesView(MenuView):
         Args:
             pixel_buffer: the native render target.
             flow: the router; it holds the setup and saves the rules.
-            on_back: where BACK goes (the main menu if not given).
+            on_back: where BACK goes (the options if not given).
             cursor: the row or button the cursor starts on.
         """
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.setup = flow.setup
-        self.on_back = on_back or flow.show_main_menu
+        self.on_back = on_back or flow.show_options
         self.cursor = cursor if cursor in (*ROW_KEYS, *BOTTOM_KEYS) else ROW_KEYS[0]
         self.header("RULES", "gear")
         add_panel(self.ui, PANEL)
@@ -263,6 +264,8 @@ class RulesView(MenuView):
 class RandomPoolView(MenuView):
     """The stages "Random" may pick: a tick box per stage. At least one stays ticked."""
 
+    station = "workshop"
+
     ROW = 20
     WIDTH = 260
 
@@ -271,7 +274,6 @@ class RandomPoolView(MenuView):
     ) -> None:
         """List every stage with its tick box."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.setup = flow.setup
         self.on_back = on_back
         self.stages = list_stage_ids()

@@ -1,13 +1,14 @@
 """The UI polish pass (decision D-070): the pure parts.
 
-Buttons that overwrite things rest quietly, the menu backdrop's drifting tiles are painted in
-the backdrop's own colours, and the rules screen gives stage hazards its own icon.
+Buttons that overwrite things rest quietly and the rules screen gives stage hazards its own
+icon. (The dusk backdrop and its drifting tiles went with decision D-072: the menus are
+drawn on the Isle, whose tests are ``test_menu_world*.py``.)
 """
 
 from PIL import Image
 
 from isofightr.scenes import rules_model
-from isofightr.ui import backdrop, kit_art, theme
+from isofightr.ui import kit_art, theme
 from isofightr.ui.kit_art import Look
 
 
@@ -27,13 +28,6 @@ def test_a_button_that_overwrites_rests_dark_with_a_red_rim() -> None:
 def test_the_caution_colours_are_theme_palette_entries() -> None:
     for colour in (theme.CAUTION_FILL[:3], theme.CAUTION_BORDER[:3], theme.CAUTION_TEXT):
         assert colour in theme.PALETTE
-
-
-def test_drifting_tiles_wear_the_backdrops_island_colours() -> None:
-    wanted = {theme.rgb(backdrop.DUSK.island_top), theme.DEEP_TEAL, theme.NIGHT}
-    for half in backdrop.TILE_HALF_WIDTHS:
-        assert _colours(backdrop.build_drift_tile(half)) == wanted
-    assert backdrop.TILE_ALPHA >= 128, "solid enough not to turn grey over the plum sky"
 
 
 def test_stage_hazards_has_its_own_icon_on_the_rules_screen() -> None:

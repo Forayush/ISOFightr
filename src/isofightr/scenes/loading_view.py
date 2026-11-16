@@ -114,7 +114,6 @@ class LoadingView(MenuView):
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, plan: MatchPlan) -> None:
         """Lay the screen out. Nothing slow happens here: the work is done tick by tick."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         self.plan = plan
         self.battle: BattleView | None = None
         """The finished battle scene, once every step is done."""

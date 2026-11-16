@@ -44,10 +44,11 @@ FOOTER = "{stick}: pick, change list   {attack}: play   {special}: stop, then ba
 class SoundTestView(MenuView):
     """Lists the game's music and sounds and plays what is picked."""
 
+    station = "workshop"
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
         """Read the audio manifest and lay the two lists out."""
         super().__init__(pixel_buffer, flow)
-        self.dim = None
         manifest = model.load_manifest()
         uses = {AUDIO_MENU_SONG: "The menus", AUDIO_VICTORY_SONG: "The results"}
         for stage_id in list_stage_ids():
