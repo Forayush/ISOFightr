@@ -339,6 +339,17 @@ class TextLabel:
             sprite.color = (*value, self._alpha)
 
     @property
+    def shadow(self) -> bool:
+        """Whether the text has the ink drop shadow (off for ink text on a light strip)."""
+        return self._shadow
+
+    @shadow.setter
+    def shadow(self, value: bool) -> None:
+        if value != self._shadow:
+            self._shadow = value
+            self._layout()
+
+    @property
     def visible(self) -> bool:
         """Whether the label is drawn."""
         return self._visible
@@ -387,6 +398,8 @@ class TextLabel:
                 ink.position = centre
                 ink.visible = True
                 if self._shadow:
+                    if used == len(self._under):
+                        self._grow_shadow(texture)
                     under = self._under[used]
                     under.texture = texture
                     under.position = (
@@ -398,19 +411,21 @@ class TextLabel:
             x += advance
         for index in range(used, len(self._ink)):
             self._ink[index].visible = False
-            if self._shadow:
-                self._under[index].visible = False
+        # Without a shadow (it can be turned off on a label already shown) none is drawn.
+        for index in range(used if self._shadow else 0, len(self._under)):
+            self._under[index].visible = False
 
     def _grow(self, texture: arcade.Texture) -> None:
         ink = arcade.Sprite(texture)
         ink.color = (*self._color, self._alpha)
         self._layer.text.append(ink)
         self._ink.append(ink)
-        if self._shadow:
-            under = arcade.Sprite(texture)
-            under.color = (*theme.TEXT_SHADOW[:3], self._alpha)
-            self._layer.shadows.append(under)
-            self._under.append(under)
+
+    def _grow_shadow(self, texture: arcade.Texture) -> None:
+        under = arcade.Sprite(texture)
+        under.color = (*theme.TEXT_SHADOW[:3], self._alpha)
+        self._layer.shadows.append(under)
+        self._under.append(under)
 
 
 class Picture:

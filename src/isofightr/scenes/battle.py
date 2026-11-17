@@ -93,7 +93,7 @@ from isofightr.sim.stage import Stage
 from isofightr.ui import font, kit_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, TextSize
-from isofightr.ui.hints import HELP_TEMPLATES, battle_help, device_labels, hint_text
+from isofightr.ui.hints import HELP_TEMPLATES, battle_help, device_labels, hint_text, is_pad
 from isofightr.ui.hud import CardInfo, DamageHud
 from isofightr.ui.hud_extras import HudExtras
 from isofightr.ui.hud_layout import (
@@ -115,9 +115,10 @@ from isofightr.ui.pixel_font import GLYPH_HEIGHT
 from isofightr.ui.pixel_text import GlyphAtlas, PixelLabel
 from isofightr.ui.widgets import (
     Picture,
+    PromptBar,
     TextLabel,
     UiLayer,
-    add_panel,
+    add_slab,
     text_bottom,
 )
 
@@ -179,6 +180,8 @@ PAUSE_PANEL_WIDTH = 300
 PAUSE_HEADER = 30
 """Height of the pause panel's title bar."""
 PAUSE_FOOT = 24
+PAUSE_VEIL = theme.with_alpha(theme.NIGHT, 120)
+"""The veil over a paused battle: light, so the stage keeps its colour (decision D-072)."""
 """Room under the pause menu's rows for the controls line."""
 MOVES_COLUMN_CAPACITY = 43
 """Characters across one column of the move list (the body font is 7 px a character)."""
@@ -469,22 +472,23 @@ class BattleView(TickedView):
         return Menu(items)
 
     def _build_pause_ui(self) -> None:
-        """The pause menu (decision D-061): the battle dimmed, a panel with a title bar, one
-        strip per row (lit under the cursor, a setting's value at its right end with arrows
-        while it is selected) and the controls along its foot."""
+        """The pause menu (decisions D-061, D-072): the battle lightly veiled so the stage
+        keeps its colour, an ink slab with a title, one strip per row (gold under the cursor,
+        a setting's value at its right end with arrows while it is selected) and the controls
+        as prompts along its foot."""
         ui = self.pause_ui
         rows = len(self.pause_menu.items)
-        height = PAUSE_HEADER + rows * (theme.ROW_HEIGHT + 2) + PAUSE_FOOT
+        height = PAUSE_HEADER + rows * (theme.ROW_HEIGHT + 2) + PAUSE_FOOT + theme.LIP
         rect = Rect((NATIVE_W - PAUSE_PANEL_WIDTH) // 2, (NATIVE_H - height) // 2,
                     PAUSE_PANEL_WIDTH, height)  # fmt: skip
         ui.picture(
             ("pause-veil", NATIVE_W, NATIVE_H),
-            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), theme.DIM_OVERLAY),
+            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), PAUSE_VEIL),
             0,
             0,
         )
-        add_panel(ui, rect)
-        title = "TRAINING" if self.training else "PAUSED"
+        add_slab(ui, rect, theme.INKED)
+        title = "Training" if self.training else "Paused"
         ui.icon("pause", rect.left + theme.PAD, rect.top - 19, theme.HEADING)
         ui.write(title, rect.left + theme.PAD + 18, rect.top - 22, TextSize.TITLE, theme.HEADING)
         ui.picture(
@@ -500,19 +504,17 @@ class BattleView(TickedView):
             strip = Rect(rect.left + 8, top - (row + 1) * (theme.ROW_HEIGHT + 2), rect.width - 16,
                          theme.ROW_HEIGHT)  # fmt: skip
             self._pause_strips.append(Picture(ui, strip))
-            bottom = text_bottom(strip, TextSize.BODY)
+            bottom = text_bottom(strip, TextSize.TEXT)
             self._pause_labels.append(
                 (
-                    ui.write("", strip.left + theme.PAD, bottom, TextSize.BODY),
+                    ui.write("", strip.left + theme.PAD, bottom, TextSize.TEXT),
                     ui.write(
-                        "", strip.right - theme.PAD, bottom, TextSize.BODY, theme.TEXT, "right"
+                        "", strip.right - theme.PAD, bottom, TextSize.TEXT, theme.TEXT, "right"
                     ),
                 )
             )
-        self._pause_hint = ui.write(
-            "", rect.left + rect.width // 2, rect.bottom + 6, TextSize.BODY, theme.TEXT_MUTED,
-            "centre",
-        )  # fmt: skip
+        foot = Rect(rect.left, rect.bottom + theme.LIP, rect.width, PAUSE_FOOT)
+        self._pause_hint = PromptBar(ui, foot, theme.INKED, strip=False)
 
     def _sync_pause_rows(self) -> None:
         """Show the pause menu's rows as they are now."""
@@ -523,23 +525,28 @@ class BattleView(TickedView):
             focused = index == menu.cursor
             rect = strip.rect
             strip.show(
-                ("pause-row", rect.width, rect.height, focused),
-                lambda rect=rect, focused=focused: kit_art.list_row(
-                    rect.width, rect.height, focused
+                ("pause-row-ink", rect.width, rect.height, focused),
+                lambda rect=rect, focused=focused: kit_art.row_strip(
+                    rect.width, rect.height, focused, theme.INKED
                 ),
             )
             name, shown = pause_row_parts(item)
-            label.text = name.upper()
-            label.color = theme.FOCUS if focused else theme.TEXT
+            label.text = name
+            label.color = theme.INK if focused else theme.TEXT
+            label.shadow = not focused
+            word = shown.upper()
             if shown and focused:
                 shown = f"{ARROW_LEFT} {shown} {ARROW_RIGHT}"
-            value.text = shown.upper()
+            value.text = shown
             # At rest a switch reads as the menus' switches do: mint for on, dim for off.
-            rest = {"ON": theme.ON, "OFF": theme.TEXT_DIM}.get(value.text, theme.TEXT_MUTED)
-            value.color = theme.FOCUS if focused else rest
-        labels = device_labels(self.settings, self.move_list_device(0))
-        self._pause_hint.text = hint_text(
-            "{stick}: move   {attack}: pick   {special}: resume", labels
+            rest = {"ON": theme.ON, "OFF": theme.TEXT_DIM}.get(word, theme.TEXT_MUTED)
+            value.color = theme.INK if focused else rest
+            value.shadow = not focused
+        device = self.move_list_device(0)
+        labels = device_labels(self.settings, device)
+        self._pause_hint.set(
+            hint_text("{stick}: move   {attack}: pick   {special}: resume", labels),
+            is_pad(device),
         )
 
     def _build_moves_ui(self) -> None:
@@ -550,11 +557,11 @@ class BattleView(TickedView):
         rect = Rect(MOVES_MARGIN, (NATIVE_H - height) // 2, NATIVE_W - 2 * MOVES_MARGIN, height)
         ui.picture(
             ("pause-veil", NATIVE_W, NATIVE_H),
-            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), theme.DIM_OVERLAY),
+            lambda: kit_art.filled(kit_art.shape_mask(NATIVE_W, NATIVE_H, 0), PAUSE_VEIL),
             0,
             0,
         )
-        add_panel(ui, rect)
+        add_slab(ui, rect, theme.INKED)
         ui.icon("swords", rect.left + theme.PAD, rect.top - 19, theme.HEADING)
         self._moves_title = ui.write(
             "", rect.left + theme.PAD + 18, rect.top - 20, TextSize.BODY, theme.HEADING
@@ -571,10 +578,8 @@ class BattleView(TickedView):
             MoveColumn(ui, rect.left + theme.PAD + index * (column_width + MOVES_COLUMN_GAP), top)
             for index in range(2)
         ]
-        self._moves_hint = ui.write(
-            "", rect.left + rect.width // 2, rect.bottom + 6, TextSize.BODY, theme.TEXT_MUTED,
-            "centre",
-        )  # fmt: skip
+        foot = Rect(rect.left, rect.bottom + theme.LIP, rect.width, MOVES_FOOT)
+        self._moves_hint = PromptBar(ui, foot, theme.INKED, strip=False)
 
     def move_list_players(self) -> list[int]:
         """Return the players who get a move list page: everyone with a device (not the

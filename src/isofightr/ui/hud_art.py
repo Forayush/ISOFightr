@@ -15,14 +15,23 @@ from __future__ import annotations
 import math
 from typing import Final
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 from isofightr.ui import kit_art, logo, select_art, theme
 from isofightr.ui.theme import Ramp, Rgb
 
 CARD_ALPHA: Final[int] = 235
-WEDGE_WIDTH: Final[int] = 36
-"""The coloured wedge behind a card's bust, leaning at the tiles' slope on its right."""
+PLATE_LIP: Final[int] = 2
+"""The lip of the HUD's small plates (clock, feed rows, combo)."""
+CARD_LIP: Final[int] = 3
+"""The card's front lip, in the player's dark shade (decision D-072)."""
+BAND_LEFT: Final[int] = 38
+"""Where the name band starts: just right of the bust's well (card-relative)."""
+BAND_ROWS: Final[int] = 12
+"""Rows of the name band, under the outline and the lit line; one more row is its edge."""
+WELL_WIDTH: Final[int] = 58
+WELL_RIGHT: Final[int] = 3
+"""The damage number's well: this wide, this far from the card's right edge."""
 BANNER_SCALE: Final[int] = 3
 """The countdown and GO! / GAME! letters are the display font this many times over."""
 WIDE_BANNER_SCALE: Final[int] = 2
@@ -39,28 +48,48 @@ BANNER_COLORS: Final[dict[str, tuple[Rgb, Rgb, Rgb, Rgb]]] = {
 def card(
     width: int, height: int, ramp: Ramp, lit: bool = False, accent: Ramp | None = None
 ) -> Image.Image:
-    """Return a player card's body: deep ink, a wedge of the player's dark shade behind the
-    bust with leaning stripes, and a border in the player's colour (white when ``lit``, for
-    the moment after a hit; in ``accent``, the attacker's colours, for the moment after a
-    heavy launch: decision D-068)."""
-    light, base, dark, deep = ramp
-    mask = kit_art.shape_mask(width, height, theme.CORNER)
-    image = kit_art.filled(mask, (*theme.INK, CARD_ALPHA))
-    pixels = image.load()
-    assert pixels is not None
-    for y in range(height):
-        reach = WEDGE_WIDTH + (height - 1 - y) // 8
-        for x in range(min(reach, width)):
-            if not mask.getpixel((x, y)):
-                continue
-            stripe = (x + 2 * y) % 8 < 2
-            pixels[x, y] = (*(deep if stripe else dark), 255)
-    border = theme.WHITE if lit else base
+    """Return a player card's body (decision D-072): an ink block like the menus' blocks,
+    its front lip in the player's dark shade, a band of the player's light shade across the
+    top right where the name is written in ink, and a sunk well where the damage number
+    sits. ``lit`` (the moment after a hit) turns the outline white; ``accent`` (the
+    attacker's colours, the moment after a heavy launch: decision D-068) paints the band and
+    the outline in them."""
+    light, base, dark, _deep = ramp
+    band, band_edge, outline = light, base, theme.WHITE if lit else theme.INK
     if accent is not None:
-        light, border = accent[0], accent[1]
-    edge = kit_art.panel(width, height, (0, 0, 0, 0), border, theme.CORNER, light=light)
-    image.alpha_composite(edge)
+        band, band_edge, outline = accent[0], accent[1], accent[1]
+    face = (*theme.NIGHT, CARD_ALPHA)
+    image = kit_art.block(width, height, (face, theme.NAVY, dark, outline), CARD_LIP, theme.CORNER)
+    rim = _pixels_of(image, outline)
+    face_area = Image.new("L", (width, height), 0)
+    face_area.paste(kit_art.shape_mask(width, height - CARD_LIP, theme.CORNER), (0, 0))
+    top = 2  # under the outline and the lit line
+    for colour, first, last in ((band, top, top + BAND_ROWS - 1), (band_edge, top + BAND_ROWS,
+                                                                   top + BAND_ROWS)):  # fmt: skip
+        rows = Image.new("L", (width, height), 0)
+        rows.paste(255, (BAND_LEFT, first, width, last + 1))
+        image.paste((*colour, 255), (0, 0), ImageChops.multiply(rows, face_area))
+    image.paste((*outline, 255), (0, 0), rim)
+    left = width - WELL_WIDTH - WELL_RIGHT
+    well_top = top + BAND_ROWS + 2
+    well = kit_art.filled(
+        kit_art.shape_mask(WELL_WIDTH, height - CARD_LIP - 2 - well_top, 1), theme.INK, theme.NIGHT
+    )
+    image.alpha_composite(well, (left, well_top))
     return image
+
+
+def _pixels_of(image: Image.Image, colour: Rgb) -> Image.Image:
+    """Return a mask of the opaque pixels of ``image`` that are exactly ``colour``."""
+    mask = Image.new("L", image.size, 0)
+    source, target = image.load(), mask.load()
+    assert source is not None and target is not None
+    for y in range(image.height):
+        for x in range(image.width):
+            pixel = source[x, y]
+            if pixel[3] and pixel[:3] == colour:
+                target[x, y] = 255
+    return mask
 
 
 def bust_mask(size: int, inset: int = 0) -> Image.Image:
@@ -125,21 +154,24 @@ def badge(width: int, height: int, color: Rgb) -> Image.Image:
 
 
 def clock_plate(width: int, height: int, alarm: bool = False, glow: bool = False) -> Image.Image:
-    """Return the plate behind the clock: steel-rimmed, red-rimmed in the last 30 seconds
-    (and red-filled on the pulse's bright half)."""
-    border = theme.RED if alarm else theme.STEEL
-    fill = theme.CRIMSON if alarm and glow else theme.INK
-    return kit_art.panel(width, height, (*fill, CARD_ALPHA), border, theme.SMALL_CORNER)
+    """Return the plate behind the clock: an ink block (decision D-072), lit and lipped in
+    red in the last 30 seconds (and red-faced on the pulse's bright half)."""
+    fill = theme.CRIMSON if alarm and glow else theme.NIGHT
+    light = theme.RED if alarm else theme.NAVY
+    lip = theme.MAROON if alarm else theme.INK
+    return kit_art.block(width, height, ((*fill, CARD_ALPHA), light, lip, theme.INK), PLATE_LIP)
 
 
 def feed_row(width: int, height: int, color: Rgb) -> Image.Image:
-    """Return one KO feed row: an ink strip with a block of the KO'd player's colour at its
-    left end."""
-    mask = kit_art.shape_mask(width, height, theme.SMALL_CORNER)
-    image = kit_art.filled(mask, (*theme.INK, CARD_ALPHA))
-    block = Image.new("L", mask.size, 0)
-    block.paste(mask.crop((0, 0, 4, height)), (0, 0))
-    image.paste((*color, 255), (0, 0), block)
+    """Return one KO feed row: a low ink block with the KO'd player's colour on its left
+    end (decision D-072)."""
+    image = kit_art.block(
+        width, height, ((*theme.NIGHT, CARD_ALPHA), theme.NAVY, theme.INK, theme.INK), PLATE_LIP
+    )
+    end = Image.new("L", image.size, 0)
+    end.paste(kit_art.shape_mask(width, height - PLATE_LIP, theme.SMALL_CORNER).crop(
+        (1, 1, 4, height - PLATE_LIP - 1)), (1, 1))  # fmt: skip
+    image.paste((*color, 255), (0, 0), end)
     return image
 
 
@@ -164,9 +196,9 @@ def sash(width: int, height: int, ramp: Ramp) -> Image.Image:
 
 
 def combo_plate(width: int, height: int) -> Image.Image:
-    """Return the plate the combo counter sits on: ink, rimmed in gold."""
-    return kit_art.filled(
-        kit_art.shape_mask(width, height, theme.SMALL_CORNER), (*theme.INK, CARD_ALPHA), theme.GOLD
+    """Return the plate the combo counter sits on: an ink block lit and lipped in gold."""
+    return kit_art.block(
+        width, height, ((*theme.NIGHT, CARD_ALPHA), theme.GOLD, theme.AMBER, theme.INK), PLATE_LIP
     )
 
 

@@ -82,6 +82,9 @@ from isofightr.settings import HIT_EFFECTS, HIT_EFFECTS_FULL, Settings, rules_fr
 from isofightr.sim.input_frame import Dir8
 from isofightr.sim.move_def import Effect
 
+SHEET_STAGE = "training_grid"
+"""The stage of every capture but a --screen one when --stage is not given."""
+
 
 def _rules(text: str) -> dict[str, object]:
     """Parse ``name=value`` pairs into a ``[rules]`` table (true/false, whole numbers, or
@@ -166,7 +169,9 @@ def main() -> None:
     )
     parser.add_argument("--p1", default="rook")
     parser.add_argument("--p2", default="rook")
-    parser.add_argument("--stage", default="training_grid")
+    parser.add_argument(
+        "--stage", default=None, help="stage (default training_grid; a --screen battle: Sky Ruins)"
+    )
     parser.add_argument("--script", default="", help='key events, e.g. "K@2,K!3"')
     parser.add_argument("--ticks", default="", help="ticks to capture, e.g. 10,20,30 or 0:40:2")
     parser.add_argument("--p1-at", default=None, help="x,y,z for player 1")
@@ -204,7 +209,7 @@ def main() -> None:
             hitlag=args.hitlag,
             crop=(wide, tall),
             scale=args.scale,
-            stage_id=args.stage,
+            stage_id=args.stage or SHEET_STAGE,
             hit_effects=args.hit_effects,
         )
     elif args.hit_strip:
@@ -216,7 +221,7 @@ def main() -> None:
             args.hit_strip,
             args.percent,
             _ticks(args.ticks) if args.ticks else list(range(0, 41, 2)),
-            stage_id=args.stage,
+            stage_id=args.stage or SHEET_STAGE,
             facing=Dir8[args.facing],
             crop=(wide, tall),
             columns=args.columns,
@@ -229,7 +234,9 @@ def main() -> None:
             hud=args.hud,
         )
     elif args.depth_lab:
-        sheet = capture_depth_lab(window, args.stage, character=args.p1, scale=args.scale)
+        sheet = capture_depth_lab(
+            window, args.stage or SHEET_STAGE, character=args.p1, scale=args.scale
+        )
     elif args.stage_sheet:
         sheet = capture_stage_sheet(
             window,
@@ -252,13 +259,14 @@ def main() -> None:
             seed=args.seed,
             settings=replace(Settings(), rules=rules_from_data(_rules(args.rules))),
             station=start or args.station,
+            stage=args.stage or "",
             goal=goal,
         )
     else:
         sheet = capture(
             window,
             [args.p1, args.p2],
-            args.stage,
+            args.stage or SHEET_STAGE,
             parse_script(args.script),
             ticks,
             positions=[spot(args.p1_at), spot(args.p2_at)],

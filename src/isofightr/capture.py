@@ -237,6 +237,7 @@ def open_screen(
     players: int = 2,
     station: str = "",
     goal: str = "",
+    stage: str = "",
 ) -> None:
     """Show one of :data:`SCREENS`, set up so there is something to look at. ``station``
     and ``goal`` are for the ``isle`` screen: the station of the menus' island to show, and
@@ -277,7 +278,8 @@ def open_screen(
         flow.show_stage_select(versus_setup(players, rules=rules))
     elif screen in ("hud", "pause"):
         count = max(players, 4) if screen == "hud" else players
-        flow.start_battle(versus_setup(count, cpus=True, rules=rules))
+        setup = versus_setup(count, cpus=True, rules=rules)
+        flow.start_battle(replace(setup, stage=stage) if stage else setup)
         view = window.current_view
         assert isinstance(view, BattleView)
         view.show_help = False
@@ -327,6 +329,7 @@ def capture_screen(
     seed: int = 0,
     settings: Settings | None = None,
     station: str = "",
+    stage: str = "",
     goal: str = "",
 ) -> Image.Image:
     """Show a screen of the game's flow and return the frames at ``ticks`` side by side.
@@ -343,10 +346,11 @@ def capture_screen(
         settings: the user settings to show (the defaults if not given; never saved).
         station: for the ``isle`` screen, the station to show.
         goal: for the ``isle`` screen, the station to glide to (the frames are the glide).
+        stage: for a screen with a battle under it, the stage (empty: the default).
     """
     window.switch_to()
     flow = GameFlow(window, window.pixel_buffer, seed=seed, settings=settings)
-    open_screen(window, flow, screen, players, station, goal)
+    open_screen(window, flow, screen, players, station, goal, stage)
     return _run(window, script, ticks, crop, scale)
 
 

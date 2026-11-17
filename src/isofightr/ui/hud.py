@@ -151,7 +151,8 @@ class DamageHud:
             name_x,
             rect.bottom + layout.NAME_BOTTOM,
             TextSize.SMALL,
-            ramp[0],
+            theme.INK,
+            shadow=False,  # ink on the band of the player's light shade (D-072)
         )
         self._names.append(name)
         badge_left = name.left + name.width + 4
