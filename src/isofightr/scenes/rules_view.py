@@ -87,6 +87,8 @@ class RulesView(MenuView):
             cursor: the row or button the cursor starts on.
         """
         super().__init__(pixel_buffer, flow)
+        self._stage_ids = list_stage_ids()
+        """Every stage, read from the disk once (the pool line counts them every tick)."""
         self.setup = flow.setup
         self.in_options = on_back is None
         """Whether the screen is a tab of the options (else it was opened from
@@ -277,7 +279,7 @@ class RulesView(MenuView):
                     stepper.label.color = theme.STONE.text_dim
             if row.key in self._switches:
                 self._switches[row.key].set(bool(on), focused)
-        stages = list_stage_ids()
+        stages = self._stage_ids
         pooled = len(setup.pool(stages))
         self.buttons[POOL].label.text = f"RANDOM STAGE POOL  {pooled}/{len(stages)}"
         for key, button in self.buttons.items():

@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, ClassVar
 import arcade
 from PIL import Image
 
+from isofightr.audio.cues import UI_GLIDE
 from isofightr.config import (
     AUDIO_MENU_SONG,
     NATIVE_H,
@@ -286,9 +287,13 @@ class MenuView(TickedView):
     scene opens (see :mod:`isofightr.scenes.menu_world_model`)."""
 
     def on_show_view(self) -> None:
-        """Start (or keep) the scene's music, and send the camera to the scene's station."""
+        """Start (or keep) the scene's music, and send the camera to the scene's station
+        (with a soft whoosh when it sets off, unless the cloud covers the change)."""
         self.audio.play_music(self.music, self.music_loops)
+        before = self.world.station
         self.world.go(self.station)
+        if self.world.station is not before and not self.wiping:
+            self.audio.play(UI_GLIDE)
 
     def tick(self) -> None:
         """Hand this tick's menu actions to :meth:`act`, then refresh the text."""

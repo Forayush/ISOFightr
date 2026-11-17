@@ -185,11 +185,25 @@ def _shift(loaded: Face, character: str) -> int:
     return found
 
 
+_WIDTHS: dict[tuple[int, int, str], int] = {}
+"""Measured widths of runs of text by face: menus measure the same lines every tick, and a
+measurement asks the font to lay the run out."""
+WIDTH_CACHE_LIMIT: Final[int] = 4096
+"""Entries kept before the cache starts over (counting numbers make new lines forever)."""
+
+
 def _run_width(loaded: Face, arrow: bool, run: str) -> int:
     if arrow:
         return _arrow_size(loaded) + loaded.scale
-    shifts = sum(_shift(loaded, character) for character in run)
-    return (math.ceil(loaded.font.getlength(run)) + shifts) * loaded.scale
+    key = (id(loaded.font), loaded.scale, run)
+    found = _WIDTHS.get(key)
+    if found is None:
+        shifts = sum(_shift(loaded, character) for character in run)
+        found = (math.ceil(loaded.font.getlength(run)) + shifts) * loaded.scale
+        if len(_WIDTHS) >= WIDTH_CACHE_LIMIT:
+            _WIDTHS.clear()
+        _WIDTHS[key] = found
+    return found
 
 
 def text_width(text: str, size: TextSize = TextSize.BODY, fonts_dir: Path = FONTS_DIR) -> int:

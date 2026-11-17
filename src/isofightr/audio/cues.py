@@ -204,12 +204,22 @@ class MatchSounds:
         return [Cue(name, fighter.pos, vary=True)] if name else []
 
 
+UI_GLIDE = "ui_glide"
+"""The camera sets off for another station of the Isle (decision D-072)."""
+UI_PRESS = "ui_press"
+"""A block button sinks under a press."""
+UI_WIPE = "ui_wipe"
+"""The cloud rises between the Isle and a stage."""
+ISLE_SOUNDS = (UI_GLIDE, UI_PRESS, UI_WIPE)
+
+
 def required_sounds() -> set[str]:
     """Every sound name this module can ask for (the build must provide them all)."""
     names = {"pummel", "double_jump", "jump", "land_heavy", "land_light", "ko_blast"}
     names |= {"respawn", "clank", "parry", "shield_hit", "shield_break", "grab", "ledge_grab"}
     names |= {"tech", "wall_bounce", "shoot", "shockwave", "counter", "sudden_death", "game"}
     names |= {"countdown", "go", "spring", HAZARD_WARNING} | set(HAZARD_SOUNDS.values())
+    names |= set(ISLE_SOUNDS)
     names |= set(SWING_BY_KIND.values()) | set(STATE_SOUNDS.values())
     for tier in HIT_TIER_NAMES:
         names.add(tier)

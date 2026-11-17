@@ -284,6 +284,33 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
         assert flow.world()._nudge_goal == (0, 0) or name(window) == "MainMenuView"
 
 
+def test_the_isle_sounds_a_press_a_glide_and_the_cloud(window: Any) -> None:
+    """D-072 group 8: a block button thocks when pressed, the camera whooshes when it sets
+    off for another station, and the cloud has a sound of its own (and no glide under it)."""
+    from isofightr.audio.cues import UI_GLIDE, UI_PRESS, UI_WIPE
+
+    flow = flow_for(window)
+    flow.show_main_menu()
+    flow.world().settle("plaza")
+    step(window, 2)
+    played = window.audio.backend.played
+    played.clear()
+    view = window.current_view
+    for _ in range(len(view.buttons)):
+        if view.selected != "versus":
+            press(window, keys().S)
+    press(window, keys().J)
+    names = [sound.name for sound in played]
+    assert UI_PRESS in names and UI_GLIDE in names, names
+    assert name(window) == "CharacterSelectView"
+    played.clear()
+    css = window.current_view
+    flow.show_stage_select(css.current_setup())
+    step(window, 2)
+    names = [sound.name for sound in played]
+    assert UI_WIPE in names and UI_GLIDE not in names, names
+
+
 def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) -> None:
     from isofightr.scenes import options_view
     from isofightr.scenes.menu_world_model import STATIONS

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import arcade
 
+from isofightr.audio.cues import UI_WIPE
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.replay_io import numbered
@@ -142,6 +143,7 @@ class GameFlow:
         glides instead."""
         self.pixel_buffer.keep()
         view.start_wipe()
+        self.window.audio.play(UI_WIPE)
         self.window.show_view(view)
 
     def show_title(self, wipe: bool = False) -> None:

@@ -1058,6 +1058,9 @@ class Sign:
         )
         face = Rect(rect.left, rect.bottom + SIGN_LIP, rect.width, rect.height - SIGN_LIP)
         self.label = layer.write_in(face, "", size, surface.text, shadow=False)
+        self._line: str | None = None
+        """The line last asked for, before shortening: fitting it again costs a font
+        measurement, so an unchanged line is not."""
         self.text = text
 
     @property
@@ -1067,6 +1070,9 @@ class Sign:
 
     @text.setter
     def text(self, value: str) -> None:
+        if value == self._line:
+            return
+        self._line = value
         self.label.text = font.fit(value, self.rect.width - 2 * theme.PAD, self.size)
 
 

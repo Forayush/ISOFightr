@@ -2,7 +2,7 @@
   "sample_rate": 22050,
   "synth_version": "2",
   "sfx": {
-    "source": "3ae3ec2df43e2c97",
+    "source": "02c25327df53e032",
     "sounds": {
       "charge": 0.5,
       "clank": 0.12,
@@ -72,10 +72,13 @@
       "thunder": 0.89,
       "ui_back": 0.09,
       "ui_error": 0.18,
+      "ui_glide": 0.32,
       "ui_move": 0.035,
       "ui_pick": 0.18,
+      "ui_press": 0.04,
       "ui_select": 0.09,
       "ui_start": 0.35,
+      "ui_wipe": 0.42,
       "wall_bounce": 0.11
     }
   },

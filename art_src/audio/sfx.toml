@@ -808,3 +808,34 @@ length = 0.26
 delay = 0.09
 release = 0.16
 volume = 0.32
+
+# --- the Isle's menus (decision D-072) ---------------------------------------------------
+
+[[ui_glide.layers]]
+wave = "noise"
+freq = 1800
+freq_end = 3600
+length = 0.32
+attack = 0.12
+lowpass = 0.3
+release = 0.16
+volume = 0.12
+
+[[ui_press.layers]]
+wave = "square"
+duty = 0.5
+freq = "C4"
+freq_end = "G3"
+length = 0.04
+release = 0.03
+volume = 0.2
+
+[[ui_wipe.layers]]
+wave = "noise"
+freq = 900
+freq_end = 2400
+length = 0.42
+attack = 0.18
+lowpass = 0.25
+release = 0.22
+volume = 0.16

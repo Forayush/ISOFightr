@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from functools import partial
 
 from isofightr.ai.stroll import Stroller
+from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.render.fighter_look import FighterLook, fighter_look
@@ -57,6 +58,11 @@ STROLLERS = 4
 """How many of the roster stroll on the plaza."""
 PAD_WIDTH = 44
 """Width of a ring spot's marker in world pixels (it is half as tall: the tiles' slope)."""
+
+
+CULL_MARGIN = 64
+"""Native pixels (at 1x) beyond the screen's edges a stroller's feet may be and still be
+drawn: wider than any fighter's sprite."""
 
 
 class MenuWorld:
@@ -235,7 +241,10 @@ class MenuWorld:
         entities: list[WorldEntity] = []
         looks: dict[int, FighterLook] = {}
         if self.strollers_shown:
+            pose = self.pose
             for fighter in self.match.fighters:
+                if not _near_screen(pose, fighter.pos.x, fighter.pos.y, fighter.pos.z):
+                    continue  # off the screen at a close station: not worth sorting
                 bank = self.banks.get(fighter.character.id)
                 looks[fighter.entity_id] = fighter_look(
                     fighter,
@@ -287,6 +296,14 @@ class MenuWorld:
         entities, looks = self._entities()
         self.renderer.sync(entities, self.ticks, looks, ground=self._pad_items())
         self.renderer.draw(pose.centre, zoom=pose.zoom)
+
+
+def _near_screen(pose: Pose, x: float, y: float, z: float) -> bool:
+    """Whether a fighter standing at a world point could show on the screen: its feet within
+    :data:`CULL_MARGIN` (times the zoom) of the edges, and more above, where its body is."""
+    margin = CULL_MARGIN * pose.zoom
+    screen_x, screen_y = screen_point(pose, x, y, z)
+    return -margin <= screen_x <= NATIVE_W + margin and -2 * margin <= screen_y <= NATIVE_H + margin
 
 
 class IsleView(TickedView):

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr import __version__
+from isofightr.audio.cues import UI_PRESS
 from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model, rules_model
@@ -227,6 +228,7 @@ class MainMenuView(MenuView):
         chosen = self.menu.apply(action)
         if chosen is not None:
             self.buttons[chosen].press(self.tick_count)
+            self.audio.play(UI_PRESS)
             self.choose(chosen)
 
     def choose(self, key: str) -> None:
