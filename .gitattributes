@@ -5,3 +5,4 @@
 *.ogg binary
 *.wav binary
 *.aseprite binary
+graphify-out/graph.json merge=graphify

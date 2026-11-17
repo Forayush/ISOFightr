@@ -27,6 +27,12 @@ settings.local.toml
 
 CLAUDE.md
 
-.claude/skills/
+.claude/
 .agents/
 skills-lock.json
+
+CLAUDE.local.md
+.mcp.json
+
+# Graphify generated graph & reports
+graphify-out/
