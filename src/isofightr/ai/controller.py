@@ -36,7 +36,7 @@ from itertools import chain
 from typing import Final, NamedTuple
 
 from isofightr import config
-from isofightr.ai import advantage, disadvantage, habits, intercept, predict
+from isofightr.ai import advantage, crowd, disadvantage, habits, intercept, predict
 from isofightr.ai.belief import Beliefs
 from isofightr.ai.knowledge import Action, CharacterKnowledge, Start, frames_for, knowledge_for
 from isofightr.ai.levels import CpuLevel, cpu_level
@@ -51,7 +51,7 @@ from isofightr.ai.terrain import (
     route,
     safe_spot,
 )
-from isofightr.ai.view import FighterView, WorldView, observe
+from isofightr.ai.view import FighterView, HazardView, WorldView, observe
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat import constants as combat
 from isofightr.sim.fighter import StateId
@@ -474,11 +474,16 @@ class CpuController:
         opponent = self._target(self._seen(), me)
         reach = self.knowledge[opponent.index].strike_reach if opponent is not None else 0.0
         choice = disadvantage.tech_choice(spot, opponent, reach)
+        roll_from: Vec3 | None = opponent.pos if opponent is not None else None
+        for zone in crowd.danger_zones(self._seen().hazards):
+            if crowd.inside(spot, zone, config.CPU_HAZARD_MARGIN):
+                # A hazard about to strike where it lands: roll out of it, whoever waits.
+                choice, roll_from = disadvantage.TECH_AWAY, zone.pos
+                break
         self.plan = Plan("disadvantage", choice)
-        if choice == disadvantage.TECH_IN_PLACE:
+        if choice == disadvantage.TECH_IN_PLACE or roll_from is None:
             return InputFrame(held=int(Button.SHIELD))
-        assert opponent is not None
-        away = disadvantage.away_from(spot, opponent.pos, drift)
+        away = disadvantage.away_from(spot, roll_from, drift)
         if not over_ground(self.live, spot + Vec3(away.x, away.y, 0.0) * 1.5):
             away = away * -1.0  # rolling off nothing is no escape: roll past instead
         return InputFrame(move=away, held=int(Button.SHIELD))
@@ -787,18 +792,34 @@ class CpuController:
     # --- neutral -------------------------------------------------------------------------
 
     def _target(self, seen: WorldView, me: FighterView) -> FighterView | None:
-        """The opponent to fight: the nearest one still in play."""
+        """The opponent to fight: the cheapest by :func:`crowd.target_cost` (near, hurtable,
+        at high percent, the leader, the one it was already fighting, not in a brawl)."""
+        opponents = [
+            other
+            for other in seen.fighters
+            if other.index != self.player
+            and other.in_play
+            and other.state not in IGNORED
+            and not (me.team >= 0 and other.team == me.team)
+        ]
         best: FighterView | None = None
-        best_distance = math.inf
-        for other in seen.fighters:
-            if other.index == self.player or not other.in_play or other.state in IGNORED:
-                continue
-            if me.team >= 0 and other.team == me.team:
-                continue
-            distance = (other.pos - me.pos).length()
-            if distance < best_distance:
-                best, best_distance = other, distance
+        best_cost = math.inf
+        timed = seen.time_left is not None and me.stocks is None  # a time match, not stocks
+        for other in opponents:
+            cost = crowd.target_cost(me, other, opponents, self._focus, timed)
+            if cost < best_cost:
+                best, best_cost = other, cost
         return best
+
+    def _allies(self, me: FighterView) -> list[FighterView]:
+        """Teammates in play (with friendly fire they can be hit)."""
+        if me.team < 0:
+            return []
+        return [
+            other
+            for other in self._seen().fighters
+            if other.index != self.player and other.in_play and other.team == me.team
+        ]
 
     def _neutral(self, world: WorldView, me: FighterView) -> InputFrame:
         seen = self._seen()
@@ -833,7 +854,50 @@ class CpuController:
             self._move_goal = self._position(world, me, target, reading)
         if self._move_goal is None:
             self._move_goal = me.pos
+        keep = self._keep_away(me)
+        if keep is not None:
+            self.plan = Plan("space", "give way")
+            return self._move_toward(me, keep)
+        zones = crowd.danger_zones(world.hazards)
+        if zones:
+            safer = self._out_of_hazards(me, self._move_goal, zones)
+            if safer is not None:
+                self.plan = Plan("space", "hazard")
+                return self._move_toward(me, safer)
         return self._move_toward(me, self._move_goal)
+
+    def _keep_away(self, me: FighterView) -> Vec3 | None:
+        """A place away from an opponent that cannot be hit and stands within
+        ``CPU_INVINCIBLE_KEEP`` (any opponent, not only the target: a respawned one may land
+        next to the CPU while it fights someone else), or ``None``."""
+        for other in self._seen().fighters:
+            if other.index == self.player or not other.in_play or not other.invincible:
+                continue
+            if me.team >= 0 and other.team == me.team:
+                continue
+            away = me.pos.xy - other.pos.xy
+            if away.length() > config.CPU_INVINCIBLE_KEEP:
+                continue
+            if away.length() == 0.0:
+                away = me.facing.world * -1.0
+            spot = other.pos.xy + away.normalized() * config.CPU_RESPECT_RANGE
+            return safe_spot(self.stage, Vec3(spot.x, spot.y, me.pos.z), me.pos)
+        return None
+
+    def _out_of_hazards(
+        self, me: FighterView, goal: Vec3, zones: Sequence[HazardView]
+    ) -> Vec3 | None:
+        """A goal outside the hazards that are about to hit, if the CPU or its goal is in
+        one (``None`` if neither is, or no ground is out there)."""
+        for point in (me.pos, goal):
+            out = crowd.clear_of(point, zones)
+            if out is None:
+                continue
+            floor = ground_below(self.live, out.x, out.y, point.z + config.CPU_STEP_HEIGHT)
+            if floor is None:
+                continue
+            return Vec3(out.x, out.y, floor)
+        return None
 
     def _read(
         self, world: WorldView, me: FighterView, target: FighterView, threat: Threat | None
@@ -905,8 +969,31 @@ class CpuController:
         still = me.grounded and me.vel.xy.length() <= config.CPU_STILL_SPEED
         approaches = knowledge.approaches if still else ()
         actions = chain(knowledge.actions, knowledge.extras, approaches)
-        found = intercept.search(reading, actions, lambda action, aim: self._safe(me, action, aim))
+        zones = crowd.danger_zones(self._seen().hazards)
+
+        def allowed(action: Action, aim: Vec2) -> bool:
+            if not self._safe(me, action, aim):
+                return False
+            if not zones:
+                return True
+            # Never swing into a hazard that will be hitting while the move lasts (most of
+            # the lightning hits on Storm Galleon landed during the CPU's own attacks).
+            steps = range(0, action.commit + 1, config.CPU_PATH_CHECK)
+            path = [(f, _rotate(action.offset_at(f), aim)) for f in steps]
+            return not crowd.hit_during(me.pos, path, zones)
+
+        found = intercept.search(reading, actions, allowed)
         found = [replace(c, value=c.value + self._flavour(c, target.index)) for c in found]
+        allies = self._allies(me)
+        if allies:
+            found = [
+                replace(
+                    c,
+                    value=c.value
+                    - config.CPU_FRIENDLY_FIRE_COST * crowd.ally_risk(me, c.action, c.aim, allies),
+                )
+                for c in found
+            ]
         return intercept.choose(found, self.level.temperature, self.rng.random())
 
     def _flavour(self, candidate: intercept.Candidate, target: int | None = None) -> float:
@@ -1371,6 +1458,12 @@ class CpuController:
         reach = knowledge.jump_distance * config.CPU_JUMP_REACH_SHARE
         rise = (knowledge.full_hop_rise + knowledge.air_jump_rise) * config.CPU_JUMP_RISE_SHARE
         chain = route(self.stage, here, there, reach, rise)
+        if not chain:
+            # No way there on the jumps it trusts: stretch them before giving up (two Brambles
+            # on Lily Pads waited on their own pads for whole matches). A jump that falls
+            # short is a recovery like any other.
+            stretched = knowledge.jump_distance * config.CPU_JUMP_REACH_STRETCH
+            chain = route(self.stage, here, there, stretched, rise)
         if not chain:
             return None
         return chain[0].start, chain[0].end

@@ -346,6 +346,8 @@ CPU_REGION_SNAP: Final[float] = 0.75
 """A fighter belongs to a region if one of its cell centres is this close (per axis)."""
 CPU_JUMP_REACH_SHARE: Final[float] = 0.6
 """Share of its full-hop-plus-air-jump distance a CPU counts on when planning a jump."""
+CPU_JUMP_REACH_STRETCH: Final[float] = 0.75
+"""When no route fits ``CPU_JUMP_REACH_SHARE``, the share tried next (M20 group 6)."""
 CPU_JUMP_RISE_SHARE: Final[float] = 0.7
 """Share of its full-hop-plus-air-jump height a CPU counts on when planning a jump."""
 CPU_ROUTE_HEIGHT_COST: Final[float] = 0.5
@@ -446,6 +448,37 @@ CPU_STYLE_WEIGHT: Final[float] = 100.0
 CPU_STYLE_DEFAULT_BOUNDS: Final[tuple[float, float]] = (0.8, 1.25)
 """Defaults from the character's data stay within these."""
 CPU_TEMPERAMENT: Final[float] = 0.1
+# M20 group 6: several opponents, teams, stages (D-071).
+CPU_TARGET_INVINCIBLE_COST: Final[float] = 6.0
+"""Target cost (units of distance) of an opponent that cannot be hurt."""
+CPU_TARGET_PERCENT_VALUE: Final[float] = 0.02
+"""Target cost taken off per percent of damage (a KO waiting)..."""
+CPU_TARGET_PERCENT_CAP: Final[float] = 150.0
+"""...up to this percent."""
+CPU_TARGET_LEADER_VALUE: Final[float] = 1.5
+"""Target cost taken off the leader in a timed match (the best score)."""
+CPU_TARGET_HOLD: Final[float] = 1.5
+"""Target cost taken off the current target, so it is only dropped for a clearly better one."""
+CPU_BRAWL_PERCENT: Final[float] = 100.0
+"""At this percent or more, the CPU keeps out of two opponents fighting each other..."""
+CPU_BRAWL_RANGE: Final[float] = 2.5
+"""...that is, a target with another opponent this close to it..."""
+CPU_BRAWL_COST: Final[float] = 4.0
+"""...costs this much more."""
+CPU_ALLY_CLEARANCE: Final[float] = 0.2
+"""A hitbox this close to a teammate's hurtbox counts as passing over it."""
+CPU_FRIENDLY_FIRE_COST: Final[float] = 30.0
+"""Value taken off an action whose every hit frame passes over a teammate."""
+CPU_HAZARD_LOOKAHEAD: Final[int] = 90
+"""A hazard that hits, turning active within this many frames, is a place to keep out of."""
+CPU_HAZARD_MARGIN: Final[float] = 0.4
+"""Room kept around a hazard's cylinder."""
+CPU_HAZARD_STEP: Final[float] = 0.3
+CPU_HAZARD_ACTIVE_GUESS: Final[int] = 30
+CPU_INVINCIBLE_KEEP: Final[float] = 2.5
+"""Any opponent that cannot be hit and stands this close is backed away from."""
+"""Frames a hazard that is not yet active is taken to stay active once it is."""
+"""How far past that the CPU goes to stand clear."""
 """Each CPU's style numbers are moved up to this share either way (seeded)."""
 """Recovery score added per unit a place on a ledge is inside a guard's radius."""
 CPU_LEDGE_SAMPLE: Final[float] = 1.0
