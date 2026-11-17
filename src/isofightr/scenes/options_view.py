@@ -1,116 +1,116 @@
-"""Options: the one place rules, controls and settings are reached from.
+"""Options: the one place rules, controls and settings live, as tabs.
 
 Plan note "13 - Game Modes UI and Flow" ("Planned (M21)", decision D-072). The main menu has
-four entries; what used to be three more of them (Rules, Controls, Settings) is here, at the
-Isle's workshop. Until M21's group 5 gives the pages one shared tab strip, this screen is a
-short list of them.
+four entries; what used to be three more of them is here: Rules, Controls, and the settings
+split into Display, Sound and Feel. Each tab is its own screen (the rules screen, the
+controls screen, :class:`~isofightr.scenes.menus.SettingsView` with one of three pages), all
+at the Isle's workshop, all with the same strip of tabs in the title band instead of a
+title. The strong button (or the up and down modifiers) steps to the next or the previous
+tab, and a click on a tab opens it; back leaves the options for the main menu.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
-from isofightr.render.pixel_buffer import PixelBuffer
-from isofightr.scenes import controls_model, rules_model
-from isofightr.scenes.menus import MenuView
-from isofightr.ui import theme
-from isofightr.ui.focus import FocusMap, Rect
-from isofightr.ui.menu import Menu, MenuAction, MenuItem
-from isofightr.ui.widgets import BigButton, Sign
+from isofightr.config import NATIVE_H
+from isofightr.ui import font, kit_art, theme
+from isofightr.ui.focus import Rect
+from isofightr.ui.font import TextSize
+from isofightr.ui.menu import MenuAction
+from isofightr.ui.widgets import TabStrip, icon_image
 
 if TYPE_CHECKING:
-    from isofightr.scenes.flow import GameFlow
+    from isofightr.scenes.menus import MenuView
 
-BUTTON_LEFT = 20
-BUTTON_WIDTH = 196
-BUTTON_HEIGHT = 40
-BUTTON_PITCH = 48
-BUTTONS_TOP = 300
-NOTE = Rect(BUTTON_LEFT, 82, BUTTON_WIDTH + 44, 16)
-RULES, CONTROLS, SETTINGS, BACK = "rules", "controls", "settings", "back"
-OPTION_ENTRIES: tuple[tuple[str, str, str, str], ...] = (
-    (RULES, "RULES", "Stocks, time, launch rate, mechanics", "gear"),
-    (CONTROLS, "CONTROLS", "Every key and button, per player", "controller"),
-    (SETTINGS, "SETTINGS", "Display, sound, comfort", "speaker"),
-    (BACK, "BACK", "To the main menu", "arrow_left"),
-)
-"""Key, caption, what it leads to, and icon of each entry, top to bottom."""
+OPTION_TABS: Final[tuple[str, ...]] = ("rules", "controls", "display", "sound", "feel")
+"""The options' tabs, left to right."""
+TAB_CAPTIONS: Final[dict[str, str]] = {
+    "rules": "RULES",
+    "controls": "CONTROLS",
+    "display": "DISPLAY",
+    "sound": "SOUND",
+    "feel": "FEEL",
+}
+SETTINGS_TABS: Final[tuple[str, ...]] = ("display", "sound", "feel")
+"""The tabs that are pages of the settings."""
+TAB_HEIGHT: Final[int] = 20
+TABS_BOTTOM: Final[int] = NATIVE_H - theme.HEADER_HEIGHT + (theme.HEADER_HEIGHT - TAB_HEIGHT) // 2
+TABS_RIGHT_LIMIT: Final[int] = 378
+"""The strip ends before here: the controls screen's player tabs start at 384."""
+TAB_STEPS: Final[dict[MenuAction, int]] = {MenuAction.ALT: 1, MenuAction.ALT_BACK: -1}
+OPTIONS_TITLE: Final[str] = "OPTIONS"
 
 
-class OptionsView(MenuView):
-    """Rules, Controls, Settings, Back: blocks beside the Isle's workshop."""
+def add_option_tabs(view: MenuView, tab: str, icon: str = "gear") -> TabStrip:
+    """Give an options screen its title band: the icon on a small block, then the strip of
+    tabs with ``tab`` as the page on show. Returns the strip (also ``view.option_tabs``)."""
+    left = theme.MARGIN
+    if icon_image(icon) is not None:
+        side = theme.ICON_SIZE + 6
+        bottom = NATIVE_H - theme.HEADER_HEIGHT + (theme.HEADER_HEIGHT - side - theme.LIP) // 2
+        view.ui.picture(
+            ("title-icon-block", side),
+            lambda: kit_art.block_button(side, side + theme.LIP, surface=theme.STONE),
+            left,
+            bottom,
+        )
+        view.ui.icon(icon, left + 3, bottom + theme.LIP + 3, theme.INK)
+        left += side + theme.GAP + 2
+    strip = TabStrip(
+        view.ui,
+        left,
+        TABS_BOTTOM,
+        [TAB_CAPTIONS[name] for name in OPTION_TABS],
+        TAB_HEIGHT,
+        theme.STONE,
+        TextSize.BODY,
+    )
+    strip.set(OPTION_TABS.index(tab))
+    view.title = OPTIONS_TITLE
+    view.option_tab = tab
+    view.option_tabs = strip
+    return strip
 
-    station = "workshop"
-    surface = theme.STONE
 
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, cursor: str = "") -> None:
-        """Build the entries; ``cursor`` names the one to start on."""
-        super().__init__(pixel_buffer, flow)
-        self.menu = Menu([MenuItem(key, caption) for key, caption, _, _ in OPTION_ENTRIES])
-        keys = [key for key, _, _, _ in OPTION_ENTRIES]
-        if cursor in keys:
-            self.menu.cursor = keys.index(cursor)
-        self.header("Options", "gear")
-        self.buttons: dict[str, BigButton] = {}
-        for index, (key, caption, text, icon) in enumerate(OPTION_ENTRIES):
-            rect = Rect(
-                BUTTON_LEFT, BUTTONS_TOP - index * BUTTON_PITCH - BUTTON_HEIGHT, BUTTON_WIDTH,
-                BUTTON_HEIGHT,
-            )  # fmt: skip
-            self.buttons[key] = BigButton(self.ui, rect, caption, text, icon)
-        self.focus_map = FocusMap({key: button.rect for key, button in self.buttons.items()})
-        self.note = Sign(self.ui, NOTE)
-        self.footer("{stick}: move   {attack}: pick   {special}: back   mouse: click")
-        self.refresh()
+def tabs_width(left: int) -> int:
+    """Return where the strip of tabs ends when it starts at ``left``."""
+    widths = [
+        font.text_width(TAB_CAPTIONS[name], TextSize.BODY) + 2 * theme.PAD + 4
+        for name in OPTION_TABS
+    ]
+    return left + sum(widths) + 2 * (len(widths) - 1)
 
-    def note_line(self, key: str) -> str:
-        """Return the line the sign shows for an entry: how things are set now."""
-        settings, setup = self.flow.settings, self.flow.setup
-        if key == RULES:
-            return "   ".join(chip.capitalize() for chip in rules_model.rule_chips(setup))
-        if key == CONTROLS:
-            device = controls_model.tab_device(settings, 0)
-            return f"Player 1 plays on {controls_model.DEVICE_NAMES[device]}."
-        if key == SETTINGS:
-            shown = "fullscreen" if settings.fullscreen else f"{settings.scale}x window"
-            return f"A {shown}, volume {settings.master_volume}."
-        return "Nothing is lost: every change is saved as it is made."
 
-    @property
-    def selected(self) -> str:
-        """The key of the entry under the cursor."""
-        return self.menu.selected.key
+def option_tab_action(view: MenuView, action: MenuAction) -> bool:
+    """Handle the tab buttons on an options screen: step to the next or the previous tab.
+    Returns whether the action was one."""
+    step = TAB_STEPS.get(action)
+    if step is None:
+        return False
+    index = OPTION_TABS.index(view.option_tab)
+    view.audio.play("ui_pick")
+    view.flow.show_options(OPTION_TABS[(index + step) % len(OPTION_TABS)])
+    return True
 
-    def act(self, device: str, action: MenuAction) -> None:
-        """Move the cursor, pick an entry, or go back to the main menu."""
-        if action is MenuAction.BACK:
-            self.flow.show_main_menu()
-            return
-        chosen = self.menu.apply(action)
-        if chosen is not None:
-            self.choose(chosen)
 
-    def choose(self, key: str) -> None:
-        """Go where the entry says; each comes back here."""
-        if key == RULES:
-            self.flow.show_rules(lambda: self.flow.show_options(RULES))
-        elif key == CONTROLS:
-            self.flow.show_controls(lambda: self.flow.show_options(CONTROLS))
-        elif key == SETTINGS:
-            self.flow.show_settings()
-        else:
-            self.flow.show_main_menu()
+def option_tab_click(view: MenuView, x: float, y: float) -> bool:
+    """Open the tab under a click on an options screen. Returns whether there was one."""
+    strip = getattr(view, "option_tabs", None)
+    if strip is None:
+        return False
+    index = strip.at(x, y)
+    if index is None:
+        return False
+    if OPTION_TABS[index] != view.option_tab:
+        view.audio.play("ui_select")
+        view.flow.show_options(OPTION_TABS[index])
+    return True
 
-    def hover(self, x: int, y: int) -> bool:
-        """Put the cursor on the entry under the mouse."""
-        key = self.focus_map.at(x, y)
-        if key is None:
-            return False
-        self.menu.cursor = [item.key for item in self.menu.items].index(key)
-        return True
 
-    def refresh(self) -> None:
-        """Show the cursor and the line about what it is on."""
-        for key, button in self.buttons.items():
-            button.focus(key == self.selected)
-        self.note.text = self.note_line(self.selected)
+def tab_rect(view: MenuView, tab: str) -> Rect:
+    """Return where a tab is on an options screen (tests and the mouse)."""
+    return view.option_tabs.rects[OPTION_TABS.index(tab)]
+
+
+assert tabs_width(theme.MARGIN + theme.ICON_SIZE + 6 + theme.GAP + 2) <= TABS_RIGHT_LIMIT

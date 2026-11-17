@@ -263,7 +263,7 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
     where = {
         "versus": "CharacterSelectView",
         "training": "CharacterSelectView",
-        "options": "OptionsView",
+        "options": "RulesView",
     }
     for key, scene in where.items():
         flow.show_main_menu()
@@ -284,7 +284,7 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
         assert flow.world()._nudge_goal == (0, 0) or name(window) == "MainMenuView"
 
 
-def test_options_lead_to_rules_controls_and_settings_and_back(window: Any) -> None:
+def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) -> None:
     from isofightr.scenes import options_view
     from isofightr.scenes.menu_world_model import STATIONS
 
@@ -292,28 +292,49 @@ def test_options_lead_to_rules_controls_and_settings_and_back(window: Any) -> No
     flow.show_options()
     step(window, 2)
     view = window.current_view
-    assert name(window) == "OptionsView" and view.world.station is STATIONS["workshop"]
-    entries = [key for key, _, _, _ in options_view.OPTION_ENTRIES]
-    assert entries == ["rules", "controls", "settings", "back"] == list(view.buttons)
-    where = {"rules": "RulesView", "controls": "ControlsView", "settings": "SettingsView"}
-    for key, scene in where.items():
-        flow.show_options()
-        step(window, 2)
+    assert name(window) == "RulesView" and view.in_options, "Options opens on its first tab"
+    assert view.world.station is STATIONS["workshop"] and view.title == "OPTIONS"
+    assert options_view.OPTION_TABS == ("rules", "controls", "display", "sound", "feel")
+    assert view.option_tabs.active == 0
+    seen = []
+    for _ in range(len(options_view.OPTION_TABS) - 1):
+        if name(window) == "ControlsView":
+            break
+        press(window, keys().U)
+        seen.append((name(window), window.current_view.option_tab))
+    assert seen == [("ControlsView", "controls")]
+    # On Controls the strong button is a key to test: up from the player tabs reaches the
+    # options' tabs, and right opens the next one.
+    controls = window.current_view
+    press(window, keys().U)
+    assert name(window) == "ControlsView", "strong does not leave Controls"
+    controls.cursor = "tab:0"
+    press(window, keys().W)
+    assert controls.cursor == "options-tabs" and controls.option_tabs.focused
+    press(window, keys().D)
+    pages = []
+    for _ in range(3):
         view = window.current_view
-        for _ in range(len(entries)):
-            if view.selected != key:
-                press(window, keys().S)
-        press(window, keys().J)
-        assert name(window) == scene, key
-        press(window, keys().ESCAPE)
-        assert name(window) == "OptionsView", f"{key} comes back to the options"
-        assert window.current_view.selected == key, "with the cursor where it was"
+        pages.append((name(window), view.option_tab))
+        press(window, keys().U)
+    assert pages == [
+        ("SettingsView", "display"),
+        ("SettingsView", "sound"),
+        ("SettingsView", "feel"),
+    ]
+    assert name(window) == "RulesView", "and round to the first"
+    press(window, keys().COMMA)
+    assert window.current_view.option_tab == "feel", "the down modifier goes back a tab"
+    rect = options_view.tab_rect(window.current_view, "sound")
+    click(window, rect.left + 5, rect.bottom + 5)
+    assert window.current_view.option_tab == "sound", "a click opens a tab"
+    for tab in options_view.SETTINGS_TABS:
+        flow.show_settings(tab)
+        step(window, 2)
+        items = [item.key for item in window.current_view.menu.items]
+        assert len(items) <= 6, "at most six rows a page"
     press(window, keys().ESCAPE)
-    assert name(window) == "MainMenuView"
-    flow.show_options("back")
-    step(window, 2)
-    press(window, keys().J)
-    assert name(window) == "MainMenuView", "BACK is an entry too"
+    assert name(window) == "MainMenuView", "back leaves the options"
 
 
 def test_the_mouse_picks_main_menu_buttons(window: Any) -> None:
@@ -331,7 +352,7 @@ def test_the_mouse_picks_main_menu_buttons(window: Any) -> None:
     click(window, 4, 60)
     assert name(window) == "MainMenuView", "a click beside the buttons does nothing"
     click(window, rect.left + 20, rect.bottom + 10)
-    assert name(window) == "OptionsView"
+    assert name(window) == "RulesView", "Options opens on its first tab"
 
 
 def test_the_world_carries_on_from_screen_to_screen(window: Any) -> None:

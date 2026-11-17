@@ -36,7 +36,7 @@ def open_settings(window: Any) -> Any:
 
     window.switch_to()
     flow = GameFlow(window, window.pixel_buffer, seed=1)
-    flow.show_settings()
+    flow.show_settings("sound")
     step(window, 2)
     return flow
 

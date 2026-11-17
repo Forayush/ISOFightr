@@ -251,7 +251,7 @@ def test_the_mouse_works_on_the_list_menus(window: Any) -> None:
     assert view.menu.cursor == back
     view.on_mouse_press(*to_window(window, *native), arcade.MOUSE_BUTTON_LEFT, 0)
     step(window)
-    assert type(window.current_view).__name__ == "OptionsView", "settings is a page of options"
+    assert type(window.current_view).__name__ == "MainMenuView", "back leaves the options"
 
 
 def test_the_mouse_is_mapped_through_the_letterbox(
@@ -329,7 +329,7 @@ def test_every_screen_can_be_captured(window: Any, screen: str) -> None:
         "loading": "LoadingView",
         "title": "TitleView",
         "main": "MainMenuView",
-        "options": "OptionsView",
+        "options": "RulesView",
         "rules": "RulesView",
         "pool": "RandomPoolView",
         "controls": "ControlsView",

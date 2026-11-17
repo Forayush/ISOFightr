@@ -47,9 +47,12 @@ from isofightr.scenes.menu_world_model import (
 from isofightr.scenes.ticked_view import TickedView
 from isofightr.sim.match import Match, MatchRules
 from isofightr.ui import select_art, theme
+from isofightr.ui.anim import shake
 
 LOG = logging.getLogger(__name__)
 START_STATION = "gate"
+SHAKE_TICKS = 24
+"""How long a shake of the options' demo lasts."""
 STROLLERS = 4
 """How many of the roster stroll on the plaza."""
 PAD_WIDTH = 44
@@ -99,17 +102,35 @@ class MenuWorld:
         self._since = 0
         self._nudge = (0.0, 0.0)
         self._nudge_goal = (0, 0)
+        self._shake_from = -1
+        self._shake_pixels = 0
 
     # --- the camera --------------------------------------------------------------------------
 
     @property
     def pose(self) -> Pose:
-        """Where the camera is on this tick: on its glide, moved by the nudge."""
+        """Where the camera is on this tick: on its glide, moved by the nudge and any
+        shake."""
         glide = camera_at(self.ticks - self._since, self._from, rest_pose(self.station))
         dx, dy = self._nudge
+        age = self.ticks - self._shake_from
+        if self._shake_from >= 0 and age < SHAKE_TICKS:
+            fade = 1.0 - age / SHAKE_TICKS
+            dx += shake(age, round(self._shake_pixels * fade))
+            dy += shake(age + 7, round(self._shake_pixels * fade))
         if not dx and not dy:
             return glide
         return Pose(glide.x + round(dx), glide.y + round(dy), glide.zoom)
+
+    def shake(self, pixels: int) -> None:
+        """Shake the camera about ``pixels`` for a moment, fading: the options show the
+        screen shake setting this way."""
+        self._shake_from, self._shake_pixels = self.ticks, max(pixels, 0)
+
+    def apply_settings(self, reduce_flashing: bool, depth_aids: str) -> None:
+        """Draw the Isle as the settings ask (the same switches a battle reads)."""
+        self.renderer.calm = reduce_flashing
+        self.renderer.depth_aids = depth_aids
 
     @property
     def gliding(self) -> bool:

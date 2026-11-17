@@ -26,7 +26,6 @@ from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
 from isofightr.scenes.menu_world import MenuWorld
 from isofightr.scenes.menus import KEYBOARD_DEVICE, SettingsView
-from isofightr.scenes.options_view import OptionsView
 from isofightr.scenes.results_view import ResultsView
 from isofightr.scenes.rules_model import to_saved, with_saved
 from isofightr.scenes.rules_view import RandomPoolView, RulesView
@@ -154,10 +153,15 @@ class GameFlow:
         else:
             self.window.show_view(view)
 
-    def show_options(self, cursor: str = "") -> None:
-        """Go to the options: rules, controls and settings (decision D-072). ``cursor``
-        names the entry to start on."""
-        self.window.show_view(OptionsView(self.pixel_buffer, self, cursor))
+    def show_options(self, tab: str = "rules") -> None:
+        """Go to a tab of the options (decision D-072): ``rules``, ``controls``, or a page of
+        the settings (``display``, ``sound``, ``feel``)."""
+        if tab == "rules":
+            self.show_rules()
+        elif tab == "controls":
+            self.show_controls()
+        else:
+            self.show_settings(tab)
 
     def show_main_menu(self) -> None:
         """Go to the main menu."""
@@ -165,7 +169,8 @@ class GameFlow:
 
     def show_rules(self, on_back: Callable[[], None] | None = None, cursor: str = "") -> None:
         """Go to the versus rules. ``on_back`` says where BACK leads (the options if not
-        given); ``cursor`` names the row or button to start on."""
+        given: then it is a tab of the options); ``cursor`` names the row or button to start
+        on."""
         self.window.show_view(RulesView(self.pixel_buffer, self, on_back, cursor))
 
     def show_random_pool(self, on_back: Callable[[], None] | None = None) -> None:
@@ -173,9 +178,9 @@ class GameFlow:
         it returns to leads."""
         self.window.show_view(RandomPoolView(self.pixel_buffer, self, on_back))
 
-    def show_settings(self) -> None:
-        """Go to the settings."""
-        self.window.show_view(SettingsView(self.pixel_buffer, self))
+    def show_settings(self, tab: str = "display") -> None:
+        """Go to a page of the settings: a tab of the options."""
+        self.window.show_view(SettingsView(self.pixel_buffer, self, tab))
 
     def show_sound_test(self) -> None:
         """Go to the sound test (the jukebox, from the settings)."""

@@ -17,13 +17,27 @@ from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import rules_model
 from isofightr.scenes.menus import MenuView
+from isofightr.scenes.options_view import (
+    add_option_tabs,
+    option_tab_action,
+    option_tab_click,
+)
 from isofightr.scenes.rules_model import ROW_KEYS, RULE_GROUPS, RULE_ROWS
 from isofightr.ui import kit_art, theme
 from isofightr.ui.focus import FocusMap, Rect
 from isofightr.ui.font import TextSize
 from isofightr.ui.kit_art import Look
 from isofightr.ui.menu import MenuAction
-from isofightr.ui.widgets import Button, Checkbox, Picture, Stepper, Toggle, add_panel
+from isofightr.ui.widgets import (
+    Button,
+    Checkbox,
+    Picture,
+    Sign,
+    Stepper,
+    Toggle,
+    add_panel,
+    add_slab,
+)
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
@@ -54,6 +68,7 @@ class RulesView(MenuView):
     its switch; DEFAULT puts every rule back."""
 
     station = "workshop"
+    surface = theme.STONE
 
     def __init__(
         self,
@@ -67,15 +82,22 @@ class RulesView(MenuView):
         Args:
             pixel_buffer: the native render target.
             flow: the router; it holds the setup and saves the rules.
-            on_back: where BACK goes (the options if not given).
+            on_back: where BACK goes (if not given, the screen is a tab of the options
+                and BACK goes to the main menu).
             cursor: the row or button the cursor starts on.
         """
         super().__init__(pixel_buffer, flow)
         self.setup = flow.setup
-        self.on_back = on_back or flow.show_options
+        self.in_options = on_back is None
+        """Whether the screen is a tab of the options (else it was opened from
+        character select, and goes back there)."""
+        self.on_back = on_back or flow.show_main_menu
         self.cursor = cursor if cursor in (*ROW_KEYS, *BOTTOM_KEYS) else ROW_KEYS[0]
-        self.header("RULES", "gear")
-        add_panel(self.ui, PANEL)
+        if self.in_options:
+            add_option_tabs(self, "rules")
+        else:
+            self.header("Rules", "gear")
+        add_slab(self.ui, PANEL)
 
         self.rects: dict[str, Rect] = {}
         self._rows: dict[str, Picture] = {}
@@ -92,7 +114,14 @@ class RulesView(MenuView):
         for title, keys in RULE_GROUPS:
             y -= TITLE_HEIGHT
             self.title_rects[title] = Rect(inner_left, y, inner_width, TITLE_HEIGHT)
-            self.ui.write(title, inner_left + theme.GAP, y + 1, TextSize.SMALL, theme.HEADING)
+            self.ui.write(
+                title,
+                inner_left + theme.GAP,
+                y + 1,
+                TextSize.SMALL,
+                theme.STONE.accent,
+                shadow=False,
+            )
             rule_left = inner_left + 72
             self.ui.picture(
                 ("rules-rule", inner_width - 72),
@@ -108,7 +137,7 @@ class RulesView(MenuView):
             rect = Rect(inner_left, bottom, inner_width, ROW_HEIGHT - ROW_GAP)
             self.rects[row.key] = rect
             self._rows[row.key] = Picture(self.ui, rect)
-            self.ui.icon(row.icon, rect.left + theme.GAP, bottom + 2, theme.TEXT)
+            self.ui.icon(row.icon, rect.left + theme.GAP, bottom + 2, theme.STONE.text)
             label_box = Rect(rect.left + theme.ICON_SIZE + theme.GAP, bottom, 300, rect.height)
             self._labels[row.key] = self.ui.write_in(label_box, row.label, align="left")
             well = Rect(0, bottom + 1, 0, rect.height - 2)
@@ -118,7 +147,7 @@ class RulesView(MenuView):
                 )
             if row.has_switch:
                 self._switches[row.key] = Toggle(
-                    self.ui, Rect(switch_left, well.bottom, SWITCH_WIDTH, well.height)
+                    self.ui, Rect(switch_left, well.bottom, SWITCH_WIDTH, well.height), block=True
                 )
 
         height = theme.BUTTON_HEIGHT
@@ -133,9 +162,11 @@ class RulesView(MenuView):
         self.rects |= {key: button.rect for key, button in self.buttons.items()}
         self.focus_map = FocusMap(self.rects)
         strip = Rect(PANEL.left, HELP_BOTTOM, PANEL.width, HELP_HEIGHT)
-        add_panel(self.ui, strip, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER)
-        self.help = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
-        self.footer("{stick}: row and value   {attack}: on / off   {special}: back   mouse: click")
+        self.help_sign = Sign(self.ui, strip)
+        self.help = self.help_sign.label
+        tabs = "   {strong}: next tab" if self.in_options else ""
+        template = "{stick}: row and value   {attack}: on / off" + tabs
+        self.footer(template + "   {special}: back   mouse: click", drop=("mouse", "strong"))
         self.refresh()
 
     # --- input -----------------------------------------------------------------------------
@@ -150,7 +181,10 @@ class RulesView(MenuView):
             self.flow.set_rules(setup)
 
     def act(self, device: str, action: MenuAction) -> None:
-        """Move the cursor, change the row under it, or press a button."""
+        """Move the cursor, change the row under it, or press a button (in the options the
+        tab buttons step through its tabs)."""
+        if self.in_options and option_tab_action(self, action):
+            return
         if action is MenuAction.BACK:
             self.on_back()
         elif action in (MenuAction.UP, MenuAction.DOWN):
@@ -203,6 +237,8 @@ class RulesView(MenuView):
     def click(self, x: int, y: int) -> None:
         """A click on a stepper's left or right half steps it; on a switch, or anywhere else
         on a row, it flips the switch; on a button it presses it."""
+        if self.in_options and option_tab_click(self, x, y):
+            return
         if not self.hover(x, y):
             return
         self.audio.play("ui_select")
@@ -227,18 +263,18 @@ class RulesView(MenuView):
             rect = self.rects[row.key]
             self._rows[row.key].show(
                 ("rule-row", rect.width, rect.height, focused),
-                lambda rect=rect, focused=focused: kit_art.list_row(
+                lambda rect=rect, focused=focused: kit_art.row_strip(
                     rect.width, rect.height, focused
                 ),
             )
             on = rules_model.row_on(setup, row.key)
-            self._labels[row.key].color = theme.FOCUS_GLOW if focused else theme.TEXT
+            self._labels[row.key].color = theme.INK if focused else theme.STONE.text
             if row.key in self._steppers:
                 stepper = self._steppers[row.key]
                 stepper.set(rules_model.row_value(setup, row.key), focused)
                 # A value whose switch is off is not in force: show it dimmed.
                 if on is False:
-                    stepper.label.color = theme.TEXT_DIM
+                    stepper.label.color = theme.STONE.text_dim
             if row.key in self._switches:
                 self._switches[row.key].set(bool(on), focused)
         stages = list_stage_ids()
@@ -246,7 +282,7 @@ class RulesView(MenuView):
         self.buttons[POOL].label.text = f"RANDOM STAGE POOL  {pooled}/{len(stages)}"
         for key, button in self.buttons.items():
             button.focus(key == self.cursor)
-        self.help.text = self.help_text()
+        self.help_sign.text = self.help_text()
 
     def help_text(self) -> str:
         """Return the line under the buttons: what the thing under the cursor does."""

@@ -61,22 +61,23 @@ def test_reset_to_defaults_is_quiet_until_the_cursor_is_on_it(window: Any) -> No
     view = window.current_view
     index = [item.key for item in view.menu.items].index("defaults")
     label, strip = view.rows._labels[index], view.rows._strips[index]
-    assert label.color == theme.SALMON
+    quiet = theme.STONE.warning  # on the stone surface (D-072) the quiet caption is crimson
+    assert label.color == quiet
     resting = strip.sprite.texture
     while view.menu.selected.key != "defaults":
         press(window, keys().S)
-    assert label.color == theme.TEXT, "white on red under the cursor"
+    assert label.color == theme.WHITE, "white on red under the cursor"
     assert strip.sprite.texture is not resting
     press(window, keys().S)
-    assert label.color == theme.SALMON and strip.sprite.texture is resting
+    assert label.color == quiet and strip.sprite.texture is resting
 
 
 def test_rows_that_open_a_screen_end_in_an_arrow(window: Any) -> None:
     flow = new_flow(window)
-    flow.show_settings()
+    flow.show_settings("sound")
     step(window, 2)
     rows = window.current_view.rows
-    assert set(rows._arrows) == {"sound_test", "controls"}
+    assert set(rows._arrows) == {"sound_test"}, "Controls is a tab of its own now"
     for key, arrow in rows._arrows.items():
         index = [item.key for item in rows.menu.items].index(key)
         row = rows.rect(index)

@@ -65,7 +65,7 @@ class SoundTestView(MenuView):
         self.firsts = dict.fromkeys(model.TABS, 0)
         self.playing: model.Track | None = None
         """The song this screen started, until it is stopped."""
-        self.header("SOUND TEST", "speaker")
+        self.header("Sound test", "speaker")
         add_panel(self.ui, LIST)
         add_panel(self.ui, INFO)
 
@@ -163,7 +163,7 @@ class SoundTestView(MenuView):
             if self.playing is not None:
                 self.stop()
             else:
-                self.flow.show_settings()
+                self.flow.show_settings("sound")
 
     def play_selected(self) -> None:
         """Play the row under the cursor: a song takes over from whatever music is on, a

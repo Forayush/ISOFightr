@@ -154,27 +154,26 @@ def to_main_menu(window: Any, **flow_options: Any) -> Any:
 
 
 def open_options_page(window: Any, page: str) -> None:
-    """From the main menu: Options, then one of its pages (rules, controls or settings).
-    Rules, Controls and Settings were main menu entries until decision D-072."""
+    """From the main menu: Options (it opens on Rules, its first tab), then a click on the
+    tab of ``page`` (rules, controls, or a settings page: display, sound, feel; "settings"
+    means display). Rules, Controls and Settings were main menu entries until D-072."""
+    from isofightr.scenes.options_view import tab_rect
+
     assert name(window) == "MainMenuView"
     menu = window.current_view
     for _ in range(len(menu.buttons)):
         if menu.selected != "options":
             press(window, keys().S)
     press(window, keys().ENTER)
-    assert name(window) == "OptionsView"
-    options = window.current_view
-    for _ in range(len(options.buttons)):
-        if options.selected != page:
-            press(window, keys().S)
-    assert options.selected == page
-    press(window, keys().ENTER)
+    assert name(window) == "RulesView" and window.current_view.in_options
+    tab = "display" if page == "settings" else page
+    if tab != "rules":
+        rect = tab_rect(window.current_view, tab)
+        click(window, rect.left + 6, rect.bottom + 6)
 
 
 def back_to_main_menu(window: Any) -> None:
-    """Leave an options page: back to the options, then to the main menu."""
-    press(window, keys().ESCAPE)
-    assert name(window) == "OptionsView"
+    """Leave a tab of the options: back goes to the main menu."""
     press(window, keys().ESCAPE)
     assert name(window) == "MainMenuView"
 
@@ -409,9 +408,7 @@ def test_time_mode_shows_a_clock_and_ends_on_time(window: Any) -> None:
     press(window, keys().J)  # stock off: the old time mode
     assert rules.setup.time_on and not rules.setup.stock_on
     press(window, keys().K)
-    assert name(window) == "OptionsView", "special goes back, to the options"
-    press(window, keys().K)
-    assert name(window) == "MainMenuView"
+    assert name(window) == "MainMenuView", "special leaves the options"
     two_players_to_stage_select(window)
     press(window, keys().ENTER)
     battle = window.current_view
@@ -738,16 +735,22 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
     assert window.get_size() == (640 * 3, 360 * 3)
     press(window, keys().A)
     assert window.get_size() == (640 * 2, 360 * 2)
-    press(window, keys().S)
-    press(window, keys().S)
+    # Screen shake is on the Feel tab (D-072): the strong button steps to the next tab.
+    assert "screen_shake" not in [item.key for item in view.menu.items]
+    press(window, keys().U)
+    press(window, keys().U)
+    view = window.current_view
+    assert name(window) == "SettingsView" and view.tab == "feel"
+    assert view.menu.selected.key == "screen_shake"
     press(window, keys().A)
     assert flow.settings.screen_shake == 75
 
-    # The gamepad layout and the deadzone now live on the controls screen (D-061).
+    # The gamepad layout and the deadzone live on the controls tab (D-061, D-072).
     assert "gamepad_preset" not in [item.key for item in view.menu.items]
-    while view.menu.selected.key != "controls":
-        press(window, keys().S)
-    press(window, keys().ENTER)
+    from isofightr.scenes.options_view import tab_rect
+
+    rect = tab_rect(view, "controls")
+    click(window, rect.left + 6, rect.bottom + 6)
     assert name(window) == "ControlsView"
     controls = window.current_view
     controls.cursor = "device"
@@ -769,8 +772,6 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
         "modifier_bumpers",
         0.25,
     )
-    press(window, keys().ESCAPE)
-    assert name(window) == "SettingsView", "back to where it was opened from"
     back_to_main_menu(window)
     assert window.current_view.selected == "versus", "a new main menu starts at the top"
     press(window, keys().ENTER)
@@ -785,7 +786,7 @@ def test_the_hit_effects_setting_is_chosen_in_settings_and_used_by_the_next_batt
     from isofightr.scenes.setup import MatchSetup
 
     flow = to_main_menu(window)
-    flow.show_settings()
+    flow.show_settings("feel")
     step(window, 2)
     view = window.current_view
     assert view.menu.item("hit_effects").value == "full"
@@ -810,11 +811,11 @@ def test_resetting_the_settings_keeps_the_controls_and_the_rules(window: Any) ->
     flow = to_main_menu(window)
     flow.settings = replace(
         Settings().with_key("solo", "taunt", "G"),
-        scale=2,
+        scale=3,
         music_volume=3,
         rules=SavedRules(stocks=7),
     )
-    flow.show_settings()
+    flow.show_settings("sound")
     step(window, 2)
     view = window.current_view
     while view.menu.selected.key != "defaults":
@@ -823,6 +824,7 @@ def test_resetting_the_settings_keeps_the_controls_and_the_rules(window: Any) ->
     assert flow.settings.music_volume == Settings().music_volume
     assert flow.settings.bound_keys("solo", "taunt") == ("G",)
     assert flow.settings.rules.stocks == 7
+    assert flow.settings.scale == 3, "a page resets only its own settings (D-072)"
 
 
 def test_screen_shake_setting_scales_the_shake(window: Any) -> None:
@@ -892,7 +894,7 @@ def test_rebinding_a_key(window: Any, tmp_path: Path) -> None:
 
     # The new key works at once: F is now "special" = back.
     press(window, keys().F)
-    assert name(window) == "OptionsView"
+    assert name(window) == "MainMenuView", "back leaves the options"
 
 
 def test_enter_cannot_be_bound_and_keeps_the_cap_waiting(window: Any) -> None:
@@ -1042,7 +1044,7 @@ def test_rebinding_a_gamepad_button_changes_what_the_game_does(
     tap_pad(window, pad, "start")
     assert view.listening is None and flow.settings.pad(0).special == ()
     tap_pad(window, pad, "b")
-    assert name(window) == "OptionsView", "B goes back although it is bound to attack"
+    assert name(window) == "MainMenuView", "B goes back although it is bound to attack"
 
 
 def test_a_gamepad_that_is_not_plugged_in_can_be_looked_at_but_not_rebound(window: Any) -> None:
@@ -1326,7 +1328,7 @@ def test_default_restores_every_rule_at_once(window: Any) -> None:
     press(window, keys().D)
     assert rules.cursor == "back", "the buttons do not wrap"
     press(window, keys().J)
-    assert name(window) == "OptionsView", "the rules are a page of the options"
+    assert name(window) == "MainMenuView", "BACK leaves the options"
 
 
 def test_the_rules_cursor_wraps_through_rows_and_buttons(window: Any) -> None:
@@ -2118,18 +2120,31 @@ def test_settings_rows_show_switches_steppers_and_volume_bars(window: Any) -> No
     step(window, 2)
     view = window.current_view
     rows = view.rows
-    assert set(rows._switches) == {"fullscreen", "reduce_flashing"}
-    assert set(rows._gauges) == {"master_volume", "music_volume", "sfx_volume"}
+    assert set(rows._switches) == {"fullscreen"} and not rows._gauges
     assert rows._steppers["scale"].label.text == "2X" and not rows._switches["fullscreen"].on
     assert view.help_label.text, "a line about the row under the cursor"
+    flow.show_settings("feel")
+    step(window, 2)
+    assert set(window.current_view.rows._switches) == {"reduce_flashing"}
+    flow.show_settings("sound")
+    step(window, 2)
+    view = window.current_view
+    rows = view.rows
+    assert set(rows._gauges) == {"master_volume", "music_volume", "sfx_volume"}
     while view.menu.selected.key != "music_volume":
         press(window, keys().S)
     before = rows._gauges["music_volume"].value
     press(window, keys().A)
     assert rows._gauges["music_volume"].value < before
     assert rows._steppers["music_volume"].label.text == str(flow.settings.music_volume)
-    while view.menu.selected.key != "reduce_flashing":
-        press(window, keys().S)
+    flow.show_settings("feel")
+    step(window, 2)
+    view = window.current_view
+    rows = view.rows
+    for _ in range(len(view.menu.items)):
+        if view.menu.selected.key != "reduce_flashing":
+            press(window, keys().S)
+    assert view.menu.selected.key == "reduce_flashing"
     press(window, keys().D)
     assert rows._switches["reduce_flashing"].on and flow.settings.reduce_flashing
     for index in range(len(view.menu.items) - 1):

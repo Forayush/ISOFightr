@@ -13,6 +13,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, ClassVar
 
 import arcade
+from PIL import Image
 
 from isofightr.config import (
     AUDIO_MENU_SONG,
@@ -45,11 +46,13 @@ from isofightr.ui.widgets import (
     Gauge,
     Picture,
     PromptBar,
+    Sign,
     Stepper,
     TextLabel,
     Toggle,
     UiLayer,
     add_panel,
+    add_slab,
     icon_image,
 )
 
@@ -339,6 +342,8 @@ class MenuView(TickedView):
         the window."""
         self.clear()
         with self.pixel_buffer.drawing(theme.BACKGROUND):
+            settings = self.flow.settings
+            self.world.apply_settings(settings.reduce_flashing, settings.depth_aids)
             self.world.draw()
             self.draw_under()
             self.ui.draw()
@@ -364,13 +369,18 @@ class ListRows:
         bars: dict[str, int] | None = None,
         danger: tuple[str, ...] = (),
         opens: tuple[str, ...] = (),
+        row_height: int = theme.ROW_HEIGHT,
     ) -> None:
         """Lay the rows out hanging down from ``top``. ``icons`` gives a row's icon by its
         key; ``bars`` the top value of a row that also shows a bar; ``danger`` the rows that
         overwrite things; ``opens`` the rows that lead to another screen (they end in an
-        arrow)."""
+        arrow). On the stone surface (decision D-072) a row is a pale well, gold under the
+        cursor, its name in the title face."""
         self.left, self.top, self.width = left, top, width
-        self.row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
+        self.strip_height = row_height
+        self.row_height = row_height + LIST_ROW_GAP
+        self.surface = layer.surface
+        stone = self.surface is theme.STONE
         self.menu = menu
         self.bars = bars or {}
         self.danger = danger
@@ -384,12 +394,18 @@ class ListRows:
             rect = self.rect(index)
             self._strips.append(Picture(layer, rect))
             icon = (icons or {}).get(item.key)
+            middle = rect.bottom + (rect.height - theme.ICON_SIZE) // 2
             if icon is not None:
-                layer.icon(icon, rect.left + theme.GAP, rect.bottom + 3, theme.TEXT_MUTED)
+                layer.icon(icon, rect.left + theme.GAP, middle, self.surface.text_muted)
             box = Rect(rect.left + theme.ICON_SIZE + theme.GAP, rect.bottom, 200, rect.height)
-            self._labels.append(layer.write_in(box, item.label.upper(), align="left"))
-            well = Rect(rect.right - LIST_VALUE_WIDTH - theme.GAP, rect.bottom + 1,
-                        LIST_VALUE_WIDTH, rect.height - 2)  # fmt: skip
+            if stone:
+                label = layer.write_in(box, item.label, TextSize.TITLE, align="left", shadow=False)
+            else:
+                label = layer.write_in(box, item.label.upper(), align="left")
+            self._labels.append(label)
+            inset = 3 if stone else 1
+            well = Rect(rect.right - LIST_VALUE_WIDTH - theme.GAP, rect.bottom + inset,
+                        LIST_VALUE_WIDTH, rect.height - 2 * inset)  # fmt: skip
             if item.key in opens:
                 arrow = Rect(well.right - theme.ICON_SIZE - 2, rect.bottom + 3, theme.ICON_SIZE,
                              theme.ICON_SIZE)  # fmt: skip
@@ -397,18 +413,18 @@ class ListRows:
             elif item.choices == ON_OFF:
                 switch = Rect(well.right - LIST_SWITCH_WIDTH, well.bottom, LIST_SWITCH_WIDTH,
                               well.height)  # fmt: skip
-                self._switches[item.key] = Toggle(layer, switch)
+                self._switches[item.key] = Toggle(layer, switch, block=stone)
             elif item.choices:
                 self._steppers[item.key] = Stepper(layer, well)
                 if item.key in self.bars:
-                    bar = Rect(well.left - LIST_BAR_WIDTH - theme.PAD, rect.bottom + 5,
-                               LIST_BAR_WIDTH, rect.height - 10)  # fmt: skip
+                    bar = Rect(well.left - LIST_BAR_WIDTH - theme.PAD,
+                               rect.bottom + (rect.height - 9) // 2, LIST_BAR_WIDTH, 9)  # fmt: skip
                     self._gauges[item.key] = Gauge(layer, bar, segmented=True)
 
     def rect(self, index: int) -> Rect:
         """Return a row's strip."""
         bottom = self.top - (index + 1) * self.row_height + LIST_ROW_GAP
-        return Rect(self.left, bottom, self.width, theme.ROW_HEIGHT)
+        return Rect(self.left, bottom, self.width, self.strip_height)
 
     def row_at(self, x: float, y: float) -> int | None:
         """Return the row under a native pixel, or ``None``."""
@@ -419,26 +435,43 @@ class ListRows:
 
     def refresh(self) -> None:
         """Show the rows as the menu has them now."""
+        surface = self.surface
+        stone = surface is theme.STONE
         for index, item in enumerate(self.menu.items):
             focused = index == self.menu.cursor
             rect = self.rect(index)
             danger = item.key in self.danger
             # A row that overwrites things is quiet until the cursor is on it, then red.
             look = kit_art.Look.DANGER if focused else kit_art.Look.CAUTION
+
+            def strip(
+                rect: Rect = rect,
+                focused: bool = focused,
+                danger: bool = danger,
+                look: kit_art.Look = look,
+            ) -> Image.Image:
+                if danger:
+                    if stone:
+                        return kit_art.block_button(rect.width, rect.height, look, surface)
+                    return kit_art.button(rect.width, rect.height, look)
+                if stone:
+                    return kit_art.row_strip(rect.width, rect.height, focused, surface)
+                return kit_art.list_row(rect.width, rect.height, focused)
+
             self._strips[index].show(
-                ("list-row", rect.width, rect.height, focused, danger),
-                lambda rect=rect, focused=focused, danger=danger, look=look: (
-                    kit_art.button(rect.width, rect.height, look)
-                    if danger
-                    else kit_art.list_row(rect.width, rect.height, focused)
-                ),
+                ("list-row", rect.width, rect.height, focused, danger, surface.name), strip
             )
             if danger:
-                self._labels[index].color = kit_art.text_color(look)
+                self._labels[index].color = kit_art.look_text(look, surface)
+            elif stone:
+                self._labels[index].color = theme.INK if focused else surface.text
             else:
                 self._labels[index].color = theme.FOCUS if focused else theme.TEXT
             if item.key in self._arrows:
-                color = theme.FOCUS if focused else theme.TEXT_DIM
+                if stone:
+                    color = theme.INK if focused else surface.text_muted
+                else:
+                    color = theme.FOCUS if focused else theme.TEXT_DIM
                 image = icon_image("arrow_right")
                 if image is not None:
                     self._arrows[item.key].show(
@@ -465,6 +498,15 @@ class MenuListView(MenuView):
     """The rows that lead to another screen: they end in an arrow."""
     help: ClassVar[dict[str, str]] = {}
     """A line about a row, shown under the list while the cursor is on it."""
+    list_left: ClassVar[int | None] = None
+    """Where the list's slab starts (``None``: centred on the screen)."""
+    list_width: ClassVar[int] = LIST_WIDTH
+    row_height: ClassVar[int] = theme.ROW_HEIGHT
+
+    def make_header(self, title: str, icon: str | None) -> None:
+        """Draw the title band. Screens that are a tab of the options draw their tabs
+        instead."""
+        self.header(title, icon)
 
     def __init__(
         self,
@@ -477,12 +519,19 @@ class MenuListView(MenuView):
         """Build the title bar, the panel and the menu's rows."""
         super().__init__(pixel_buffer, flow)
         self.menu = menu
-        self.header(title, icon)
-        row_height = theme.ROW_HEIGHT + LIST_ROW_GAP
-        height = len(menu.items) * row_height + 2 * theme.GAP
+        self.make_header(title, icon)
+        stone = self.surface is theme.STONE
+        row_height = self.row_height + LIST_ROW_GAP
+        lip = theme.LIP if stone else 0
+        height = len(menu.items) * row_height + 2 * theme.GAP + lip
         top = NATIVE_H - theme.HEADER_HEIGHT - LIST_TOP_GAP
-        panel = Rect((NATIVE_W - LIST_WIDTH) // 2, top - height, LIST_WIDTH, height)
-        add_panel(self.ui, panel)
+        width = self.list_width
+        left = (NATIVE_W - width) // 2 if self.list_left is None else self.list_left
+        panel = Rect(left, top - height, width, height)
+        if stone:
+            add_slab(self.ui, panel)
+        else:
+            add_panel(self.ui, panel)
         self.rows = ListRows(
             self.ui,
             menu,
@@ -493,20 +542,27 @@ class MenuListView(MenuView):
             self.bars,
             self.danger,
             self.opens,
+            self.row_height,
         )
         strip = Rect(panel.left, panel.bottom - LIST_HELP_HEIGHT - theme.GAP, panel.width,
                      LIST_HELP_HEIGHT)  # fmt: skip
-        self.ui.picture(
-            ("list-help", strip.width, strip.height),
-            lambda: kit_art.panel(
-                strip.width, strip.height, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER
-            ),
-            strip.left,
-            strip.bottom,
-        )
         self.help_rect = strip
         """The strip the line about the row under the cursor sits on."""
-        self.help_label = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
+        self.help_sign: Sign | None = None
+        if stone:
+            self.help_sign = Sign(self.ui, strip)
+            self.help_label = self.help_sign.label
+        else:
+            self.ui.picture(
+                ("list-help", strip.width, strip.height),
+                lambda: kit_art.panel(
+                    strip.width, strip.height, theme.PANEL_DEEP, theme.PANEL_LIGHT,
+                    theme.SMALL_CORNER,
+                ),
+                strip.left,
+                strip.bottom,
+            )  # fmt: skip
+            self.help_label = self.ui.write_in(strip, "", TextSize.BODY, theme.FOG)
         self.refresh()
 
     def act(self, device: str, action: MenuAction) -> None:
@@ -541,13 +597,45 @@ class MenuListView(MenuView):
     def refresh(self) -> None:
         """Show the menu rows and the line about the one under the cursor."""
         self.rows.refresh()
-        self.help_label.text = self.help.get(self.menu.selected.key, "")
+        line = self.help.get(self.menu.selected.key, "")
+        if self.help_sign is not None:
+            self.help_sign.text = line
+        else:
+            self.help_label.text = line
+
+
+SETTINGS_PAGES: dict[str, tuple[str, ...]] = {
+    "display": ("scale", "fullscreen", "camera_zoom"),
+    "sound": ("master_volume", "music_volume", "sfx_volume", "sound_test"),
+    "feel": ("screen_shake", "reduce_flashing", "depth_aids", "hit_effects"),
+}
+"""The settings each page shows (decision D-072: a few rows each, not fourteen)."""
+SETTING_FIELDS: dict[str, str] = {
+    "scale": "scale",
+    "fullscreen": "fullscreen",
+    "camera_zoom": "camera_zoom",
+    "master_volume": "master_volume",
+    "music_volume": "music_volume",
+    "sfx_volume": "sfx_volume",
+    "screen_shake": "screen_shake",
+    "reduce_flashing": "reduce_flashing",
+    "depth_aids": "depth_aids",
+    "hit_effects": "hit_effects",
+}
+"""The ``Settings`` field each row sets."""
+SHAKE_DEMO_PIXELS = 5
+"""How far the Isle shakes, at 100%, when the screen shake setting changes."""
 
 
 class SettingsView(MenuListView):
-    """Video, audio and control settings. Every change is applied and saved at once."""
+    """One page of the settings, a tab of the options: Display, Sound or Feel. Every change
+    is applied and saved at once; each page's reset puts back that page only."""
 
     station = "workshop"
+    surface = theme.STONE
+    list_left = theme.MARGIN + 8
+    list_width = 340
+    row_height = theme.ROW_TALL
 
     icons: ClassVar[dict[str, str]] = {
         "scale": "hud",
@@ -557,7 +645,6 @@ class SettingsView(MenuListView):
         "music_volume": "speaker",
         "sfx_volume": "speaker",
         "sound_test": "speaker",
-        "controls": "controller",
         "camera_zoom": "stage",
         "reduce_flashing": "shield",
         "depth_aids": "fall",
@@ -571,7 +658,7 @@ class SettingsView(MenuListView):
         "sfx_volume": VOLUME_MAX,
     }
     danger = ("defaults",)
-    opens = ("sound_test", "controls")
+    opens = ("sound_test",)
     help: ClassVar[dict[str, str]] = {
         "scale": "How many screen pixels each game pixel covers.",
         "fullscreen": "Fill the screen, keeping whole pixels.",
@@ -580,114 +667,141 @@ class SettingsView(MenuListView):
         "music_volume": "The songs.",
         "sfx_volume": "Hits, swings and menu blips.",
         "sound_test": "Listen to every song and sound in the game.",
-        "controls": "Rebind the keyboards and the gamepads.",
         "camera_zoom": "Stepped: the camera doubles when everyone is close.",
         "reduce_flashing": "No hit flashes, no screen shake, no pulsing clock.",
         "depth_aids": "A ring and a line show where a fighter is. Strong adds a grid.",
         "hit_effects": "How hits look. Minimal has no particles; off is the old spark.",
-        "defaults": "Video, sound and accessibility back to how they came.",
+        "defaults": "This page's settings back to how they came.",
         "back": "Back to the main menu.",
     }
 
-    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow) -> None:
-        """Build the rows from the current settings."""
+    def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, tab: str = "display") -> None:
+        """Build the page's rows from the current settings."""
+        self.tab = tab if tab in SETTINGS_PAGES else "display"
         settings = flow.settings
         volumes = tuple(str(level) for level in range(VOLUME_MAX + 1))
+        rows = {
+            "scale": _setting(
+                "scale", "Window scale", [f"{scale}x" for scale in SCALES], SCALES, settings.scale
+            ),
+            "fullscreen": MenuItem("fullscreen", "Fullscreen", ON_OFF, int(settings.fullscreen)),
+            "screen_shake": _setting(
+                "screen_shake",
+                "Screen shake",
+                [f"{step}%" for step in SHAKE_STEPS],
+                SHAKE_STEPS,
+                settings.screen_shake,
+            ),
+            "master_volume": MenuItem(
+                "master_volume", "Master volume", volumes, settings.master_volume
+            ),
+            "music_volume": MenuItem(
+                "music_volume", "Music volume", volumes, settings.music_volume
+            ),
+            "sfx_volume": MenuItem("sfx_volume", "Effects volume", volumes, settings.sfx_volume),
+            "sound_test": MenuItem("sound_test", "Sound test"),
+            "camera_zoom": _setting(
+                "camera_zoom",
+                "Camera zoom",
+                ["static", "stepped 2x"],
+                CAMERA_ZOOMS,
+                settings.camera_zoom,
+            ),
+            "reduce_flashing": MenuItem(
+                "reduce_flashing", "Reduce flashing", ON_OFF, int(settings.reduce_flashing)
+            ),
+            "depth_aids": _setting(
+                "depth_aids", "Depth aids", list(DEPTH_AIDS), DEPTH_AIDS, settings.depth_aids
+            ),
+            "hit_effects": _setting(
+                "hit_effects", "Hit effects", list(HIT_EFFECTS), HIT_EFFECTS, settings.hit_effects
+            ),
+        }
         menu = Menu(
             [
-                _setting(
-                    "scale",
-                    "Window scale",
-                    [f"{scale}x" for scale in SCALES],
-                    SCALES,
-                    settings.scale,
-                ),
-                MenuItem("fullscreen", "Fullscreen", ON_OFF, int(settings.fullscreen)),
-                _setting(
-                    "screen_shake",
-                    "Screen shake",
-                    [f"{step}%" for step in SHAKE_STEPS],
-                    SHAKE_STEPS,
-                    settings.screen_shake,
-                ),
-                MenuItem("master_volume", "Master volume", volumes, settings.master_volume),
-                MenuItem("music_volume", "Music volume", volumes, settings.music_volume),
-                MenuItem("sfx_volume", "Effects volume", volumes, settings.sfx_volume),
-                MenuItem("sound_test", "Sound test"),
-                MenuItem("controls", "Controls"),
-                _setting(
-                    "camera_zoom",
-                    "Camera zoom",
-                    ["static", "stepped 2x"],
-                    CAMERA_ZOOMS,
-                    settings.camera_zoom,
-                ),
-                MenuItem(
-                    "reduce_flashing", "Reduce flashing", ON_OFF, int(settings.reduce_flashing)
-                ),
-                _setting(
-                    "depth_aids", "Depth aids", list(DEPTH_AIDS), DEPTH_AIDS, settings.depth_aids
-                ),
-                _setting(
-                    "hit_effects",
-                    "Hit effects",
-                    list(HIT_EFFECTS),
-                    HIT_EFFECTS,
-                    settings.hit_effects,
-                ),
-                MenuItem("defaults", "Reset to defaults"),
+                *(rows[key] for key in SETTINGS_PAGES[self.tab]),
+                MenuItem("defaults", "Reset this page"),
                 MenuItem("back", "Back"),
             ]
         )
         super().__init__(pixel_buffer, flow, "SETTINGS", menu, "gear")
-        self.footer("{stick}: row and value   {attack}: pick   {special}: back")
-
-    def changed(self) -> None:
-        """Apply and save the row that changed."""
-        menu = self.menu
-        self.flow.update_settings(
-            replace(
-                self.flow.settings,
-                scale=SCALES[menu.item("scale").index],
-                fullscreen=bool(menu.item("fullscreen").index),
-                screen_shake=SHAKE_STEPS[menu.item("screen_shake").index],
-                master_volume=menu.item("master_volume").index,
-                music_volume=menu.item("music_volume").index,
-                sfx_volume=menu.item("sfx_volume").index,
-                camera_zoom=CAMERA_ZOOMS[menu.item("camera_zoom").index],
-                reduce_flashing=bool(menu.item("reduce_flashing").index),
-                depth_aids=DEPTH_AIDS[menu.item("depth_aids").index],
-                hit_effects=HIT_EFFECTS[menu.item("hit_effects").index],
-            )
+        self.footer(
+            "{stick}: row and value   {attack}: pick   {strong}: next tab   {special}: back",
+            drop=("strong",),
         )
 
+    def make_header(self, title: str, icon: str | None) -> None:
+        """The options' strip of tabs, this page's tab on show."""
+        from isofightr.scenes.options_view import add_option_tabs
+
+        add_option_tabs(self, self.tab)
+
+    def act(self, device: str, action: MenuAction) -> None:
+        """The tab buttons step through the options; the rest is the list's."""
+        from isofightr.scenes.options_view import option_tab_action
+
+        if option_tab_action(self, action):
+            return
+        super().act(device, action)
+
+    def click(self, x: int, y: int) -> None:
+        """A click on a tab opens it; elsewhere it is the list's."""
+        from isofightr.scenes.options_view import option_tab_click
+
+        if option_tab_click(self, x, y):
+            return
+        super().click(x, y)
+
+    def changed(self) -> None:
+        """Apply and save the rows that changed; a change of screen shake shakes the Isle
+        by that much, so the setting can be felt."""
+        before = self.flow.settings
+        values = {
+            SETTING_FIELDS[item.key]: self._value(item.key)
+            for item in self.menu.items
+            if item.key in SETTING_FIELDS
+        }
+        self.flow.update_settings(replace(before, **values))
+        after = self.flow.settings
+        if after.screen_shake != before.screen_shake:
+            self.world.shake(round(SHAKE_DEMO_PIXELS * after.screen_shake / 100))
+
+    def _value(self, key: str) -> object:
+        """Return the value a row stands for now."""
+        index = self.menu.item(key).index
+        if key == "scale":
+            return SCALES[index]
+        if key == "screen_shake":
+            return SHAKE_STEPS[index]
+        if key == "camera_zoom":
+            return CAMERA_ZOOMS[index]
+        if key == "depth_aids":
+            return DEPTH_AIDS[index]
+        if key == "hit_effects":
+            return HIT_EFFECTS[index]
+        if key in ("fullscreen", "reduce_flashing"):
+            return bool(index)
+        return index
+
     def choose(self, key: str) -> None:
-        """Open the controls screen, reset, or leave."""
-        if key == "controls":
-            self.flow.show_controls(self.flow.show_settings)
-        elif key == "sound_test":
+        """Open the sound test, reset this page, or leave."""
+        if key == "sound_test":
             self.flow.show_sound_test()
         elif key == "defaults":
-            # Video, audio and accessibility only: the controls and the rules have their
-            # own DEFAULT buttons.
-            kept = self.flow.settings
-            self.flow.update_settings(
-                Settings(
-                    slot_devices=kept.slot_devices,
-                    rules=kept.rules,
-                    keys=kept.keys,
-                    alt_keys=kept.alt_keys,
-                    pads=kept.pads,
-                    deadzone=kept.deadzone,
-                )
-            )
-            self.flow.show_settings()
+            fresh = Settings()
+            fields = {
+                SETTING_FIELDS[name]: getattr(fresh, SETTING_FIELDS[name])
+                for name in SETTINGS_PAGES[self.tab]
+                if name in SETTING_FIELDS
+            }
+            self.flow.update_settings(replace(self.flow.settings, **fields))
+            self.flow.show_settings(self.tab)
         else:
             self.back()
 
     def back(self) -> None:
-        """Back to the options."""
-        self.flow.show_options("settings")
+        """Leave the options for the main menu."""
+        self.flow.show_main_menu()
 
 
 def _setting[T](

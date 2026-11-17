@@ -19,12 +19,17 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr.config import MAX_PLAYERS, NATIVE_H
+from isofightr.data.character_loader import list_character_ids
 from isofightr.input.devices import key_name
 from isofightr.input.gamepad import PAD_CONTROLS, held_controls
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model as model
+from isofightr.scenes.diorama import PAD_GRID, PAD_SPOTS, Diorama
 from isofightr.scenes.menus import MenuView
+from isofightr.scenes.options_view import OPTION_TABS, add_option_tabs, option_tab_click
 from isofightr.settings import Settings
+from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8
+from isofightr.sim.math3d import ZERO3, Vec3
 from isofightr.ui import pad_art, theme
 from isofightr.ui.anim import blink
 from isofightr.ui.focus import FocusMap, Rect
@@ -64,7 +69,15 @@ OPTIONS_PANEL = Rect(12, 40, 258, 96)
 """The room the options have under the tiles. Their panel hangs from its top and is as
 tall as the device has options, so it lines up with the info panel beside it (D-070)."""
 INFO = Rect(276, 76, 352, 60)
+OPTION_STRIP = "options-tabs"
+"""The cursor's name while it is on the options' tabs."""
 SIDE = Rect(424, 146, 196, 106)
+LIVE_PAD_Y = SIDE.bottom + 34
+"""Where the middle of the live test's pad is drawn (its fighter stands on it)."""
+LIVE_FLOOR = -2.0
+"""A live test fighter that falls this far below its pad is put back on it..."""
+LIVE_DROP = 1.0
+"""...from this high above it."""
 """The panel beside the lower band: the live test, or the controller diagram. Tall enough
 that the diagram's triggers stay under the panel's title row."""
 FIXED = Rect(12, 40, 258, 62)
@@ -114,12 +127,15 @@ class ControlsView(MenuView):
         Args:
             pixel_buffer: the native render target.
             flow: the router; it holds and saves the settings.
-            on_back: where BACK goes (the options if not given).
+            on_back: where BACK goes (if not given, the screen is a tab of the options
+                and BACK goes to the main menu).
             tab: the player whose device to show (0 to 3).
             cursor: the focus name to start on (the first tile if empty or unknown).
         """
         super().__init__(pixel_buffer, flow)
         self.on_back = on_back
+        self.in_options = on_back is None
+        """Whether the screen is a tab of the options."""
         self.tab = min(max(tab, 0), MAX_PLAYERS - 1)
         self.device = model.tab_device(flow.settings, self.tab)
         self.pad = model.is_pad(self.device)
@@ -129,7 +145,11 @@ class ControlsView(MenuView):
         self.message = ""
         self._held: frozenset[str] = frozenset()
         self._pad_held: frozenset[str] = frozenset()
-        self.header("CONTROLS", "controller" if self.pad else "keyboard")
+        icon = "controller" if self.pad else "keyboard"
+        if self.in_options:
+            add_option_tabs(self, "controls", icon)
+        else:
+            self.header("Controls", icon)
         ui = self.ui
 
         self.rects: dict[str, Rect] = {}
@@ -171,7 +191,18 @@ class ControlsView(MenuView):
             "", SIDE.right - theme.PAD, SIDE.top - 12, TextSize.SMALL, theme.TEXT_MUTED, "right"
         )
         self.diagram: Picture | None = None
-        self.live = ui.write_in(SIDE, "", TextSize.TITLE, theme.ON)
+        self.live = ui.write_in(
+            Rect(SIDE.left, SIDE.top - 34, SIDE.width, 18), "", TextSize.TITLE, theme.ON
+        )
+        self.live_fighter: Diorama | None = None
+        """On a keyboard, a fighter on a small pad in the live test box that does what the
+        keyboard presses (decision D-072); the controller drawing has its own lights."""
+        if not self.pad:
+            names = flow.setup.characters
+            character = names[self.tab] if self.tab < len(names) else list_character_ids()[0]
+            self.live_fighter = Diorama(
+                pixel_buffer, [character], PAD_GRID, PAD_SPOTS[:1], (Dir8.S,), "grid", "grid"
+            )
         if self.pad:
             width, height = pad_art.PAD_ART_SIZE
             self.diagram = Picture(
@@ -329,13 +360,31 @@ class ControlsView(MenuView):
                 self.stop_listening(None)
             else:
                 self.stop_listening(next(name for name in PAD_CONTROLS if name in pressed))
+        if self.live_fighter is not None:
+            frame = NEUTRAL_INPUT
+            if self.listening is None:
+                frame = self.hub.frame(self.device, keys)
+            self.live_fighter.match.tick([frame])
+            fighter = self.live_fighter.match.fighters[0]
+            if fighter.pos.z < LIVE_FLOOR:
+                # Walked off the little pad: back onto its middle (a private match: nobody
+                # plays it, so moving its fighter changes nothing anyone keeps).
+                x, y = PAD_SPOTS[0]
+                fighter.pos, fighter.vel, fighter.kb_vel = Vec3(x, y, LIVE_DROP), ZERO3, ZERO3
         super().tick()
+
+    def draw_over(self) -> None:
+        """The live test's fighter, over its box."""
+        if self.live_fighter is not None:
+            self.live_fighter.draw(SIDE.left + SIDE.width // 2, LIVE_PAD_Y)
 
     # --- input -----------------------------------------------------------------------------
 
     def act(self, device: str, action: MenuAction) -> None:
         """Move the cursor, start rebinding, clear a cap, change an option, or leave."""
         if self.listening is not None:
+            return
+        if self.in_options and self._on_option_tabs(action):
             return
         if not (action is MenuAction.CONFIRM and self.cursor == DEFAULT):
             self.confirming_default = False
@@ -352,6 +401,26 @@ class ControlsView(MenuView):
             self.press()
         else:
             self.cursor = self.focus_map.move(self.cursor, action)
+
+    def _on_option_tabs(self, action: MenuAction) -> bool:
+        """The options' tabs, reached by going up from the player tabs (here the strong
+        button is a key to test, not a way to change tab). Left and right open the next
+        tab, down or confirm comes back. Returns whether the action was handled."""
+        if self.cursor == OPTION_STRIP:
+            if action in (MenuAction.LEFT, MenuAction.RIGHT):
+                step = 1 if action is MenuAction.RIGHT else -1
+                index = (OPTION_TABS.index("controls") + step) % len(OPTION_TABS)
+                self.audio.play("ui_pick")
+                self.flow.show_options(OPTION_TABS[index])
+                return True
+            if action in (MenuAction.DOWN, MenuAction.CONFIRM):
+                self.cursor = f"tab:{self.tab}"
+                return True
+            return action is not MenuAction.BACK
+        if action is MenuAction.UP and self.cursor.startswith("tab:"):
+            self.cursor = OPTION_STRIP
+            return True
+        return False
 
     def press(self) -> None:
         """Confirm on whatever the cursor is on."""
@@ -387,7 +456,7 @@ class ControlsView(MenuView):
 
     def leave(self) -> None:
         """Go back to where the screen was opened from."""
-        (self.on_back or self.flow.show_options)()
+        (self.on_back or self.flow.show_main_menu)()
 
     def hover(self, x: int, y: int) -> bool:
         """Put the cursor on whatever is under the mouse (not while a cap is waiting)."""
@@ -402,7 +471,10 @@ class ControlsView(MenuView):
         return True
 
     def click(self, x: int, y: int) -> None:
-        """A click presses what is under it; on a stepper its left or right half steps it."""
+        """A click presses what is under it; on a stepper its left or right half steps it;
+        on one of the options' tabs it opens it."""
+        if self.in_options and self.listening is None and option_tab_click(self, x, y):
+            return
         if not self.hover(x, y):
             return
         self.audio.play("ui_select")
@@ -465,6 +537,8 @@ class ControlsView(MenuView):
             cap.set(*self.cap_look(action, slot, lit))
         for index, tab in enumerate(self.tabs):
             tab.active = index == self.tab
+        if self.in_options:
+            self.option_tabs.set(OPTION_TABS.index("controls"), self.cursor == OPTION_STRIP)
         self.steppers[DEVICE].set(model.DEVICE_NAMES[device], self.cursor == DEVICE)
         if self.pad:
             pad = settings.pad(model.pad_slot(device))

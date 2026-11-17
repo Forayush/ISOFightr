@@ -463,6 +463,16 @@ def toggle_block(
     )  # fmt: skip
 
 
+def row_strip(
+    width: int, height: int, focused: bool = False, surface: theme.Surface = theme.STONE
+) -> Image.Image:
+    """Return the strip behind one row of a list on a slab (the rules, a settings page):
+    the surface's well at rest, gold under the cursor."""
+    if focused:
+        return filled(shape_mask(width, height, theme.SMALL_CORNER), theme.GOLD, theme.INK)
+    return filled(shape_mask(width, height, theme.SMALL_CORNER), surface.well, surface.well_edge)
+
+
 def toggle_text(on: bool, surface: theme.Surface) -> Rgb:
     """Return the colour of the word on a block switch."""
     if on or surface is theme.STONE:
