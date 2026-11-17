@@ -594,3 +594,19 @@ def test_the_loading_screen_records_what_a_cpu_must_know(window: Any) -> None:
     for fighter in fighters:
         cached = knowledge._CACHE[fighter.character.id][1]
         assert knowledge.knowledge_for(fighter.character) is cached
+
+
+def test_the_vs_screen_shows_the_stage_and_goes_into_the_match_through_the_cloud(
+    window: Any,
+) -> None:
+    from isofightr.scenes import loading_view
+
+    _, view = to_loading(window)
+    assert view.scenery is not None and view.tip is view.tip_sign.label
+    for _ in range(loading_view.AUTO_TICKS + 5):
+        if name(window) != "LoadingView":
+            break
+        step(window, 1)
+    battle = window.current_view
+    assert name(window) == "BattleView" and battle.wiping, "into the match through the cloud"
+    assert battle.match.frame <= 5, "the match starts as it shows"

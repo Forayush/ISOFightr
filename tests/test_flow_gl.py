@@ -1441,16 +1441,14 @@ def test_the_random_stage_pool_keeps_one_stage_and_random_picks_from_it(window: 
 
 
 def go_to_stage(window: Any, view: Any, stage_id: str) -> None:
-    """Walk stage select's cursor to a stage, a row at a time, then along the row."""
-    from isofightr.scenes.stage_info import STAGE_COLUMNS
-
+    """Walk stage select's cursor along the strip to a stage, the short way round."""
     target = view.stage_ids.index(stage_id)
-    for _ in range(20):
+    count = len(view.stage_ids)
+    for _ in range(count):
         if view.selected == stage_id:
             return
-        row, target_row = view.cursor // STAGE_COLUMNS, target // STAGE_COLUMNS
-        key = keys().S if row < target_row else keys().W if row > target_row else keys().D
-        press(window, key)
+        ahead = (target - view.cursor) % count
+        press(window, keys().D if ahead <= count - ahead else keys().A)
     raise AssertionError(f"could not reach {stage_id}")
 
 
@@ -1816,49 +1814,48 @@ def open_stage_select(window: Any, **setup_options: Any) -> tuple[Any, Any]:
     return flow, window.current_view
 
 
-def test_stage_select_scrolls_by_rows_and_only_shown_tiles_take_the_mouse(
+def test_stage_select_scrolls_sideways_and_only_shown_tiles_take_the_mouse(
     window: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from isofightr.config import NATIVE_H
+    from isofightr.config import NATIVE_W
     from isofightr.scenes import stage_info
 
-    # Two rows on screen, so that today's stages already need scrolling.
-    monkeypatch.setattr(stage_info, "STAGE_ROWS", 2)
+    # Four tiles on screen, so that today's stages need scrolling.
+    monkeypatch.setattr(stage_info, "STRIP_SHOWN", 4)
     from isofightr.data.stage_loader import list_stage_ids
 
     _, sss = open_stage_select(window, stage=list_stage_ids()[0])
     count = len(sss.stage_ids)
-    assert count > 2 * stage_info.STAGE_COLUMNS, "enough tiles to scroll"
-    assert sss.cursor == 0 and sss.first_row == 0
-    assert sss.more_above.text == "" and sss.more_below.text == "↓"
-    top = sss.tile_rects[0]
-    hidden = sss.tile_rects[2 * stage_info.STAGE_COLUMNS]
-    assert hidden.top < 0, "a row out of view is off the screen"
+    assert count > 4, "enough tiles to scroll"
+    assert sss.cursor == 0 and sss.first == 0
+    assert sss.more_left.text == "" and sss.more_right.text == "\u2192"
+    first = sss.tile_rects[0]
+    hidden = sss.tile_rects[4]
+    assert hidden.top < 0, "a tile out of view is off the screen"
     assert not sss.hover(hidden.left + 4, max(hidden.bottom + 4, 0))
 
     go_to_stage(window, sss, sss.stage_ids[-1])
-    last_row = (count - 1) // stage_info.STAGE_COLUMNS
-    assert sss.first_row == last_row - 1 and sss.more_above.text == "↑"
-    assert sss.more_below.text == ""
+    assert sss.first == count - 4 and sss.more_left.text == "\u2190"
+    assert sss.more_right.text == ""
     shown = sss.tile_rects[sss.cursor]
-    assert shown.bottom > 0 and shown.top <= NATIVE_H, "the cursor's tile is on screen"
-    assert shown.bottom == top.bottom - (top.height + 5), "in the grid's second row"
-    assert sss.tile_rects[0].top < 0, "and the first row has gone"
+    assert shown.left >= 0 and shown.right <= NATIVE_W, "the cursor's tile is on screen"
+    assert shown.bottom == first.bottom and shown.left == first.left + 3 * (first.width + 4)
+    assert sss.tile_rects[0].top < 0, "and the first tile has gone"
     back = sss.tile_backs[sss.cursor].sprite
-    assert back.center_y == shown.bottom + shown.height / 2, "the tile's art moved with it"
+    assert back.center_x == shown.left + shown.width / 2, "the tile's art moved with it"
     assert sss.hover(shown.left + 4, shown.bottom + 4) and sss.selected == "random"
 
     # The pool boxes moved with their tiles: a click on one still toggles that stage.
-    index = (last_row - 1) * stage_info.STAGE_COLUMNS
+    index = count - 3
     box = sss.box_rects[index]
-    assert box is not None and 0 < box.bottom < NATIVE_H
+    assert box is not None and 0 < box.left < NATIVE_W
     stage_id = sss.stage_ids[index]
     assert stage_id in sss.pool
     sss.click(box.left + 2, box.bottom + 2)
     assert stage_id not in sss.pool
 
     go_to_stage(window, sss, sss.stage_ids[0])
-    assert sss.first_row == 0 and sss.tile_rects[0] == top
+    assert sss.first == 0 and sss.tile_rects[0] == first
 
 
 def test_stage_select_shows_the_stage_under_the_cursor(window: Any) -> None:
@@ -1869,7 +1866,7 @@ def test_stage_select_shows_the_stage_under_the_cursor(window: Any) -> None:
     assert sss.selected == "sky_ruins" and sss.name_label.text == "SKY RUINS"
     assert sss.description.text.endswith(".") and sss.music_label.text
     sky = sss.preview.sprite.texture
-    assert sky.width == 400 and sky.height == 206
+    assert (sky.width, sky.height) == (640, 360), "the stage is the whole screen (D-072)"
     for first, second in zip(sss.tile_rects, sss.tile_rects[1:], strict=False):
         assert not first.overlaps(second)
     go_to_stage(window, sss, "final_plateau")
@@ -1919,10 +1916,11 @@ def test_clicking_a_box_toggles_the_pool_and_a_tile_fights_there(window: Any) ->
     click(window, box.rect.left + 3, box.rect.bottom + 3)
     step(window, 1)
     assert sss.selected == "lily_pads" and "lily_pads" not in sss.pool
-    rect = sss.tile_rects[sss.stage_ids.index("twin_isles")]
+    rect = sss.tile_rects[sss.stage_ids.index("training_grid")]
+    assert rect.bottom > 0, "a tile in view"
     click(window, rect.left + 20, rect.bottom + 30)
     step(window, 1)
-    assert name(window) == "BattleView" and window.current_view.stage.id == "twin_isles"
+    assert name(window) == "BattleView" and window.current_view.stage.id == "training_grid"
 
 
 def test_stage_tiles_carry_a_mechanic_badge_that_dims_with_hazards_off(window: Any) -> None:
@@ -2585,3 +2583,87 @@ def test_a_ring_fighter_is_drawn_at_twice_its_battle_size(window: Any) -> None:
     assert STATIONS["ring"].zoom == 2
     step(window, 40)
     assert not css.world.gliding and css.world.pose.zoom == 2
+
+
+# --- stage select and the VS screen (decision D-072, M21 group 4) ----------------------------
+
+
+def test_the_live_stage_takes_over_only_once_the_cursor_has_rested(window: Any) -> None:
+    from isofightr.scenes import stage_select_view
+
+    _, sss = open_stage_select(window, stage="sky_ruins")
+    rest = stage_select_view.LIVE_REST_TICKS
+    built: list[int] = []
+    real_build = sss.live.build
+
+    def counting(stage: Any) -> None:
+        built.append(sss.flow.menu_ticks)
+        real_build(stage)
+
+    sss.live.build = counting  # type: ignore[method-assign]
+    for _ in range(3):
+        press(window, keys().D)
+        assert not built, "never while the cursor moves"
+        assert not sss.live_shown, "the picture shows until then"
+    moved = sss.flow.menu_ticks
+    step(window, rest + 2)
+    assert len(built) == 1 and built[0] - moved >= rest - 2, "then once, after a rest"
+    assert sss.live_shown and sss.live_ticks > 0
+    picture = sss.preview.sprite.texture
+    assert (picture.width, picture.height) == (640, 360)
+    press(window, keys().A)
+    assert not sss.live_shown or sss.live.ready(sss.selected)
+
+
+def test_the_live_stage_keeps_its_platforms_still_with_hazards_off(window: Any) -> None:
+    from isofightr.capture import read_frame
+    from isofightr.data.stage_loader import load_stage
+    from isofightr.render.stage_preview import LivePreview
+
+    window.switch_to()
+    stage = load_stage("twin_isles")
+    assert stage.moves, "a stage whose bridge drifts"
+    live = LivePreview(window.pixel_buffer)
+    assert not live.draw(stage, 1), "nothing until it is built"
+    live.build(stage)
+
+    renderer = live._kept[stage.id][0]
+
+    def platforms(frame: int, mechanics: bool) -> Any:
+        with window.pixel_buffer.drawing():
+            assert live.draw(stage, frame, mechanics)
+        read_frame(window)
+        return [(round(p.x0, 3), round(p.y0, 3)) for p in renderer.live.soft_platforms]
+
+    frames = range(1, 400, 37)
+    still = platforms(1, False)
+    assert all(platforms(frame, False) == still for frame in frames), "off: it stays put"
+    moving = {str(platforms(frame, True)) for frame in frames}
+    assert len(moving) > 2, "on: the bridge drifts"
+    for other in ("sky_ruins", "lily_pads", "frostpeak"):
+        live.build(load_stage(other))
+    assert not live.ready("twin_isles") and live.ready("frostpeak"), "the oldest goes"
+
+
+def test_stage_select_leaves_the_stage_in_view(window: Any) -> None:
+    from ui_helpers import MAX_COVER, ui_cover
+
+    _, sss = open_stage_select(window, stage="sky_ruins")
+    assert ui_cover(window, sss) <= MAX_COVER
+
+
+def test_the_stages_are_reached_through_the_cloud_and_left_through_it(window: Any) -> None:
+    from isofightr.ui import wipe
+
+    open_select(window)
+    press(window, keys().NUM_4)
+    press(window, keys().J)
+    press(window, keys().NUM_4)
+    sss = window.current_view
+    assert name(window) == "StageSelectView" and sss.wiping, "from the Isle to the stages"
+    step(window, wipe.WIPE_TICKS)
+    assert not sss.wiping
+    press(window, keys().K)
+    back = window.current_view
+    assert name(window) == "CharacterSelectView" and back.wiping, "and back"
+    assert back.world.station.name == "ring" and not back.world.gliding

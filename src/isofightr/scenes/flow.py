@@ -188,15 +188,21 @@ class GameFlow:
         ``on_back`` where BACK leads (the options if not given)."""
         self.window.show_view(ControlsView(self.pixel_buffer, self, on_back, tab, cursor))
 
-    def show_character_select(self, setup: MatchSetup) -> None:
-        """Go to character select with the given setup."""
-        self.window.show_view(CharacterSelectView(self.pixel_buffer, self, setup))
+    def show_character_select(self, setup: MatchSetup, wipe: bool = False) -> None:
+        """Go to character select with the given setup (``wipe``: through the cloud, back
+        from a stage to the Isle)."""
+        view = CharacterSelectView(self.pixel_buffer, self, setup)
+        if wipe:
+            self.world().settle(view.station)
+            self.through_cloud(view)
+        else:
+            self.window.show_view(view)
 
     def show_stage_select(self, setup: MatchSetup) -> None:
-        """Go to stage select."""
+        """Go to stage select, through the cloud: from the Isle to the stages."""
         if not setup.training:
             self.setup = setup
-        self.window.show_view(StageSelectView(self.pixel_buffer, self, setup))
+        self.through_cloud(StageSelectView(self.pixel_buffer, self, setup))
 
     def plan_match(self, setup: MatchSetup) -> MatchPlan:
         """Decide the next match: remember the setup, pick the stage if it is "random",
@@ -237,8 +243,8 @@ class GameFlow:
         self.window.show_view(view)
 
     def show_battle(self, view: BattleView) -> None:
-        """Show a battle that is already built (the loading screen's)."""
-        self.window.show_view(view)
+        """Show a battle that is already built (the loading screen's), through the cloud."""
+        self.through_cloud(view)
 
     def show_results(self, setup: MatchSetup, match: Match) -> None:
         """Go to the results of a finished match."""

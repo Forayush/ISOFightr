@@ -1,9 +1,10 @@
 """The loading screen: who fights whom and where, shown while the match is built.
 
-Plan note "13 - Game Modes UI and Flow" (decision D-061, wireframe ``m13_wf_loading.png``;
-it supersedes D-041's "no loading screen"). Between stage select and the battle the players'
-portraits slide in from the sides around a VS, over the stage's name and picture, a
-gameplay tip, and a progress bar. The bar is real: the screen builds the match in steps
+Plan note "13 - Game Modes UI and Flow" (decisions D-061 and D-072; it supersedes D-041's
+"no loading screen"). Between stage select and the battle the stage fills the screen, its
+name in the logo's lettering across the top, and the players' hero art slides in from the
+sides around a VS, each standing on a plate with the player's tag over it; a gameplay tip
+on a sign and a progress bar along the bottom. The bar is real: the screen builds the match in steps
 (the stage, each character's sprites in the costume it will wear, then the battle scene)
 and the bar shows how many are done. It stays at least a second so it can be read, can be
 skipped once everything is ready, and goes on by itself soon after.
@@ -20,7 +21,7 @@ from typing import TYPE_CHECKING
 import arcade
 
 from isofightr.ai.knowledge import knowledge_for
-from isofightr.config import NATIVE_W
+from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.character_loader import load_character
 from isofightr.data.sprite_sheet import SpriteSheetError, load_sprite_set
 from isofightr.data.stage_loader import load_stage
@@ -31,14 +32,23 @@ from isofightr.scenes.battle import BattleView
 from isofightr.scenes.menus import MenuView
 from isofightr.scenes.setup import MatchSetup
 from isofightr.sim.character_def import CharacterDef
-from isofightr.ui import kit_art, theme
+from isofightr.ui import logo, select_art, theme
 from isofightr.ui.anim import ease_out, slide
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import TextSize
 from isofightr.ui.hints import device_labels
 from isofightr.ui.menu import MenuAction
+from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.tips import TIPS, tip_at
-from isofightr.ui.widgets import Gauge, SlideGroup, add_panel, picture_texture
+from isofightr.ui.widgets import (
+    Gauge,
+    Picture,
+    Sign,
+    SlideGroup,
+    UiLayer,
+    add_slab,
+    slab_face,
+)
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
@@ -51,8 +61,8 @@ AUTO_TICKS = 150
 """It goes on by itself after this long (once the match is ready)."""
 SLIDE_TICKS = 24
 """The fighter cards slide in from the sides over this many ticks."""
-CARD_BOTTOM = 152
-CARD_HEIGHT = 166
+CARD_BOTTOM = 104
+CARD_HEIGHT = 186
 CARD_MAX_WIDTH = 190
 CARD_GAP = 10
 CARD_MARGIN = 20
@@ -60,11 +70,15 @@ BUST_SCALE = 3
 """A character without hero art gets its 30 px bust, three times as big."""
 ART_BOTTOM = 22
 """Height of a card's art's feet above the card's bottom: just behind the name plate's top."""
-STAGE_SIZE = (150, 70)
-"""The stage picture's size in native pixels."""
-STAGE_BOTTOM = 66
-BAR = Rect(120, 44, 400, 9)
-TIP_BOTTOM = 24
+NAME_PLATE_HEIGHT = 26
+TAG_HEIGHT = 15
+STAGE_NAME_TOP = NATIVE_H - 8
+"""The stage's name, in the logo's lettering, hangs from here."""
+STAGE_NAME_SCALE = 2
+VS_SCALE = 3
+BAR = Rect(176, 54, 288, 9)
+BAR_SLAB = Rect(120, 46, 400, 26)
+TIP = Rect(60, 22, 520, 18)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +125,8 @@ def card_rects(count: int) -> list[Rect]:
 class LoadingView(MenuView):
     """Builds the match a step a tick while it shows who is about to fight."""
 
+    surface = theme.STONE
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, plan: MatchPlan) -> None:
         """Lay the screen out. Nothing slow happens here: the work is done tick by tick."""
         super().__init__(pixel_buffer, flow)
@@ -129,76 +145,76 @@ class LoadingView(MenuView):
         self._work = self._steps(distinct)
         self.first_tip = flow.matches_started % len(TIPS)
 
+        stage = self.stage
+        # The stage itself, behind everything (not part of the screen's own layer).
+        self.scenery = UiLayer(GlyphAtlas())
+        backdrop = Picture(self.scenery, Rect(0, 0, NATIVE_W, NATIVE_H))
+        backdrop.show(
+            ("stage-preview", stage.id),
+            lambda: stage_preview.stage_picture(self.window, stage, stage_preview.PREVIEW_SIZE),
+        )
         ui = self.ui
+        name = stage.display_name.upper()
+        title = logo.build_logo(name, STAGE_NAME_SCALE, depth=4)
+        ui.picture(
+            ("loading-stage-name", name),
+            lambda: title,
+            NATIVE_W // 2 - title.width // 2,
+            STAGE_NAME_TOP - title.height,
+        )
         self.cards: list[tuple[SlideGroup, int]] = []
         self._busts: dict[int, arcade.Sprite] = {}
         self._art_spots: dict[int, tuple[int, int]] = {}
         """Where each card's art stands: centre x and the y of its feet."""
         rects = card_rects(len(setup.characters))
         for player, rect in enumerate(rects):
-            color = theme.player_color(self._color_of(player))
+            ramp = theme.player_ramp(self._color_of(player))
             with SlideGroup(ui) as group:
-                add_panel(ui, rect, theme.PANEL_FILL, theme.with_alpha(color, 255))
-                strip = Rect(rect.left + 1, rect.top - 17, rect.width - 2, 16)
+                strip = Rect(rect.left, rect.top - TAG_HEIGHT, rect.width, TAG_HEIGHT)
                 ui.picture(
-                    ("card-strip", strip.width, color),
-                    lambda strip=strip, color=color: kit_art.filled(
-                        kit_art.shape_mask(
-                            strip.width, strip.height, theme.CORNER, (True,) + (False,) * 3
-                        ),
-                        color,
+                    ("card-tag", strip.width, strip.height, ramp),
+                    lambda strip=strip, ramp=ramp: select_art.podium_plate(
+                        strip.width, strip.height, ramp
                     ),
                     strip.left,
                     strip.bottom,
                 )
                 ui.write_in(
-                    strip, player_tag(setup, player), TextSize.BODY, theme.TEXT_ON_FOCUS,
-                    shadow=False,
+                    Rect(strip.left, strip.bottom + 1, strip.width, strip.height - 2),
+                    player_tag(setup, player), TextSize.BODY, theme.INK, shadow=False,
                 )  # fmt: skip
                 bust = arcade.Sprite(center_x=rect.left + rect.width // 2, center_y=rect.bottom)
                 bust.visible = False
                 ui.panels.append(bust)
                 self._busts[player] = bust
                 self._art_spots[player] = (rect.left + rect.width // 2, rect.bottom + ART_BOTTOM)
-                plate = Rect(rect.left + 6, rect.bottom + 6, rect.width - 12, 20)
-                add_panel(ui, plate, theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER)
+                plate = Rect(rect.left, rect.bottom, rect.width, NAME_PLATE_HEIGHT)
+                add_slab(ui, plate, theme.STONE, theme.SMALL_CORNER)
                 name = load_character(setup.characters[player]).display_name.upper()
-                ui.write_in(plate, name, TextSize.TITLE)
+                ui.write_in(
+                    slab_face(plate),
+                    name, TextSize.TITLE, theme.INK, shadow=False,
+                )  # fmt: skip
             from_left = rect.left + rect.width / 2 < NATIVE_W / 2
             self.cards.append((group, -(rect.right + 8) if from_left else NATIVE_W - rect.left + 8))
 
         middle = NATIVE_W // 2
         if len(rects) == 2:
-            ui.write("VS", middle, CARD_BOTTOM + CARD_HEIGHT // 2 - 8, TextSize.DISPLAY,
-                     theme.HEADING, "centre")  # fmt: skip
-        width, height = STAGE_SIZE
-        frame = Rect(middle - width // 2 - 4, STAGE_BOTTOM, width + 8, height + 8 + 16)
-        add_panel(ui, frame)
-        stage = self.stage
-        ui.image(
-            picture_texture(
-                ("stage-card", stage.id, width, height),
-                lambda: stage_preview.thumbnail(
-                    stage_preview.stage_picture(self.window, stage, stage_preview.PREVIEW_SIZE),
-                    (width, height),
-                ),
-            ),
-            frame.left + 4,
-            frame.bottom + 4,
-        )
-        ui.write_in(
-            Rect(frame.left, frame.top - 17, frame.width, 16), stage.display_name.upper(),
-            TextSize.BODY, theme.HEADING,
-        )  # fmt: skip
-        add_panel(
-            ui, Rect(BAR.left - 60, TIP_BOTTOM - 4, BAR.width + 120, BAR.top - TIP_BOTTOM + 16),
-            theme.PANEL_DEEP, theme.PANEL_LIGHT, theme.SMALL_CORNER,
-        )  # fmt: skip
+            vs = logo.build_logo("VS", VS_SCALE)
+            ui.picture(
+                ("loading-vs",),
+                lambda: vs,
+                middle - vs.width // 2,
+                CARD_BOTTOM + CARD_HEIGHT // 2 - vs.height // 2,
+            )
+        add_slab(ui, BAR_SLAB, theme.STONE, theme.SMALL_CORNER)
         self.bar = Gauge(ui, BAR)
-        self.tip = ui.write("", middle, TIP_BOTTOM, TextSize.BODY, theme.FOG, "centre")
         self.status = ui.write(
-            "", BAR.right, BAR.top + 3, TextSize.SMALL, theme.TEXT_MUTED, "right"
-        )
+            "", BAR_SLAB.right - theme.PAD, BAR.bottom, TextSize.BODY, theme.INK, "right",
+            shadow=False,
+        )  # fmt: skip
+        self.tip_sign = Sign(ui, TIP)
+        self.tip = self.tip_sign.label
         self.footer("{attack}: start")
         self.refresh()
 
@@ -323,7 +339,16 @@ class LoadingView(MenuView):
         self.bar.value = self.progress
         skippable = self.ready and tick >= MIN_TICKS
         self.status.text = "READY" if skippable else ("LOADING" if not self.ready else "")
-        self.status.color = theme.ON if skippable else theme.TEXT_MUTED
-        self.tip.text = tip_at(
+        self.status.color = theme.DEEP_TEAL if skippable else theme.ASH
+        self.tip_sign.text = tip_at(
             self.first_tip, tick, device_labels(self.flow.settings, self.active_device)
         )
+
+    def on_draw(self) -> None:
+        """The stage, then the screen over it, at native resolution; then upscale it."""
+        self.clear()
+        with self.pixel_buffer.drawing(theme.BACKGROUND):
+            self.scenery.draw()
+            self.ui.draw()
+            self.draw_fade()
+        self.blit_to_window()

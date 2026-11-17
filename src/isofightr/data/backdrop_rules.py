@@ -94,10 +94,18 @@ def oklab(colour: Rgb) -> Lab:
     )
 
 
+FEW_COLOURS: Final[int] = 1 << 16
+"""Pillow counts colours fast with a small limit and slowly with a large one (100 ms for a
+screen's picture at 2^24, under 1 ms at 2^16); palette art never comes near the small one,
+so it is tried first."""
+
+
 def colour_table(image: Image.Image) -> Table:
     """Return how many opaque pixels a picture has of each colour."""
     table: Table = {}
-    for count, (red, green, blue, alpha) in image.convert("RGBA").getcolors(1 << 24) or []:
+    rgba = image.convert("RGBA")
+    counts = rgba.getcolors(FEW_COLOURS) or rgba.getcolors(1 << 24) or []
+    for count, (red, green, blue, alpha) in counts:
         if alpha >= 128:
             table[(red, green, blue)] = table.get((red, green, blue), 0) + count
     return table

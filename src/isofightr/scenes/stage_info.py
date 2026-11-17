@@ -2,8 +2,8 @@
 
 Plan note "13 - Game Modes UI and Flow" ("Stage select", decision D-061): the stage's name
 "in a banner with a one-line description (generated from the stage data if no text is
-given)", plus the song it plays and the shape of the ground. Also the grid of stage tiles
-and the cursor's moves over it; the grid shows a few rows and scrolls.
+given)", plus the song it plays and the shape of the ground. Also the strip of stage tiles
+and the cursor's moves along it; the strip shows a few tiles and scrolls sideways.
 
 Pure Python (no ``arcade``), so it is unit tested without a window.
 """
@@ -23,10 +23,9 @@ from isofightr.ui.menu import MenuAction
 NUMBER_WORDS: Final[tuple[str, ...]] = (
     "no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
 )  # fmt: skip
-STAGE_COLUMNS: Final[int] = 3
-"""The stage grid is this many tiles across."""
-STAGE_ROWS: Final[int] = 4
-"""It shows this many rows at a time and scrolls by rows beyond that (decision D-063)."""
+STRIP_SHOWN: Final[int] = 10
+"""The stage tiles are one strip along the bottom of the screen; it shows this many at a
+time and scrolls sideways beyond that (decision D-072; it was a grid of three across)."""
 
 
 def _count(number: int, thing: str) -> str:
@@ -115,53 +114,38 @@ def badge(stage: Stage, hazards: bool) -> str:
     return "on" if hazards else "off"
 
 
-def grid_rects(count: int, left: int, top: int, width: int, height: int, gap: int) -> list[Rect]:
-    """Return where ``count`` stage tiles go: :data:`STAGE_COLUMNS` across, hanging down
-    from ``top``."""
-    rects = []
+def strip_first(cursor: int, first: int, count: int, shown: int = STRIP_SHOWN) -> int:
+    """Return the first tile the strip should show so that the cursor's tile is in view:
+    ``first`` if it already is, else the nearest that brings it in. The strip never scrolls
+    past its last tile (decision D-072)."""
+    if cursor < first:
+        first = cursor
+    elif cursor >= first + shown:
+        first = cursor - shown + 1
+    return max(0, min(first, count - shown))
+
+
+def strip_rects(
+    count: int, first: int, left: int, bottom: int, width: int, height: int, gap: int
+) -> list[Rect | None]:
+    """Return where each of ``count`` tiles is with the strip scrolled to ``first``: a row
+    from ``left``, or ``None`` for a tile out of view."""
+    rects: list[Rect | None] = []
     for index in range(count):
-        row, column = divmod(index, STAGE_COLUMNS)
-        rects.append(
-            Rect(left + column * (width + gap), top - (row + 1) * height - row * gap, width, height)
-        )
+        place = index - first
+        if 0 <= place < STRIP_SHOWN:
+            rects.append(Rect(left + place * (width + gap), bottom, width, height))
+        else:
+            rects.append(None)
     return rects
 
 
-def row_count(count: int) -> int:
-    """Return how many rows ``count`` tiles make."""
-    return -(-count // STAGE_COLUMNS)
-
-
-def first_row(cursor: int, first: int, count: int, rows: int = STAGE_ROWS) -> int:
-    """Return the top row the grid should show so that the cursor's row is in view:
-    ``first`` if it already is, else the nearest row that brings it in. The grid never
-    scrolls past its last row."""
-    row = cursor // STAGE_COLUMNS
-    if row < first:
-        first = row
-    elif row >= first + rows:
-        first = row - rows + 1
-    return max(0, min(first, row_count(count) - rows))
-
-
-def move_in_grid(index: int, action: MenuAction, count: int) -> int:
-    """Return the tile a direction takes the cursor to: left and right wrap along a row,
-    up and down move a row and stop at the ends."""
-    if count <= 0:
+def move_in_strip(index: int, action: MenuAction, count: int) -> int:
+    """Return the tile a direction takes the cursor to: left and right along the strip,
+    wrapping at its ends; up and down do nothing (there is one row)."""
+    if count <= 0 or action not in (MenuAction.LEFT, MenuAction.RIGHT):
         return index
-    row, column = divmod(index, STAGE_COLUMNS)
-    if action in (MenuAction.LEFT, MenuAction.RIGHT):
-        start = row * STAGE_COLUMNS
-        in_row = min(STAGE_COLUMNS, count - start)
-        step = 1 if action is MenuAction.RIGHT else -1
-        return start + (column + step) % in_row
-    if action in (MenuAction.UP, MenuAction.DOWN):
-        target = index + (STAGE_COLUMNS if action is MenuAction.DOWN else -STAGE_COLUMNS)
-        if 0 <= target < count:
-            return target
-        if action is MenuAction.DOWN and row < (count - 1) // STAGE_COLUMNS:
-            return count - 1
-    return index
+    return (index + (1 if action is MenuAction.RIGHT else -1)) % count
 
 
 def pool_text(pool: Sequence[str], stage_ids: Sequence[str]) -> str:

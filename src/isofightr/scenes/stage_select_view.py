@@ -1,13 +1,14 @@
-"""The stage select screen.
+"""The stage select screen: the stage is the screen.
 
-Plan note "13 - Game Modes UI and Flow" ("Stage select", decision D-061, wireframe
-``m13_wf_stageselect.png``): a large preview of the stage under the cursor, drawn by the
-battle's own renderer from its backdrop and its real tiles with the spawns marked
-(:mod:`isofightr.render.stage_preview`); its name on a banner with a one-line description,
-its song and its size; a grid of stage tiles, three across, which scrolls by rows when
-there are more than four rows (decision D-063), each with a box that says whether Random may
-pick it (grab toggles it, and the Rules screen shows the same pool); and the rules of the
-match as a row of chips. Random is the last tile; it is resolved when the match starts.
+Plan note "13 - Game Modes UI and Flow" ("Stage select", decisions D-061, D-063 and D-072).
+The stage under the cursor fills the screen, drawn by the battle's own renderer from its
+backdrop and its real tiles with the spawns marked (:mod:`isofightr.render.stage_preview`):
+first its picture, then, once the cursor has rested on it, the stage itself, live. Along the
+bottom, one strip of stage tiles that scrolls sideways around the cursor, each with a box
+that says whether Random may pick it (grab toggles it, and the Rules screen shows the same
+pool) and a badge for a stage with a mechanic; Random is the last tile and is resolved when
+the match starts. Over the strip, the stage's name in the logo's lettering and one slab with
+its description, its song and its size; the rules of the match as chips at the top.
 """
 
 from __future__ import annotations
@@ -15,9 +16,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
-from PIL import Image
-
-from isofightr.config import NATIVE_H
+from isofightr.config import NATIVE_H, NATIVE_W
 from isofightr.data.stage_loader import list_stage_ids, load_stage
 from isofightr.render import stage_preview
 from isofightr.render.pixel_buffer import PixelBuffer
@@ -26,51 +25,44 @@ from isofightr.scenes.menus import MenuView
 from isofightr.scenes.rules_model import rule_chips, toggle_pool
 from isofightr.scenes.setup import RANDOM_STAGE, MatchSetup
 from isofightr.sim.stage import Stage
-from isofightr.ui import anim, kit_art, select_art, theme
+from isofightr.ui import font, kit_art, logo, select_art, theme
 from isofightr.ui.focus import Rect
-from isofightr.ui.font import TextSize, text_width
+from isofightr.ui.font import ARROW_LEFT, ARROW_RIGHT, TextSize, text_width
 from isofightr.ui.hints import device_labels, hint_text
 from isofightr.ui.menu import MenuAction
+from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
     Checkbox,
     FocusFrame,
     Picture,
     SlideGroup,
-    add_panel,
-    icon_image,
-    text_bottom,
+    UiLayer,
+    add_slab,
+    slab_face,
 )
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-PREVIEW = Rect(16, 122, *stage_preview.PREVIEW_SIZE)
-"""The stage picture; its frame is drawn 4 px outside it."""
-FRAME_PAD = 4
-BANNER = Rect(10, 106, 250, 26)
-"""The name banner, laid over the preview's lower-left corner."""
-INFO = Rect(12, 52, 616, 46)
-"""The panel under the preview and the grid: description, song, size, the pool."""
-DESCRIPTION_BOTTOM = 80
-INFO_BOTTOM = 62
-GRID_LEFT = 432
-GRID_TOP = 330
-STAGE_TILE = (62, 52)
-TILE_GAP = 5
-THUMB = (56, 30)
-NAME_STRIP = 12
+STAGE_TILE = (58, 42)
+"""A tile of the strip: the stage's thumbnail over its name."""
+TILE_GAP = 4
+THUMB = (54, 29)
+NAME_STRIP = 10
 CHECK_SIZE = 9
-ARROW_LEFT = GRID_LEFT - 9
-"""Where the marks stand that say more rows are above or below."""
+STRIP_LEFT = 12
+STRIP_BOTTOM = 22
+"""The strip's tiles stand on this row, just over the prompts."""
 HIDDEN_SHIFT = -2000
-"""A row scrolled out of view is parked this far down, off the screen."""
-CHIP_BOTTOM = 26
+"""A tile scrolled out of view is parked this far down, off the screen."""
+INFO = Rect(12, 70, 616, 38)
+"""The slab over the strip: the stage's description, then its song, size and the pool."""
+NAME_BOTTOM = INFO.top + 4
+"""The stage's name, in the logo's lettering, stands on the slab."""
+NAME_SCALE = 2
+NAME_DEPTH = 4
 CHIP_HEIGHT = 18
-CHIP_GAP = 6
-POOL_BOTTOM = 80
-POOL_HINT_BOTTOM = 62
-SLIDE_TICKS = 8
-SLIDE_PIXELS = 10
+CHIP_GAP = 4
 CHIP_ICONS = {
     "STOCK": "stock",
     "TIME": "clock",
@@ -79,9 +71,10 @@ CHIP_ICONS = {
     "HAZARDS": "bolt",
 }
 """Which icon a rules chip carries, by its first word (the launch rate gets ``burst``)."""
-MOSAIC_COLUMNS = 3
-DICE_SCALE = 4
-"""The dice in the Random preview's spare cell is the 12 px icon this many times over."""
+LIVE_REST_TICKS = 12
+"""The live stage replaces its picture once the cursor has rested this long on it."""
+SHUFFLE_TICKS = 40
+"""On Random, the picture changes to another stage of the pool this often."""
 FOCUS_RAMP = theme.player_ramp(2)
 """The golds: the backing of the tile under the cursor, to go with the focus frame."""
 
@@ -89,8 +82,13 @@ FOCUS_RAMP = theme.player_ramp(2)
 class StageSelectView(MenuView):
     """Pick the stage, or Random from the pool, and fight."""
 
+    station = "ring"
+    """The Isle is not drawn here (the stage is); the camera waits at the ring for the way
+    back to character select."""
+    surface = theme.STONE
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup) -> None:
-        """Draw every stage's picture (once a session), lay out the grid, and put the
+        """Draw every stage's picture (once a session), lay out the strip, and put the
         cursor on the setup's stage."""
         super().__init__(pixel_buffer, flow)
         self.setup = setup
@@ -99,120 +97,130 @@ class StageSelectView(MenuView):
         self.cursor = self.stage_ids.index(setup.stage) if setup.stage in self.stage_ids else 0
         self.titles = stage_info.load_music_titles()
         self.pictures = {
-            name: stage_preview.stage_picture(self.window, stage, (PREVIEW.width, PREVIEW.height))
+            name: stage_preview.stage_picture(self.window, stage, stage_preview.PREVIEW_SIZE)
             for name, stage in self.stages.items()
         }
+        self.live = stage_preview.LivePreview(pixel_buffer)
+        """The stage under the cursor, drawn as it is once the cursor has rested on it."""
+        self.live_ticks = 0
+        """Frames the live stage has run: its clouds drift and its platforms move by it."""
         self._shown_cursor = -1
         self._changed_tick = 0
-        self.rows = stage_info.STAGE_ROWS
-        """Rows of tiles on screen at once."""
-        self.first_row = 0
-        """The row at the top of the grid."""
+        self.first = 0
+        """The tile at the left end of the strip."""
 
-        self.header("TRAINING: STAGE" if setup.training else "STAGE SELECT", "stage")
+        # The stage's picture is not part of the screen's own layer: the layer is what
+        # stands over the stage (and what the coverage test measures).
+        self.scenery = UiLayer(GlyphAtlas())
+        self.preview = Picture(self.scenery, Rect(0, 0, NATIVE_W, NATIVE_H))
+
+        self.header("Training: stage" if setup.training else "Stage select", "stage")
         ui = self.ui
-        add_panel(ui, PREVIEW.inset(-FRAME_PAD))
-        add_panel(ui, INFO)
-        self.preview = Picture(ui, PREVIEW)
-        self.banner = Picture(ui, BANNER)
-        self.name_label = ui.write(
-            "",
-            BANNER.left + BANNER.height + 6,
-            text_bottom(BANNER, TextSize.DISPLAY),
-            TextSize.DISPLAY,
-            theme.HEADING,
+        add_slab(ui, INFO)
+        face = slab_face(INFO)
+        self.name_banner = Picture(ui, Rect(STRIP_LEFT, NAME_BOTTOM, 1, 1))
+        self.name_label = ui.write("", 0, 0, TextSize.TITLE)
+        """The stage's name as text (what the banner shows in the logo's lettering)."""
+        self.name_label.visible = False
+        surface = self.surface
+        left = face.left + theme.PAD
+        self.description = ui.write(
+            "", left, face.top - 16, TextSize.TEXT, surface.text, shadow=False
         )
-        self.description = ui.write("", PREVIEW.left, DESCRIPTION_BOTTOM, TextSize.BODY, theme.TEXT)
-        ui.icon("speaker", PREVIEW.left, INFO_BOTTOM - 1, theme.TEXT_MUTED)
+        info_bottom = face.bottom + 5
+        ui.icon("speaker", left, info_bottom + 2, surface.text_muted)
         self.music_label = ui.write(
-            "", PREVIEW.left + 16, INFO_BOTTOM, TextSize.BODY, theme.TEXT_MUTED
+            "", left + 16, info_bottom - 3, TextSize.TEXT, surface.text_muted, shadow=False
         )
-        self.size_icon = ui.icon("stage", PREVIEW.left + 230, INFO_BOTTOM - 1, theme.TEXT_MUTED)
+        self.size_icon = ui.icon("stage", left + 210, info_bottom + 2, surface.text_muted)
         self.size_label = ui.write(
-            "", PREVIEW.left + 246, INFO_BOTTOM, TextSize.BODY, theme.TEXT_MUTED
+            "", left + 226, info_bottom - 3, TextSize.TEXT, surface.text_muted, shadow=False
         )
+        self.pool_label = ui.write(
+            "", face.right - theme.PAD, face.top - 16, TextSize.TEXT, surface.text, "right",
+            shadow=False,
+        )  # fmt: skip
+        self.pool_hint = ui.write(
+            "", face.right - theme.PAD, info_bottom - 3, TextSize.TEXT, surface.text_muted,
+            "right", shadow=False,
+        )  # fmt: skip
 
-        self.home_rects = stage_info.grid_rects(
-            len(self.stage_ids), GRID_LEFT, GRID_TOP, *STAGE_TILE, TILE_GAP
-        )
-        """Where each tile is with the grid scrolled to the top."""
+        self.home_rects = [
+            Rect(STRIP_LEFT + index * (STAGE_TILE[0] + TILE_GAP), STRIP_BOTTOM, *STAGE_TILE)
+            for index in range(len(self.stage_ids))
+        ]
+        """Where each tile is with the strip scrolled to its start."""
         self.tile_rects = list(self.home_rects)
         """Where each tile is now (a tile scrolled out of view is off the screen)."""
-        self.row_groups: list[SlideGroup] = []
+        self.groups: list[SlideGroup] = []
         self.tile_backs: list[Picture] = []
         self.checkboxes: list[Checkbox | None] = []
         self.tile_names = []
         self.badges: list[str] = []
         """What each tile says about its stage's mechanics: "", "on" or "off"."""
-        for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.home_rects, strict=True)):
-            if index % stage_info.STAGE_COLUMNS == 0:
-                group = SlideGroup(ui)
-                group.__enter__()
-                self.row_groups.append(group)
-            self.tile_backs.append(Picture(ui, rect))
-            thumb_left = rect.left + (rect.width - THUMB[0]) // 2
-            thumb_bottom = rect.top - 3 - THUMB[1]
-            if stage_id == RANDOM_STAGE:
-                ui.write(
-                    "?",
-                    rect.left + rect.width // 2,
-                    thumb_bottom + 5,
-                    TextSize.DISPLAY,
-                    theme.TEXT_MUTED,
-                    "centre",
-                )
-                ui.icon("dice", thumb_left + 4, thumb_bottom + 4, theme.TEXT_MUTED)
-                name = "RANDOM"
-            else:
-                picture = self.pictures[stage_id]
+        for stage_id, rect in zip(self.stage_ids, self.home_rects, strict=True):
+            with SlideGroup(ui) as group:
+                self.groups.append(group)
+                self.tile_backs.append(Picture(ui, rect))
+                thumb_left = rect.left + (rect.width - THUMB[0]) // 2
+                thumb_bottom = rect.top - 2 - THUMB[1]
+                if stage_id == RANDOM_STAGE:
+                    ui.write(
+                        "?", rect.left + rect.width // 2, thumb_bottom + 6, TextSize.DISPLAY,
+                        theme.MIST, "centre", shadow=True,
+                    )  # fmt: skip
+                    ui.icon("dice", thumb_left + 3, thumb_bottom + 3, theme.MIST)
+                    name = "RANDOM"
+                else:
+                    picture = self.pictures[stage_id]
+                    ui.picture(
+                        ("stage-thumb", stage_id, *THUMB),
+                        lambda picture=picture: stage_preview.thumbnail(picture, THUMB),
+                        thumb_left,
+                        thumb_bottom,
+                    )
+                    name = self.stages[stage_id].display_name.upper()
+                strip = Rect(rect.left + 1, rect.bottom + 1, rect.width - 2, NAME_STRIP)
                 ui.picture(
-                    ("stage-thumb", stage_id, *THUMB),
-                    lambda picture=picture: stage_preview.thumbnail(picture, THUMB),
-                    thumb_left,
-                    thumb_bottom,
+                    ("stage-strip", strip.width, strip.height),
+                    lambda strip=strip: kit_art.filled(
+                        kit_art.shape_mask(strip.width, strip.height, 0), theme.PANEL_DEEP
+                    ),
+                    strip.left,
+                    strip.bottom,
                 )
-                name = self.stages[stage_id].display_name.upper()
-            strip = Rect(rect.left + 1, rect.bottom + 1, rect.width - 2, NAME_STRIP)
-            ui.picture(
-                ("stage-strip", strip.width, strip.height),
-                lambda strip=strip: kit_art.filled(
-                    kit_art.shape_mask(strip.width, strip.height, 0), theme.PANEL_DEEP
-                ),
-                strip.left,
-                strip.bottom,
-            )
-            self.tile_names.append(ui.write_in(strip, name, TextSize.SMALL, pad=0))
-            box = None
-            if stage_id != RANDOM_STAGE and not setup.training:
-                box = Checkbox(
-                    ui, rect.right - CHECK_SIZE - 4, rect.top - CHECK_SIZE - 4, CHECK_SIZE
+                name = font.fit(name, strip.width - 2, TextSize.SMALL)
+                self.tile_names.append(
+                    ui.write_in(strip, name, TextSize.SMALL, theme.WHITE, shadow=False, pad=0)
                 )
-            self.checkboxes.append(box)
-            mark = (
-                ""
-                if stage_id == RANDOM_STAGE
-                else stage_info.badge(self.stages[stage_id], setup.stage_hazards)
-            )
-            self.badges.append(mark)
-            if mark:
-                spot = Rect(rect.left + 4, rect.top - CHECK_SIZE - 4, CHECK_SIZE, CHECK_SIZE)
-                Picture(ui, spot).show(
-                    ("stage-badge", CHECK_SIZE, mark),
-                    lambda mark=mark: kit_art.mechanic_badge(CHECK_SIZE, mark == "on"),
+                box = None
+                if stage_id != RANDOM_STAGE and not setup.training:
+                    box = Checkbox(
+                        ui, rect.right - CHECK_SIZE - 3, rect.top - CHECK_SIZE - 3, CHECK_SIZE
+                    )
+                self.checkboxes.append(box)
+                mark = (
+                    ""
+                    if stage_id == RANDOM_STAGE
+                    else stage_info.badge(self.stages[stage_id], setup.stage_hazards)
                 )
-            last_in_row = (index + 1) % stage_info.STAGE_COLUMNS == 0
-            if last_in_row or index == len(self.stage_ids) - 1:
-                group.__exit__()
+                self.badges.append(mark)
+                if mark:
+                    spot = Rect(rect.left + 3, rect.top - CHECK_SIZE - 3, CHECK_SIZE, CHECK_SIZE)
+                    Picture(ui, spot).show(
+                        ("stage-badge", CHECK_SIZE, mark),
+                        lambda mark=mark: kit_art.mechanic_badge(CHECK_SIZE, mark == "on"),
+                    )
         self.box_rects: list[Rect | None] = [
             None if box is None else box.rect for box in self.checkboxes
         ]
         """Where each tile's pool box is now."""
-        self.more_above = ui.write("", ARROW_LEFT, GRID_TOP - 10, TextSize.SMALL, theme.FOCUS)
-        grid_bottom = GRID_TOP - self.rows * (STAGE_TILE[1] + TILE_GAP) + TILE_GAP
-        self.more_below = ui.write("", ARROW_LEFT, grid_bottom + 2, TextSize.SMALL, theme.FOCUS)
+        middle = STRIP_BOTTOM + STAGE_TILE[1] // 2 - 6
+        self.more_left = ui.write("", 3, middle, TextSize.BODY, theme.WHITE, shadow=True)
+        self.more_right = ui.write(
+            "", NATIVE_W - 3, middle, TextSize.BODY, theme.WHITE, "right", shadow=True
+        )
         self.focus = FocusFrame(ui)
-        self.pool_label = ui.write("", GRID_LEFT, POOL_BOTTOM, TextSize.BODY, theme.TEXT)
-        self.pool_hint = ui.write("", GRID_LEFT, POOL_HINT_BOTTOM, TextSize.BODY, theme.TEXT_MUTED)
         self.chips: list[Picture] = []
         self._add_chips()
         hint = "" if setup.training else "   {grab}: random pool"
@@ -222,30 +230,29 @@ class StageSelectView(MenuView):
     # --- layout ----------------------------------------------------------------------------
 
     def _add_chips(self) -> None:
-        """Lay the rules out as a row of chips along the bottom: one icon and a few words
-        each."""
+        """Lay the rules out as a row of chips at the top right: one icon and a few words
+        each, on small stone blocks."""
         if self.setup.training:
             return
-        left = PREVIEW.left - FRAME_PAD
-        for text in rule_chips(self.setup):
+        texts = rule_chips(self.setup)
+        widths = [theme.ICON_SIZE + 3 * theme.GAP + text_width(text) for text in texts]
+        left = NATIVE_W - theme.MARGIN - sum(widths) - CHIP_GAP * (len(widths) - 1)
+        bottom = NATIVE_H - theme.HEADER_HEIGHT + (theme.HEADER_HEIGHT - CHIP_HEIGHT) // 2
+        for text, width in zip(texts, widths, strict=True):
             first = text.split()[0]
             icon = CHIP_ICONS.get(first, "burst")
-            width = theme.ICON_SIZE + 3 * theme.GAP + text_width(text)
-            rect = Rect(left, CHIP_BOTTOM, width, CHIP_HEIGHT)
+            rect = Rect(left, bottom, width, CHIP_HEIGHT)
             chip = Picture(self.ui, rect)
             chip.show(
                 ("stage-chip", width, CHIP_HEIGHT),
-                lambda width=width: kit_art.filled(
-                    kit_art.shape_mask(width, CHIP_HEIGHT, theme.SMALL_CORNER),
-                    theme.PANEL_DEEP,
-                    theme.PANEL_BORDER,
-                ),
+                lambda width=width: kit_art.block_button(width, CHIP_HEIGHT, surface=theme.STONE),
             )
             self.chips.append(chip)
-            self.ui.icon(icon, left + theme.GAP, CHIP_BOTTOM + 3, theme.HEADING)
+            self.ui.icon(icon, left + theme.GAP, bottom + theme.LIP + 1, theme.INK)
             self.ui.write(
-                text, left + theme.ICON_SIZE + 2 * theme.GAP, CHIP_BOTTOM + 4, TextSize.BODY
-            )
+                text, left + theme.ICON_SIZE + 2 * theme.GAP, bottom + theme.LIP,
+                TextSize.BODY, theme.INK, shadow=False,
+            )  # fmt: skip
             left += width + CHIP_GAP
 
     # --- state -----------------------------------------------------------------------------
@@ -259,6 +266,20 @@ class StageSelectView(MenuView):
     def pool(self) -> list[str]:
         """The stages Random may pick."""
         return self.setup.pool(list(self.stages))
+
+    @property
+    def shown_stage(self) -> str:
+        """The stage whose picture is on show: the cursor's, or on Random one of the pool
+        in turn."""
+        if self.selected != RANDOM_STAGE:
+            return self.selected
+        pool = self.pool
+        return pool[(self.flow.menu_ticks // SHUFFLE_TICKS) % len(pool)]
+
+    @property
+    def live_shown(self) -> bool:
+        """Whether the stage on show is drawn live (rather than as its picture)."""
+        return self.selected != RANDOM_STAGE and self.live.ready(self.selected)
 
     def toggle_pool(self, stage_id: str) -> None:
         """Put a stage in the random pool or take it out (never the last one), and save it
@@ -277,13 +298,13 @@ class StageSelectView(MenuView):
         """Move the cursor, toggle the highlighted stage in the random pool, fight, or go
         back."""
         if action in (MenuAction.LEFT, MenuAction.RIGHT, MenuAction.UP, MenuAction.DOWN):
-            self.cursor = stage_info.move_in_grid(self.cursor, action, len(self.stage_ids))
+            self.cursor = stage_info.move_in_strip(self.cursor, action, len(self.stage_ids))
         elif action is MenuAction.EXTRA:
             self.toggle_pool(self.selected)
         elif action is MenuAction.CONFIRM:
             self.flow.begin_match(replace(self.setup, stage=self.selected))
         elif action is MenuAction.BACK:
-            self.flow.show_character_select(self.setup)
+            self.flow.show_character_select(self.setup, wipe=True)
 
     def hover(self, x: int, y: int) -> bool:
         """Put the cursor on the stage tile under the mouse."""
@@ -302,6 +323,20 @@ class StageSelectView(MenuView):
                 return
         super().click(x, y)
 
+    def tick(self) -> None:
+        """Run the menu; once the cursor has rested, build the stage's live preview (never
+        on a tick the cursor moved: the picture already shows the same frame, so the build
+        does not show), and let the live stage run."""
+        super().tick()
+        if self.window.current_view is not self:
+            return
+        rested = self.flow.menu_ticks - self._changed_tick >= LIVE_REST_TICKS
+        selected = self.selected
+        if rested and selected != RANDOM_STAGE and not self.live.ready(selected):
+            self.live.build(self.stages[selected])
+            self.live_ticks = 0
+        self.live_ticks += 1
+
     # --- drawing ---------------------------------------------------------------------------
 
     def refresh(self) -> None:
@@ -311,11 +346,10 @@ class StageSelectView(MenuView):
             self._shown_cursor = self.cursor
             self._changed_tick = ticks
             self._show_stage()
-        slide = anim.slide(ticks, self._changed_tick, SLIDE_TICKS, SLIDE_PIXELS, 0)
-        self.preview.sprite.center_x = PREVIEW.left + PREVIEW.width / 2 + slide
-        self.preview.sprite.alpha = round(
-            255 * anim.progress(ticks, self._changed_tick, SLIDE_TICKS)
-        )
+        if self.selected == RANDOM_STAGE:
+            shown = self.shown_stage
+            picture = self.pictures[shown]
+            self.preview.show(("stage-preview", shown), lambda: picture)
         self._scroll()
         pool = self.pool
         for index, (stage_id, rect) in enumerate(zip(self.stage_ids, self.home_rects, strict=True)):
@@ -325,7 +359,7 @@ class StageSelectView(MenuView):
                 ("stage-tile", rect.width, rect.height, ramp),
                 lambda rect=rect, ramp=ramp: select_art.roster_tile(rect.width, rect.height, ramp),
             )
-            self.tile_names[index].color = theme.FOCUS if focused else theme.TEXT
+            self.tile_names[index].color = theme.FOCUS if focused else theme.WHITE
             box = self.checkboxes[index]
             if box is not None:
                 box.set(stage_id in pool, focused)
@@ -338,90 +372,71 @@ class StageSelectView(MenuView):
             )
 
     def _scroll(self) -> None:
-        """Bring the cursor's row into view: slide the rows that show to their places and
+        """Bring the cursor's tile into view: slide the tiles that show to their places and
         park the others off the screen."""
         count = len(self.stage_ids)
-        self.first_row = stage_info.first_row(self.cursor, self.first_row, count, self.rows)
-        pitch = STAGE_TILE[1] + TILE_GAP
-        for row, group in enumerate(self.row_groups):
-            shown = self.first_row <= row < self.first_row + self.rows
-            shift = self.first_row * pitch if shown else HIDDEN_SHIFT
-            group.offset(0, shift)
-            start = row * stage_info.STAGE_COLUMNS
-            for index in range(start, min(start + stage_info.STAGE_COLUMNS, count)):
-                home = self.home_rects[index]
-                self.tile_rects[index] = Rect(
-                    home.left, home.bottom + shift, home.width, home.height
+        shown_count = stage_info.STRIP_SHOWN
+        self.first = stage_info.strip_first(self.cursor, self.first, count, shown_count)
+        shift = self.first * (STAGE_TILE[0] + TILE_GAP)
+        for index, group in enumerate(self.groups):
+            shown = self.first <= index < self.first + shown_count
+            dx, dy = (-shift, 0) if shown else (0, HIDDEN_SHIFT)
+            group.offset(dx, dy)
+            home = self.home_rects[index]
+            self.tile_rects[index] = Rect(home.left + dx, home.bottom + dy, *STAGE_TILE)
+            box = self.checkboxes[index]
+            if box is not None:
+                self.box_rects[index] = Rect(
+                    box.rect.left + dx, box.rect.bottom + dy, box.rect.width, box.rect.height
                 )
-                box = self.checkboxes[index]
-                if box is not None:
-                    self.box_rects[index] = Rect(
-                        box.rect.left, box.rect.bottom + shift, box.rect.width, box.rect.height
-                    )
-        self.more_above.text = "↑" if self.first_row > 0 else ""
-        below = self.first_row + self.rows < stage_info.row_count(count)
-        self.more_below.text = "↓" if below else ""
+        self.more_left.text = ARROW_LEFT if self.first > 0 else ""
+        right = self.first + shown_count < count
+        self.more_right.text = ARROW_RIGHT if right else ""
 
     def _show_stage(self) -> None:
         """Put the picture, name and facts of the stage under the cursor on screen."""
         stage_id = self.selected
-        self.banner.show(
-            ("stage-banner", BANNER.width, BANNER.height),
-            lambda: select_art.name_plate(BANNER.width, BANNER.height, theme.FOCUS),
-        )
         if stage_id == RANDOM_STAGE:
-            pool = tuple(self.pool)
-            self.preview.show(
-                ("stage-preview-random", pool),
-                lambda: random_mosaic(self.pictures, pool, (PREVIEW.width, PREVIEW.height)),
-            )
-            self.name_label.text = "RANDOM"
+            name = "RANDOM"
+            pool = self.pool
             self.description.text = "A stage from the random pool, picked as the match starts."
-            self.music_label.text = "each stage's own song"
+            self.music_label.text = "Each stage's own song"
             self.size_label.text = f"{len(pool)} STAGE{'' if len(pool) == 1 else 'S'}"
-            return
-        stage = self.stages[stage_id]
-        picture = self.pictures[stage_id]
-        self.preview.show(("stage-preview", stage_id), lambda: picture)
-        self.name_label.text = stage.display_name.upper()
-        self.description.text = stage_info.describe(stage)
-        self.music_label.text = stage_info.music_line(stage, self.titles)
-        self.size_label.text = stage_info.size_line(stage)
-
-
-def random_mosaic(
-    pictures: dict[str, Image.Image], pool: tuple[str, ...], size: tuple[int, int]
-) -> Image.Image:
-    """Return the Random preview: every stage as a small picture, those outside the pool
-    darkened."""
-    width, height = size
-    image = Image.new("RGBA", size, (*theme.INK, 255))
-    names = list(pictures)
-    rows = -(-len(names) // MOSAIC_COLUMNS)
-    gap = 6
-    cell_w = (width - gap * (MOSAIC_COLUMNS + 1)) // MOSAIC_COLUMNS
-    cell_h = (height - gap * (rows + 1)) // max(rows, 1)
-    for index, name in enumerate(names):
-        row, column = divmod(index, MOSAIC_COLUMNS)
-        small = stage_preview.thumbnail(pictures[name], (cell_w, cell_h))
-        if name not in pool:
-            veil = Image.new("RGBA", small.size, (0, 0, 0, 0))
-            for y in range(small.height):
-                for x in range(small.width):
-                    if select_art.lit(x, y, 0.75):
-                        veil.putpixel((x, y), (*theme.INK, 255))
-            small.alpha_composite(veil)
-        image.alpha_composite(small, (gap + column * (cell_w + gap), gap + row * (cell_h + gap)))
-    dice = icon_image("dice")
-    if dice is not None and len(names) < rows * MOSAIC_COLUMNS:
-        row, column = divmod(len(names), MOSAIC_COLUMNS)
-        big = kit_art.tint(dice, theme.FOCUS).resize(
-            (dice.width * DICE_SCALE, dice.height * DICE_SCALE), Image.Resampling.NEAREST
+        else:
+            stage = self.stages[stage_id]
+            picture = self.pictures[stage_id]
+            self.preview.show(("stage-preview", stage_id), lambda: picture)
+            name = stage.display_name.upper()
+            self.description.text = stage_info.describe(stage)
+            self.music_label.text = stage_info.music_line(stage, self.titles)
+            self.size_label.text = stage_info.size_line(stage)
+        self.name_label.text = name
+        self.name_banner.show(
+            ("stage-name", name),
+            lambda: logo.build_logo(name, NAME_SCALE, depth=NAME_DEPTH),
         )
-        x = gap + column * (cell_w + gap) + (cell_w - big.width) // 2
-        y = gap + row * (cell_h + gap) + (cell_h - big.height) // 2
-        image.alpha_composite(big, (x, y))
-    return image
+        sprite = self.name_banner.sprite
+        sprite.position = (
+            STRIP_LEFT + sprite.width / 2,
+            NAME_BOTTOM + sprite.height / 2,
+        )
+
+    def on_draw(self) -> None:
+        """The stage under the cursor (live once it is built, its picture until then), then
+        the screen over it, at native resolution; then upscale it to the window."""
+        self.clear()
+        with self.pixel_buffer.drawing(theme.BACKGROUND):
+            if not (
+                self.live_shown
+                and self.live.draw(
+                    self.stages[self.selected], self.live_ticks, self.setup.stage_hazards
+                )
+            ):
+                self.scenery.draw()
+            self.ui.draw()
+            self.draw_fade()
+        self.blit_to_window()
 
 
-assert GRID_TOP <= NATIVE_H - theme.HEADER_HEIGHT
+assert STRIP_LEFT + stage_info.STRIP_SHOWN * (STAGE_TILE[0] + TILE_GAP) - TILE_GAP <= NATIVE_W
+assert STRIP_BOTTOM + STAGE_TILE[1] < INFO.bottom
