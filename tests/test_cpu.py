@@ -218,7 +218,7 @@ def test_a_launched_cpu_holds_survival_di_toward_the_middle() -> None:
     match, cpus = cpu_match("final_plateau", ("rook", "rook"), (9, 0))
     fighter = match.fighters[0]
     place(match, fighter, 12.0, 8.0)  # the stage's middle is at (7, 5)
-    fighter.hitlag = 5
+    fighter.hitlag = 2  # the last frames, where the DI is held (earlier ones flick SDI)
     fighter.launch = Launch(150.0, Vec2(1.0, 0.0), 30.0, True)
     cpu = cpus[0]
     assert cpu is not None
@@ -295,7 +295,8 @@ def test_a_grabbed_cpu_mashes_out_sooner_than_an_idle_player() -> None:
         place(match, victim, 7.8, 5.0, facing=Dir8.NW)
         run(match, [InputFrame(held=int(Button.GRAB))])
         for _ in range(20):
-            match.tick([NEUTRAL_INPUT, cpus[1].think(match) if cpus[1] else NEUTRAL_INPUT])
+            # The victim is not thinking yet: a CPU would now see the grab coming and dodge.
+            match.tick([NEUTRAL_INPUT, NEUTRAL_INPUT])
             if victim.state is StateId.GRABBED:
                 break
         assert victim.state is StateId.GRABBED

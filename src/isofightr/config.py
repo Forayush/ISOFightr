@@ -369,6 +369,43 @@ CPU_AIR_DODGE_FRAMES: Final[int] = 5
 CPU_SHIELD_HOLD_EXTRA: Final[int] = 4
 """Frames the CPU keeps its shield up after the threat it saw has passed."""
 CPU_GETUP_MIN_LOCK: Final[int] = 2
+# M20 group 4: the disadvantage state (D-071).
+CPU_DI_SURVIVE: Final[float] = 100.0
+"""DI score for a choice that does not KO (survival outranks everything else)."""
+CPU_DI_ON_STAGE: Final[float] = 10.0
+"""DI score for a choice whose flight ends over ground."""
+CPU_DI_AWAY_SHARE: Final[float] = 0.5
+"""DI score per unit the flight ends from the attacker (against one per unit nearer the
+stage's middle when it ends off the stage)."""
+CPU_SDI_LEVEL: Final[int] = 5
+"""Levels from this one up SDI out of multi-hits (a flick every other hitlag frame)."""
+CPU_SDI_MAX_KB: Final[float] = 60.0
+"""A pending launch weaker than this is treated as part of a string or multi-hit: SDI away
+from the attacker. A stronger one is SDIed along the chosen DI."""
+CPU_TECH_AWAY_MARGIN: Final[float] = 0.6
+"""An opponent within its striking reach plus this of a tumble's landing: tech away."""
+CPU_EXPOSED_SLACK: Final[int] = 4
+"""Frames added to the time an option leaves the CPU open (the opponent's own start-up)."""
+CPU_OPTION_PUNISHED: Final[float] = 30.0
+"""What a getup or ledge option that is certain to be punished costs."""
+CPU_LOW_SHIELD: Final[float] = 20.0
+"""Shield health at which a shield is worth less than a dodge."""
+CPU_HIT_ACTIVE_GUESS: Final[int] = 2
+"""Frames a hit on its way is assumed to stay out, when judging whether a dodge covers it."""
+CPU_SHIELD_VALUE: Final[float] = 10.0
+"""Value of shielding a hit on its way."""
+CPU_DODGE_VALUE: Final[float] = 8.0
+"""Value of spot dodging a hit on its way (more against a grab)."""
+CPU_ROLL_VALUE: Final[float] = 6.0
+"""Value of rolling away from a hit on its way."""
+CPU_JUMP_AWAY_VALUE: Final[float] = 9.0
+"""Value of jumping away from a grab on its way."""
+CPU_GUARDED_LEDGE: Final[float] = 2.0
+"""An opponent this close to a ledge (on the stage, free) is guarding it: recover elsewhere."""
+CPU_GUARDED_COST: Final[float] = 3.0
+"""Recovery score added per unit a place on a ledge is inside a guard's radius."""
+CPU_LEDGE_SAMPLE: Final[float] = 1.0
+"""Places along a ledge line are tried this far apart when one part of it is guarded."""
 CPU_SOFTLOCK_FRAMES: Final[int] = 20 * 60
 """The soak test's soft-lock limit: no fighter may stay in one state longer than this."""
 

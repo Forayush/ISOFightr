@@ -9,6 +9,7 @@ Pure Python (no ``arcade``), so it is unit tested without a window.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cache
 
@@ -111,12 +112,19 @@ def safe_spot(stage: Stage, target: Vec3, me: Vec3) -> Vec3:
 
 
 def recovery_ledge(
-    stage: Stage, pos: Vec3, reachable_height: float, destination: Vec2 | None
+    stage: Stage,
+    pos: Vec3,
+    reachable_height: float,
+    destination: Vec2 | None,
+    guards: Sequence[Vec2] = (),
 ) -> LedgeTarget | None:
     """The ledge to recover to: near, reachable, and (with a ``destination``) on the way.
 
     ``reachable_height`` is the highest ledge top the fighter can still get up to. Ledges
-    above it are only picked if nothing else is left.
+    above it are only picked if nothing else is left. With ``guards`` (opponents standing
+    on the stage, free), places along a ledge within ``CPU_GUARDED_LEDGE`` of one cost
+    ``CPU_GUARDED_COST`` a unit closer: the CPU heads for another part of the ledge, or
+    another ledge, instead of into an edgeguard (decision D-071).
     """
     best: LedgeTarget | None = None
     best_score = float("inf")
@@ -125,9 +133,12 @@ def recovery_ledge(
     here = pos.xy
     for ledge in stage.ledges:
         point = closest_point(ledge, here)
+        if guards and _guard_cost(point, guards) > 0.0:
+            point = _unguarded_point(ledge, here, destination, guards)
         score = (point - here).length()
         if destination is not None:
             score += config.CPU_DESTINATION_BIAS * (point - destination).length()
+        score += _guard_cost(point, guards)
         target = LedgeTarget(ledge, point)
         if ledge.z <= reachable_height:
             if score < best_score:
@@ -135,6 +146,35 @@ def recovery_ledge(
         elif score < fallback_score:
             fallback, fallback_score = target, score
     return best if best is not None else fallback
+
+
+def _guard_cost(point: Vec2, guards: Sequence[Vec2]) -> float:
+    cost = 0.0
+    for guard in guards:
+        gap = config.CPU_GUARDED_LEDGE - (guard - point).length()
+        if gap > 0.0:
+            cost += config.CPU_GUARDED_COST * gap
+    return cost
+
+
+def _unguarded_point(
+    ledge: LedgeLine, here: Vec2, destination: Vec2 | None, guards: Sequence[Vec2]
+) -> Vec2:
+    """The best place along a ledge line, counting the guards (sampled every
+    ``CPU_LEDGE_SAMPLE`` units, and the nearest point)."""
+    along = ledge.end - ledge.start
+    steps = max(int(along.length() / config.CPU_LEDGE_SAMPLE), 1)
+    candidates = [closest_point(ledge, here)]
+    candidates += [ledge.start + along * (index / steps) for index in range(steps + 1)]
+    best = candidates[0]
+    best_score = float("inf")
+    for point in candidates:
+        score = (point - here).length() + _guard_cost(point, guards)
+        if destination is not None:
+            score += config.CPU_DESTINATION_BIAS * (point - destination).length()
+        if score < best_score:
+            best, best_score = point, score
+    return best
 
 
 # --- regions and routes ----------------------------------------------------------------------
