@@ -65,3 +65,13 @@ forward = { damage = 6.0, angle = 45, bkb = 55, kbg = 55, release = 10, total = 
 back = { damage = 8.0, angle = 40, bkb = 60, kbg = 65, release = 12, total = 32 }
 up = { damage = 5.0, angle = 88, bkb = 55, kbg = 60, release = 10, total = 30 }
 down = { damage = 4.0, angle = 75, bkb = 50, kbg = 40, release = 14, total = 30 }
+
+[cpu]                        # how the CPU plays Zephyr (D-071); every key optional, 1 = neutral
+# Aggressive: rushes in, lives in the air, chases deep off the stage.
+aggression = 1.3
+patience = 0.6
+range = "close"
+air_bias = 1.4
+edgeguard_depth = 1.5
+risk = 1.15
+favourites = ["fair", "bair", "uair"]

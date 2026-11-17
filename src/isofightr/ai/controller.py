@@ -36,11 +36,12 @@ from itertools import chain
 from typing import Final, NamedTuple
 
 from isofightr import config
-from isofightr.ai import advantage, disadvantage, intercept, predict
+from isofightr.ai import advantage, disadvantage, habits, intercept, predict
 from isofightr.ai.belief import Beliefs
 from isofightr.ai.knowledge import Action, CharacterKnowledge, Start, frames_for, knowledge_for
 from isofightr.ai.levels import CpuLevel, cpu_level
 from isofightr.ai.situation import Situation, Standing, classify
+from isofightr.ai.style import RANGE_OFFSET, Style, style_for
 from isofightr.ai.terrain import (
     ground_below,
     level_ground_ahead,
@@ -85,6 +86,8 @@ JUMP_PRESS_FRAMES: Final[int] = 10
 """Jump is held this long for a full hop toward higher ground or across a gap."""
 PREDICT_LIMIT: Final[int] = 30
 """Motion is extrapolated at most this many frames ahead."""
+STYLE_SALT: Final[int] = 0x057_11E5
+"""Seeds each CPU's temperament apart from its other dice."""
 BELIEF_SALT: Final[int] = 0x0B5E_12FE
 """Seeds the dice of the CPU's reaction times apart from its other dice."""
 HELPLESS_ARRIVAL: Final[float] = 0.3
@@ -161,6 +164,14 @@ class CpuController:
             Rng.seeded((seed ^ BELIEF_SALT) * 31 + player_index),
         )
         self.characters: dict[int, CharacterDef] = {}
+        self.habits = habits.Habits(player_index, self.level.adapt, stage.respawn)
+        """What it has learned of its opponents this match (M20 group 5)."""
+        self.own = habits.OwnMoves()
+        self.style = Style()
+        """Its style, resolved from its character on the first tick."""
+        self._style_seed = (seed ^ STYLE_SALT) * 31 + player_index
+        self._projectiles: dict[int, frozenset[str]] = {}
+        """Each opponent's projectile move ids (to spot a projectile repeater)."""
         self.standing = Standing(Situation.NEUTRAL)
         """The situation the CPU last found itself in (for debugging and the trace)."""
         self._believed: WorldView | None = None
@@ -222,7 +233,15 @@ class CpuController:
                 self.knowledge[index] = knowledge_for(fighter.character)
                 self.characters[index] = fighter.character
                 self.gravity[index] = fighter.character.movement.gravity
+                self._projectiles[index] = frozenset(
+                    action.move_id
+                    for action in self.knowledge[index].actions
+                    if action.projectile and action.move_id
+                )
                 if index == self.player:
+                    self.style = style_for(
+                        fighter.character, self.knowledge[index], self._style_seed
+                    )
                     stats = fighter.character.movement
                     skid = stats.run_speed * stats.run_speed / (2.0 * stats.traction)
                     self._edge_lookahead = max(
@@ -233,6 +252,7 @@ class CpuController:
             world = observe(match)
         self.history.append(world)
         self.beliefs.update(self.history, self._focus)
+        self.habits.observe(self.beliefs.views(), world.frame)
         for view in self.beliefs.views():
             if view.state in (StateId.ATTACK, StateId.GRAB, StateId.DASH_GRAB):
                 self._their_attack[view.index] = world.frame
@@ -842,7 +862,9 @@ class CpuController:
                 or theirs.ground_by_move.get(target.move_id)
                 or theirs.air_by_move.get(target.move_id)
             )
-        waited = (world.frame - self._last_attack) / config.CPU_PATIENCE_FRAMES
+        patience = config.CPU_PATIENCE_FRAMES * self.style.patience
+        waited = (world.frame - self._last_attack) / patience
+        urge = min(max(waited, 0.0), 1.0) * config.CPU_IMPATIENCE_VALUE
         return intercept.Reading(
             stage=self.live,
             me=me,
@@ -853,12 +875,12 @@ class CpuController:
             mine=self.knowledge[self.player],
             their_action=their_action,
             their_frame=(their_action.move_start + target.state_frame - 1 if their_action else 0),
-            caution=1.0 + me.damage / config.CPU_CAUTION_PERCENT,
-            urge=min(max(waited, 0.0), 1.0) * config.CPU_IMPATIENCE_VALUE,
+            caution=(1.0 + me.damage / config.CPU_CAUTION_PERCENT) / max(self.style.risk, 0.1),
+            urge=urge,
             threat_frames=threat[0] if threat is not None else 0,
             passive=min(
                 max(
-                    (world.frame - self._their_attack.get(index, 0)) / config.CPU_PATIENCE_FRAMES,
+                    (world.frame - self._their_attack.get(index, 0)) / patience,
                     0.0,
                 ),
                 1.0,
@@ -869,11 +891,14 @@ class CpuController:
         """The best of everything that could reach the target, if any of it is worth doing."""
         me, target = reading.me, reading.target
         off = not target.grounded and not over_ground(self.live, target.pos)
-        self._edgeguard_ok = off and self.level.edgeguard_depth > 0.0
+        self._edgeguard_ok = (
+            off and self.level.edgeguard_depth > 0.0 and not self.style.stays_on_stage
+        )
         self._own_air_jumps = self.characters[self.player].movement.air_jumps
         if target.invincible or (target.intangible and reading.track.locked == 0):
             return None
-        if reading.track.locked == 0 and self.rng.random() >= self.level.aggression:
+        eager = min(self.level.aggression * self.style.aggression, 1.0)
+        if reading.track.locked == 0 and self.rng.random() >= eager:
             return None  # the lower levels let a free opponent be (until M20 group 7)
         knowledge = self.knowledge[self.player]
         # Run-ups and walk-ups are recorded from a standstill: from a run they go further.
@@ -881,7 +906,40 @@ class CpuController:
         approaches = knowledge.approaches if still else ()
         actions = chain(knowledge.actions, knowledge.extras, approaches)
         found = intercept.search(reading, actions, lambda action, aim: self._safe(me, action, aim))
+        found = [replace(c, value=c.value + self._flavour(c, target.index)) for c in found]
         return intercept.choose(found, self.level.temperature, self.rng.random())
+
+    def _flavour(self, candidate: intercept.Candidate, target: int | None = None) -> float:
+        """What its style, its target's habits and its own recent moves add to a
+        candidate's value: grabs, projectiles and aerials by taste, grabs against an
+        opponent seen shielding more than most, favourite and avoided moves, and less for a
+        move it has just been using (so its play is no pattern)."""
+        style = self.style
+        action = candidate.action
+        bonus = 0.0
+        if action.grab:
+            bonus += (style.grab_rate - 1.0) * config.CPU_STYLE_GRAB_VALUE
+            if target is not None:
+                prior = config.CPU_GUARD_GUESS
+                shields = self.habits.guard(target, prior) - prior
+                bonus += max(shields, 0.0) * config.CPU_HABIT_GRAB_VALUE
+        if action.projectile:
+            bonus += (style.zoning - 1.0) * config.CPU_STYLE_ZONING_VALUE
+        if action.start is Start.AIR or action.name.startswith(("sh_", "fh_")):
+            bonus += (style.air_bias - 1.0) * config.CPU_STYLE_AIR_VALUE
+        if action.move_id in style.favourites:
+            bonus += config.CPU_FAVOURITE_VALUE
+        if action.move_id in style.avoid:
+            bonus -= config.CPU_FAVOURITE_VALUE
+        repeat = self.own.share(action.move_id or action.name) * config.CPU_REPEAT_PENALTY
+        return bonus * candidate.chance - repeat
+
+    def _zoner(self, index: int) -> bool:
+        """Whether that opponent has been repeating its projectiles (as far as it trusts).
+        Not acted on yet: rushing such an opponent down ran the CPU into the projectiles
+        (the orb bot landed 27% instead of 21%); jumping them on the way in is for later."""
+        moves = self._projectiles.get(index, frozenset())
+        return bool(moves) and self.habits.share(index, moves) >= config.CPU_HABIT_ZONER_SHARE
 
     def _attack(
         self,
@@ -894,6 +952,7 @@ class CpuController:
         action = choice.action
         self.plan = Plan("attack", action.name)
         self._last_attack = world.frame
+        self.own.used(action.move_id or action.name)
         self._enqueue(frames_for(action.steps, self._jitter(choice.aim)))
         self._queued = (action, world.frame) if action.start is Start.GROUND else None
         if action.lead > 0:
@@ -938,6 +997,10 @@ class CpuController:
         reach (never quite still), on top of an opponent that is open, well away from one that
         cannot be hit, and at the ledge or in the middle when it is off the stage."""
         where = target.pos
+        read = self._habit_spot(target)
+        if read is not None:
+            self.plan = Plan("advantage", f"read {read[1]}")
+            return read[0]
         if target.state is StateId.LEDGE_HANG and not target.invincible:
             trap = advantage.ledge_trap_point(self.live, target)
             if trap is not None:
@@ -978,11 +1041,17 @@ class CpuController:
             # A climb that failed a moment ago: wait on its own ground for the opponent.
             self.plan = Plan("space", "wait below")
             return me.pos
-        if mine.projectile_reach >= config.CPU_ZONER_REACH and level:
+        if self.style.far and mine.projectile_reach >= config.CPU_ZONER_REACH and level:
             hover = max(hover, config.CPU_ZONER_RANGE)
+        # A close style trims the margin, never into the opponent's own striking reach (there
+        # every slow move would be beaten to the punch, and it only stood and waited).
+        outside = reading.theirs.strike_reach + target.hurtbox.radius
+        hover = max(hover + RANGE_OFFSET.get(self.style.range, 0.0), min(hover, outside))
         # The longer nothing has been worth doing, the closer it comes: an opponent that
         # never approaches must not stall the match (the shield bot did, forever).
-        waited = (world.frame - self._last_attack) / config.CPU_PATIENCE_FRAMES
+        waited = (world.frame - self._last_attack) / (
+            config.CPU_PATIENCE_FRAMES * self.style.patience
+        )
         closing = min(max(waited - 1.0, 0.0), 1.0)
         jab = mine.action("jab").envelope
         reach = jab.radius if jab is not None else config.CPU_CLOSE_RANGE
@@ -1005,6 +1074,36 @@ class CpuController:
         if floor is None or blocked:
             return where
         return Vec3(spot.x, spot.y, floor)
+
+    def _habit_spot(self, target: FighterView) -> tuple[Vec3, str] | None:
+        """Where to wait for an opponent hanging from a ledge or lying down that has a habit
+        there: just beyond where its usual roll or getup ends (from level 5)."""
+        if target.invincible:
+            return None
+        if target.state is StateId.LEDGE_HANG:
+            situation, menu = habits.LEDGE, predict.ledge_options
+        elif target.state is StateId.KNOCKDOWN:
+            situation, menu = habits.GETUP, predict.getup_options
+        else:
+            return None
+        expected = self.habits.expected(target.index, situation)
+        if expected is None or expected[0] in ("jump", "drop"):
+            return None
+        name = expected[0]
+        for option in menu(self.live, target, self.characters[target.index]):
+            if option.name != name:
+                continue
+            points = option.track.points
+            end = points[min(max(option.free, 1), len(points)) - 1]
+            inward = self.stage.respawn - end.xy
+            if inward.length() > 0.0:
+                inward = inward.normalized()
+            spot = end.xy + inward * config.CPU_HABIT_STAND_OFF
+            floor = ground_below(self.live, spot.x, spot.y, end.z + config.CPU_STEP_HEIGHT)
+            if floor is None:
+                return None
+            return Vec3(spot.x, spot.y, floor), name
+        return None
 
     # --- defence -------------------------------------------------------------------------
 

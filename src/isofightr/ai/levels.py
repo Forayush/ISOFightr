@@ -36,6 +36,9 @@ class CpuLevel:
     temperature: float = 1.0
     edgeguard_depth: float = 0.0
     """M20: above 0 it may leave the stage to edgeguard (``CPU_EDGEGUARD_DEPTH``)."""
+    adapt: float = 0.0
+    """M20: how much it acts on its opponents' habits (``CPU_HABIT_ADAPT``; none below
+    ``CPU_HABIT_FIRST_LEVEL``)."""
     """M20: how loosely it picks among what is worth doing (``CPU_CHOICE_TEMPERATURE``)."""
 
 
@@ -77,4 +80,7 @@ def cpu_level(level: int) -> CpuLevel:
         tracking_frames=round(_at(config.CPU_TRACKING_FRAMES, level)),
         temperature=_at(config.CPU_CHOICE_TEMPERATURE, level),
         edgeguard_depth=_at(config.CPU_EDGEGUARD_DEPTH, level),
+        adapt=(
+            _at(config.CPU_HABIT_ADAPT, level) if level >= config.CPU_HABIT_FIRST_LEVEL else 0.0
+        ),
     )

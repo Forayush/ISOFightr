@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Self
+from typing import Final, Self
 
 from isofightr.sim.math3d import Vec3
 from isofightr.sim.move_def import FrameRange, MoveDef
@@ -182,6 +182,33 @@ class MoveSet:
         return (*self.jab, *singles)
 
 
+CPU_RANGES: Final[tuple[str, ...]] = ("close", "mid", "far")
+"""The distances a ``[cpu] range`` may name."""
+
+
+@dataclass(frozen=True, slots=True)
+class CpuStyleDef:
+    """The optional ``[cpu]`` table of ``fighter.toml``: how the CPU plays this character
+    (decision D-071). Every value is optional; ``None`` means "from what the CPU knows of
+    the character". Numbers are multipliers around 1. The sim never reads it."""
+
+    aggression: float | None = None
+    patience: float | None = None
+    range: str | None = None
+    """``close``, ``mid`` or ``far``: where it likes to stand in neutral."""
+    grab_rate: float | None = None
+    zoning: float | None = None
+    """How much it likes its projectiles."""
+    air_bias: float | None = None
+    edgeguard_depth: float | None = None
+    risk: float | None = None
+    """Above 1: takes more risks (less caution)."""
+    favourites: tuple[str, ...] = ()
+    """Move ids it likes a little more."""
+    avoid: tuple[str, ...] = ()
+    """Move ids it likes a little less."""
+
+
 @dataclass(frozen=True, slots=True)
 class CharacterDef:
     """Everything about a character that never changes during a match."""
@@ -202,6 +229,8 @@ class CharacterDef:
     hit_theme: str = ""
     """How its hits look when their effect is ``normal`` (``config.HIT_THEMES``; "" is the
     plain look). Presentation only, like ``archetype`` (decision D-068)."""
+    cpu: CpuStyleDef = CpuStyleDef()
+    """How the CPU plays it (``[cpu]``; decision D-071). Read only by ``ai/``."""
 
     def __deepcopy__(self, memo: dict[int, object]) -> Self:
         """Character data is immutable, so a copied match (snapshots, rollback) shares it."""

@@ -80,6 +80,8 @@ WINDOWLESS_MODULES = (
     "isofightr.ai.belief",
     "isofightr.ai.advantage",
     "isofightr.ai.disadvantage",
+    "isofightr.ai.habits",
+    "isofightr.ai.style",
     "isofightr.ai.intercept",
     "isofightr.ai.situation",
     "isofightr.ai.forecast",

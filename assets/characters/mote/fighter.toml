@@ -65,3 +65,9 @@ forward = { damage = 9.0, angle = 40, bkb = 60, kbg = 60, release = 14, total = 
 back = { damage = 9.0, angle = 40, bkb = 60, kbg = 65, release = 18, total = 40 }
 up = { damage = 9.0, angle = 88, bkb = 62, kbg = 70, release = 16, total = 38 }
 down = { damage = 6.0, angle = 70, bkb = 55, kbg = 45, release = 18, total = 36 }
+
+[cpu]                        # how the CPU plays Mote (D-071); every key optional, 1 = neutral
+# Zones: likes the orb, lamp and glyph from mid range.
+range = "mid"
+zoning = 1.4
+favourites = ["nspecial", "sspecial", "dspecial"]

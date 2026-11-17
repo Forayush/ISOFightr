@@ -14,7 +14,7 @@ from isofightr.data.character_loader import list_character_ids, load_character, 
 from isofightr.data.move_loader import load_moves
 from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError
-from isofightr.sim.character_def import CharacterDef, HurtboxDef
+from isofightr.sim.character_def import CharacterDef, CpuStyleDef, HurtboxDef
 
 ROOK = """
 id = "rook"
@@ -77,6 +77,9 @@ forward = { damage = 8.0, angle = 40, bkb = 60, kbg = 60, release = 13, total = 
 back = { damage = 10.0, angle = 42, bkb = 60, kbg = 75, release = 16, total = 38 }
 up = { damage = 7.0, angle = 88, bkb = 60, kbg = 70, release = 14, total = 36 }
 down = { damage = 5.0, angle = 70, bkb = 55, kbg = 40, release = 18, total = 34 }
+[cpu]
+range = "mid"
+grab_rate = 1.15
 """
 ROOK_CROUCH = "crouch_hurtbox = { radius = 0.35, z0 = 0.2, z1 = 1.66 }"
 MOVES = load_moves(CHARACTERS_DIR / "rook" / MOVES_DIR_NAME)
@@ -193,3 +196,28 @@ def test_zero_air_jumps_and_zero_land_lag_are_allowed() -> None:
     edited = ROOK.replace("air_jumps = 1", "air_jumps = 0").replace("land_lag = 3", "land_lag = 0")
     stats = parse(edited).movement
     assert (stats.air_jumps, stats.land_lag) == (0, 0)
+
+
+# --- the optional [cpu] table (M20 group 5, D-071) ---------------------------------------
+
+
+def test_the_cpu_table_is_optional_and_every_key_in_it_too() -> None:
+    plain = parse(ROOK.split("[cpu]")[0])
+    assert plain.cpu == CpuStyleDef()
+    rook = parse(ROOK)
+    assert rook.cpu.range == "mid" and rook.cpu.grab_rate == 1.15 and rook.cpu.zoning is None
+
+
+def test_the_cpu_table_is_strict() -> None:
+    base = ROOK.split("[cpu]")[0] + "[cpu]\n"
+    with pytest.raises(DataError, match="unknown key"):
+        parse(base + "boldness = 1.0\n")
+    with pytest.raises(DataError, match="range: must be one of close, mid, far"):
+        parse(base + 'range = "near"\n')
+    with pytest.raises(DataError, match="aggression: must be from 0 to"):
+        parse(base + "aggression = 9.0\n")
+    with pytest.raises(DataError, match="favourites: unknown move"):
+        parse(base + 'favourites = ["laser"]\n')
+    with pytest.raises(DataError, match="avoid: must be an array of move ids"):
+        parse(base + 'avoid = "nair"\n')
+    assert parse(base + 'favourites = ["fsmash"]\n').cpu.favourites == ("fsmash",)

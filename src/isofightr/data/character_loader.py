@@ -15,8 +15,10 @@ from isofightr.data.move_loader import MAX_ELEVATION, load_moves, parse_frame_ra
 from isofightr.data.paths import CHARACTER_FILE_NAME, CHARACTERS_DIR, MOVES_DIR_NAME
 from isofightr.data.validation import DataError, TableReader
 from isofightr.sim.character_def import (
+    CPU_RANGES,
     BodyStats,
     CharacterDef,
+    CpuStyleDef,
     GrabDef,
     GrabSet,
     HurtboxDef,
@@ -124,6 +126,7 @@ def parse_character(
             "moveset",
             "grab",
             "throws",
+            "cpu",
         ),
     )
     character_id = root.string("id")
@@ -152,6 +155,63 @@ def parse_character(
             root.subtable("throws", [name for name, _ in _THROWS]),
         ),
         moves=MappingProxyType(dict(moves)),
+        cpu=_cpu_style(root, moves),
+    )
+
+
+CPU_NUMBERS = (
+    "aggression",
+    "patience",
+    "grab_rate",
+    "zoning",
+    "air_bias",
+    "edgeguard_depth",
+    "risk",
+)
+"""The ``[cpu]`` keys that are multipliers (0 to ``CPU_STYLE_MAX``)."""
+CPU_STYLE_MAX = 3.0
+
+
+def _cpu_style(root: TableReader, moves: Mapping[str, MoveDef]) -> CpuStyleDef:
+    """The optional ``[cpu]`` table (decision D-071): every key optional, strictly checked."""
+    if not root.has("cpu"):
+        return CpuStyleDef()
+    table = root.subtable("cpu", (*CPU_NUMBERS, "range", "favourites", "avoid"))
+    numbers: dict[str, float | None] = {}
+    for key in CPU_NUMBERS:
+        if not table.has(key):
+            numbers[key] = None
+            continue
+        value = table.number(key)
+        if not 0.0 <= value <= CPU_STYLE_MAX:
+            raise table.error(f"must be from 0 to {CPU_STYLE_MAX}, got {value}", key)
+        numbers[key] = value
+    distance = table.optional_string("range")
+    if distance is not None and distance not in CPU_RANGES:
+        raise table.error(f"must be one of {', '.join(CPU_RANGES)}, not {distance!r}", "range")
+
+    def move_ids(key: str) -> tuple[str, ...]:
+        if not table.has(key):
+            return ()
+        value = table.raw(key)
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            raise table.error("must be an array of move ids", key)
+        unknown = [v for v in value if v not in moves]
+        if unknown:
+            raise table.error(f"unknown move(s) {', '.join(map(repr, unknown))}", key)
+        return tuple(value)
+
+    return CpuStyleDef(
+        aggression=numbers["aggression"],
+        patience=numbers["patience"],
+        range=distance,
+        grab_rate=numbers["grab_rate"],
+        zoning=numbers["zoning"],
+        air_bias=numbers["air_bias"],
+        edgeguard_depth=numbers["edgeguard_depth"],
+        risk=numbers["risk"],
+        favourites=move_ids("favourites"),
+        avoid=move_ids("avoid"),
     )
 
 

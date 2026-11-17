@@ -66,3 +66,7 @@ back = { damage = 10.0, angle = 42, bkb = 60, kbg = 75, release = 16, total = 38
 up = { damage = 7.0, angle = 88, bkb = 60, kbg = 70, release = 14, total = 36 }
 down = { damage = 5.0, angle = 70, bkb = 55, kbg = 40, release = 18, total = 34 }
 
+[cpu]                        # how the CPU plays Rook (D-071); every key optional, 1 = neutral
+# Balanced: a bit of everything, mid range, takes the grab when it is there.
+range = "mid"
+grab_rate = 1.15

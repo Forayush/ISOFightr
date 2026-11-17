@@ -65,3 +65,13 @@ forward = { damage = 11.0, angle = 40, bkb = 65, kbg = 70, release = 16, total =
 back = { damage = 12.0, angle = 45, bkb = 65, kbg = 80, release = 20, total = 44 }
 up = { damage = 10.0, angle = 88, bkb = 70, kbg = 80, release = 18, total = 40 }
 down = { damage = 7.0, angle = 70, bkb = 60, kbg = 50, release = 22, total = 40 }
+
+[cpu]                        # how the CPU plays Bramble (D-071); every key optional, 1 = neutral
+# Patient: waits for the opening, trades through its armour, punishes big, stays on the stage.
+aggression = 0.85
+patience = 1.4
+range = "close"
+grab_rate = 1.2
+air_bias = 0.8
+edgeguard_depth = 0.3
+favourites = ["fsmash", "sspecial"]

@@ -403,6 +403,50 @@ CPU_JUMP_AWAY_VALUE: Final[float] = 9.0
 CPU_GUARDED_LEDGE: Final[float] = 2.0
 """An opponent this close to a ledge (on the stage, free) is guarding it: recover elsewhere."""
 CPU_GUARDED_COST: Final[float] = 3.0
+# M20 group 5: habits and styles (D-071).
+CPU_HABIT_ADAPT: Final[tuple[float, ...]] = (0.0, 0.0, 0.5, 1.0, 1.0)
+"""How much a CPU acts on what it learned of its opponents (levels 1, 3, 5, 7, 9)."""
+CPU_HABIT_FIRST_LEVEL: Final[int] = 5
+"""Levels below this do not adapt at all."""
+CPU_HABIT_DECAY: Final[float] = 0.7
+"""Each new observation of a habit scales the older ones by this (recent ones count most)."""
+CPU_HABIT_CONFIDENCE: Final[float] = 1.5
+"""Observations (decayed) at which the CPU half trusts a habit."""
+CPU_HABIT_SURE: Final[float] = 0.5
+"""A choice must be at least this share of what was seen to be expected."""
+CPU_HABIT_TRUST: Final[float] = 0.3
+"""The trust (share times confidence times adapt) above which the CPU plays for a habit."""
+CPU_HABIT_NEAR: Final[float] = 2.5
+"""The CPU's own move starting this close to an opponent counts as approaching it."""
+CPU_HABIT_GUARD_FRAMES: Final[int] = 12
+"""Frames after such a move in which a shield counts as shielding the approach."""
+CPU_HABIT_STAND_OFF: Final[float] = 0.6
+"""How far beyond where an expected roll or getup ends the CPU waits for it."""
+CPU_HABIT_ZONER_SHARE: Final[float] = 0.4
+"""An opponent whose trusted share of projectile moves is above this is rushed down."""
+CPU_HABIT_GRAB_VALUE: Final[float] = 20.0
+"""Value a grab gains per unit an opponent is seen shielding above ``CPU_GUARD_GUESS``
+(learned shielding only raises grabs: lowering every other move cost wins)."""
+CPU_REPEAT_PENALTY: Final[float] = 8.0
+"""Value taken off a move per unit of its share among the CPU's own recent moves."""
+CPU_STYLE_GRAB_VALUE: Final[float] = 6.0
+"""Value a grab gains per unit of ``grab_rate`` above 1 (loses below)."""
+CPU_STYLE_ZONING_VALUE: Final[float] = 8.0
+"""Value a projectile gains per unit of ``zoning`` above 1."""
+CPU_STYLE_AIR_VALUE: Final[float] = 5.0
+"""Value an aerial gains per unit of ``air_bias`` above 1."""
+CPU_FAVOURITE_VALUE: Final[float] = 2.0
+"""Value a favourite move gains (an avoided one loses)."""
+CPU_STYLE_STAY: Final[float] = 0.5
+"""A style ``edgeguard_depth`` below this never leaves the stage after an opponent."""
+CPU_STYLE_RUN_SPEED: Final[float] = 0.12
+"""Run speed at which a character's default aggression is 1."""
+CPU_STYLE_WEIGHT: Final[float] = 100.0
+"""Weight at which a character's default risk is 1."""
+CPU_STYLE_DEFAULT_BOUNDS: Final[tuple[float, float]] = (0.8, 1.25)
+"""Defaults from the character's data stay within these."""
+CPU_TEMPERAMENT: Final[float] = 0.1
+"""Each CPU's style numbers are moved up to this share either way (seeded)."""
 """Recovery score added per unit a place on a ledge is inside a guard's radius."""
 CPU_LEDGE_SAMPLE: Final[float] = 1.0
 """Places along a ledge line are tried this far apart when one part of it is guarded."""
