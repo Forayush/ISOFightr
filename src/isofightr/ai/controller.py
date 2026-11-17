@@ -36,7 +36,7 @@ from itertools import chain
 from typing import Final
 
 from isofightr import config
-from isofightr.ai import intercept, predict
+from isofightr.ai import advantage, intercept, predict
 from isofightr.ai.belief import Beliefs
 from isofightr.ai.knowledge import Action, CharacterKnowledge, Start, frames_for, knowledge_for
 from isofightr.ai.levels import CpuLevel, cpu_level
@@ -159,6 +159,9 @@ class CpuController:
         self._queued: tuple[Action, int] | None = None
         """The ground action whose inputs are queued, and the frame it was started on."""
         self._climb_blocked_until = 0
+        self._edgeguard_ok = False
+        """While choosing: the target is off the stage and this level may follow it."""
+        self._own_air_jumps = 0
         """Until this frame it does not try to climb to an opponent on other ground."""
         self._their_attack: dict[int, int] = {}
         """The frame each opponent was last seen attacking (or grabbing)."""
@@ -449,28 +452,46 @@ class CpuController:
         self._enqueue([NEUTRAL_INPUT, press, NEUTRAL_INPUT])
 
     def _throw(self, world: WorldView, me: FighterView) -> None:
-        """Holding someone: pummel a little, then throw toward the nearest edge for a KO,
-        or down or up otherwise."""
+        """Holding someone: pummel a little while the throw would not KO, then throw: each
+        throw in each direction is flown by the forecast and the best (a KO that survives DI,
+        then one that does not, then one that sends the victim off the stage, then the most
+        advantage) is picked at the level's temperature. Levels 1 and 2 throw at random."""
         victim = world.fighters[me.grab_partner] if me.grab_partner >= 0 else None
+        if victim is None:
+            return
+        grabs = self.characters[self.player].grabs
+        choices = advantage.throw_choices(
+            self.live, me, grabs, victim, self.characters[victim.index]
+        )
+        kills = any(choice.kills_through_di for choice in choices)
         pummels = (
             0 if self.level.level <= BASIC_LEVEL else int(self._roll("pummels") * (MAX_PUMMELS + 1))
         )
-        if self._pummels_done < pummels:
+        if self._pummels_done < pummels and not kills:
             self._pummels_done += 1
             self._enqueue([InputFrame(held=int(Button.ATTACK))] + [NEUTRAL_INPUT] * PUMMEL_EVERY)
             return
-        if victim is not None and victim.damage >= THROW_KILL_PERCENT:
-            ledge = recovery_ledge(self.stage, me.pos, math.inf, None)
-            if ledge is not None:
-                out = ledge.point - me.pos.xy
-                if out.length() > 0.0:
-                    self.plan = Plan("throw", "toward the edge")
-                    self._enqueue([NEUTRAL_INPUT, InputFrame(move=out.normalized())])
-                    return
-        die = self._roll("throw")
-        self.plan = Plan("throw", "down" if die < 0.6 else "up")
-        vertical = VERTICAL_DOWN if die < 0.6 else VERTICAL_UP
-        self._enqueue([NEUTRAL_INPUT, InputFrame(vertical=vertical), NEUTRAL_INPUT])
+        if self.level.level <= BASIC_LEVEL:
+            choice = choices[int(self._roll("throw") * len(choices))]
+        else:
+            choice = self._pick(choices)
+        self.plan = Plan("throw", choice.name)
+        if choice.vertical != VERTICAL_NONE:
+            self._enqueue([NEUTRAL_INPUT, InputFrame(vertical=choice.vertical), NEUTRAL_INPUT])
+        else:
+            self._enqueue([NEUTRAL_INPUT, InputFrame(move=choice.heading)])
+
+    def _pick(self, choices: list[advantage.ThrowChoice]) -> advantage.ThrowChoice:
+        """Softmax over values at the level's temperature (choices are best first)."""
+        top = choices[0].value
+        scale = max(self.level.temperature, 1e-6)
+        weights = [math.exp((choice.value - top) / scale) for choice in choices]
+        mark = self.rng.random() * sum(weights)
+        for choice, weight in zip(choices, weights, strict=True):
+            if mark < weight:
+                return choice
+            mark -= weight
+        return choices[0]
 
     def _shielding(self, world: WorldView, me: FighterView) -> InputFrame:
         """Keep the shield up until the threat has passed, then let go. Not while it drops:
@@ -676,6 +697,7 @@ class CpuController:
             track=track,
             character=self.characters[index],
             theirs=theirs,
+            mine=self.knowledge[self.player],
             their_action=their_action,
             their_frame=(their_action.move_start + target.state_frame - 1 if their_action else 0),
             caution=1.0 + me.damage / config.CPU_CAUTION_PERCENT,
@@ -693,6 +715,9 @@ class CpuController:
     def _choose(self, reading: intercept.Reading) -> intercept.Candidate | None:
         """The best of everything that could reach the target, if any of it is worth doing."""
         me, target = reading.me, reading.target
+        off = not target.grounded and not over_ground(self.live, target.pos)
+        self._edgeguard_ok = off and self.level.edgeguard_depth > 0.0
+        self._own_air_jumps = self.characters[self.player].movement.air_jumps
         if target.invincible or (target.intangible and reading.track.locked == 0):
             return None
         if reading.track.locked == 0 and self.rng.random() >= self.level.aggression:
@@ -760,6 +785,16 @@ class CpuController:
         reach (never quite still), on top of an opponent that is open, well away from one that
         cannot be hit, and at the ledge or in the middle when it is off the stage."""
         where = target.pos
+        if target.state is StateId.LEDGE_HANG and not target.invincible:
+            trap = advantage.ledge_trap_point(self.live, target)
+            if trap is not None:
+                self.plan = Plan("advantage", "ledge trap")
+                return trap
+        if reading.track.locked >= config.CPU_OPENING_FRAMES and not target.invincible:
+            chase = advantage.chase_point(self.live, reading.track, me, config.CPU_CHASE_FRAMES)
+            if chase is not None and self._ground_between(me.pos, chase):
+                self.plan = Plan("advantage", "chase")
+                return chase
         if not target.grounded and not over_ground(self.live, where):
             return self._goal(me, target, 0.0)
         away = me.pos.xy - where.xy
@@ -928,7 +963,13 @@ class CpuController:
         if drift is not None:
             end = end + drift * float(action.commit)
         if not over_ground(self.live, Vec3(end.x, end.y, me.pos.z + 1.0)):
-            return False
+            # Off the stage: only to edgeguard, only at the levels that do, never helpless,
+            # and only if it can get back from where the action leaves it.
+            if not self._edgeguard_ok or action.helpless:
+                return False
+            jumps = me.air_jumps_left if action.start is Start.AIR else self._own_air_jumps
+            low = Vec3(end.x, end.y, min(end.z, me.pos.z + action.offset_at(action.commit).z))
+            return advantage.can_return(self.live, low, jumps, self.knowledge[self.player])
         if action.helpless:
             inside = end.xy + (self.stage.respawn - end.xy).normalized() * HELPLESS_ARRIVAL
             # Probed from above, like the end: the recording's own landing height is where it

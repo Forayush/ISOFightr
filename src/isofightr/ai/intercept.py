@@ -37,6 +37,7 @@ from isofightr.ai.predict import Track
 from isofightr.ai.view import FighterView
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat import constants as combat
+from isofightr.sim.combat.shield import shield_damage
 from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import facing_from_move
 from isofightr.sim.math3d import Vec2, Vec3
@@ -78,6 +79,8 @@ class Reading:
     """How likely a free, grounded target is to block."""
     threat_frames: int = 0
     """Frames until a hit the CPU already sees coming lands on it (0 = none)."""
+    mine: CharacterKnowledge | None = None
+    """The CPU's own move knowledge (how far it can strike to follow a hit up)."""
     their_action: Action | None = None
     """The recording of the move the target is performing, if it is in one."""
     their_frame: int = 0
@@ -294,10 +297,23 @@ def weigh(reading: Reading, action: Action, aim: Vec2, frame: int, chance: float
         before = target.damage + damage - final  # the earlier hits of a chain land first
         launch = forecast.hit_launch(box, final, before, weight, target.grounded, heading)
         advantage = forecast.advantage_on_hit(launch.knockback, remaining)
-        if launch.knockback >= combat.TUMBLE_KB:
-            kills = forecast.kills(reading.stage, launch, feet, target.grounded, reading.character)
+        flown = None
+        if launch.knockback >= combat.TUMBLE_KB or advantage > 0:
+            flown = forecast.flight(reading.stage, launch, feet, target.grounded, reading.character)
+            kills = launch.knockback >= combat.TUMBLE_KB and flown.ko
+        if advantage > 0 and flown is not None:
+            # Frames ahead only set up a next hit if the victim is still within reach when
+            # the CPU can act: a strong launch sends it far away, however long its hitstun.
+            mine = reading.mine
+            end = me.pos + _rotate(action.offset_at(action.commit), aim)
+            there = flown.at(remaining)
+            reach = (mine.strike_reach if mine is not None else 0.0) + config.CPU_FOLLOW_SLACK
+            if flown.ko or (there.xy - end.xy).length() > reach:
+                advantage = 0
     gain = damage + config.CPU_HIT_VALUE
-    gain += max(-15, min(advantage, 15)) * config.CPU_ADVANTAGE_VALUE
+    # Frames ahead on hit set up the next hit (a combo starter); frames behind are only risk.
+    ahead = config.CPU_STARTER_VALUE if advantage > 0 else config.CPU_ADVANTAGE_VALUE
+    gain += max(-15, min(advantage, 15)) * ahead
     if kills:
         gain += config.CPU_KO_VALUE
 
@@ -335,6 +351,10 @@ def weigh(reading: Reading, action: Action, aim: Vec2, frame: int, chance: float
         beaten = 1.0  # something already on its way lands first
     elif danger(reading, action, aim, frame):
         beaten = 1.0  # the CPU would carry itself into the swing
+    if blocked > 0.0 and shield_damage(damage) >= target.shield_hp > 0.0:
+        # This block breaks the shield: as good as a hit, better.
+        hit, blocked = hit + blocked, 0.0
+        gain += config.CPU_SHIELD_BREAK_VALUE
     outcome_value = hit * gain - (blocked * block_cost + whiff * whiff_cost) * reading.caution
     value = (1.0 - beaten) * outcome_value - beaten * config.CPU_PUNISH_VALUE * reading.caution
     value += reading.urge * chance - frame * config.CPU_TIME_COST

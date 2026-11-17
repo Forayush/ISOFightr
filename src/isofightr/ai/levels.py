@@ -34,6 +34,8 @@ class CpuLevel:
     tracking_frames: int = 0
     """M20: how late smooth changes are seen (``config.CPU_TRACKING_FRAMES``)."""
     temperature: float = 1.0
+    edgeguard_depth: float = 0.0
+    """M20: above 0 it may leave the stage to edgeguard (``CPU_EDGEGUARD_DEPTH``)."""
     """M20: how loosely it picks among what is worth doing (``CPU_CHOICE_TEMPERATURE``)."""
 
 
@@ -74,4 +76,5 @@ def cpu_level(level: int) -> CpuLevel:
         punish_margin=round(_at(config.CPU_PUNISH_MARGIN, level)),
         tracking_frames=round(_at(config.CPU_TRACKING_FRAMES, level)),
         temperature=_at(config.CPU_CHOICE_TEMPERATURE, level),
+        edgeguard_depth=_at(config.CPU_EDGEGUARD_DEPTH, level),
     )

@@ -186,12 +186,33 @@ almost always takes the best, at 8 it often takes something a good deal worse.""
 # The expected-value formula of ``ai/intercept.py`` (decision D-071). Values are in percent
 # of damage: a candidate is worth the damage it is likely to deal, plus and minus the rest.
 CPU_KO_VALUE: Final[float] = 45.0
+CPU_KO_WITHOUT_DI_SHARE: Final[float] = 0.5
+"""Share of ``CPU_KO_VALUE`` a launch is worth when it KOs only if the victim does not DI."""
+CPU_OFF_STAGE_VALUE: Final[float] = 8.0
+"""What sending an opponent off the stage (and not out of it) is worth: an edgeguard."""
+CPU_SHIELD_BREAK_VALUE: Final[float] = 40.0
+"""What breaking a shield is worth: a free hit of anything, often a stock."""
+CPU_CHASE_FRAMES: Final[int] = 40
+"""A launched or landing opponent is chased to where it will be in this many frames at most."""
+CPU_LEDGE_TRAP_INSET: Final[float] = 1.5
+"""A CPU waits this far inside a ledge an opponent hangs from: its getup, attack and roll all
+end within reach."""
+CPU_RETURN_SAFETY: Final[float] = 0.7
+"""Share of its jumps and up special a CPU counts on to get back from an off-stage edgeguard."""
+CPU_EDGEGUARD_DEPTH: Final[tuple[float, ...]] = (0.0, 0.0, 0.0, 0.5, 1.0)
+"""M20: whether a level goes off the stage to edgeguard (0 = never; above 0 it may, when the
+return check passes); levels 1 to 5 stay on the stage."""
 """What taking a stock is worth on top of the hit's damage."""
 CPU_HIT_VALUE: Final[float] = 6.0
 """What landing any clean hit is worth beyond its damage: it stops whatever the opponent
 was about to do and hands the CPU the next move. Without it a jab is never worth throwing."""
 CPU_ADVANTAGE_VALUE: Final[float] = 0.4
 """What each frame of advantage on hit is worth (counted between -15 and +15 frames)."""
+CPU_STARTER_VALUE: Final[float] = 3.0
+"""What each frame of advantage on hit is worth when the CPU is ahead (a combo starter)."""
+CPU_FOLLOW_SLACK: Final[float] = 0.5
+"""A launched victim within the CPU's striking reach plus this when it can act again is
+follow-up range."""
 CPU_PUNISH_VALUE: Final[float] = 14.0
 """What a full punish costs: about one solid hit."""
 CPU_PUNISH_FRAMES: Final[float] = 20.0
