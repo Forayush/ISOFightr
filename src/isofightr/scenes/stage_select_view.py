@@ -29,7 +29,7 @@ from isofightr.ui import font, kit_art, logo, select_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import ARROW_LEFT, ARROW_RIGHT, TextSize, text_width
 from isofightr.ui.hints import device_labels, hint_text
-from isofightr.ui.menu import MenuAction
+from isofightr.ui.menu import REPEAT_DELAY, MenuAction
 from isofightr.ui.pixel_text import GlyphAtlas
 from isofightr.ui.widgets import (
     Checkbox,
@@ -38,6 +38,7 @@ from isofightr.ui.widgets import (
     SlideGroup,
     UiLayer,
     add_slab,
+    picture_texture,
     slab_face,
 )
 
@@ -71,8 +72,9 @@ CHIP_ICONS = {
     "HAZARDS": "bolt",
 }
 """Which icon a rules chip carries, by its first word (the launch rate gets ``burst``)."""
-LIVE_REST_TICKS = 12
-"""The live stage replaces its picture once the cursor has rested this long on it."""
+LIVE_REST_TICKS = REPEAT_DELAY + 4
+"""The live stage replaces its picture once the cursor has rested this long on it: longer
+than a held direction waits before it repeats, so holding a direction never builds one."""
 SHUFFLE_TICKS = 40
 """On Random, the picture changes to another stage of the pool this often."""
 FOCUS_RAMP = theme.player_ramp(2)
@@ -106,6 +108,10 @@ class StageSelectView(MenuView):
         """Frames the live stage has run: its clouds drift and its platforms move by it."""
         self._shown_cursor = -1
         self._changed_tick = 0
+        self._to_warm = list(self.stages)
+        """Stages whose picture and name are not in the texture atlas yet: one goes in each
+        tick (about 8 ms; the first grows the atlas), while the cloud covers the screen, so
+        moving the cursor never has to."""
         self.first = 0
         """The tile at the left end of the strip."""
 
@@ -330,12 +336,28 @@ class StageSelectView(MenuView):
         super().tick()
         if self.window.current_view is not self:
             return
+        if self._to_warm:
+            self._warm(self._to_warm.pop(0))
         rested = self.flow.menu_ticks - self._changed_tick >= LIVE_REST_TICKS
         selected = self.selected
         if rested and selected != RANDOM_STAGE and not self.live.ready(selected):
             self.live.build(self.stages[selected])
             self.live_ticks = 0
         self.live_ticks += 1
+
+    def _warm(self, stage_id: str) -> None:
+        """Put a stage's picture and its name's lettering in the texture atlas."""
+        stage = self.stages[stage_id]
+        picture = self.pictures[stage_id]
+        name = stage.display_name.upper()
+        atlas = self.window.ctx.default_atlas
+        atlas.add(picture_texture(("stage-preview", stage_id), lambda: picture))
+        atlas.add(
+            picture_texture(
+                ("stage-name", name),
+                lambda: logo.build_logo(name, NAME_SCALE, depth=NAME_DEPTH),
+            )
+        )
 
     # --- drawing ---------------------------------------------------------------------------
 
