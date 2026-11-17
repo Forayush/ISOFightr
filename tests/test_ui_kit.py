@@ -72,14 +72,13 @@ ART = {
     "swatch": lambda: kit_art.swatch(10, theme.GREEN, True),
     "focus": lambda: kit_art.focus_frame(60, 30),
     "divider": lambda: kit_art.divider(100),
-    "select_panel": lambda: select_art.panel_backdrop(148, 214, theme.player_ramp(0)),
-    "select_panel_ready": lambda: select_art.panel_backdrop(
-        60, 80, theme.player_ramp(2), theme.FOCUS
+    "select_podium": lambda: select_art.podium_plate(148, 52, theme.player_ramp(0)),
+    "select_podium_ready": lambda: select_art.podium_plate(
+        148, 52, theme.player_ramp(2), ready=True
     ),
-    "select_panel_empty": lambda: select_art.panel_backdrop(60, 80, theme.EMPTY_RAMP, glow=False),
-    "select_isle": lambda: select_art.isle(68, theme.player_ramp(3)),
+    "select_podium_open": lambda: select_art.podium_plate(148, 18, theme.EMPTY_RAMP, taken=False),
+    "select_bubble": lambda: select_art.bubble(148, 70),
     "select_plate": lambda: select_art.name_plate(132, 18, theme.SKY),
-    "select_strip": lambda: select_art.strip(146, 16, theme.RED, theme.CRIMSON),
     "select_sash": lambda: select_art.sash(140, 24),
     "select_tile": lambda: select_art.roster_tile(46, 46, None),
     "select_tile_lit": lambda: select_art.roster_tile(46, 46, theme.player_ramp(1)),
@@ -379,14 +378,3 @@ def test_the_dither_lights_the_share_of_pixels_it_is_asked_for() -> None:
     for density in (0.0, 0.25, 0.5, 1.0):
         on = sum(select_art.lit(x, y, density) for x in range(8) for y in range(8))
         assert on == round(64 * density)
-
-
-def test_an_isle_is_a_two_to_one_diamond_with_rock_underneath() -> None:
-    image = select_art.isle(68, theme.player_ramp(0))
-    assert image.width == 68
-    assert image.height == 34 + select_art.ISLE_DEPTH + select_art.ISLE_ROOT
-    alpha = image.getchannel("A")
-    assert alpha.getpixel((34, 17)) == 255, "the middle of the top, where the feet go"
-    assert alpha.getpixel((0, 0)) == 0 and alpha.getpixel((67, 0)) == 0, "a diamond, not a box"
-    assert alpha.getpixel((34, image.height - 2)) == 255, "the rock hangs to a point"
-    assert alpha.getpixel((10, image.height - 2)) == 0

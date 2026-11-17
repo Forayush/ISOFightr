@@ -5,6 +5,7 @@ touching the CLI". M7: joining with up to four devices, teams, settings and reco
 Plan note "13 - Game Modes UI and Flow".
 """
 
+import itertools
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -296,7 +297,9 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     css = window.current_view
     assert name(window) == "CharacterSelectView"
     assert [slot.device for slot in css.slots] == ["keyboard:solo", "", "", ""]
-    assert css.panels[0].art.visible and not css.panels[1].art.visible, "art for the joined"
+    ring = css.world.ring
+    assert ring[0] is not None and ring[0].character == "rook", "the joined stand at the ring"
+    assert ring[1] is None, "an open slot's spot is empty"
     assert css.panels[0].name.text == "ROOK"
     assert [label.text for label in css.panels[1].prompt[:2]] == [
         "PRESS TO JOIN",
@@ -1603,7 +1606,8 @@ def test_a_cursor_walks_the_roster_and_the_panel_and_detail_follow(window: Any) 
     assert abs(css.cursors[0].sprite.center_x - (tile.left + tile.width / 2)) < 1
     while css.character_of(slot) != "random":
         press(window, keys().D)
-    assert panel.name.text == "RANDOM" and panel.unknown.visible and not panel.art.visible
+    assert panel.name.text == "RANDOM" and panel.unknown.visible
+    assert css.world.ring[0] is None, "Random has no fighter on the spot, a question mark"
     assert css.detail_kind.text == "the wildcard"
     assert not any(swatch.sprite.visible for swatch in panel.swatches), "no costume for Random"
     press(window, keys().D)
@@ -1650,8 +1654,10 @@ def test_strong_changes_costume_and_two_players_never_share_one(window: Any) -> 
     for _ in range(6):
         press(window, keys().U)
         assert first.costume != taken, "player 1 skips the one player 2 wears"
-    art_one, art_two = css.panels[0].art.texture, css.panels[1].art.texture
-    assert art_one is not art_two
+    one, two = css.world.ring[0], css.world.ring[1]
+    assert one is not None and two is not None and one.character == two.character
+    assert (one.costume, two.costume) == (css.shown_costume(0), css.shown_costume(1))
+    assert one.costume != two.costume, "the ring shows them apart"
 
     press(window, keys().J)
     press(window, keys().NUM_4)
@@ -2210,7 +2216,8 @@ def test_every_prompt_shows_the_keys_of_the_device_it_is_about(window: Any) -> N
     assert css.panels[0].line2.text == "X: ready", "the arrows layout's attack, not J"
     assert css.panels[0].options.text == "S: costume  V: CPU", "and its other two buttons"
     assert prompts(css.panels[1]) == ["PRESS TO JOIN", "J  WASD KEYS", "", "V: ADD A CPU"]
-    assert prompts(css.panels[2]) == ["OPEN"] == prompts(css.panels[3])
+    assert prompts(css.panels[2]) == [] == prompts(css.panels[3]), "no bubble on the others"
+    assert css.panels[2].tag.text == "P3  OPEN" and css.panels[3].tag.text == "P4  OPEN"
     footer = css._footer.text
     assert "C: back" in footer and "arrows: fighter" in footer and "V: CPUs" in footer
     assert "J:" not in footer and "MOTION" not in footer
@@ -2466,3 +2473,115 @@ def test_the_controls_screen_says_when_a_key_is_on_both_keyboard_layouts(window:
     step(window, 1)
     notes = [label.text for label in view.info_lines]
     assert "ALSO ON WASD KEYS: L-CTRL, S, L-SHIFT, SPACE" in notes, "the layout's own warning"
+
+
+# --- character select at the ring (decision D-072, M21 group 3) ------------------------------
+
+
+def ring_matches_the_slots(css: Any) -> None:
+    """Each slot's fighter on the ring is the slot's character in the costume it will wear,
+    posing while its player is ready; an open slot or Random has nobody on its spot."""
+    from isofightr.scenes.menu_world_model import Mood
+
+    for index, slot in enumerate(css.slots):
+        stand_in = css.world.ring[index]
+        tile = css.character_of(slot)
+        if not slot.taken or tile == "random":
+            assert stand_in is None, index
+            continue
+        assert stand_in is not None, index
+        assert stand_in.character == tile and stand_in.costume == css.shown_costume(index)
+        if slot.ready:
+            assert stand_in.mood is Mood.READY, index
+
+
+def test_the_ring_follows_every_change_on_character_select(
+    window: Any, pads: list[FakeController]
+) -> None:
+    from isofightr.scenes.menu_world_model import STATIONS
+
+    _, css = open_select(window)
+    assert css.world.station is STATIONS["ring"]
+    ring_matches_the_slots(css)
+    script = [
+        keys().D, keys().U, keys().NUM_4, keys().RIGHT, keys().RIGHT, keys().NUM_7,
+        keys().L, keys().J, keys().D, keys().U, keys().W, keys().J, keys().D, keys().D,
+        keys().D, keys().D, keys().A, keys().J, keys().K, keys().NUM_6, keys().NUM_4,
+    ]  # fmt: skip
+    for key in script:
+        press(window, key)
+        ring_matches_the_slots(css)
+    tap_pad(window, pads[0])
+    ring_matches_the_slots(css)
+    assert css.world.ring[2] is not None, "a pad joins and its fighter drops in"
+    press(window, keys().ESCAPE)
+    press(window, keys().ESCAPE)
+    ring_matches_the_slots(css)
+
+
+def test_a_fighter_drops_in_when_its_player_joins_and_poses_when_ready(window: Any) -> None:
+    from isofightr.scenes.menu_world_model import DROP_TICKS, Mood
+
+    _, css = open_select(window)
+    assert css.world.ring[1] is None
+    press(window, keys().NUM_4)
+    joined = css.world.ring[1]
+    assert joined is not None and joined.pos.z > 0, "it is still falling onto its spot"
+    step(window, DROP_TICKS + 2)
+    assert css.world.ring[1].pos.z == 0.0
+    press(window, keys().NUM_4)
+    assert css.slots[1].ready and css.world.ring[1].mood is Mood.READY
+    assert css.panels[1].sash.sprite.visible and css.panels[1].sash_text.text == "READY!"
+    press(window, keys().NUM_5)
+    assert not css.slots[1].ready and css.world.ring[1].mood is Mood.IDLE, "and stands easy"
+    press(window, keys().NUM_5)
+    assert css.world.ring[1] is None, "leaving takes the fighter off its spot"
+    press(window, keys().ESCAPE)
+    press(window, keys().ESCAPE)
+    assert name(window) == "MainMenuView"
+    assert css.world.ring == [None] * 4 and css.world.pads == [None] * 4, "the ring is cleared"
+
+
+@pytest.mark.parametrize("teams", [False, True])
+def test_plates_never_overlap_and_the_ui_leaves_the_world_in_view(
+    window: Any, pads: list[FakeController], teams: bool
+) -> None:
+    from dataclasses import replace
+
+    from isofightr.scenes import select_view
+    from isofightr.ui import theme
+    from ui_helpers import MAX_COVER, ui_cover
+
+    flow = start(window)
+    flow.setup = replace(flow.setup, team_play=teams)
+    flow.show_character_select(flow.setup)
+    step(window, 3)
+    css = window.current_view
+    covers = [ui_cover(window, css)]
+    press(window, keys().NUM_4)
+    tap_pad(window, pads[0])
+    tap_pad(window, pads[1])
+    covers.append(ui_cover(window, css))
+    assert all(slot.taken for slot in css.slots), "four players"
+    rects = [panel.rect for panel in css.panels]
+    footer = css._footer.rect
+    for first, second in itertools.pairwise(rects):
+        assert first.right < second.left, "plates side by side, apart"
+    for rect in rects:
+        assert rect.bottom > footer.top, "above the prompts"
+        assert not any(rect.overlaps(tile) for tile in css.tile_rects)
+        assert not rect.overlaps(select_view.DETAIL)
+    for panel in css.panels:
+        stamp = panel.sash_rect
+        assert stamp.bottom > panel.rect.top and stamp.top < panel.spot[1], "on the feet"
+        assert panel.spot[1] - theme.LIP > panel.rect.top, "the spot's marker clears the plate"
+    assert max(covers) <= MAX_COVER, covers
+
+
+def test_a_ring_fighter_is_drawn_at_twice_its_battle_size(window: Any) -> None:
+    from isofightr.scenes.menu_world_model import STATIONS
+
+    _, css = open_select(window)
+    assert STATIONS["ring"].zoom == 2
+    step(window, 40)
+    assert not css.world.gliding and css.world.pose.zoom == 2

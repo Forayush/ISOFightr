@@ -49,9 +49,25 @@ def test_a_fighters_panel_keeps_its_last_line_off_the_panels_edge() -> None:
         and isinstance(node.targets[0], ast.Name)
         and isinstance(node.value, ast.Constant)
     }
-    assert values["LINE2_BOTTOM"] >= 3, "the last line does not sit on the panel's edge"
-    assert values["LINE1_BOTTOM"] - values["LINE2_BOTTOM"] >= 11, "two lines do not touch"
-    assert values["SWATCH_BOTTOM"] + values["SWATCH"] < values["PLATE_BOTTOM"]
+    from isofightr.ui import font, select_art, theme
+    from isofightr.ui.font import TextSize
+
+    def caps(name: str, size: TextSize) -> tuple[int, int]:
+        """Rows (above the plate's bottom) a line's capitals take, bottom to top."""
+        face = font.face(size)
+        low = values[name] + face.descent
+        return low, low + face.cap_height
+
+    # Since D-072 a fighter's panel is the plate under its spot at the ring.
+    line2, line1 = caps("LINE2_UP", TextSize.BODY), caps("LINE1_UP", TextSize.BODY)
+    options, name = caps("OPTIONS_UP", TextSize.SMALL), caps("NAME_UP", TextSize.TITLE)
+    tag_bar = values["PLATE_HEIGHT"] - select_art.PLATE_TAG - 1
+    assert line2[0] > theme.LIP, "the last line does not sit on the plate's lip"
+    assert line1[0] > line2[1] and options[0] > line2[1], "two lines do not touch"
+    assert name[0] > max(line1[1], options[1]), "nor the name the line under it"
+    assert name[1] < tag_bar, "nor the name the tag bar"
+    swatch_top = values["SWATCH_UP"] + values["SWATCH"]
+    assert values["SWATCH_UP"] > max(line1[1], options[1]) and swatch_top < tag_bar
 
 
 # --- group 2: the proposals (rules groups, footer, HUD cards) ----------------------------

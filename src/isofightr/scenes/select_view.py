@@ -1,11 +1,12 @@
-"""The character select screen.
+"""The character select screen, at the ring.
 
-Plan note "13 - Game Modes UI and Flow" ("Character select screen", decision D-061,
-wireframe ``m13_wf_charselect.png``): a roster grid at the top with a cursor per player, a
-detail strip for the fighter under the cursor, and four player panels along the bottom with
-the character's hero art, name, costume swatches and state. Joining, readying, CPUs and
-teams work as they always did (see :class:`CharacterSelectView`); what the grid, the
-costumes and the stat bars do is in :mod:`isofightr.scenes.roster_model`.
+Plan note "13 - Game Modes UI and Flow" ("Planned (M21)", decision D-072; first built for
+D-061 and D-064). The screen is the Isle's ring: each slot's fighter stands on its spot at
+twice battle size, live (it drops in when its player joins, changes costume at once, poses
+when its player is ready), with a plate under it saying who plays it and how. The roster is
+a row of tiles on the sky and the fighter under the cursor is described on one slab. Joining,
+readying, CPUs and teams work as they always did (see :class:`CharacterSelectView`); what
+the roster, the costumes and the stat bars do is in :mod:`isofightr.scenes.roster_model`.
 """
 
 from __future__ import annotations
@@ -32,12 +33,19 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.render.sprite_bank import SpriteBank
 from isofightr.scenes import roster_model
 from isofightr.scenes import select_text as text
+from isofightr.scenes.menu_world_model import (
+    RING_SPOTS,
+    STATIONS,
+    Mood,
+    rest_pose,
+    screen_point,
+)
 from isofightr.scenes.menus import MenuView
 from isofightr.scenes.roster_model import RANDOM, RANDOM_ENTRY, STAT_LABELS, STAT_NAMES
 from isofightr.scenes.rules_model import rule_chips, with_saved
 from isofightr.scenes.setup import TEAM_NAMES, MatchSetup, can_start
 from isofightr.sim.input_frame import InputFrame
-from isofightr.ui import anim, kit_art, select_art, theme
+from isofightr.ui import anim, font, kit_art, select_art, theme
 from isofightr.ui.focus import Rect
 from isofightr.ui.font import ARROW_DOWN, ARROW_UP, TextSize
 from isofightr.ui.menu import MenuAction
@@ -47,61 +55,62 @@ from isofightr.ui.widgets import (
     Gauge,
     Picture,
     TextLabel,
-    add_panel,
+    add_slab,
     icon_texture,
-    text_bottom,
 )
 
 if TYPE_CHECKING:
     from isofightr.scenes.flow import GameFlow
 
-ROSTER_FRAME = Rect(8, 238, 310, 88)
-ROSTER_TOP = 322
+ROSTER_FRAME = Rect(12, 250, 300, 76)
+"""Where the roster's tiles go: on the sky, top left, under the title."""
+ROSTER_TOP = 318
 """Where the roster's first row hangs from when the rows do not fit inside the frame."""
-TILE = (46, 46)
+TILE = (42, 42)
 """A roster tile: the 40x40 portrait with a name strip across its foot."""
 TILE_GAP = 4
-NAME_STRIP = 10
-DETAIL = Rect(326, 238, 302, 88)
-PANEL_WIDTH = 148
-PANEL_GAP = 8
-PANEL_LEFT = 12
-PANEL_BOTTOM = 20
-PANEL_HEIGHT = 214
-STRIP_HEIGHT = 16
-ART_BOTTOM = 78
-"""Height of the hero art's feet (the middle of its isle) above the panel's bottom."""
-ISLE_WIDTH = 68
-PLATE = (132, 18)
-PLATE_BOTTOM = 41
-SWATCH = 10
-SWATCH_GAP = 4
-SWATCH_BOTTOM = 27
-LINE1_BOTTOM = 14
-LINE2_BOTTOM = 3
-"""The foot's last line: clear of the panel's bottom edge (it sat on it until D-070)."""
-SASH = (140, 24)
-SASH_BOTTOM = ART_BOTTOM - 8
-"""The sash crosses the fighter's feet, so the fighter stays in view."""
-ENTER_TICKS = 8
-"""A fighter slides into its panel over this many ticks when it changes."""
-ENTER_SLIDE = 12
+NAME_STRIP = 9
+DETAIL = Rect(326, 250, 306, 74)
+"""The slab describing the fighter under the cursor of whoever moved last."""
+RING = rest_pose(STATIONS["ring"])
+SPOTS: tuple[tuple[int, int], ...] = tuple(screen_point(RING, x, y) for x, y in RING_SPOTS)
+"""Where each slot's fighter stands on the screen (its feet), with the camera at the ring."""
+PLATE_WIDTH = 148
+PLATE_HEIGHT = 52
+PLATE_BOTTOM = 20
+OPEN_PLATE_HEIGHT = select_art.PLATE_TAG + theme.LIP + 2
+"""The plate under each spot: who plays it and how (decision D-072)."""
+TAG_UP = 38
+LINE1_UP = 12
+OPTIONS_UP = 15
+NAME_UP = 22
+LINE2_UP = 2
+"""Where each line of a plate sits: its box's bottom, in rows above the plate's bottom."""
+SWATCH = 8
+SWATCH_GAP = 2
+SWATCH_UP = 27
+STAMP = (98, 18)
+STAMP_UP = 10
+"""The READY stamp crosses the fighter's feet: its bottom, in rows above the plate's top."""
+BUBBLE_WIDTH = 148
+BUBBLE_GAP = 6
+"""The join bubble's stub points at the spot's marker from this far above the feet."""
+BUBBLE_LINE = 11
+BUBBLE_PAD = 6
+UNKNOWN_UP = 34
+"""Random's question mark floats this high over its spot."""
 SASH_TICKS = 12
 SASH_SLIDE = 36
-FLOAT_PERIOD = 120
-"""Each isle bobs a pixel up and down over this many ticks, a little out of step."""
 JOIN_BLINK = 40
-PROMPT_TOP = 180
-"""Height of an empty panel's first prompt line above the panel's bottom."""
-PROMPT_STEP = 12
-CHIP = Rect(388, NATIVE_H - 24, 240, 20)
+CHIP = Rect(420, NATIVE_H - 25, 212, 20)
 CHIP_ROW = -1
 """A player's cursor row when it is on the rules chip, above the roster."""
 ROSTER_ROW = 0
-GAUGE_WIDTH = 84
+GAUGE_WIDTH = 70
 STAT_ICONS = {"weight": "weight", "speed": "speed", "air": "air", "power": "burst"}
 OPEN_SLOT = "OPEN"
-"""What an empty panel says when it is not the next one to be filled."""
+"""What an empty slot's plate says when it is not the next one to be filled."""
+BLURB_LINES = 2
 
 
 @dataclass(slots=True)
@@ -134,91 +143,66 @@ class Slot:
 
 
 class PlayerPanel:
-    """One of the four panels along the bottom: who plays, as whom, in which costume."""
+    """One slot's plate under its spot at the ring: who plays, as whom, in which costume,
+    and that player's own hints. The fighter itself stands on the spot above, in the world
+    (:meth:`isofightr.scenes.menu_world.MenuWorld.stand`)."""
 
     def __init__(self, view: CharacterSelectView, index: int) -> None:
-        """Create the panel's parts, empty."""
+        """Create the plate's parts, empty."""
         ui = view.ui
-        left = PANEL_LEFT + index * (PANEL_WIDTH + PANEL_GAP)
-        self.rect = Rect(left, PANEL_BOTTOM, PANEL_WIDTH, PANEL_HEIGHT)
-        rect = self.rect
         self.index = index
+        self.spot = SPOTS[index]
+        centre = self.spot[0]
+        left = centre - PLATE_WIDTH // 2
+        self.rect = Rect(left, PLATE_BOTTOM, PLATE_WIDTH, PLATE_HEIGHT)
+        rect = self.rect
         self.frame = Picture(ui, rect)
-        self.strip_rect = Rect(left + 1, rect.top - STRIP_HEIGHT - 1, PANEL_WIDTH - 2, STRIP_HEIGHT)
-        self.strip = Picture(ui, self.strip_rect)
+        self.strip_rect = Rect(
+            left + 1, rect.top - select_art.PLATE_TAG - 1, PLATE_WIDTH - 2, select_art.PLATE_TAG
+        )
         self.icon = arcade.Sprite(
-            center_x=self.strip_rect.left + 12, center_y=self.strip_rect.bottom + 8
+            center_x=self.strip_rect.left + 10, center_y=self.strip_rect.bottom + 7
         )
         self.icon.visible = False
         ui.panels.append(self.icon)
-        centre = left + PANEL_WIDTH // 2
-        isle_height = ISLE_WIDTH // 2 + select_art.ISLE_DEPTH + select_art.ISLE_ROOT
-        self.isle_rect = Rect(
-            centre - ISLE_WIDTH // 2,
-            rect.bottom + ART_BOTTOM + ISLE_WIDTH // 4 - isle_height,
-            ISLE_WIDTH,
-            isle_height,
+        self.tag = ui.write("", 0, rect.bottom + TAG_UP, TextSize.BODY, theme.INK, shadow=False)
+        self.name = ui.write(
+            "", left + 7, rect.bottom + NAME_UP, TextSize.TITLE, theme.INK, shadow=False
         )
-        self.isle = Picture(ui, self.isle_rect)
-        self.art = arcade.Sprite(center_x=centre, center_y=rect.bottom)
-        self.art.visible = False
-        ui.panels.append(self.art)
-        self.plate_rect = Rect(left + 8, rect.bottom + PLATE_BOTTOM, *PLATE)
-        self.plate = Picture(ui, self.plate_rect)
-        width = 6 * SWATCH + 5 * SWATCH_GAP
-        first = left + (PANEL_WIDTH - width) // 2
+        right = rect.right - 6
         self.swatch_rects = [
-            Rect(first + slot * (SWATCH + SWATCH_GAP), rect.bottom + SWATCH_BOTTOM, SWATCH, SWATCH)
+            Rect(
+                right - (6 - slot) * SWATCH - (5 - slot) * SWATCH_GAP,
+                rect.bottom + SWATCH_UP,
+                SWATCH,
+                SWATCH,
+            )
             for slot in range(6)
         ]
         self.swatches = [Picture(ui, each) for each in self.swatch_rects]
-        self.sash_rect = Rect(left + (PANEL_WIDTH - SASH[0]) // 2, rect.bottom + SASH_BOTTOM, *SASH)
-        self.sash = Picture(ui, self.sash_rect)
-        self.tag = ui.write(
-            "",
-            0,
-            text_bottom(self.strip_rect, TextSize.BODY),
-            TextSize.BODY,
-            theme.TEXT_ON_FOCUS,
-            shadow=False,
-        )
-        # The plate's left end is a solid block: the name centres on the rest of it.
-        block = PLATE[1]
-        name_rect = Rect(
-            self.plate_rect.left + block, self.plate_rect.bottom, PLATE[0] - block - 4, PLATE[1]
-        )
-        self.name = ui.write_in(name_rect, "", TextSize.TITLE)
-        self.unknown = ui.write(
-            "?", centre, rect.bottom + ART_BOTTOM + 36, TextSize.DISPLAY, theme.TEXT_DIM, "centre"
-        )
-        self.prompt = [
-            ui.write(
-                "",
-                centre,
-                rect.bottom + PROMPT_TOP - row * PROMPT_STEP,
-                TextSize.BODY,
-                theme.TEXT_MUTED,
-                "centre",
-            )
-            for row in range(text.PROMPT_LINES)
-        ]
         self.line1 = ui.write(
-            "", centre, rect.bottom + LINE1_BOTTOM, TextSize.BODY, theme.TEXT, "centre"
-        )
-        self.line2 = ui.write(
-            "", centre, rect.bottom + LINE2_BOTTOM, TextSize.BODY, theme.TEXT, "centre"
+            "", centre, rect.bottom + LINE1_UP, TextSize.BODY, theme.INK, "centre", False
         )
         self.options = ui.write(
-            "", centre, rect.bottom + LINE1_BOTTOM + 2, text.OPTIONS_SIZE, theme.TEXT, "centre"
+            "", centre, rect.bottom + OPTIONS_UP, text.OPTIONS_SIZE, theme.INK, "centre", False
         )
         """A person's costume and CPU buttons, in the small font (where ``line1`` is)."""
-        self.sash_text = ui.write_in(
-            self.sash_rect, "", TextSize.DISPLAY, theme.TEXT_ON_FOCUS, shadow=False
+        self.line2 = ui.write(
+            "", centre, rect.bottom + LINE2_UP, TextSize.BODY, theme.ASH, "centre", False
         )
-        self.banner_rect = Rect(left + 4, rect.bottom + 2, PANEL_WIDTH - 8, 42)
-        self.shown: tuple[str, int] | None = None
-        """The fighter and costume the art shows, to notice a change."""
-        self.enter_tick = 0
+        self.banner_rect = Rect(left, rect.bottom, PLATE_WIDTH, PLATE_HEIGHT - 15)
+        """The part of the plate a click readies on (all but the tag bar)."""
+        # Over the spot, in the world: the join bubble of an empty slot, Random's question
+        # mark, the READY stamp.
+        self.bubble = Picture(ui, Rect(centre - BUBBLE_WIDTH // 2, 0, BUBBLE_WIDTH, 20))
+        self.prompt = [
+            ui.write("", centre, 0, TextSize.BODY, theme.INK, "centre", False)
+            for _ in range(text.PROMPT_LINES)
+        ]
+        self.unknown = ui.write("?", centre, 0, TextSize.DISPLAY, theme.WHITE, "centre", True)
+        self.sash_rect = Rect(centre - STAMP[0] // 2, rect.top + STAMP_UP, STAMP[0], STAMP[1])
+        self.sash = Picture(ui, self.sash_rect)
+        self.sash_text = ui.write("", centre, 0, TextSize.TITLE, theme.INK, "centre", False)
         self.ready_tick: int | None = None
 
 
@@ -229,6 +213,9 @@ class CharacterSelectView(MenuView):
     A device that has not joined joins the first free slot with confirm. Back un-readies,
     then leaves the slot (the CPUs stay); with nobody joined it goes back to the main menu.
     Slots remember their device between visits and between sessions.
+
+    The screen stands at the Isle's ring (decision D-072): each slot's fighter is on its
+    spot there, drawn by the world, with the slot's plate under it.
 
     One job per button, and nothing hidden (decision D-064). The stick moves a joined
     player's cursor over the fighters and never leaves them, except that up from the top
@@ -241,8 +228,11 @@ class CharacterSelectView(MenuView):
     CPUs are always ready.
     """
 
+    station = "ring"
+    surface = theme.STONE
+
     def __init__(self, pixel_buffer: PixelBuffer, flow: GameFlow, setup: MatchSetup) -> None:
-        """Build the roster, the detail strip and four panels, and rejoin the devices that
+        """Build the roster, the detail slab and four plates, and rejoin the devices that
         were here last time."""
         super().__init__(pixel_buffer, flow)
         self.setup = setup
@@ -279,7 +269,7 @@ class CharacterSelectView(MenuView):
         for index in range(MAX_PLAYERS):
             self._settle_costume(index)
 
-        self.header("TRAINING: CHARACTER" if setup.training else "CHARACTER SELECT", "team")
+        self.header("Training: character" if setup.training else "Character select", "team")
         ui = self.ui
         self.chip: Button | None = None
         if not setup.training:
@@ -287,25 +277,23 @@ class CharacterSelectView(MenuView):
         rows = -(-len(self.tiles) // roster_model.TILES_PER_ROW)
         needed = rows * TILE[1] + (rows - 1) * TILE_GAP
         top = ROSTER_TOP
-        if needed <= ROSTER_FRAME.height - 2 * theme.PAD:
+        if needed <= ROSTER_FRAME.height:
             top = ROSTER_FRAME.top - (ROSTER_FRAME.height - needed) // 2
-        columns = min(len(self.tiles), roster_model.TILES_PER_ROW)
-        row_width = columns * TILE[0] + (columns - 1) * TILE_GAP
-        left = ROSTER_FRAME.left + (ROSTER_FRAME.width - row_width) // 2
-        self.tile_rects = roster_model.tile_rects(len(self.tiles), left, top, *TILE, TILE_GAP)
-        add_panel(ui, ROSTER_FRAME)
+        self.tile_rects = roster_model.tile_rects(
+            len(self.tiles), ROSTER_FRAME.left, top, *TILE, TILE_GAP
+        )
         self.tile_backs: list[Picture] = []
         for tile, rect in zip(self.tiles, self.tile_rects, strict=True):
             self.tile_backs.append(Picture(ui, rect))
             bank = None if tile == RANDOM else self._bank(tile)
             texture = None if bank is None else bank.portrait("tile", 0)
             if texture is not None:
-                ui.image(texture, rect.left + 3, rect.bottom + 3)
+                ui.image(texture, rect.left + 1, rect.bottom + 1)
             else:
-                ui.write_in(rect, "?", TextSize.DISPLAY, theme.TEXT_MUTED)
+                ui.write_in(rect, "?", TextSize.DISPLAY, theme.MIST, shadow=True)
             strip = Rect(rect.left + 1, rect.bottom + 1, rect.width - 2, NAME_STRIP)
             ui.picture(
-                ("tile-strip", strip.width),
+                ("tile-strip", strip.width, strip.height),
                 lambda strip=strip: kit_art.filled(
                     kit_art.shape_mask(strip.width, strip.height, 0), theme.PANEL_DEEP
                 ),
@@ -313,31 +301,32 @@ class CharacterSelectView(MenuView):
                 strip.bottom,
             )
             name = roster_model.RANDOM_NAME if tile == RANDOM else self.entries[tile].name
-            ui.write_in(strip, name.upper(), TextSize.SMALL, pad=0)
+            ui.write_in(strip, name.upper(), TextSize.SMALL, theme.WHITE, shadow=False, pad=0)
         self.cursors = [Picture(ui, Rect(0, 0, 1, 1)) for _ in range(MAX_PLAYERS)]
         self.cursor_tags = [
-            ui.write("", 0, 0, TextSize.SMALL, theme.player_color(index))
+            ui.write("", 0, 0, TextSize.SMALL, theme.player_color(index), shadow=True)
             for index in range(MAX_PLAYERS)
         ]
 
-        add_panel(ui, DETAIL)
+        surface = self.surface
+        add_slab(ui, DETAIL)
         left, top = DETAIL.left + theme.PAD, DETAIL.top
-        self.detail_accent = Picture(ui, Rect(left, top - 21, 4, 16))
-        self.detail_name = ui.write("", left + 9, top - 20, TextSize.TITLE, theme.HEADING)
-        self.detail_kind = ui.write("", left, top - 19, TextSize.BODY, theme.TEXT)
+        self.detail_accent = Picture(ui, Rect(left, top - 19, 4, 14))
+        self.detail_name = ui.write("", left + 9, top - 20, TextSize.TITLE, surface.text)
+        self.detail_kind = ui.write("", left, top - 23, TextSize.TEXT, surface.text_muted)
         self.detail_blurb = [
-            ui.write("", left, top - 34 - row * 12, TextSize.BODY, theme.TEXT_MUTED)
-            for row in range(2)
+            ui.write("", left, top - 36 - row * 11, TextSize.TEXT, surface.text)
+            for row in range(BLURB_LINES)
         ]
         self.gauges: dict[str, Gauge] = {}
         self.gauge_labels: dict[str, TextLabel] = {}
         for index, stat in enumerate(STAT_NAMES):
             column, row = index % 2, index // 2
-            x = left + column * 146
-            y = DETAIL.bottom + 22 - row * 14
-            ui.icon(STAT_ICONS[stat], x, y - 3, theme.TEXT_MUTED)
+            x = left + column * 148
+            y = DETAIL.bottom + theme.LIP + 13 - row * 10
+            ui.icon(STAT_ICONS[stat], x, y - 3, surface.text_muted)
             self.gauge_labels[stat] = ui.write(
-                STAT_LABELS[stat], x + 15, y, TextSize.SMALL, theme.TEXT_MUTED
+                STAT_LABELS[stat], x + 15, y, TextSize.SMALL, surface.text_muted
             )
             self.gauges[stat] = Gauge(ui, Rect(x + 52, y - 1, GAUGE_WIDTH, 8), segmented=True)
 
@@ -356,6 +345,11 @@ class CharacterSelectView(MenuView):
     # --- helpers ---------------------------------------------------------------------------
 
     def _bank(self, character_id: str) -> SpriteBank | None:
+        """Return a character's sprites: the world's (opened once a session), or the
+        screen's own for one the world does not have."""
+        found = self.world.bank(character_id)
+        if found is not None:
+            return found
         if character_id not in self._banks:
             try:
                 sprite_set = load_sprite_set(character_id)
@@ -790,6 +784,7 @@ class CharacterSelectView(MenuView):
         editing = {index: owner for owner, index in self.focus.items()}
         for index in range(MAX_PLAYERS):
             self._refresh_panel(index, editing.get(index, ""))
+        self._refresh_ring()
         self._refresh_cursors(editing)
         self._refresh_visits()
         self._refresh_detail()
@@ -821,7 +816,8 @@ class CharacterSelectView(MenuView):
         return "chip" if slot.row == CHIP_ROW else "roster"
 
     def _refresh_visits(self) -> None:
-        """Frame, in each player's colour, the slot that player has stepped onto."""
+        """Frame, in each player's colour, the plate of the slot that player has stepped
+        onto."""
         ticks = self.flow.menu_ticks
         for index, slot in enumerate(self.slots):
             visited = self.focus.get(slot.device) if slot.device else None
@@ -833,120 +829,146 @@ class CharacterSelectView(MenuView):
                 )
 
     def slot_ramp(self, index: int) -> theme.Ramp:
-        """Return the colour ramp a slot's panel is painted in: greys while it is empty."""
+        """Return the colour ramp a slot's plate and marker are painted in: greys while it
+        is empty."""
         if not self.slots[index].taken:
             return theme.EMPTY_RAMP
         return theme.player_ramp(self.slots[index].team if self._teams() else index)
 
+    def _refresh_ring(self) -> None:
+        """Put each slot's fighter on its spot at the ring (Random and empty slots have
+        none), in the costume it will wear, posing while its player is ready."""
+        world = self.world
+        for index, slot in enumerate(self.slots):
+            world.pads[index] = self.slot_ramp(index) if slot.taken else theme.OPEN_SPOT_RAMP
+            tile = self.character_of(slot)
+            if not slot.taken or tile == RANDOM:
+                world.leave(index)
+                continue
+            colour = slot.team if self._teams() else index
+            stand_in = world.stand(index, tile, self.shown_costume(index), colour)
+            if slot.ready or slot.cpu:
+                if slot.ready:
+                    world.mood(index, Mood.READY)
+            elif stand_in.mood is Mood.READY:
+                world.mood(index, Mood.IDLE)
+
+    def on_hide_view(self) -> None:
+        """Clear the ring for whoever is next (it fills again if the screen comes back)."""
+        self.world.clear_ring()
+
+    def _place_bubble(self, panel: PlayerPanel, lines: list[str]) -> None:
+        """Show the bubble over an empty spot with ``lines`` in it (none: hide it)."""
+        shown = list(lines)
+        while shown and not shown[-1]:
+            shown.pop()
+        if not shown:
+            panel.bubble.hide()
+            for label in panel.prompt:
+                label.text = ""
+            return
+        height = BUBBLE_PAD * 2 + 5 + len(shown) * BUBBLE_LINE
+        width = BUBBLE_WIDTH
+        panel.bubble.show(
+            ("select-bubble", width, height), lambda: select_art.bubble(width, height)
+        )
+        bottom = panel.spot[1] + BUBBLE_GAP
+        panel.bubble.sprite.position = (panel.spot[0], bottom + height / 2)
+        top = bottom + height - BUBBLE_PAD
+        for row, label in enumerate(panel.prompt):
+            words = lines[row] if row < len(lines) else ""
+            label.text = words
+            label.move_to(label.x, top - (row + 1) * BUBBLE_LINE)
+
     def _refresh_panel(self, index: int, visitor: str) -> None:
-        """Redraw one panel. ``visitor`` is the device of the player who has stepped onto
-        this slot with grab ("" = nobody)."""
+        """Redraw one slot's plate (and what floats over its spot). ``visitor`` is the
+        device of the player who has stepped onto this slot with grab ("" = nobody)."""
         slot, panel = self.slots[index], self.panels[index]
         editing = bool(visitor)
-        color = self.slot_color(index)
         ramp = self.slot_ramp(index)
         rect = panel.rect
         taken = slot.taken
         ticks = self.flow.menu_ticks
-        border = theme.FOCUS if slot.ready else ramp[1]
+        # An open slot's plate is only its tag bar: nothing to say yet but its number.
+        height = rect.height if taken else OPEN_PLATE_HEIGHT
         panel.frame.show(
-            ("select-panel", rect.width, rect.height, ramp, border, taken),
-            lambda: select_art.panel_backdrop(rect.width, rect.height, ramp, border, taken),
+            ("select-plate", rect.width, height, ramp, slot.ready, taken),
+            lambda: select_art.podium_plate(rect.width, height, ramp, slot.ready, taken),
         )
+        panel.frame.sprite.center_y = rect.top - height / 2
         strip = panel.strip_rect
-        strip_color, stripes = (ramp[1], ramp[2]) if taken else (theme.SLATE, theme.ASH)
-        panel.strip.show(
-            ("select-strip", strip.width, strip.height, strip_color, stripes),
-            lambda: select_art.strip(strip.width, strip.height, strip_color, stripes),
-        )
-        panel.isle.show(
-            ("select-isle", ISLE_WIDTH, ramp), lambda: select_art.isle(ISLE_WIDTH, ramp)
-        )
-        rise = anim.wave(ticks, index, 1, FLOAT_PERIOD, FLOAT_PERIOD // 5)
-        isle = panel.isle_rect
-        panel.isle.sprite.center_y = isle.bottom + isle.height / 2 + rise
         teams = self._teams()
         tile = self.character_of(slot)
         settings = self.flow.settings
-        for line in panel.prompt:
-            line.text = ""
-        plate = panel.plate_rect
         self._show_sash(index)
+        panel.unknown.visible = taken and tile == RANDOM
+        if panel.unknown.visible:
+            panel.unknown.color = ramp[0]
+            panel.unknown.move_to(panel.spot[0], panel.spot[1] + UNKNOWN_UP)
         if not taken:
-            panel.plate.hide()
             panel.icon.visible = False
-            panel.tag.text, panel.tag.color = f"P{index + 1}", theme.TEXT_MUTED
+            panel.tag.text = f"P{index + 1}  {OPEN_SLOT}"
             panel.tag.move_to(
                 strip.left + strip.width // 2 - panel.tag.width // 2, panel.tag.bottom
             )
             panel.name.text = ""
             panel.line1.text = panel.line2.text = panel.options.text = ""
-            panel.unknown.visible = False
-            panel.art.visible = False
-            panel.shown = None
             for swatch in panel.swatches:
                 swatch.hide()
             # The next slot to fill lists how to join on each free device, each in that
             # device's own keys; the slots after it are just open.
             first_free = next(place for place, each in enumerate(self.slots) if not each.taken)
-            lines = [OPEN_SLOT]
+            lines: list[str] = []
             if visitor:
                 lines = text.add_lines(settings, visitor)
             elif index == first_free:
                 people = self.people
                 adder = people[0].device if people and not self.setup.training else ""
-                lines = text.join_lines(settings, self.free_devices(), adder) or [OPEN_SLOT]
-            for line, words in zip(panel.prompt, lines, strict=False):
-                line.text = words
-                line.color = theme.TEXT_MUTED if words == OPEN_SLOT else theme.TEXT
-            if lines[0] in (text.JOIN_HEADING, text.ADD_HEADING):
+                lines = text.join_lines(settings, self.free_devices(), adder)
+            self._place_bubble(panel, lines)
+            for line in panel.prompt:
+                line.color = theme.INK
+            if lines and lines[0] in (text.JOIN_HEADING, text.ADD_HEADING):
                 blink = anim.blink(ticks, JOIN_BLINK)
-                panel.prompt[0].color = theme.FOCUS if blink else theme.TEXT_MUTED
+                panel.prompt[0].color = theme.CRIMSON if blink else theme.INK
             return
 
-        panel.plate.show(
-            ("select-plate", plate.width, plate.height, color),
-            lambda: select_art.name_plate(plate.width, plate.height, color),
-        )
+        self._place_bubble(panel, [])
         icon = "cpu" if slot.cpu else "controller" if slot.device.startswith("pad") else "keyboard"
         texture = icon_texture(icon, theme.INK)
         panel.icon.visible = texture is not None
         if texture is not None and panel.icon.texture is not texture:
             panel.icon.texture = texture
-        panel.tag.color = theme.TEXT_ON_FOCUS
         if slot.cpu:
             panel.tag.text = f"P{index + 1}  CPU {slot.cpu}"
         else:
             panel.tag.text = f"P{index + 1}  {text.device_name(slot.device)}"
-        panel.tag.move_to(strip.left + 22, panel.tag.bottom)
-        if tile == RANDOM:
-            panel.name.text = "RANDOM"
-        else:
-            panel.name.text = self.entries[tile].name.upper()
-        self._show_art(index)
+        panel.tag.move_to(strip.left + 20, panel.tag.bottom)
+        panel.name.text = "RANDOM" if tile == RANDOM else self.entries[tile].name.upper()
         self._show_swatches(index)
 
         team_text = f"{TEAM_NAMES[slot.team].upper()} TEAM"
+        team_colour = ramp[2]
         panel.options.text = panel.line1.text = ""
         if slot.cpu:
             level = f"LEVEL {slot.cpu}"
             panel.line1.text = f"{ARROW_UP}{ARROW_DOWN} {level}" if editing else level
-            panel.line1.color = theme.FOCUS if editing else theme.TEXT
-            panel.line2.color = theme.TEXT_MUTED
+            panel.line1.color = theme.CRIMSON if editing else theme.INK
+            panel.line2.color = theme.ASH
             if not editing:
                 panel.line2.text = team_text if teams else "CPU"
-                panel.line2.color = color if teams else theme.TEXT_MUTED
+                panel.line2.color = team_colour if teams else theme.ASH
             elif teams:
                 # A CPU's hints are in the keys of the player setting it up.
                 line = text.CPU_TEAM_LINE.replace("{team}", team_text)
                 panel.line2.text = text.panel_line(line, settings, visitor)
-                panel.line2.color = color
+                panel.line2.color = team_colour
             else:
                 panel.line2.text = text.panel_line(text.CPU_EDIT_LINE, settings, visitor)
             return
         # A person's hints are in that person's own keys, whoever acted last.
         device = slot.device
-        panel.line2.color = theme.TEXT_MUTED
+        panel.line2.color = theme.ASH
         if slot.ready:
             panel.line2.text = text.panel_line(text.CANCEL_LINE, settings, device)
         elif device in self.focus:
@@ -955,43 +977,15 @@ class CharacterSelectView(MenuView):
             panel.options.text = text.options_line(
                 settings, device, team_text if teams else "", self.setup.training
             )
-            panel.options.color = color if teams else theme.TEXT
+            panel.options.color = team_colour if teams else theme.INK
             panel.line2.text = text.panel_line(text.READY_LINE, settings, device)
 
     def device_name(self, device: str) -> str:
         """Return a device's name as a panel's strip shows it."""
         return text.device_name(device)
 
-    def _show_art(self, index: int) -> None:
-        """Show the slot's character in the costume it will wear: its hero art, or a
-        question mark for Random or a character without art."""
-        slot, panel = self.slots[index], self.panels[index]
-        tile = self.character_of(slot)
-        bank = None if tile == RANDOM else self._bank(tile)
-        texture = None
-        if bank is not None:
-            texture = bank.portrait("hero", self.shown_costume(index))
-        panel.art.visible = texture is not None
-        panel.unknown.visible = texture is None
-        panel.unknown.color = self.slot_ramp(index)[0]
-        ticks = self.flow.menu_ticks
-        shown = (tile, self.shown_costume(index))
-        if shown != panel.shown:
-            # A new fighter (or costume) slides in from the left.
-            panel.shown = shown
-            panel.enter_tick = ticks
-        if texture is not None:
-            if panel.art.texture is not texture:
-                panel.art.texture = texture
-            slide = anim.slide(ticks, panel.enter_tick, ENTER_TICKS, -ENTER_SLIDE, 0)
-            rise = anim.wave(ticks, index, 1, FLOAT_PERIOD, FLOAT_PERIOD // 5)
-            x = panel.rect.left + PANEL_WIDTH // 2 + (texture.width % 2) / 2 + slide
-            y = panel.rect.bottom + ART_BOTTOM + rise + texture.height / 2
-            panel.art.position = (x, y)
-            panel.art.alpha = round(255 * anim.progress(ticks, panel.enter_tick, ENTER_TICKS))
-
     def _show_sash(self, index: int) -> None:
-        """Lay the READY sash across a ready player's panel; it swings in from the left."""
+        """Lay the READY stamp across a ready player's spot; it swings in from the left."""
         slot, panel = self.slots[index], self.panels[index]
         if not slot.ready:
             panel.ready_tick = None
@@ -1002,11 +996,13 @@ class CharacterSelectView(MenuView):
         if panel.ready_tick is None:
             panel.ready_tick = ticks
         rect = panel.sash_rect
-        panel.sash.show(("select-sash", *SASH), lambda: select_art.sash(*SASH))
+        panel.sash.show(("select-sash", *STAMP), lambda: select_art.sash(*STAMP))
         slide = anim.slide(ticks, panel.ready_tick, SASH_TICKS, -SASH_SLIDE, 0, anim.ease_out_back)
         panel.sash.sprite.center_x = rect.left + rect.width / 2 + slide
         panel.sash_text.text = "READY!"
-        panel.sash_text.move_to(rect.left + rect.width // 2 + 3 + slide, panel.sash_text.bottom)
+        face = font.face(TextSize.TITLE)
+        bottom = rect.bottom + (rect.height - face.cap_height) // 2 - face.descent
+        panel.sash_text.move_to(rect.left + rect.width // 2 + 2 + slide, bottom)
 
     def _show_swatches(self, index: int) -> None:
         slot, panel = self.slots[index], self.panels[index]
@@ -1028,7 +1024,7 @@ class CharacterSelectView(MenuView):
             swatch.show(
                 ("swatch", SWATCH, color, chosen, used),
                 lambda color=color, chosen=chosen, used=used: kit_art.swatch(
-                    SWATCH, theme.SLATE if used else color, chosen
+                    SWATCH, theme.MIST if used else color, chosen
                 ),
             )
 
@@ -1092,29 +1088,23 @@ class CharacterSelectView(MenuView):
         entry = RANDOM_ENTRY if tile == RANDOM else self.entries[tile]
         ramp = self.slot_ramp(next(i for i, each in enumerate(self.slots) if each is slot))
         self.detail_accent.show(
-            ("select-accent", 4, 16, ramp), lambda: select_art.accent_bar(4, 16, ramp)
+            ("select-accent", 4, 14, ramp), lambda: select_art.accent_bar(4, 14, ramp)
         )
         self.detail_name.text = entry.name.upper()
         self.detail_kind.text = entry.archetype
         self.detail_kind.move_to(
-            self.detail_name.left + self.detail_name.width + 8, DETAIL.top - 19
+            self.detail_name.left + self.detail_name.width + 8, self.detail_kind.bottom
         )
-        words = entry.blurb.split()
-        lines, line = [], ""
-        for word in words:
-            candidate = f"{line} {word}".strip()
-            if len(candidate) > 40 and line:
-                lines.append(line)
-                line = word
-            else:
-                line = candidate
-        lines.append(line)
+        room = DETAIL.width - 2 * theme.PAD
+        lines = font.wrap(entry.blurb, room, TextSize.TEXT)
         for label, words in zip(self.detail_blurb, [*lines, "", ""], strict=False):
-            label.text = words
+            label.text = font.fit(words, room, TextSize.TEXT)
+        surface = self.surface
         for stat in STAT_NAMES:
             known = stat in entry.stats
             self.gauges[stat].value = entry.stats.get(stat, 0.0)
-            self.gauge_labels[stat].color = theme.TEXT_MUTED if known else theme.TEXT_DIM
+            self.gauge_labels[stat].color = surface.text_muted if known else surface.text_dim
 
 
-assert PANEL_LEFT + MAX_PLAYERS * (PANEL_WIDTH + PANEL_GAP) - PANEL_GAP <= NATIVE_W
+assert all(x - PLATE_WIDTH // 2 >= 0 and x + PLATE_WIDTH // 2 <= NATIVE_W for x, _ in SPOTS)
+assert all(y > PLATE_BOTTOM + PLATE_HEIGHT for _, y in SPOTS), "plates under the spots"

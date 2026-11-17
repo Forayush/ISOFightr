@@ -1114,20 +1114,13 @@ class PromptBar:
         self.rect = rect
         self.surface = surface or layer.surface
         self._layer = layer
+        self._ledge: arcade.Sprite | None = None
+        """The stone tab the prompts stand on: as wide as they are (decision D-072), so
+        the world shows either side of it."""
         if strip:
-            band = self.surface
-            layer.picture(
-                ("prompt-strip", rect.width, rect.height, band.name),
-                lambda: kit_art.block(
-                    rect.width + 2,
-                    rect.height + 1,
-                    (band.face, band.light, band.lip, band.outline),
-                    0,
-                    0,
-                ),
-                rect.left - 1,
-                rect.bottom - 1,
-            )
+            self._ledge = arcade.Sprite()
+            self._ledge.visible = False
+            layer.panels.append(self._ledge)
         self._caps: list[arcade.Sprite] = []
         self._cap_labels: list[TextLabel] = []
         self._words: list[TextLabel] = []
@@ -1246,6 +1239,33 @@ class PromptBar:
             self._cap_labels[index].text = ""
         for index in range(len(items), len(self._words)):
             self._words[index].text = ""
+        self._fit_ledge()
+
+    def _fit_ledge(self) -> None:
+        """Size the ledge to what is shown, with a margin each side."""
+        if self._ledge is None:
+            return
+        if not self.text:
+            self._ledge.visible = False
+            return
+        margin = theme.MARGIN + 2
+        left = max(self.left - margin, self.rect.left - 1)
+        right = min(self.right + margin, self.rect.right + 1)
+        width, height = right - left, self.rect.height + 1
+        band = self.surface
+        self._ledge.texture = picture_texture(
+            ("prompt-ledge", width, height, band.name),
+            lambda: kit_art.block(
+                width,
+                height,
+                (band.face, band.light, band.lip, band.outline),
+                0,
+                theme.CORNER,
+                (True, True, False, False),
+            ),
+        )
+        self._ledge.position = (left + width / 2, self.rect.bottom - 1 + height / 2)
+        self._ledge.visible = True
 
     @property
     def shown(self) -> list[tuple[str, str]]:

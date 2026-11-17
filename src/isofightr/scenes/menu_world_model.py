@@ -110,8 +110,9 @@ STATIONS: Final[dict[str, Station]] = {
         Station("gate", ISLE_CENTRE, 1, (320, 140)),
         # The island on the right; the main menu's buttons stand on the left.
         Station("plaza", ISLE_CENTRE, 1, (428, 164)),
-        # The ring, close: four fighters across the screen, plates under them.
-        Station("ring", ISLE_CENTRE, 2, (320, 136), strollers=False),
+        # The ring, close: four fighters across the screen at twice their size, standing
+        # low enough to clear the roster above them, with their plates below.
+        Station("ring", ISLE_CENTRE, 2, (320, 106), strollers=False),
         # The back corner, close, on the right: the options are on the left.
         Station("workshop", (*WORKSHOP_SPOT, 0.0), 2, (470, 140)),
     )

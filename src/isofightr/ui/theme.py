@@ -124,6 +124,8 @@ PLAYER_RAMPS: Final[tuple[Ramp, ...]] = (
 """Each player colour with its lighter and darker neighbours, for art painted in it."""
 EMPTY_RAMP: Final[Ramp] = (MIST, DUST, ASH, SLATE)
 """The greys a slot nobody has joined is painted in."""
+OPEN_SPOT_RAMP: Final[Ramp] = (WHITE, MIST, DUST, FOG)
+"""The marker of a ring spot nobody stands on: pale, so it reads as a place, not a hole."""
 
 
 def player_ramp(index: int) -> Ramp:
