@@ -54,6 +54,7 @@ from isofightr.ai.terrain import (
 from isofightr.ai.view import FighterView, HazardView, WorldView, observe
 from isofightr.sim.character_def import CharacterDef
 from isofightr.sim.combat import constants as combat
+from isofightr.sim.events import HitEvent
 from isofightr.sim.fighter import StateId
 from isofightr.sim.input_frame import (
     NEUTRAL_INPUT,
@@ -177,6 +178,8 @@ class CpuController:
         self._believed: WorldView | None = None
         self._focus: int | None = None
         self._last_attack = 0
+        self._last_landed = 0
+        """The frame its own last hit landed: closing in waits on progress, not on swings."""
         self._queued: tuple[Action, int] | None = None
         """The ground action whose inputs are queued, and the frame it was started on."""
         self._climb_blocked_until = 0
@@ -266,9 +269,22 @@ class CpuController:
             time_left=world.time_left,
             sudden_death=world.sudden_death,
         )
+        if any(isinstance(e, HitEvent) and e.attacker == self.player for e in match.events):
+            self._last_landed = world.frame
         frame = self._decide(world)
         self.last = frame
         return frame
+
+    def describe(self) -> str:
+        """One line for the F2 overlay: level, situation and why, plan, target and style."""
+        standing = self.standing
+        why = f" ({standing.why})" if standing.why else ""
+        target = f" target P{self._focus + 1}" if self._focus is not None else ""
+        detail = f" {self.plan.detail}" if self.plan.detail else ""
+        return (
+            f"   cpu L{self.level.level} {standing.situation.value}{why}: "
+            f"{self.plan.kind}{detail}{target}  range {self.style.range}"
+        )
 
     def _seen(self) -> WorldView:
         """The world as the CPU believes it to be: its opponents where it tracks them, doing
@@ -464,7 +480,7 @@ class CpuController:
         landing = self._frames_to_land(me)
         if landing is None or landing > config.CPU_TECH_PRESS_FRAMES or me.tech_window > 0:
             return InputFrame(move=drift)
-        if self.level.level <= BASIC_LEVEL:
+        if not self.level.can(config.CPU_SKILL_TECH_CHOICE):
             roll = self._roll("tech_roll") < TECH_ROLL_SHARE
             return InputFrame(move=drift if roll else ZERO2, held=int(Button.SHIELD))
         # Tech in place, or roll away from an opponent waiting where the tumble comes down.
@@ -610,7 +626,7 @@ class CpuController:
         From the shield: the best of grab, up smash and up special out of shield if one is
         worth it; a spot dodge if a grab is coming; a roll away if the shield is worn and a
         hit is still coming (a small shield is not held)."""
-        if me.state is StateId.SHIELD and self.level.level > BASIC_LEVEL:
+        if me.state is StateId.SHIELD and self.level.can(config.CPU_SKILL_DODGE):
             punish = self._out_of_shield(world, me)
             if punish is not None:
                 return punish
@@ -639,7 +655,8 @@ class CpuController:
         mine = self.knowledge[self.player]
         aim = me.facing.world
         best: tuple[float, str] | None = None
-        for name in OUT_OF_SHIELD:
+        best_skill = self.level.can(config.CPU_SKILL_BEST_OUT_OF_SHIELD)
+        for name in OUT_OF_SHIELD if best_skill else ("grab",):
             try:
                 action = mine.action(name)
             except KeyError:
@@ -759,8 +776,8 @@ class CpuController:
 
     def _ledge_guards(self, me: FighterView) -> list[Vec2]:
         """Opponents standing free on the stage, where a recovery should not head
-        (from level 3 up)."""
-        if self.level.level <= BASIC_LEVEL:
+        (from ``CPU_SKILL_GUARD_AVOID``)."""
+        if not self.level.can(config.CPU_SKILL_GUARD_AVOID):
             return []
         guards = []
         for other in self._seen().fighters:
@@ -836,6 +853,21 @@ class CpuController:
             return NEUTRAL_INPUT
         self._focus = target.index
         self._facing_target = target.pos
+        if me.invincible and me.grounded:
+            # Just respawned: wait the invincibility out at a distance rather than walk up to
+            # opponents that cannot touch it (and that are told to keep away from it).
+            away = me.pos.xy - target.pos.xy
+            if away.length() >= config.CPU_RESPECT_RANGE:
+                self.plan = Plan("space", "wait out invincibility")
+                return self._face(me)
+            if away.length() == 0.0:
+                away = me.facing.world * -1.0
+            spot = target.pos.xy + away.normalized() * config.CPU_RESPECT_RANGE
+            frame = self._move_toward(
+                me, safe_spot(self.stage, Vec3(spot.x, spot.y, me.pos.z), me.pos)
+            )
+            self.plan = Plan("space", "wait out invincibility")
+            return frame
         if world.frame >= self._next_decision:
             reading = self._read(world, me, target, threat)
             off = not target.grounded and not over_ground(self.live, target.pos)
@@ -918,6 +950,16 @@ class CpuController:
             self.live, stale, self.characters[index], theirs, intercept.LOOKAHEAD + lead
         )
         track = predict.Track(ahead.points[lead:], ahead.spread[lead:], max(ahead.locked - lead, 0))
+        if self.level.misjudge > 0.0:
+            # A weak CPU misjudges where its target is by a share of the distance, a new way
+            # every decision: it swings a little short or long, as a beginner does.
+            distance = (target.pos.xy - me.pos.xy).length()
+            off = Vec2(1.0, 0.0).rotated(self.rng.random() * 360.0)
+            off = off * (distance * self.level.misjudge * self.rng.random())
+            shift = Vec3(off.x, off.y, 0.0)
+            track = predict.Track(
+                tuple(point + shift for point in track.points), track.spread, track.locked
+            )
         their_action = None
         if target.state is StateId.ATTACK:
             table = theirs.ground_by_move if target.grounded else theirs.air_by_move
@@ -937,6 +979,7 @@ class CpuController:
             character=self.characters[index],
             theirs=theirs,
             mine=self.knowledge[self.player],
+            combos=self.level.can(config.CPU_SKILL_COMBOS),
             their_action=their_action,
             their_frame=(their_action.move_start + target.state_frame - 1 if their_action else 0),
             caution=(1.0 + me.damage / config.CPU_CAUTION_PERCENT) / max(self.style.risk, 0.1),
@@ -961,14 +1004,14 @@ class CpuController:
         self._own_air_jumps = self.characters[self.player].movement.air_jumps
         if target.invincible or (target.intangible and reading.track.locked == 0):
             return None
-        eager = min(self.level.aggression * self.style.aggression, 1.0)
-        if reading.track.locked == 0 and self.rng.random() >= eager:
-            return None  # the lower levels let a free opponent be (until M20 group 7)
         knowledge = self.knowledge[self.player]
         # Run-ups and walk-ups are recorded from a standstill: from a run they go further.
         still = me.grounded and me.vel.xy.length() <= config.CPU_STILL_SPEED
         approaches = knowledge.approaches if still else ()
-        actions = chain(knowledge.actions, knowledge.extras, approaches)
+        if not self.level.can(config.CPU_SKILL_RUN):
+            approaches = tuple(a for a in approaches if not a.name.startswith("run"))
+        extras = knowledge.extras if self.level.can(config.CPU_SKILL_EXTRAS) else ()
+        actions = chain(knowledge.actions, extras, approaches)
         zones = crowd.danger_zones(self._seen().hazards)
 
         def allowed(action: Action, aim: Vec2) -> bool:
@@ -994,7 +1037,11 @@ class CpuController:
                 )
                 for c in found
             ]
-        return intercept.choose(found, self.level.temperature, self.rng.random())
+        # Against a free target a candidate must be clearly worth it: a marginal run-up into
+        # an opponent that may already be moving is how a CPU gets itself punished. (The M10
+        # rule skipped decisions on a dice roll instead.)
+        least = config.CPU_ACT_VALUE if reading.track.locked else config.CPU_FREE_ACT_VALUE
+        return intercept.choose(found, self.level.temperature, self.rng.random(), least)
 
     def _flavour(self, candidate: intercept.Candidate, target: int | None = None) -> float:
         """What its style, its target's habits and its own recent moves add to a
@@ -1040,8 +1087,10 @@ class CpuController:
         self.plan = Plan("attack", action.name)
         self._last_attack = world.frame
         self.own.used(action.move_id or action.name)
+        self.queue.extend([NEUTRAL_INPUT] * self.level.hesitate)  # slow hands at low levels
         self._enqueue(frames_for(action.steps, self._jitter(choice.aim)))
-        self._queued = (action, world.frame) if action.start is Start.GROUND else None
+        started = world.frame + self.level.hesitate
+        self._queued = (action, started) if action.start is Start.GROUND else None
         if action.lead > 0:
             expected, _spread = reading.track.at(choice.frame)
             self._committed = (
@@ -1136,9 +1185,10 @@ class CpuController:
         hover = max(hover + RANGE_OFFSET.get(self.style.range, 0.0), min(hover, outside))
         # The longer nothing has been worth doing, the closer it comes: an opponent that
         # never approaches must not stall the match (the shield bot did, forever).
-        waited = (world.frame - self._last_attack) / (
-            config.CPU_PATIENCE_FRAMES * self.style.patience
-        )
+        # Closing in waits on progress: swings that miss do not reset it (a Bramble below a
+        # Rook on a raised step whiffed slams at it for a whole match and never came closer).
+        since = world.frame - self._last_landed
+        waited = since / (config.CPU_PATIENCE_FRAMES * self.style.patience)
         closing = min(max(waited - 1.0, 0.0), 1.0)
         jab = mine.action("jab").envelope
         reach = jab.radius if jab is not None else config.CPU_CLOSE_RANGE
@@ -1276,7 +1326,7 @@ class CpuController:
             options = disadvantage.defence_options(
                 self.knowledge[self.player], frames, grab, me.shield_hp, 0
             )
-            if self.level.level <= BASIC_LEVEL:
+            if not self.level.can(config.CPU_SKILL_DODGE):
                 options = [option for option in options if option.name == "shield"]
             for option in options:
                 done = self._defend_with(world, me, option.name, frames, source)

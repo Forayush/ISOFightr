@@ -262,12 +262,12 @@ def test_it_keeps_its_distance_then_closes_in_when_nothing_happens() -> None:
     world = observe(match)
     me, target = views(match)
     reading = cpu._read(world, me, target, None)
-    cpu._last_attack = world.frame
+    cpu._last_attack = cpu._last_landed = world.frame
     near = cpu._position(world, me, target, reading)
     # Out of its quick reach, as far as a brawler stands off (the cap is under Rook's lunge).
     least = config.CPU_HOVER_MAX + config.CPU_SWAY[0] - 0.01
     assert (near.xy - target.pos.xy).length() >= least
-    cpu._last_attack = world.frame - 3 * config.CPU_PATIENCE_FRAMES
+    cpu._last_landed = world.frame - 3 * config.CPU_PATIENCE_FRAMES  # no hit in a while
     cpu._sway_until = 0
     impatient = cpu._position(world, me, target, reading)
     assert (impatient.xy - target.pos.xy).length() < config.CPU_CLOSE_RANGE + 0.6
@@ -356,6 +356,7 @@ def test_run_ups_are_only_used_from_a_standstill() -> None:
     try:
         world = observe(match)
         me, target = views(match)
+        me = replace(me, vel=Vec3(0.0, 0.0, 0.0))  # standing (it may already be moving)
         cpu._choose(cpu._read(world, me, target, None))
         assert any(name.startswith("run") for name in names), "standing: run-ups are searched"
         names.clear()

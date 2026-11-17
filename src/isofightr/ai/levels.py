@@ -37,6 +37,16 @@ class CpuLevel:
     edgeguard_depth: float = 0.0
     """M20: above 0 it may leave the stage to edgeguard (``CPU_EDGEGUARD_DEPTH``)."""
     adapt: float = 0.0
+    misjudge: float = 0.0
+    hesitate: int = 0
+    """M20 group 7: frames it waits before a chosen attack (``CPU_HESITATE_FRAMES``)."""
+    """M20 group 7: the share of the distance it misjudges a target's place by
+    (``CPU_MISJUDGE``)."""
+
+    def can(self, skill_level: int) -> bool:
+        """Whether this level has a skill that comes at ``skill_level`` (a ``CPU_SKILL_*``)."""
+        return self.level >= skill_level
+
     """M20: how much it acts on its opponents' habits (``CPU_HABIT_ADAPT``; none below
     ``CPU_HABIT_FIRST_LEVEL``)."""
     """M20: how loosely it picks among what is worth doing (``CPU_CHOICE_TEMPERATURE``)."""
@@ -80,6 +90,8 @@ def cpu_level(level: int) -> CpuLevel:
         tracking_frames=round(_at(config.CPU_TRACKING_FRAMES, level)),
         temperature=_at(config.CPU_CHOICE_TEMPERATURE, level),
         edgeguard_depth=_at(config.CPU_EDGEGUARD_DEPTH, level),
+        misjudge=_at(config.CPU_MISJUDGE, level),
+        hesitate=round(_at(config.CPU_HESITATE_FRAMES, level)),
         adapt=(
             _at(config.CPU_HABIT_ADAPT, level) if level >= config.CPU_HABIT_FIRST_LEVEL else 0.0
         ),

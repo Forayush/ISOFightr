@@ -79,6 +79,8 @@ class Reading:
     """How likely a free, grounded target is to block."""
     threat_frames: int = 0
     """Frames until a hit the CPU already sees coming lands on it (0 = none)."""
+    combos: bool = True
+    """Whether frames ahead on hit count (levels below ``CPU_SKILL_COMBOS`` play one hit)."""
     mine: CharacterKnowledge | None = None
     """The CPU's own move knowledge (how far it can strike to follow a hit up)."""
     their_action: Action | None = None
@@ -313,6 +315,8 @@ def weigh(reading: Reading, action: Action, aim: Vec2, frame: int, chance: float
     gain = damage + config.CPU_HIT_VALUE
     # Frames ahead on hit set up the next hit (a combo starter); frames behind are only risk.
     ahead = config.CPU_STARTER_VALUE if advantage > 0 else config.CPU_ADVANTAGE_VALUE
+    if advantage > 0 and not reading.combos:
+        ahead = 0.0
     gain += max(-15, min(advantage, 15)) * ahead
     if kills:
         gain += config.CPU_KO_VALUE
@@ -393,11 +397,16 @@ def search(
     return found
 
 
-def choose(found: Sequence[Candidate], temperature: float, roll: float) -> Candidate | None:
-    """Pick among the candidates worth doing (value above ``CPU_ACT_VALUE``): the best one
-    most of the time, a worse one more often the higher the ``temperature``. ``roll`` is a
-    uniform random number from the CPU's own dice."""
-    worth = sorted((c for c in found if c.value > config.CPU_ACT_VALUE), key=lambda c: -c.value)
+def choose(
+    found: Sequence[Candidate],
+    temperature: float,
+    roll: float,
+    least: float = config.CPU_ACT_VALUE,
+) -> Candidate | None:
+    """Pick among the candidates worth doing (value above ``least``): the best one most of
+    the time, a worse one more often the higher the ``temperature``. ``roll`` is a uniform
+    random number from the CPU's own dice."""
+    worth = sorted((c for c in found if c.value > least), key=lambda c: -c.value)
     if not worth:
         return None
     top = max(c.value for c in worth)

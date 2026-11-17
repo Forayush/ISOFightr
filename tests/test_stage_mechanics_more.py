@@ -301,10 +301,14 @@ def test_a_cpu_stands_on_a_moving_platform_without_thinking_it_is_falling() -> N
     cpu = CpuController(0, 9, 3, stage)
     for _ in range(100):
         match.tick([cpu.think(match), hold(frames=1)[0]])
-    cpu.think(match)
-    assert cpu.live is match.stage and cpu.stage is stage
     deck = match.stage.soft_platforms[0]
     assert deck.x0 > 5.5, "the platform is well away from where it rests"
+    for _ in range(120):  # the CPU acts now (M20 group 7): wait until it stands again
+        if rider.grounded:
+            break
+        match.tick([cpu.think(match), hold(frames=1)[0]])
+    cpu.think(match)
+    assert cpu.live is match.stage and cpu.stage is stage
     assert rider.grounded and over_ground(cpu.live, rider.pos), "it knows it stands on something"
 
 

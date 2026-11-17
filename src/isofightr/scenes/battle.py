@@ -159,7 +159,7 @@ HELP_LINES = (*HELP_TEMPLATES, DEBUG_HELP)
 TRAINING_HELP = "TRAINING  ESC menu  -/= dummy damage  0 reset damage  TAB dummy control"
 HELP_BOTTOM = HUD_BAND + HUD_MARGIN
 """The help text (sandboxes) sits just above the player cards."""
-INFO_LINES_PER_FIGHTER = 2
+INFO_LINES_PER_FIGHTER = 3
 DUMMY_DAMAGE_STEP = 10.0
 MESSAGE_TICKS = 180
 """How long a status message (such as the result of a reload) stays up."""
@@ -1241,6 +1241,9 @@ class BattleView(TickedView):
             for fighter in self.match.fighters:
                 lines.append(fighter_info(fighter))
                 lines.append(combat_info(fighter))
+                cpu = self._cpus.get(fighter.player_index)
+                if cpu is not None and self.cpu_level_of(fighter.player_index):
+                    lines.append(cpu.describe())  # what the CPU is thinking (M20)
         if self.show_inputs:
             lines += input_lines(self.match.fighters, HUD_CAPACITY)
         status = self.status_line()

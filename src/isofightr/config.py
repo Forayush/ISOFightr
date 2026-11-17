@@ -242,6 +242,8 @@ CPU_MIN_CHANCE: Final[float] = 0.25
 CPU_PROJECTILE_MIN_CHANCE: Final[float] = 0.5
 """A projectile needs a better chance than that: thrown at nothing it is only noise."""
 CPU_ACT_VALUE: Final[float] = 1.5
+CPU_FREE_ACT_VALUE: Final[float] = 5.0
+"""M20 group 7: the least value worth doing against a target that is free to act."""
 """A candidate must be worth more than this to be done."""
 CPU_TIME_COST: Final[float] = 0.03
 """Value lost per frame a hit takes to arrive: sooner is better, all else equal."""
@@ -379,7 +381,7 @@ CPU_DI_ON_STAGE: Final[float] = 10.0
 CPU_DI_AWAY_SHARE: Final[float] = 0.5
 """DI score per unit the flight ends from the attacker (against one per unit nearer the
 stage's middle when it ends off the stage)."""
-CPU_SDI_LEVEL: Final[int] = 5
+CPU_SDI_LEVEL: Final[int] = 9
 """Levels from this one up SDI out of multi-hits (a flick every other hitlag frame)."""
 CPU_SDI_MAX_KB: Final[float] = 60.0
 """A pending launch weaker than this is treated as part of a string or multi-hit: SDI away
@@ -448,6 +450,28 @@ CPU_STYLE_WEIGHT: Final[float] = 100.0
 CPU_STYLE_DEFAULT_BOUNDS: Final[tuple[float, float]] = (0.8, 1.25)
 """Defaults from the character's data stay within these."""
 CPU_TEMPERAMENT: Final[float] = 0.1
+# M20 group 7: levels by skill (D-071; the table in note 15, "Levels").
+CPU_SKILL_RUN: Final[int] = 3
+"""From this level a CPU runs up to a move (below, it only walks up)."""
+CPU_SKILL_EXTRAS: Final[int] = 5
+"""From this level: jab chains and charged smashes."""
+CPU_SKILL_COMBOS: Final[int] = 5
+"""From this level a hit's frames ahead count (follow-ups); below, every move is one hit."""
+CPU_SKILL_DODGE: Final[int] = 5
+"""From this level a CPU spot dodges, rolls and jumps away; below, it only shields."""
+CPU_SKILL_BEST_OUT_OF_SHIELD: Final[int] = 7
+"""From this level the up smash and up special out of shield; levels 5 and 6 only grab."""
+CPU_SKILL_TECH_CHOICE: Final[int] = 7
+"""From this level the tech is chosen (in place or away); below, in place or a random roll."""
+CPU_SKILL_GUARD_AVOID: Final[int] = 9
+"""From this level a recovery avoids a guarded ledge."""
+CPU_HESITATE_FRAMES: Final[tuple[float, ...]] = (8, 4, 0, 0, 0)
+"""Frames a CPU waits before an attack it has chosen comes out (levels 1, 3, 5, 7, 9): slow
+hands, the other half of how a beginner plays."""
+CPU_MISJUDGE: Final[tuple[float, ...]] = (0.45, 0.2, 0.06, 0.02, 0.0)
+"""The share of the distance to its target a CPU misjudges where the target is by, a new
+direction every decision (levels 1, 3, 5, 7, 9): a weak CPU misses by a little instead of
+standing idle on a dice roll."""
 # M20 group 6: several opponents, teams, stages (D-071).
 CPU_TARGET_INVINCIBLE_COST: Final[float] = 6.0
 """Target cost (units of distance) of an opponent that cannot be hurt."""
