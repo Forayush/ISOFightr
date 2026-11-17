@@ -228,7 +228,7 @@ class GameFlow:
         if not self.loading:
             self.start_battle(setup)
             return
-        self.window.show_view(LoadingView(self.pixel_buffer, self, self.plan_match(setup)))
+        self.through_cloud(LoadingView(self.pixel_buffer, self, self.plan_match(setup)))
 
     def start_battle(self, setup: MatchSetup) -> None:
         """Start a match with the given setup at once, with no loading screen."""
@@ -252,5 +252,7 @@ class GameFlow:
         self.through_cloud(view)
 
     def show_results(self, setup: MatchSetup, match: Match) -> None:
-        """Go to the results of a finished match."""
-        self.window.show_view(ResultsView(self.pixel_buffer, self, setup, match))
+        """Go to the results of a finished match, through the cloud: back to the Isle."""
+        view = ResultsView(self.pixel_buffer, self, setup, match)
+        self.world().settle(view.station)
+        self.through_cloud(view)

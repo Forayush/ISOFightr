@@ -218,12 +218,16 @@ def versus_setup(players: int, cpus: bool = False, rules: SavedRules | None = No
     on the keyboards, or (with ``cpus``) everyone but player 1 a CPU. ``rules`` are the
     rules to play under (the defaults if not given)."""
     count = min(max(players, 2), len(ROSTER))
-    return replace(
+    setup = replace(
         with_saved(MatchSetup(), rules or SavedRules()),
         characters=ROSTER[:count],
         devices=("keyboard:solo", *[""] * (count - 1)) if cpus else KEYBOARDS[:count],
         cpus=(0, *[HUD_CPU_LEVEL] * (count - 1)) if cpus else (),
     )
+    if rules is not None and rules.team_play:
+        # Saved rules leave teams to the setup: players 1 and 3 against 2 and 4.
+        setup = replace(setup, team_play=True, teams=tuple(index % 2 for index in range(count)))
+    return setup
 
 
 def open_screen(

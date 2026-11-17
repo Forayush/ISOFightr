@@ -175,11 +175,7 @@ def test_confetti_is_the_same_every_time_and_keeps_falling() -> None:
 # --- art ----------------------------------------------------------------------------------
 
 RESULTS_ART = {
-    "step": lambda: results_art.podium_step(64, 52, theme.player_ramp(0)),
-    "step_low": lambda: results_art.podium_step(64, 10, theme.player_ramp(3)),
-    "spotlight": lambda: results_art.spotlight(150, 236),
     "confetti": lambda: results_art.confetti_piece(theme.GOLD, True),
-    "place": lambda: results_art.place_plate(24, 11, theme.player_ramp(1)),
     "letter": lambda: results_art.banner_letters("W", theme.player_ramp(2))[0][0],
 }
 
@@ -200,10 +196,11 @@ def test_the_banner_fits_the_screen_in_letters() -> None:
         assert [picture is None for picture, _ in letters] == [char == " " for char in text]
 
 
-def test_a_podium_step_has_a_diamond_top_over_its_sides() -> None:
-    image = results_art.podium_step(64, 20, theme.player_ramp(0))
-    assert image.size == (64, 52)
-    alpha = image.getchannel("A")
-    assert alpha.getpixel((32, 16)) == 255 and alpha.getpixel((0, 0)) == 0
-    assert alpha.getpixel((31, 50)) == 255, "the front corner reaches the foot"
-    assert alpha.getpixel((0, 51)) == 0
+def test_every_player_has_a_ring_spot_of_their_own() -> None:
+    """D-072: the podium steps gave way to the Isle's ring; two players stand in its middle."""
+    from isofightr.scenes.results_model import spot_of
+
+    assert [spot_of(player, 2) for player in range(2)] == [1, 2]
+    for players in (1, 2, 3, 4):
+        spots = [spot_of(player, players) for player in range(players)]
+        assert len(set(spots)) == players and all(0 <= spot < 4 for spot in spots)

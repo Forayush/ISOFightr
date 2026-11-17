@@ -356,17 +356,28 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert name(window) == "ResultsView"
     assert results.table_lines[1].split()[:2] == ["1st", "P1"]
     assert results.table_lines[2].split()[:2] == ["2nd", "P2"]
-    assert len(results._winners) == 1, "the winner, in the victory-pose hero art"
-    bank, costume, sprite = results._winners[0]
-    assert sprite.texture is bank.portrait("hero_win", costume)
-    assert not sprite.visible, "the podium has not risen yet"
-    heights = set()
-    for _ in range(40):
-        step(window, 1)
-        heights.add(sprite.center_y)
-    assert sprite.visible and len(heights) >= 3, "it rises with its step"
+    # D-072: the results are at the ring; the winner drops onto a spot and celebrates there.
+    from isofightr.scenes import results_model as model
+    from isofightr.scenes.menu_world_model import Mood
+    from isofightr.scenes.results_model import spot_of
+
     first = next(standing for standing in results.standings if standing.winner)
-    assert abs(sprite.center_x - first.x) <= 1 and first.player == 0
+    assert first.player == 0
+    if not model.step_shown(results.tick_count, first.order):
+        assert results._winners == [], "the winner has not dropped in yet"
+    moods = set()
+    for _ in range(80):
+        step(window, 1)
+        if results._winners:
+            moods.add(results._winners[0].mood)
+    assert len(results._winners) == 1
+    stand_in = results._winners[0]
+    assert results.world.ring[spot_of(0, 2)] is stand_in, "on its own spot"
+    assert stand_in.character == battle.match.fighters[0].character.id
+    assert Mood.WIN in moods and stand_in.mood is Mood.WIN, "it drops in, then celebrates"
+    loser = results.world.ring[spot_of(1, 2)]
+    assert loser is not None and loser.mood is Mood.LOST
+    assert results.world.pose.zoom == 2, "twice battle size"
     assert results.selected == "rematch"
 
     # Rematch plays the same setup again; then back to character select.
@@ -2109,6 +2120,62 @@ def test_a_team_win_puts_every_member_on_the_top_step(window: Any) -> None:
     assert abs(winners[0].x - winners[1].x) == model.TEAM_STEP_WIDTH
     assert len(results._winners) == 2
     assert [row.place for row in results.rows] == ["1ST", "1ST", "2ND"]
+    step(window, 60)
+    from isofightr.scenes.menu_world_model import Mood
+    from isofightr.scenes.results_model import spot_of
+
+    for standing in results.standings:
+        stand_in = results.world.ring[spot_of(standing.player, 3)]
+        assert stand_in is not None
+        assert stand_in.mood is (Mood.WIN if standing.winner else Mood.LOST)
+
+
+def test_the_victory_screen_is_the_ring_and_leaves_the_fighters_in_view(window: Any) -> None:
+    """D-072: four players on their spots, plates under them, the UI under 35% of the screen,
+    the buttons usable from the first tick, and the ring empty once the screen is left."""
+    from isofightr.scenes import results_model as model
+    from isofightr.scenes.menu_world_model import Mood
+    from isofightr.scenes.results_model import spot_of
+    from isofightr.scenes.results_view import PLATE_BOTTOM, PLATE_HEIGHT, SPOTS
+    from isofightr.scenes.setup import MatchSetup
+    from ui_helpers import MAX_COVER, ui_cover
+
+    flow = start(window)
+    setup = MatchSetup(
+        characters=("rook", "mote", "bramble", "zephyr"),
+        devices=("keyboard:solo", "keyboard:arrows", "", ""),
+        cpus=(0, 0, 3, 3),
+        stocks=1,
+    )
+    flow.start_battle(setup)
+    step(window, COUNTDOWN_FRAMES + 5)
+    for loser in (1, 2, 3):
+        knock_out(window, loser)
+    step(window, 200)
+    results = window.current_view
+    assert name(window) == "ResultsView"
+    step(window, model.AWARDS_START + 80)
+    assert ui_cover(window, results) <= MAX_COVER
+    for standing in results.standings:
+        stand_in = results.world.ring[spot_of(standing.player, 4)]
+        assert stand_in is not None and stand_in.character == setup.characters[standing.player]
+        assert stand_in.mood is (Mood.WIN if standing.winner else Mood.LOST)
+    for x, y in SPOTS:
+        assert y > PLATE_BOTTOM + PLATE_HEIGHT, "a plate never covers a fighter's feet"
+        assert 0 < x < 640
+    press(window, keys().K)
+    assert name(window) == "CharacterSelectView"
+    step(window, 2)
+
+    _, finished = to_results(window)
+    finished.flow.show_results(finished.setup, finished.match)
+    step(window, 1)
+    results = window.current_view
+    assert results is not finished and not results._winners
+    assert results.tick_count < model.WINNER_START, "the buttons answer before anyone lands"
+    press(window, keys().D)
+    press(window, keys().J)
+    assert name(window) == "CharacterSelectView"
 
 
 # --- settings and the move list in the new look (M13 group 9) -------------------------------

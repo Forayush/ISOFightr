@@ -99,6 +99,17 @@ class StatRow:
     taken_share: float
 
 
+SPOT_ORDER: Final[dict[int, tuple[int, ...]]] = {1: (1,), 2: (1, 2), 3: (0, 1, 2), 4: (0, 1, 2, 3)}
+"""Which of the Isle's four ring spots each player stands on, by how many played: two stand
+in the middle (decision D-072)."""
+
+
+def spot_of(player: int, players: int) -> int:
+    """Return the ring spot a player stands on."""
+    order = SPOT_ORDER.get(players, SPOT_ORDER[4])
+    return order[player] if player < len(order) else player % len(SPOT_ORDER[4])
+
+
 def player_name(match: Match, player: int) -> str:
     """Return a player's name as the results show it ("P1 Rook")."""
     return f"P{player + 1} {match.fighters[player].character.display_name}"
