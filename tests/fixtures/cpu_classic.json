@@ -43,7 +43,7 @@
     ],
     "seed": 5,
     "ticks": 2000,
-    "hash": "f382cb6195a69ef11d09664a020a5f69"
+    "hash": "264635f872a1e3fab1f4dcbae291b8c6"
   },
   {
     "stage": "twin_isles",
@@ -59,6 +59,6 @@
     ],
     "seed": 6,
     "ticks": 2000,
-    "hash": "cc19cf0a5a5f8a1d4ca29051cdade938"
+    "hash": "d4b58022324cba3f5d4997ccc9aed126"
   }
 ]
