@@ -134,7 +134,14 @@ def face(size: TextSize, fonts_dir: Path = FONTS_DIR) -> Face:
         return cached
     file_name, pixels, fallback_scale = _SPECS[size]
     try:
-        loaded = _measure(ImageFont.truetype(str(fonts_dir / file_name), pixels), 1)
+        # The basic layout engine on every machine: Pillow with Raqm (its Linux wheels) would
+        # kern a run, but a label places one sprite per character and cannot kern.
+        loaded = _measure(
+            ImageFont.truetype(
+                str(fonts_dir / file_name), pixels, layout_engine=ImageFont.Layout.BASIC
+            ),
+            1,
+        )
     except OSError as error:
         LOG.warning("font %s not loaded (%s): using the built-in font", file_name, error)
         loaded = _measure(ImageFont.load_default_imagefont(), fallback_scale)

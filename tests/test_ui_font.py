@@ -51,6 +51,17 @@ def test_every_printable_character_and_arrow_has_a_glyph(size: TextSize) -> None
     assert font.mask(" ", size).getbbox() is None and font.text_width(" ", size) > 0
 
 
+def test_every_face_lays_text_out_without_kerning_on_any_machine() -> None:
+    """Pillow with Raqm (its Linux wheels, so CI) kerns a run; Windows' Pillow has no Raqm.
+    The basic engine is what keeps a line as wide as its letters everywhere."""
+    from PIL import ImageFont
+
+    for size in TextSize:
+        loaded = font.face(size).font
+        engine = getattr(loaded, "layout_engine", ImageFont.Layout.BASIC)
+        assert engine == ImageFont.Layout.BASIC, size
+
+
 @pytest.mark.parametrize("size", list(TextSize))
 def test_a_line_is_as_wide_as_its_characters_one_by_one(size: TextSize) -> None:
     """Labels place one sprite per character, so there must be no kerning to lose."""
