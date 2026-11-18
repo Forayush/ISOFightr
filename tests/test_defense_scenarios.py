@@ -31,6 +31,8 @@ from isofightr.sim.match import Match, MatchRules
 from isofightr.sim.states.interrupts import start_move
 
 ROOK = load_character("rook")
+FTILT_DAMAGE = ROOK.moves["ftilt"].windows[0].hitboxes[0].damage
+"""Rook's forward tilt, the example move of these tests (its value is balance data)."""
 FRESH = c.FRESH_BONUS
 X, Y = 4.0, 6.0
 
@@ -109,7 +111,7 @@ def test_a_shield_blocks_a_hit() -> None:
         match, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(8), shielding(30), ShieldHitEvent
     )
     [(tick, event)] = seen
-    damage = 9 * FRESH
+    damage = FTILT_DAMAGE * FRESH
     assert tick == 7 and not event.parried
     assert defender.damage == 0 and defender.launch is None
     assert not [e for e in match.events if isinstance(e, HitEvent)]
@@ -126,9 +128,9 @@ def test_shieldstun_and_pushback() -> None:
     run(match, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(6), shielding(7))
     whiff, lone, _ = duel(gap=5.0)
     run(whiff, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(40))
-    damage = 9 * FRESH
+    damage = FTILT_DAMAGE * FRESH
     stun = shieldstun_frames(damage)
-    assert stun == math.floor(damage * 0.8 * 0.725 + 2) == 7
+    assert stun == math.floor(damage * 0.8 * 0.725 + 2)
     hitlag = kb.hitlag_frames(damage)
     jump = hold(buttons=Button.SHIELD | Button.JUMP, frames=1)
     # Frozen for the hitlag, then stunned: jumping out of shield does nothing yet.

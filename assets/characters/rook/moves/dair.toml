@@ -4,7 +4,7 @@ id = "dair"
 kind = "aerial"
 total = 46
 faf = 47
-landing_lag = 16
+landing_lag = 13             # D-075: was 16
 autocancel = ["1-4", "40-"]
 
 [[windows]]

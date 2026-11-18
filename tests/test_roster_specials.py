@@ -52,7 +52,7 @@ def events_of(match: Match, inputs: list[InputFrame], kind: type) -> list:  # ty
 
 def test_archetypes_differ_where_the_plan_says() -> None:
     weights = [character.weight for character in (ROOK, BRAMBLE, ZEPHYR, MOTE)]
-    assert weights == [98, 120, 78, 90]  # Mote 85 until D-074
+    assert weights == [98, 120, 78, 93]  # Mote 85 until D-074, 90 until D-075
     runs = {c.id: c.movement.run_speed for c in (ROOK, BRAMBLE, ZEPHYR, MOTE)}
     assert (
         max(runs, key=runs.__getitem__) == "zephyr" and min(runs, key=runs.__getitem__) == "bramble"
@@ -151,11 +151,14 @@ def test_quake_slam_plummets_and_lands_as_a_shockwave() -> None:
     assert (rook.damage > 30.0 and rook.kb_vel.z > 0) or rook.state is not StateId.IDLE, "popped up"
 
 
-def test_quake_slam_on_the_ground_slams_at_once() -> None:
+def test_quake_slam_on_the_ground_hops_first() -> None:
+    """D-075: on the ground it hovers up and slams down like in the air (it used to slam on
+    frame 1, the strongest thing in the roster)."""
     match, bramble, _ = duel(BRAMBLE, gap=6.0)
-    waves = events_of(
-        match, hold(buttons=Button.SPECIAL, frames=1, vertical=-1) + neutral(2), ShockwaveEvent
-    )
+    press = hold(buttons=Button.SPECIAL, frames=1, vertical=-1)
+    early = events_of(match, press + neutral(5), ShockwaveEvent)
+    assert not early and not bramble.grounded and bramble.move_id == "dspecial"
+    waves = events_of(match, neutral(12), ShockwaveEvent)
     assert len(waves) == 1 and bramble.move_id == "quake_land"
 
 

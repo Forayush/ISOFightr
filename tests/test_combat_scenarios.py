@@ -26,6 +26,8 @@ from isofightr.sim.states.base import change_state
 from isofightr.sim.states.interrupts import start_move
 
 ROOK = load_character("rook")
+FTILT_DAMAGE = ROOK.moves["ftilt"].windows[0].hitboxes[0].damage
+"""Rook's forward tilt, the example move of these tests (its value is balance data)."""
 FRESH = c.FRESH_BONUS
 ORIGIN_X = 4.0
 ORIGIN_Y = 6.0
@@ -328,7 +330,7 @@ def test_two_attacks_that_hit_on_the_same_frame_trade() -> None:
     at_hit = (first.pos.x, second.pos.x)
     assert at_hit[0] > ORIGIN_X and at_hit[1] < ORIGIN_X + 1.6, "both stepped in (D-059)"
     run(match, neutral(24), neutral(24))
-    assert first.damage == second.damage == pytest.approx(9 * FRESH)
+    assert first.damage == second.damage == pytest.approx(FTILT_DAMAGE * FRESH)
     assert first.state is second.state is StateId.FLINCH
     assert first.pos.x < at_hit[0] and second.pos.x > at_hit[1], "both were knocked back"
     assert (first.pos.x - ORIGIN_X) == pytest.approx(-(second.pos.x - ORIGIN_X - 1.6))
@@ -457,7 +459,7 @@ def test_landing_during_an_aerial_gives_its_landing_lag() -> None:
     assert attacker.move_id == "fair"
     air_time_until_land(match, attacker)
     lag = ROOK.moves["fair"].landing_lag
-    assert attacker.land_lag == lag == 12
+    assert attacker.land_lag == lag > ROOK.movement.land_lag
     run(match, neutral(lag - 1))
     assert attacker.state is StateId.LAND
     run(match, neutral(1))

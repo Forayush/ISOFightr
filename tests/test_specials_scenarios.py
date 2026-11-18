@@ -38,6 +38,8 @@ from isofightr.sim.projectile import REFLECT_DAMAGE_MULT, reflect
 from isofightr.sim.states.interrupts import start_move
 
 ROOK = load_character("rook")
+FTILT_DAMAGE = ROOK.moves["ftilt"].windows[0].hitboxes[0].damage
+LUNGE_DAMAGE = ROOK.moves["sspecial"].windows[0].hitboxes[0].damage
 FRESH = c.FRESH_BONUS
 X, Y = 3.0, 6.0
 SPECIAL = hold(buttons=Button.SPECIAL, frames=1)
@@ -338,7 +340,7 @@ def test_lunge_hits_on_the_way() -> None:
     match, _, target = duel(gap=2.5, damage=20.0)
     seen = collect(match, hold(Dir8.SE, Button.SPECIAL, frames=1) + neutral(30), None, HitEvent)
     assert [hit.move_id for _, hit in seen] == ["sspecial"]
-    assert target.damage == pytest.approx(20 + 10 * FRESH)
+    assert target.damage == pytest.approx(20 + LUNGE_DAMAGE * FRESH)
 
 
 def test_lunge_in_the_air_holds_its_height_and_works_once_per_airtime() -> None:
@@ -551,7 +553,7 @@ def test_super_armor_takes_the_damage_but_not_the_launch() -> None:
     start_move(match, tank, "fsmash")
     tank.state_frame = 2
     run(match, hold(Dir8.SE, Button.ATTACK, frames=1) + neutral(40))
-    assert tank.damage == pytest.approx(80 + 9 * FRESH)
+    assert tank.damage == pytest.approx(80 + FTILT_DAMAGE * FRESH)
     assert tank.last_knockback > 60
     assert tank.pos.x <= X + 1.0 + 0.5 and attacker.damage > 0, "it kept swinging and hit back"
 

@@ -122,14 +122,9 @@ class VineLash(MoveScript):
 
 
 class QuakeSlam(MoveScript):
-    """Down special: a plummeting meteor that ends in a ground shockwave."""
-
-    def on_start(self, match: Match, fighter: Fighter) -> None:
-        """On the ground, go straight to the slam."""
-        if fighter.grounded:
-            from isofightr.sim.states import interrupts
-
-            interrupts.start_move(match, fighter, QUAKE_LAND_MOVE)
+    """Down special: a plummeting meteor that ends in a ground shockwave. On the ground it
+    hops through the same hover first (D-075: it used to slam on frame 1, the strongest
+    thing in the roster)."""
 
     def motion(self, match: Match, fighter: Fighter) -> bool:
         """Hover a moment, then drop straight down."""
