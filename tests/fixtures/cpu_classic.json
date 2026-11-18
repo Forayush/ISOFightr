@@ -29,7 +29,7 @@
     ],
     "seed": 4,
     "ticks": 1500,
-    "hash": "119abc190130a4a4d8ad95ce9a66c2c0"
+    "hash": "f38ac6b00192b4c2e7c583ae7c8c48d8"
   },
   {
     "stage": "storm_galleon",
@@ -43,7 +43,7 @@
     ],
     "seed": 5,
     "ticks": 2000,
-    "hash": "264635f872a1e3fab1f4dcbae291b8c6"
+    "hash": "12422cbb094ad3060ba1c44034fb3517"
   },
   {
     "stage": "twin_isles",
@@ -59,6 +59,6 @@
     ],
     "seed": 6,
     "ticks": 2000,
-    "hash": "d4b58022324cba3f5d4997ccc9aed126"
+    "hash": "4546c027ad7face98d4088f100014d52"
   }
 ]

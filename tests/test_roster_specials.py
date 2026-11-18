@@ -52,7 +52,7 @@ def events_of(match: Match, inputs: list[InputFrame], kind: type) -> list:  # ty
 
 def test_archetypes_differ_where_the_plan_says() -> None:
     weights = [character.weight for character in (ROOK, BRAMBLE, ZEPHYR, MOTE)]
-    assert weights == [98, 120, 78, 85]
+    assert weights == [98, 120, 78, 90]  # Mote 85 until D-074
     runs = {c.id: c.movement.run_speed for c in (ROOK, BRAMBLE, ZEPHYR, MOTE)}
     assert (
         max(runs, key=runs.__getitem__) == "zephyr" and min(runs, key=runs.__getitem__) == "bramble"
