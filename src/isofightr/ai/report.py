@@ -1107,6 +1107,52 @@ def _top(counts: dict[str, int], limit: int) -> str:
     return ", ".join(f"{key} {_percent(share(amount, total))}" for key, amount in ranked) or "-"
 
 
+def matchups(
+    reports: Iterable[MatchReport], suite: str = "matrix"
+) -> dict[tuple[str, str], tuple[int, int]]:
+    """Each character's record against each other one in ``suite``'s two-player matches:
+    ``(row, column) -> (row's wins, matches played)``, both sides counted. Mirrors are left
+    out (a mirror is always one win each); a match nobody won counts as played."""
+    record: dict[tuple[str, str], list[int]] = {}
+    for report in reports:
+        if report.spec.suite != suite or len(report.players) != 2:
+            continue
+        first, second = report.players
+        if first.character == second.character:
+            continue
+        for mine, theirs in ((first, second), (second, first)):
+            counts = record.setdefault((mine.character, theirs.character), [0, 0])
+            counts[0] += int(mine.won)
+            counts[1] += 1
+    return {pair: (won, played) for pair, (won, played) in record.items()}
+
+
+def matchup_lines(
+    reports: Iterable[MatchReport],
+    characters: Sequence[str] = CHARACTERS,
+    suite: str = "matrix",
+) -> list[str]:
+    """The matchup table: each row's wins against each column, ``won/played``; ``-`` on the
+    diagonal (mirrors) and where a pair was not played."""
+    table = matchups(reports, suite)
+    width = max((len(name) for name in characters), default=4) + 2
+    cell = max(width, 7)
+    lines = [
+        "  matchups: the row's wins against the column (both sides counted)",
+        "  " + " " * width + "".join(f"{name:>{cell}}" for name in characters),
+    ]
+    for mine in characters:
+        cells = []
+        for theirs in characters:
+            won_played = table.get((mine, theirs))
+            text = (
+                "-" if mine == theirs or won_played is None else f"{won_played[0]}/{won_played[1]}"
+            )
+            cells.append(f"{text:>{cell}}")
+        lines.append(f"  {mine:<{width}}" + "".join(cells))
+    return lines
+
+
 def tally_lines(name: str, t: Tally) -> list[str]:
     """A few lines describing how a group of players played."""
     p = t.total
@@ -1174,6 +1220,7 @@ def report_lines(reports: Sequence[MatchReport], metrics: dict[str, float]) -> l
             lines += tally_lines(character, mine)
         label = _top_share(reports, "matrix")[1]
         lines.append(f"  the most repeated move: {label}")
+        lines += matchup_lines(reports)
     if "versus" in present:
         count = sum(1 for r in reports if r.spec.suite == "versus")
         won = round(_win_share(reports, "versus") * count)

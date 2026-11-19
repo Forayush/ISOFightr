@@ -561,3 +561,30 @@ def test_the_tool_plays_a_sample_and_reports_its_exit_status() -> None:
         module.argparse.Namespace(players="rook=cpu:9, mote=bot:orb", stage="lily_pads", seed=2)
     )
     assert spec.characters == ("rook", "mote") and spec.players == ("cpu:9", "bot:orb")
+
+
+# --- the matchup table ------------------------------------------------------------------------
+
+
+def test_the_matchup_table_counts_both_sides_and_leaves_mirrors_out() -> None:
+    def duel(first: str, second: str, winner: int | None) -> report.MatchReport:
+        players = [player("cpu:9", first), player("cpu:9", second)]
+        winners = () if winner is None else (winner,)
+        return match_report("matrix", f"{first} v {second}", players, winners)
+
+    reports = [
+        duel("rook", "mote", 0),  # Rook beats Mote...
+        duel("mote", "rook", 1),  # ...from the other side too
+        duel("mote", "rook", 0),
+        duel("rook", "mote", None),  # nobody won: played, no win
+        duel("rook", "rook", 0),  # a mirror
+        match_report("versus", "rook", [player("cpu:9"), player("classic:9")], (0,)),
+    ]
+    table = report.matchups(reports)
+    assert table[("rook", "mote")] == (2, 4) and table[("mote", "rook")] == (1, 4)
+    assert ("rook", "rook") not in table, "mirrors are always one win each"
+    lines = report.matchup_lines(reports, ("rook", "mote"))
+    assert lines[2].split() == ["rook", "-", "2/4"]
+    assert lines[3].split() == ["mote", "1/4", "-"]
+    text = "\n".join(report_lines(reports, summarise(reports)))
+    assert "matchups: the row's wins against the column" in text
