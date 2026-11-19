@@ -50,11 +50,17 @@ class AnimInfo:
     loop: bool
     fps: int = 0
     starts: tuple[int, ...] = ()
+    repeat_from: int = 0
+    """A timed animation that repeats goes back to this pose (from 1) after ``length``."""
+    length: int = 0
 
     def pose_at(self, frame: int) -> int:
         """Return the pose shown on a 1-indexed frame of the animation."""
         if self.loop:
             return ((max(frame, 1) - 1) * self.fps // TICK_RATE) % self.poses
+        if self.repeat_from and frame > self.length:
+            first = self.starts[self.repeat_from - 1]
+            frame = first + (frame - first) % (self.length - first + 1)
         pose = 0
         for index, start in enumerate(self.starts):
             if start <= frame:
@@ -119,6 +125,8 @@ def parse_sprite_set(data: dict[str, object], folder: Path) -> SpriteSet:
                 loop=bool(info["loop"]),
                 fps=int(info.get("fps", 0)),
                 starts=tuple(int(start) for start in info.get("starts", ())),
+                repeat_from=int(info.get("repeat_from", 0)),
+                length=int(info.get("length", 0)),
             )
             for name, info in data["anims"].items()  # type: ignore[attr-defined]
         }

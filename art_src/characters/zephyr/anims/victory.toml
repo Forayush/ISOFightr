@@ -1,73 +1,366 @@
-# Victory: arms flung up and a light, high hop. Looping.
-loop = true
-fps = 6
+# Victory (results, at the ring): Zephyr springs into a cartwheel, lands low with her
+# wings out and pops up into a ta-da; then she keeps showing off: a hop and a spin into
+# the ta-da the other way, and a spin back.
+# Poses 1 to 6 play once; from pose 7 it repeats (repeat_from, length).
+repeat_from = 7
+length = 139
 
-[[poses]]            # arms up
-use = "ready"
-hips = [0.0, 0.0, 0.0]
-chest = [6.0, 0.0, 0.0]
-head = [8.0, 0.0, 0.0]
-shoulder_r = [150.0, -40.0, 0.0]
-elbow_r = [10.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [150.0, 40.0, 0.0]
-elbow_l = [10.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+[[parts]]
+name = "brow_r"
+joint = "head"
+shape = "rod"
+a = [0.06, 0.29, 0.43]
+b = [0.17, 0.25, 0.47]
+r1 = 0.02
+r2 = 0.02
+material = "ink"
 
-[[poses]]            # the hop
-use = "ready"
-offset = [0.0, 0.0, 0.42]
+[[parts]]
+name = "brow_l"
+joint = "head"
+shape = "rod"
+a = [-0.06, 0.29, 0.47]
+b = [-0.17, 0.25, 0.46]
+r1 = 0.02
+r2 = 0.02
+material = "ink"
+
+[[parts]]
+name = "smirk"
+joint = "head"
+shape = "box"
+low = [-0.07, 0.3, 0.115]
+high = [0.03, 0.4, 0.15]
+material = "ink"
+
+[[parts]]
+name = "smirk_corner"
+joint = "head"
+shape = "box"
+low = [-0.11, 0.28, 0.14]
+high = [-0.07, 0.38, 0.18]
+material = "ink"
+
+[[poses]]            # 1: crouch, wings swept back, tail up
+start = 1
+use = "crouch"
+offset = [0.0, 0.0, -0.12]
 hips = [0.0, 0.0, 0.0]
-chest = [10.0, 0.0, 0.0]
+chest = [-20.0, 0.0, 0.0]
 head = [12.0, 0.0, 0.0]
-shoulder_r = [160.0, -50.0, 0.0]
-elbow_r = [0.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [160.0, 50.0, 0.0]
-elbow_l = [0.0, 0.0, 0.0]
-hip_r = [20.0, 0.0, 0.0]
-knee_r = [-45.0, 0.0, 0.0]
-hip_l = [10.0, 0.0, 0.0]
-knee_l = [-35.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
-
-[[poses]]            # landing
-use = "ready"
-offset = [0.0, 0.0, -0.06]
-hips = [0.0, 0.0, 0.0]
-chest = [-4.0, 0.0, 0.0]
-head = [4.0, 0.0, 0.0]
-shoulder_r = [125.0, -35.0, 0.0]
-elbow_r = [35.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [125.0, 35.0, 0.0]
-elbow_l = [35.0, 0.0, 0.0]
-hip_r = [15.0, 0.0, 0.0]
-knee_r = [-30.0, 0.0, 0.0]
-hip_l = [15.0, 0.0, 0.0]
-knee_l = [-30.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
-
-[[poses]]            # rising again
-use = "ready"
-hips = [0.0, 0.0, 0.0]
-chest = [2.0, 0.0, 0.0]
-head = [6.0, 0.0, 0.0]
-shoulder_r = [140.0, -40.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [-50.0, -24.0, 0.0]
 elbow_r = [20.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [140.0, 40.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-50.0, 24.0, 0.0]
 elbow_l = [20.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+
+[[poses]]            # 2: spring sideways into a cartwheel
+start = 5
+use = "ready"
+offset = [-0.193, 0.0, 0.25]
+hips = [0.0, 40.0, 0.0]
+chest = [0.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-60.0, 0.0, 0.0]
+shoulder_r = [0.0, -150.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 150.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [0.0, -42.0, 0.0]
+knee_r = [-10.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [0.0, 42.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 3: over...
+start = 8
+use = "ready"
+offset = [-0.26, 0.0, 1.03]
+hips = [0.0, 120.0, 0.0]
+chest = [0.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-60.0, 0.0, 0.0]
+shoulder_r = [0.0, -150.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 150.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [0.0, -42.0, 0.0]
+knee_r = [-10.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [0.0, 42.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 4: ...upside down...
+start = 11
+use = "ready"
+offset = [0.103, 0.0, 1.282]
+hips = [0.0, 200.0, 0.0]
+chest = [0.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-60.0, 0.0, 0.0]
+shoulder_r = [0.0, -150.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 150.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [0.0, -42.0, 0.0]
+knee_r = [-10.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [0.0, 42.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 5: ...and round
+start = 14
+use = "ready"
+offset = [0.29, 0.0, 0.702]
+hips = [0.0, 285.0, 0.0]
+chest = [0.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-60.0, 0.0, 0.0]
+shoulder_r = [0.0, -150.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [0.0, 150.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [0.0, -42.0, 0.0]
+knee_r = [-10.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [0.0, 42.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 6: land low, wings out for balance
+start = 18
+use = "crouch"
+offset = [0.0, 0.0, -0.1]
+hips = [0.0, 0.0, 0.0]
+chest = [-8.0, 0.0, 0.0]
+head = [14.0, 0.0, 0.0]
+cape = [-90.0, 0.0, 0.0]
+shoulder_r = [10.0, -110.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [10.0, 110.0, 0.0]
+elbow_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+
+[[poses]]            # 7: TA-DA (held)
+start = 24
+use = "ready"
+offset = [0.0, 0.0, 0.04]
+hips = [0.0, 0.0, -6.0]
+chest = [12.0, 0.0, 8.0]
+head = [16.0, 0.0, 20.0]
+cape = [-96.0, 0.0, 30.0]
+shoulder_r = [24.0, -132.0, 0.0]
+elbow_r = [0.0, -12.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-6.0, 78.0, 0.0]
+elbow_l = [0.0, 10.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [12.0, -8.0, -8.0]
+knee_r = [-16.0, 0.0, 0.0]
+ankle_r = [24.0, 0.0, 0.0]
+hip_l = [-10.0, 12.0, 14.0]
+knee_l = [-6.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+
+[[poses]]            # 8: a hop and a spin
+start = 66
+use = "ready"
+offset = [0.0, 0.0, 0.12]
+hips = [0.0, 0.0, 100.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 9: ...
+start = 70
+use = "ready"
+offset = [0.0, 0.0, 0.18]
+hips = [0.0, 0.0, 190.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 10: ...
+start = 74
+use = "ready"
+offset = [0.0, 0.0, 0.12]
+hips = [0.0, 0.0, 280.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 11: ta-da the other way
+start = 78
+use = "ready"
+offset = [0.0, 0.0, -0.02]
+hips = [0.0, 0.0, 6.0]
+chest = [12.0, 0.0, -8.0]
+head = [16.0, 0.0, -20.0]
+cape = [-96.0, 0.0, -30.0]
+shoulder_l = [24.0, 132.0, 0.0]
+elbow_l = [0.0, 12.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+shoulder_r = [-6.0, -78.0, 0.0]
+elbow_r = [0.0, -10.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+hip_l = [12.0, 8.0, 8.0]
+knee_l = [-20.0, 0.0, 0.0]
+ankle_l = [24.0, 0.0, 0.0]
+hip_r = [-10.0, -12.0, -14.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [20.0, 0.0, 0.0]
+
+[[poses]]            # 12: held
+start = 82
+use = "ready"
+offset = [0.0, 0.0, 0.04]
+hips = [0.0, 0.0, 6.0]
+chest = [12.0, 0.0, -8.0]
+head = [16.0, 0.0, -20.0]
+cape = [-96.0, 0.0, -30.0]
+shoulder_l = [24.0, 132.0, 0.0]
+elbow_l = [0.0, 12.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+shoulder_r = [-6.0, -78.0, 0.0]
+elbow_r = [0.0, -10.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+hip_l = [12.0, 8.0, 8.0]
+knee_l = [-16.0, 0.0, 0.0]
+ankle_l = [24.0, 0.0, 0.0]
+hip_r = [-10.0, -12.0, -14.0]
+knee_r = [-6.0, 0.0, 0.0]
+ankle_r = [20.0, 0.0, 0.0]
+
+[[poses]]            # 13: and spin back
+start = 124
+use = "ready"
+offset = [0.0, 0.0, 0.12]
+hips = [0.0, 0.0, -100.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 14: ...
+start = 128
+use = "ready"
+offset = [0.0, 0.0, 0.18]
+hips = [0.0, 0.0, -190.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 15: ...
+start = 132
+use = "ready"
+offset = [0.0, 0.0, 0.12]
+hips = [0.0, 0.0, -280.0]
+chest = [6.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-70.0, 0.0, 0.0]
+shoulder_r = [30.0, -20.0, 0.0]
+elbow_r = [110.0, 0.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [30.0, 20.0, 0.0]
+elbow_l = [110.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 0.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 16: landing in the first ta-da
+start = 136
+use = "ready"
+offset = [0.0, 0.0, -0.02]
+hips = [0.0, 0.0, -6.0]
+chest = [12.0, 0.0, 8.0]
+head = [16.0, 0.0, 20.0]
+cape = [-96.0, 0.0, 30.0]
+shoulder_r = [24.0, -132.0, 0.0]
+elbow_r = [0.0, -12.0, 0.0]
+hand_r = [0.0, 0.0, 0.0]
+shoulder_l = [-6.0, 78.0, 0.0]
+elbow_l = [0.0, 10.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [12.0, -8.0, -8.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [24.0, 0.0, 0.0]
+hip_l = [-10.0, 12.0, 14.0]
+knee_l = [-20.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]

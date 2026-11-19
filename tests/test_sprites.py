@@ -43,11 +43,13 @@ def test_sheets_match_the_art_sources(character_id: str) -> None:
     for name in names:
         timing = load_timing(character_id, name)
         info = sprite_set.anims[name]
-        assert (info.poses, info.loop, info.fps, info.starts) == (
+        assert (info.poses, info.loop, info.fps, info.starts, info.repeat_from, info.length) == (
             timing.poses,
             timing.loop,
             timing.fps,
             timing.starts,
+            timing.repeat_from,
+            timing.length,
         ), f"{name}: sheet timing is out of date; rebuild"
     palettes = load_palettes(character_id)
     assert [name for name, _ in sprite_set.costumes] == [c.name for c in palettes.costumes]
@@ -104,6 +106,10 @@ def test_pose_timing() -> None:
     assert [loop.pose_at(frame) for frame in (1, 10, 11, 20, 21, 40, 41)] == [0, 0, 1, 1, 2, 3, 0]
     timed = AnimInfo(poses=3, loop=False, starts=(1, 4, 9))
     assert [timed.pose_at(frame) for frame in (0, 1, 3, 4, 8, 9, 50)] == [0, 0, 0, 1, 1, 2, 2]
+    # Played once, then from its second pose (frame 4) to frame 12, again and again.
+    repeating = AnimInfo(poses=3, loop=False, starts=(1, 4, 9), repeat_from=2, length=12)
+    frames = (1, 3, 4, 8, 9, 12, 13, 17, 18, 21, 22, 30)
+    assert [repeating.pose_at(frame) for frame in frames] == [0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 2]
 
 
 def test_malformed_sprites_json_is_refused(tmp_path: object) -> None:

@@ -1,73 +1,335 @@
-# Victory: the lantern lifted high, with a small hop. Looping.
-loop = true
-fps = 6
+# Victory (results, at the ring): Mote bows over its lantern, then rises off the ground
+# swinging it round in a ring of light, up over its hood and out wide; then it floats,
+# bobbing slowly with the lantern held high while three wisps circle it.
+# Poses 1 to 4 play once; from pose 5 it repeats (repeat_from, length).
+repeat_from = 5
+length = 147
 
-[[poses]]            # arms up
+[[smears]]
+name = "trail_low"
+a0 = -170
+a1 = -110
+joint = "origin"
+shape = "arc"
+material = "glow"
+centre = [0.0, 0.35, 1.5]
+r_in = 0.86
+r_out = 1.0
+thickness = 0.04
+turn = [90.0, 0.0, 0.0]
+
+[[smears]]
+name = "trail_high"
+a0 = -150
+a1 = -10
+joint = "origin"
+shape = "arc"
+material = "glow"
+centre = [0.0, 0.35, 1.5]
+r_in = 0.86
+r_out = 1.0
+thickness = 0.04
+turn = [90.0, 0.0, 0.0]
+
+[[smears]]
+name = "trail_over"
+a0 = -110
+a1 = 30
+joint = "origin"
+shape = "arc"
+material = "glow"
+centre = [0.0, 0.35, 1.5]
+r_in = 0.86
+r_out = 1.0
+thickness = 0.04
+turn = [90.0, 0.0, 0.0]
+
+[[smears]]
+name = "wisp_0_0"
+joint = "origin"
+shape = "ball"
+centre = [0.0, 0.95, 1.869]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_0_1"
+joint = "origin"
+shape = "ball"
+centre = [0.823, -0.475, 1.401]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_0_2"
+joint = "origin"
+shape = "ball"
+centre = [-0.823, -0.475, 1.83]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_1_0"
+joint = "origin"
+shape = "ball"
+centre = [0.611, 0.728, 1.973]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_1_1"
+joint = "origin"
+shape = "ball"
+centre = [0.325, -0.893, 1.671]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_1_2"
+joint = "origin"
+shape = "ball"
+centre = [-0.936, 0.165, 1.456]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_2_0"
+joint = "origin"
+shape = "ball"
+centre = [0.936, 0.165, 1.626]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_2_1"
+joint = "origin"
+shape = "ball"
+centre = [-0.325, -0.893, 1.989]
+radius = 0.085
+material = "glow"
+
+[[smears]]
+name = "wisp_2_2"
+joint = "origin"
+shape = "ball"
+centre = [-0.611, 0.728, 1.486]
+radius = 0.085
+material = "glow"
+
+[[poses]]            # 1: head bowed over the lantern, held low
+start = 1
 use = "ready"
 hips = [0.0, 0.0, 0.0]
-chest = [6.0, 0.0, 0.0]
-head = [8.0, 0.0, 0.0]
-shoulder_r = [150.0, -40.0, 0.0]
-elbow_r = [10.0, 0.0, 0.0]
+chest = [-10.0, 0.0, 0.0]
+head = [-18.0, 0.0, 0.0]
+cape = [0.0, 0.0, 0.0]
+shoulder_r = [40.0, 0.0, 10.0]
+elbow_r = [30.0, 0.0, 0.0]
 hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [150.0, 40.0, 0.0]
-elbow_l = [10.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+shoulder_l = [40.0, 10.0, 20.0]
+elbow_l = [70.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
 
-[[poses]]            # the hop
+[[poses]]            # 2: rising; the lantern swings out
+start = 10
+use = "ready"
+offset = [0.0, 0.0, 0.12]
+show = ["trail_low"]
+hips = [0.0, 0.0, 0.0]
+chest = [0.0, 0.0, 0.0]
+head = [0.0, 0.0, -10.0]
+cape = [-14.0, 0.0, 0.0]
+shoulder_r = [60.0, 0.0, -70.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-60.0, 0.0, 0.0]
+shoulder_l = [10.0, 40.0, 0.0]
+elbow_l = [30.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]            # 3: ...up and over its head
+start = 16
 use = "ready"
 offset = [0.0, 0.0, 0.24]
+show = ["trail_high"]
 hips = [0.0, 0.0, 0.0]
-chest = [10.0, 0.0, 0.0]
-head = [12.0, 0.0, 0.0]
-shoulder_r = [160.0, -50.0, 0.0]
+chest = [4.0, 0.0, 0.0]
+head = [14.0, 0.0, 0.0]
+cape = [-24.0, 0.0, 0.0]
+shoulder_r = [150.0, 0.0, 10.0]
 elbow_r = [0.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [160.0, 50.0, 0.0]
-elbow_l = [0.0, 0.0, 0.0]
-hip_r = [20.0, 0.0, 0.0]
-knee_r = [-45.0, 0.0, 0.0]
-hip_l = [10.0, 0.0, 0.0]
-knee_l = [-35.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
-
-[[poses]]            # landing
-use = "ready"
-offset = [0.0, 0.0, -0.06]
-hips = [0.0, 0.0, 0.0]
-chest = [-4.0, 0.0, 0.0]
-head = [4.0, 0.0, 0.0]
-shoulder_r = [125.0, -35.0, 0.0]
-elbow_r = [35.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [125.0, 35.0, 0.0]
-elbow_l = [35.0, 0.0, 0.0]
-hip_r = [15.0, 0.0, 0.0]
-knee_r = [-30.0, 0.0, 0.0]
-hip_l = [15.0, 0.0, 0.0]
-knee_l = [-30.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
-
-[[poses]]            # rising again
-use = "ready"
-hips = [0.0, 0.0, 0.0]
-chest = [2.0, 0.0, 0.0]
-head = [6.0, 0.0, 0.0]
-shoulder_r = [140.0, -40.0, 0.0]
-elbow_r = [20.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [140.0, 40.0, 0.0]
+hand_r = [-150.0, 0.0, 0.0]
+shoulder_l = [8.0, 60.0, 0.0]
 elbow_l = [20.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]            # 4: ...and out wide
+start = 22
+use = "ready"
+offset = [0.0, 0.0, 0.4]
+show = ["trail_over"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -10.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [160.0, 0.0, -30.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-160.0, 0.0, 0.0]
+shoulder_l = [8.0, 74.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]            # 5: floating, lantern high, wisps circling (held)
+start = 28
+use = "ready"
+offset = [0.0, 0.0, 0.48]
+show = ["wisp_0_0", "wisp_0_1", "wisp_0_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -10.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -56.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 74.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]            # 6: drifting up, the lantern swaying
+start = 48
+use = "ready"
+offset = [0.0, 0.0, 0.54]
+show = ["wisp_1_0", "wisp_1_1", "wisp_1_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -6.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -50.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 68.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]
+start = 68
+use = "ready"
+offset = [0.0, 0.0, 0.58]
+show = ["wisp_2_0", "wisp_2_1", "wisp_2_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -2.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -48.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 66.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]            # 8: drifting down
+start = 88
+use = "ready"
+offset = [0.0, 0.0, 0.54]
+show = ["wisp_0_0", "wisp_0_1", "wisp_0_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -6.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -52.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 70.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]
+start = 108
+use = "ready"
+offset = [0.0, 0.0, 0.48]
+show = ["wisp_1_0", "wisp_1_1", "wisp_1_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -14.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -60.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 78.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]
+
+[[poses]]
+start = 128
+use = "ready"
+offset = [0.0, 0.0, 0.44]
+show = ["wisp_2_0", "wisp_2_1", "wisp_2_2"]
+hips = [0.0, -4.0, 0.0]
+chest = [6.0, 2.0, 0.0]
+head = [12.0, -10.0, -16.0]
+cape = [-36.0, 0.0, 0.0]
+shoulder_r = [164.0, 0.0, -62.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-164.0, 0.0, 0.0]
+shoulder_l = [8.0, 80.0, 0.0]
+elbow_l = [20.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [6.0, 0.0, 0.0]
+knee_r = [-18.0, 0.0, 0.0]
+ankle_r = [48.0, 0.0, 0.0]
+hip_l = [-2.0, 0.0, 0.0]
+knee_l = [-10.0, 0.0, 0.0]
+ankle_l = [50.0, 0.0, 0.0]

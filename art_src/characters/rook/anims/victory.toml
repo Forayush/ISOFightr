@@ -1,73 +1,279 @@
-# Victory: sword and buckler thrown up, with a hop (results screen). Looping.
-loop = true
-fps = 6
+# Victory (results, at the ring): Rook springs up, spins once in the air with his sword
+# out, lands in a crouch with it thrust skyward and rises into the hero's stance; then,
+# every couple of seconds, an eager pump: knees give, the sword punches up with a hop.
+# Poses 1 to 6 play once; from pose 7 it repeats (repeat_from, length).
+repeat_from = 7
+length = 129
 
-[[poses]]            # arms up
+[[smears]]
+name = "spin_a"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.86]
+r_in = 0.95
+r_out = 1.6
+a0 = -140
+a1 = 30
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[smears]]
+name = "spin_b"
+joint = "origin"
+shape = "arc"
+centre = [0.0, 0.0, 1.82]
+r_in = 0.95
+r_out = 1.6
+a0 = -20
+a1 = 150
+thickness = 0.05
+turn = [0.0, 0.0, 0.0]
+
+[[parts]]
+name = "grin"
+joint = "head"
+shape = "box"
+low = [-0.08, 0.3, 0.11]
+high = [0.08, 0.37, 0.17]
+material = "ink"
+
+[[parts]]
+name = "grin_r"
+joint = "head"
+shape = "box"
+low = [0.07, 0.29, 0.15]
+high = [0.13, 0.36, 0.21]
+material = "ink"
+
+[[parts]]
+name = "grin_l"
+joint = "head"
+shape = "box"
+low = [-0.13, 0.29, 0.15]
+high = [-0.07, 0.36, 0.21]
+material = "ink"
+
+[[poses]]            # 1: gather: low, sword drawn back
+start = 1
+use = "crouch"
+offset = [0.0, 0.0, -0.16]
+hips = [0.0, 0.0, -10.0]
+chest = [-16.0, 0.0, 6.0]
+head = [-6.0, 0.0, 4.0]
+cape = [-6.0, 0.0, 0.0]
+shoulder_r = [-40.0, -25.0, 0.0]
+elbow_r = [20.0, 0.0, 0.0]
+hand_r = [-30.0, 0.0, 0.0]
+shoulder_l = [50.0, 10.0, 30.0]
+elbow_l = [80.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+
+[[poses]]            # 2: spring up, the sword swinging out
+start = 6
 use = "ready"
+offset = [0.0, 0.0, 0.32]
+hips = [0.0, 0.0, 0.0]
+chest = [8.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [6.0, 0.0, 0.0]
+shoulder_r = [0.0, -95.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [30.0, 40.0, 0.0]
+elbow_l = [70.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [0.0, 0.0, 0.0]
+knee_r = [-12.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [6.0, 0.0, 0.0]
+knee_l = [-24.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, 0.0]
+
+[[poses]]            # 3: spinning in the air, sword out
+start = 10
+use = "ready"
+offset = [0.0, 0.0, 0.5]
+show = ["spin_a"]
+hips = [0.0, 0.0, 120.0]
+chest = [4.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-50.0, 0.0, 0.0]
+shoulder_r = [0.0, -95.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [30.0, 40.0, 0.0]
+elbow_l = [70.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [60.0, 0.0, 0.0]
+knee_r = [-100.0, 0.0, 0.0]
+ankle_r = [20.0, 0.0, 0.0]
+hip_l = [40.0, 0.0, 0.0]
+knee_l = [-80.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+
+[[poses]]            # 4: ...round the back
+start = 14
+use = "ready"
+offset = [0.0, 0.0, 0.46]
+show = ["spin_b"]
+hips = [0.0, 0.0, 240.0]
+chest = [4.0, 0.0, 0.0]
+head = [6.0, 0.0, 0.0]
+cape = [-50.0, 0.0, 0.0]
+shoulder_r = [0.0, -95.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [30.0, 40.0, 0.0]
+elbow_l = [70.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [60.0, 0.0, 0.0]
+knee_r = [-100.0, 0.0, 0.0]
+ankle_r = [20.0, 0.0, 0.0]
+hip_l = [40.0, 0.0, 0.0]
+knee_l = [-80.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, 0.0]
+
+[[poses]]            # 5: facing out again, dropping, the sword going up
+start = 18
+use = "ready"
+offset = [0.0, 0.0, 0.2]
 hips = [0.0, 0.0, 0.0]
 chest = [6.0, 0.0, 0.0]
-head = [8.0, 0.0, 0.0]
-shoulder_r = [150.0, -40.0, 0.0]
-elbow_r = [10.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [150.0, 40.0, 0.0]
-elbow_l = [10.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
-
-[[poses]]            # the hop
-use = "ready"
-offset = [0.0, 0.0, 0.3]
-hips = [0.0, 0.0, 0.0]
-chest = [10.0, 0.0, 0.0]
-head = [12.0, 0.0, 0.0]
-shoulder_r = [160.0, -50.0, 0.0]
-elbow_r = [0.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [160.0, 50.0, 0.0]
-elbow_l = [0.0, 0.0, 0.0]
+head = [10.0, 0.0, 0.0]
+cape = [-40.0, 0.0, 0.0]
+shoulder_r = [6.0, -125.0, 0.0]
+elbow_r = [0.0, -45.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 80.0, 0.0]
+elbow_l = [40.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
 hip_r = [20.0, 0.0, 0.0]
-knee_r = [-45.0, 0.0, 0.0]
+knee_r = [-30.0, 0.0, 0.0]
+ankle_r = [10.0, 0.0, 0.0]
 hip_l = [10.0, 0.0, 0.0]
-knee_l = [-35.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+knee_l = [-20.0, 0.0, 0.0]
+ankle_l = [10.0, 0.0, 0.0]
 
-[[poses]]            # landing
+[[poses]]            # 6: land in a crouch, sword thrust up
+start = 22
+use = "crouch"
+offset = [0.0, 0.0, -0.14]
+hips = [0.0, 0.0, 6.0]
+chest = [-4.0, 0.0, -4.0]
+head = [16.0, 0.0, 4.0]
+cape = [-56.0, 0.0, 0.0]
+shoulder_r = [6.0, -164.0, 0.0]
+elbow_r = [4.0, 0.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [40.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [50.0, 0.0, -14.0]
+knee_r = [-80.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [40.0, 0.0, 18.0]
+knee_l = [-70.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, -10.0]
+
+[[poses]]            # 7: the hero's stance (held)
+start = 28
+use = "ready"
+hips = [0.0, 0.0, 6.0]
+chest = [10.0, 0.0, -4.0]
+head = [14.0, 0.0, 4.0]
+cape = [-34.0, 0.0, 0.0]
+shoulder_r = [6.0, -164.0, 0.0]
+elbow_r = [4.0, 0.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, -14.0]
+knee_r = [-14.0, 0.0, 0.0]
+ankle_r = [4.0, 0.0, 0.0]
+hip_l = [-6.0, 0.0, 18.0]
+knee_l = [-8.0, 0.0, 0.0]
+ankle_l = [10.0, 0.0, -10.0]
+
+[[poses]]            # 8: pump: the sword arm bends, knees give
+start = 72
 use = "ready"
 offset = [0.0, 0.0, -0.06]
-hips = [0.0, 0.0, 0.0]
-chest = [-4.0, 0.0, 0.0]
-head = [4.0, 0.0, 0.0]
-shoulder_r = [125.0, -35.0, 0.0]
-elbow_r = [35.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [125.0, 35.0, 0.0]
-elbow_l = [35.0, 0.0, 0.0]
-hip_r = [15.0, 0.0, 0.0]
-knee_r = [-30.0, 0.0, 0.0]
-hip_l = [15.0, 0.0, 0.0]
-knee_l = [-30.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+hips = [0.0, 0.0, 6.0]
+chest = [2.0, 0.0, -4.0]
+head = [8.0, 0.0, 4.0]
+cape = [-24.0, 0.0, 0.0]
+shoulder_r = [10.0, -100.0, 0.0]
+elbow_r = [0.0, -85.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [24.0, 0.0, -14.0]
+knee_r = [-40.0, 0.0, 0.0]
+ankle_r = [16.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 18.0]
+knee_l = [-34.0, 0.0, 0.0]
+ankle_l = [20.0, 0.0, -10.0]
 
-[[poses]]            # rising again
+[[poses]]            # 9: ...and up: a hop, the sword punched skyward
+start = 77
 use = "ready"
-hips = [0.0, 0.0, 0.0]
-chest = [2.0, 0.0, 0.0]
-head = [6.0, 0.0, 0.0]
-shoulder_r = [140.0, -40.0, 0.0]
-elbow_r = [20.0, 0.0, 0.0]
-hand_r = [-70.0, 0.0, 0.0]
-shoulder_l = [140.0, 40.0, 0.0]
-elbow_l = [20.0, 0.0, 0.0]
-hip_r = [0.0, 0.0, 0.0]
-knee_r = [0.0, 0.0, 0.0]
-hip_l = [0.0, 0.0, 0.0]
-knee_l = [0.0, 0.0, 0.0]
-ankle_r = [0.0, 0.0, 0.0]
-ankle_l = [0.0, 0.0, 0.0]
+offset = [0.0, 0.0, 0.16]
+hips = [0.0, 0.0, 6.0]
+chest = [14.0, 0.0, -4.0]
+head = [20.0, 0.0, 4.0]
+cape = [-14.0, 0.0, 0.0]
+shoulder_r = [4.0, -178.0, 0.0]
+elbow_r = [0.0, 0.0, 0.0]
+hand_r = [-90.0, 0.0, 0.0]
+shoulder_l = [20.0, 128.0, 0.0]
+elbow_l = [16.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [24.0, 0.0, -14.0]
+knee_r = [-44.0, 0.0, 0.0]
+ankle_r = [30.0, 0.0, 0.0]
+hip_l = [10.0, 0.0, 18.0]
+knee_l = [-30.0, 0.0, 0.0]
+ankle_l = [30.0, 0.0, -10.0]
+
+[[poses]]            # 10: land
+start = 84
+use = "ready"
+offset = [0.0, 0.0, -0.04]
+hips = [0.0, 0.0, 6.0]
+chest = [10.0, 0.0, -4.0]
+head = [14.0, 0.0, 4.0]
+cape = [-46.0, 0.0, 0.0]
+shoulder_r = [6.0, -164.0, 0.0]
+elbow_r = [4.0, 0.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [18.0, 0.0, -14.0]
+knee_r = [-28.0, 0.0, 0.0]
+ankle_r = [4.0, 0.0, 0.0]
+hip_l = [6.0, 0.0, 18.0]
+knee_l = [-22.0, 0.0, 0.0]
+ankle_l = [10.0, 0.0, -10.0]
+
+[[poses]]            # 11: the stance again, breathing out
+start = 90
+use = "ready"
+hips = [0.0, 0.0, 6.0]
+chest = [7.0, 0.0, -4.0]
+head = [12.0, 0.0, 6.0]
+cape = [-28.0, 0.0, 0.0]
+shoulder_r = [6.0, -164.0, 0.0]
+elbow_r = [4.0, 0.0, 0.0]
+hand_r = [-88.0, 0.0, 0.0]
+shoulder_l = [20.0, 118.0, 0.0]
+elbow_l = [24.0, 0.0, 0.0]
+hand_l = [0.0, 0.0, 0.0]
+hip_r = [10.0, 0.0, -14.0]
+knee_r = [-14.0, 0.0, 0.0]
+ankle_r = [4.0, 0.0, 0.0]
+hip_l = [-6.0, 0.0, 18.0]
+knee_l = [-8.0, 0.0, 0.0]
+ankle_l = [10.0, 0.0, -10.0]

@@ -5,7 +5,10 @@ how the poses are timed:
 
 - a **loop** (``loop = true``) plays its poses at ``fps``;
 - anything else is a **timed** animation: every pose has a ``start``, the 1-indexed move (or
-  state) frame it appears on. The first pose starts on frame 1 and starts only increase.
+  state) frame it appears on. The first pose starts on frame 1 and starts only increase. The
+  last pose is held for good, unless the animation sets ``repeat_from`` (a pose number, from 1)
+  and ``length`` (its last frame): after ``length`` it carries on from that pose's start again,
+  so a victory can play its flourish once and then repeat a celebration.
 """
 
 from __future__ import annotations
@@ -20,7 +23,9 @@ from isofightr.art.palettes import ART_SRC
 
 POSE_KEYS: Final[frozenset[str]] = frozenset({"offset", "show", "start", "use"})
 """Keys a pose may hold besides joint rotations."""
-ANIM_KEYS: Final[frozenset[str]] = frozenset({"loop", "fps", "base", "poses", "smears", "parts"})
+ANIM_KEYS: Final[frozenset[str]] = frozenset(
+    {"loop", "fps", "base", "poses", "smears", "parts", "repeat_from", "length"}
+)
 
 
 class AnimError(ValueError):
@@ -38,6 +43,10 @@ class AnimTiming:
     """Poses per second (loops only)."""
     starts: tuple[int, ...] = ()
     """The frame each pose starts on (timed animations only)."""
+    repeat_from: int = 0
+    """The pose (from 1) a timed animation repeats from after ``length``; 0 holds its last."""
+    length: int = 0
+    """The last frame before a repeating animation goes back to ``repeat_from``."""
 
 
 def anims_dir(character_id: str, root: Path = ART_SRC) -> Path:
@@ -76,6 +85,8 @@ def parse_timing(name: str, data: dict[str, Any]) -> AnimTiming:
             raise AnimError(f"{name}: a loop needs a positive integer fps")
         if any("start" in pose for pose in poses):
             raise AnimError(f"{name}: a loop's poses have no start frames")
+        if "repeat_from" in data or "length" in data:
+            raise AnimError(f"{name}: a loop repeats by itself (no repeat_from or length)")
         return AnimTiming(name, len(poses), True, fps=fps)
     if "fps" in data:
         raise AnimError(f"{name}: only loops have an fps")
@@ -87,4 +98,19 @@ def parse_timing(name: str, data: dict[str, Any]) -> AnimTiming:
         starts.append(start)
     if starts[0] != 1 or any(later <= earlier for earlier, later in pairwise(starts)):
         raise AnimError(f"{name}: starts must begin at 1 and increase: {starts}")
-    return AnimTiming(name, len(poses), False, starts=tuple(starts))
+    repeat_from, length = _repeat(name, data, starts)
+    return AnimTiming(
+        name, len(poses), False, starts=tuple(starts), repeat_from=repeat_from, length=length
+    )
+
+
+def _repeat(name: str, data: dict[str, Any], starts: list[int]) -> tuple[int, int]:
+    """Return a timed animation's ``(repeat_from, length)``, or ``(0, 0)`` if it holds."""
+    if "repeat_from" not in data and "length" not in data:
+        return 0, 0
+    repeat_from, length = data.get("repeat_from"), data.get("length")
+    if not isinstance(repeat_from, int) or not 1 <= repeat_from <= len(starts):
+        raise AnimError(f"{name}: repeat_from must be a pose number from 1 to {len(starts)}")
+    if not isinstance(length, int) or length < starts[-1]:
+        raise AnimError(f"{name}: length must be a frame at or after the last start")
+    return repeat_from, length

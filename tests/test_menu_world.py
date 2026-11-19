@@ -187,6 +187,21 @@ def test_the_other_moods_stand_on_the_ground() -> None:
 
 
 @pytest.mark.parametrize("character", list_character_ids())
+def test_a_winner_plays_a_flourish_then_never_stops_celebrating(character: str) -> None:
+    sprite_set = load_sprite_set(character)
+    assert sprite_set is not None
+    victory = sprite_set.anims["victory"]
+    assert not victory.loop and victory.repeat_from > 1, "a flourish first, then a repeat"
+    first = victory.starts[victory.repeat_from - 1]
+    shown = [victory.pose_at(ring_pose(Mood.WIN, tick).frame) for tick in range(first - 1, 1200)]
+    assert set(range(victory.repeat_from - 1, victory.poses)) == set(shown), (
+        "the celebration goes on through every pose after the flourish, again and again"
+    )
+    once = [victory.pose_at(frame) for frame in range(1, first)]
+    assert once == sorted(once) and len(set(once)) == victory.repeat_from - 1
+
+
+@pytest.mark.parametrize("character", list_character_ids())
 def test_every_character_has_what_the_ring_shows(character: str) -> None:
     sprite_set = load_sprite_set(character)
     assert sprite_set is not None

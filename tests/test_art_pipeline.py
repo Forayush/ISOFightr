@@ -93,7 +93,17 @@ def test_timing() -> None:
     assert loop.loop and loop.fps == 6 and loop.poses == 2
     timed = parse_timing("jab1", {"poses": [{"start": 1}, {"start": 3}, {"start": 5}]})
     assert not timed.loop and timed.starts == (1, 3, 5)
+    assert (timed.repeat_from, timed.length) == (0, 0)
+    poses = [{"start": 1}, {"start": 3}, {"start": 5}]
+    repeating = parse_timing("victory", {"repeat_from": 2, "length": 9, "poses": poses})
+    assert (repeating.repeat_from, repeating.length) == (2, 9)
     for bad, message in (
+        ({"repeat_from": 2, "poses": poses}, "length"),
+        ({"length": 9, "poses": poses}, "repeat_from"),
+        ({"repeat_from": 0, "length": 9, "poses": poses}, "repeat_from"),
+        ({"repeat_from": 4, "length": 9, "poses": poses}, "repeat_from"),
+        ({"repeat_from": 2, "length": 4, "poses": poses}, "length"),
+        ({"loop": True, "fps": 6, "repeat_from": 1, "length": 9, "poses": [{}]}, "a loop"),
         ({"poses": [{"start": 2}]}, "begin at 1"),
         ({"poses": [{"start": 1}, {"start": 1}]}, "increase"),
         ({"poses": [{"start": 1}, {}]}, "needs a start"),
@@ -200,13 +210,16 @@ def test_written_sheets_round_trip(tmp_path: Path) -> None:
 
     image = Image.new("L", (3, 4), ramp_index(LIT, 1))
     frames = [Frame(f"idle/0/{d}", image, (1, 4)) for d in ("E", "SE")]
-    data = write_sheets(
-        tmp_path / "sprites", "test", frames, [AnimTiming("idle", 1, True, fps=4)], ROOK, "4.5.5"
-    )
+    victory = AnimTiming("victory", 2, False, starts=(1, 5), repeat_from=2, length=9)
+    timings = [AnimTiming("idle", 1, True, fps=4), victory]
+    data = write_sheets(tmp_path / "sprites", "test", frames, timings, ROOK, "4.5.5")
     assert data["blender"] == "4.5.5" and data["sheets"] == ["sheet_0.png"]
     sheet = Image.open(tmp_path / "sprites" / "sheet_0.png")
     assert sheet.mode == "P" and sheet.info.get("transparency") == TRANSPARENT_INDEX
     sprite_set = parse_sprite_set(data, tmp_path / "sprites")
+    assert "repeat_from" not in data["anims"]["idle"]
+    shown = sprite_set.anims["victory"]
+    assert (shown.starts, shown.repeat_from, shown.length) == ((1, 5), 2, 9)
     rect = sprite_set.frame("idle", 0, "SE")
     assert (rect.width, rect.height, rect.pivot_x, rect.pivot_y) == (3, 4, 1, 4)
     cropped = sheet.crop((rect.x, rect.y, rect.x + 3, rect.y + 4))

@@ -156,6 +156,15 @@ def pack(frames: Sequence[Frame], size: int = SHEET_SIZE) -> list[Placement]:
     return [placement for placement in placements if placement is not None]
 
 
+def _timed_entry(timing: AnimTiming) -> dict[str, Any]:
+    """Return how ``sprites.json`` times a timed animation (``repeat_from`` and ``length`` only
+    when it repeats, so animations that hold their last pose are written as they always were)."""
+    entry: dict[str, Any] = {"loop": False, "starts": list(timing.starts), "poses": timing.poses}
+    if timing.repeat_from:
+        entry |= {"repeat_from": timing.repeat_from, "length": timing.length}
+    return entry
+
+
 def palette_bytes(costume: Costume) -> list[int]:
     """Return a costume as a flat 256-entry RGB palette for ``Image.putpalette``."""
     flat = [value for color in costume.colors() for value in color]
@@ -218,7 +227,7 @@ def write_sheets(
             timing.name: (
                 {"loop": True, "fps": timing.fps, "poses": timing.poses}
                 if timing.loop
-                else {"loop": False, "starts": list(timing.starts), "poses": timing.poses}
+                else _timed_entry(timing)
             )
             for timing in sorted(timings, key=lambda timing: timing.name)
         },
