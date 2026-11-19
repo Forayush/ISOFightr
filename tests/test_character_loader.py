@@ -21,6 +21,8 @@ id = "rook"
 display_name = "Rook"
 archetype = "the all-rounder"
 blurb = "A young knight. Solid at everything, with big committed swings."
+description = "A young knight with sword and buckler. Eager and earnest: good at \
+everything, with big committed swings."
 hit_theme = "slash"
 weight = 98
 [movement]

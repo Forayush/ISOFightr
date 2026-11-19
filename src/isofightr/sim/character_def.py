@@ -226,6 +226,9 @@ class CharacterDef:
     """A few words for menus ("the heavyweight"). Text only, like ``display_name``."""
     blurb: str = ""
     """One line about the character for menus. Text only."""
+    description: str = ""
+    """A few sentences about the character for its card on the Fighters screen (decision
+    D-077). Text only."""
     hit_theme: str = ""
     """How its hits look when their effect is ``normal`` (``config.HIT_THEMES``; "" is the
     plain look). Presentation only, like ``archetype`` (decision D-068)."""

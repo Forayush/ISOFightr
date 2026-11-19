@@ -23,6 +23,7 @@ from isofightr.input.devices import DeviceHub
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes.battle import BattleView
 from isofightr.scenes.controls_view import ControlsView
+from isofightr.scenes.fighters_view import FightersView
 from isofightr.scenes.front import BootView, MainMenuView, TitleView
 from isofightr.scenes.loading_view import LoadingView, MatchPlan
 from isofightr.scenes.menu_world import MenuWorld
@@ -168,6 +169,11 @@ class GameFlow:
     def show_main_menu(self) -> None:
         """Go to the main menu."""
         self.window.show_view(MainMenuView(self.pixel_buffer, self))
+
+    def show_fighters(self, focus: int = 0) -> None:
+        """Go to the Fighters screen (decision D-077), the cursor on card ``focus`` (the
+        roster's order): its page is the one shown."""
+        self.window.show_view(FightersView(self.pixel_buffer, self, focus))
 
     def show_rules(self, on_back: Callable[[], None] | None = None, cursor: str = "") -> None:
         """Go to the versus rules. ``on_back`` says where BACK leads (the options if not

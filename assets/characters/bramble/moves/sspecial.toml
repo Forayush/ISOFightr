@@ -1,6 +1,7 @@
 # Bramble: Shoulder Charge, an armored rush along the stick that catches ledges at the end
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "sspecial"
+name = "Shoulder Charge"
 kind = "special"
 total = 46
 faf = 47

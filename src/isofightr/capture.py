@@ -51,6 +51,7 @@ SCREENS: tuple[str, ...] = (
     "boot",
     "title",
     "main",
+    "fighters",
     "options",
     "rules",
     "pool",
@@ -256,6 +257,8 @@ def open_screen(
         flow.show_title()
     elif screen == "main":
         flow.show_main_menu()
+    elif screen == "fighters":
+        flow.show_fighters()
     elif screen == "options":
         flow.show_options()
     elif screen == "rules":

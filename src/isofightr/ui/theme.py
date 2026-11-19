@@ -56,11 +56,19 @@ BRICK: Final[Rgb] = rgb("9e4539")
 LEAF: Final[Rgb] = rgb("91db69")
 FOREST: Final[Rgb] = rgb("239063")
 PINE: Final[Rgb] = rgb("165a4c")
+TAN: Final[Rgb] = rgb("e6904e")
+CLAY: Final[Rgb] = rgb("cd683d")
+ROSE: Final[Rgb] = rgb("ed8099")
+MAGENTA: Final[Rgb] = rgb("f04f78")
+RASPBERRY: Final[Rgb] = rgb("c32454")
+WINE: Final[Rgb] = rgb("831c5d")
+LILAC: Final[Rgb] = rgb("a884f3")
+AUBERGINE: Final[Rgb] = rgb("45293f")
 
 PALETTE: Final[tuple[Rgb, ...]] = (
     INK, SLATE, NIGHT, NAVY, STEEL, SKY, ICE, DEEP_TEAL, TEAL, AQUA, MINT, GOLD, PALE_GOLD,
     AMBER, WHITE, FOG, MIST, DUST, RED, CRIMSON, MAROON, GREEN, PLUM, VIOLET, ASH, SALMON,
-    BRICK, LEAF, FOREST, PINE,
+    BRICK, LEAF, FOREST, PINE, TAN, CLAY, ROSE, MAGENTA, RASPBERRY, WINE, LILAC, AUBERGINE,
 )  # fmt: skip
 """Every colour above, for the palette test."""
 
@@ -131,6 +139,33 @@ OPEN_SPOT_RAMP: Final[Ramp] = (WHITE, MIST, DUST, FOG)
 def player_ramp(index: int) -> Ramp:
     """Return a player's colour ramp (indices wrap)."""
     return PLAYER_RAMPS[index % len(PLAYER_RAMPS)]
+
+
+@dataclass(frozen=True, slots=True)
+class ArchetypeColours:
+    """The colours of a kind of fighter on the Fighters screen (decision D-077)."""
+
+    label: str
+    """The archetype as a card's band names it ("All-rounder")."""
+    ramp: Ramp
+    """Light, base, dark, deep. The base is the archetype's colour: the ring marker and the
+    card's lit edge."""
+    band: Rgb
+    """The card's band: the base, or the shade of the ramp its text reads on (4.5:1)."""
+    band_text: Rgb
+
+
+ARCHETYPE_COLOURS: Final[dict[str, ArchetypeColours]] = {
+    "all-rounder": ArchetypeColours("All-rounder", (MINT, AQUA, TEAL, DEEP_TEAL), AQUA, INK),
+    "heavyweight": ArchetypeColours("Heavyweight", (TAN, CLAY, BRICK, MAROON), BRICK, WHITE),
+    "rushdown": ArchetypeColours("Rushdown", (ROSE, MAGENTA, RASPBERRY, WINE), RASPBERRY, WHITE),
+    "zoner": ArchetypeColours("Zoner", (LILAC, VIOLET, PLUM, AUBERGINE), VIOLET, WHITE),
+}
+"""Each archetype's colours, by the archetype's name without "the" (teal, clay, magenta and
+violet: none is a player's colour or the gold of focus). Clay and magenta are too mid-toned
+for ink or white text, so their bands are their dark shade."""
+UNKNOWN_ARCHETYPE: Final[ArchetypeColours] = ArchetypeColours("Fighter", EMPTY_RAMP, ASH, WHITE)
+"""The colours of an archetype the table does not know: greys."""
 
 
 # --- surfaces (decision D-072) ---------------------------------------------------------------

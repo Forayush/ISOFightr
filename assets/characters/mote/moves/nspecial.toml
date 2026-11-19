@@ -1,6 +1,7 @@
 # Mote: Ember Orb, a chargeable orb; shield while charging keeps the charge
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "nspecial"
+name = "Ember Orb"
 kind = "special"
 total = 46
 faf = 47

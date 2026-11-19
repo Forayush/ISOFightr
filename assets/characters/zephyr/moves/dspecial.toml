@@ -1,6 +1,7 @@
 # Zephyr: Whirl, a spinning reflector that slows the fall
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "dspecial"
+name = "Whirl"
 kind = "special"
 total = 40
 faf = 41

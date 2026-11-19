@@ -1,6 +1,7 @@
 # Mote: Orbit Lamp, a lamp that curves out and comes back (one at a time)
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "sspecial"
+name = "Orbit Lamp"
 kind = "special"
 total = 40
 faf = 41

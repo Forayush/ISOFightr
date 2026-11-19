@@ -115,6 +115,9 @@ STATIONS: Final[dict[str, Station]] = {
         Station("ring", ISLE_CENTRE, 2, (320, 106), strollers=False),
         # The ring framed higher: the results' plates go under the fighters.
         Station("podium", ISLE_CENTRE, 2, (320, 150), strollers=False),
+        # The ring framed higher still: the Fighters screen's cards go under the fighters
+        # (decision D-077).
+        Station("gallery", ISLE_CENTRE, 2, (320, 218), strollers=False),
         # The back corner, close, on the right: the options are on the left.
         Station("workshop", (*WORKSHOP_SPOT, 0.0), 2, (470, 140)),
     )

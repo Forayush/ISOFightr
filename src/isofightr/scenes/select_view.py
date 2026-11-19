@@ -15,7 +15,6 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 import arcade
-from PIL import Image
 
 from isofightr.config import (
     CPU_DEFAULT_LEVEL,
@@ -1031,15 +1030,7 @@ class CharacterSelectView(MenuView):
     def _swatch_colors(self, tile: str, bank: SpriteBank) -> list[theme.Rgb]:
         """Return a character's swatch colours (worked out once from its hero picture)."""
         if tile not in self._swatches:
-            area: dict[int, int] = {}
-            path = bank.sprite_set.portrait_path("hero")
-            if path is not None:
-                with Image.open(path) as picture:
-                    for count, entry in picture.convert("P").getcolors() or []:
-                        area[int(entry)] = count
-            self._swatches[tile] = roster_model.costume_swatches(
-                bank.sprite_set.costumes, area or None
-            )
+            self._swatches[tile] = roster_model.costume_colors(bank.sprite_set)
         return self._swatches[tile]
 
     def _refresh_cursors(self, editing: dict[int, str]) -> None:

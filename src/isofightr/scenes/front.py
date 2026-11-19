@@ -16,8 +16,10 @@ import arcade
 from isofightr import __version__
 from isofightr.audio.cues import UI_PRESS
 from isofightr.config import NATIVE_H, NATIVE_W
+from isofightr.data.character_loader import list_character_ids, load_character
 from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model, rules_model
+from isofightr.scenes.fighter_cards import archetype_key
 from isofightr.scenes.menus import KEYBOARD_DEVICE, MenuView
 from isofightr.scenes.setup import training_setup
 from isofightr.scenes.ticked_view import TickedView
@@ -51,22 +53,25 @@ BOOT_SKY = theme.SKY
 BUTTON_LEFT = 20
 BUTTON_WIDTH = 196
 BUTTON_HEIGHT = 40
-BUTTON_PITCH = 48
-BUTTONS_TOP = 300
-NOTE = Rect(BUTTON_LEFT, 82, BUTTON_WIDTH + 44, 16)
+BUTTON_PITCH = 44
+BUTTONS_TOP = 304
+NOTE = Rect(BUTTON_LEFT, 62, BUTTON_WIDTH + 44, 16)
 """The sign under the buttons: a line about the entry under the cursor."""
 
 MENU_ENTRIES: tuple[tuple[str, str, str, str], ...] = (
     ("versus", "VERSUS", "2 to 4 players, people or CPUs", "team"),
     ("training", "TRAINING", "Practise against a dummy", "stage"),
+    ("fighters", "FIGHTERS", "Meet the roster", "card"),
     ("options", "OPTIONS", "Rules, controls, display, sound", "gear"),
     ("quit", "QUIT", "Close the game", "cross"),
 )
-"""Key, caption, what it leads to, and icon of each main menu button, top to bottom. Four,
-not six: rules, controls and settings are the tabs of Options (decision D-072)."""
+"""Key, caption, what it leads to, and icon of each main menu button, top to bottom. Rules,
+controls and settings are the tabs of Options (decision D-072); Fighters is the roster's
+cards (decision D-077)."""
 LEANS: dict[str, tuple[int, int]] = {
     "versus": (0, 6),
     "training": (14, -8),
+    "fighters": (-8, 4),
     "options": (-16, 14),
     "quit": (0, 0),
 }
@@ -199,6 +204,7 @@ class MainMenuView(MenuView):
             self.buttons[key] = BigButton(self.ui, rect, caption, text, icon)
         self.focus_map = FocusMap({key: button.rect for key, button in self.buttons.items()})
         self.note = Sign(self.ui, NOTE)
+        self._roster_line: str | None = None
         self.footer("{stick}: move   {attack}: pick   {special}: back   mouse: click")
         self.refresh()
 
@@ -210,10 +216,21 @@ class MainMenuView(MenuView):
             return "   ".join(chip.capitalize() for chip in rules_model.rule_chips(setup))
         if key == "training":
             return "Set its damage, make it a CPU, read the move list."
+        if key == "fighters":
+            if self._roster_line is None:
+                self._roster_line = self.roster_line()
+            return self._roster_line
         if key == "options":
             device = controls_model.tab_device(settings, 0)
             return f"Player 1 plays on {controls_model.DEVICE_NAMES[device]}."
         return "See you on the islands."
+
+    def roster_line(self) -> str:
+        """Return the sign's line for Fighters: how many there are, and how many kinds."""
+        ids = list_character_ids()
+        kinds = {archetype_key(load_character(name).archetype) for name in ids} - {""}
+        kinds_part = f", {len(kinds)} archetypes" if len(kinds) > 1 else ""
+        return f"{len(ids)} fighters{kinds_part}: stats, specials, looks."
 
     @property
     def selected(self) -> str:
@@ -237,6 +254,8 @@ class MainMenuView(MenuView):
             self.flow.show_character_select(self.flow.setup)
         elif key == "training":
             self.flow.show_character_select(training_setup())
+        elif key == "fighters":
+            self.flow.show_fighters()
         elif key == "options":
             self.flow.show_options()
         else:

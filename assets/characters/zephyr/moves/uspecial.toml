@@ -1,6 +1,7 @@
 # Zephyr: Gust Hop, a burst in any 3D direction after a short windup, then helpless
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "uspecial"
+name = "Gust Hop"
 kind = "special"
 total = 44
 faf = 45

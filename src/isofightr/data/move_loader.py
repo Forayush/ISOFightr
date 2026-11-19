@@ -56,6 +56,7 @@ _MOVE_KEYS = (
     "helpless",
     "ledge_grab_from",
     "once_per_airtime",
+    "name",
 )
 _PROJECTILE_KEYS = (
     "frame",
@@ -205,6 +206,7 @@ def parse_move(
         helpless=root.boolean("helpless", default=False),
         ledge_grab_from=_ledge_grab_from(root, total),
         once_per_airtime=root.boolean("once_per_airtime", default=False),
+        name=root.optional_string("name") or "",
     )
 
 

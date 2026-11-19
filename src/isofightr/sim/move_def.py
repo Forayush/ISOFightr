@@ -233,6 +233,9 @@ class MoveDef:
     """First frame on which the move can catch a ledge (0 = never)."""
     once_per_airtime: bool = False
     """Whether the move can be used only once in the air until landing or a ledge."""
+    name: str = ""
+    """What menus call the move ("Crescent Wave"); every special has one (decision D-077).
+    Text only: the sim never reads it."""
     """Aerials only: frames on which landing uses the normal landing lag instead."""
 
     def active_hitboxes(self, frame: int) -> tuple[HitboxDef, ...]:

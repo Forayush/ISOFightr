@@ -1,6 +1,7 @@
 # Bramble: Boulder Toss, an arcing rock that bursts into a shockwave where it lands
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "nspecial"
+name = "Boulder Toss"
 kind = "special"
 total = 52
 faf = 53

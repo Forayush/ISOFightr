@@ -1,6 +1,7 @@
 # Mote: Snare Glyph, a rune left on the ground that launches the first foe to step on it
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "dspecial"
+name = "Snare Glyph"
 kind = "special"
 total = 40
 faf = 41

@@ -263,6 +263,11 @@ def build_platform_shadow() -> Image.Image:
     return image
 
 
+NO_PLAYER: Final[int] = -1
+"""The colour index of something that stands for no player (the Fighters screen's
+stand-ins, decision D-077): its shadow has no coloured ring."""
+
+
 def player_color(player_index: int) -> Rgba:
     """Return a player's color; indices beyond four wrap around."""
     return PLAYER_COLORS[player_index % len(PLAYER_COLORS)]
@@ -577,7 +582,8 @@ def shadow_variant_index(height_above_surface: float) -> int:
 
 
 def build_shadow(player_index: int, variant_index: int) -> Image.Image:
-    """Return the blob shadow with the player-colored ring around it (20x10)."""
+    """Return the blob shadow with the player-colored ring around it (20x10); without the
+    ring for :data:`NO_PLAYER`."""
     variant = SHADOW_VARIANTS[variant_index]
     image = Image.new("RGBA", (SHADOW_WIDTH, SHADOW_HEIGHT), TRANSPARENT)
     draw = ImageDraw.Draw(image)
@@ -587,7 +593,10 @@ def build_shadow(player_index: int, variant_index: int) -> Image.Image:
         (left, top, left + variant.blob_width - 1, top + variant.blob_height - 1),
         fill=(0, 0, 0, variant.blob_alpha),
     )
-    draw.ellipse((0, 0, SHADOW_WIDTH - 1, SHADOW_HEIGHT - 1), outline=player_color(player_index))
+    if player_index != NO_PLAYER:
+        draw.ellipse(
+            (0, 0, SHADOW_WIDTH - 1, SHADOW_HEIGHT - 1), outline=player_color(player_index)
+        )
     return image
 
 

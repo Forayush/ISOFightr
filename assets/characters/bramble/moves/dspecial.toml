@@ -1,6 +1,7 @@
 # Bramble: Quake Slam, a plummeting meteor (in the air) that lands as quake_land
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "dspecial"
+name = "Quake Slam"
 kind = "special"
 total = 70
 faf = 71

@@ -285,6 +285,7 @@ def test_boot_to_results_and_back_without_the_cli(window: Any) -> None:
     assert [item.key for item in window.current_view.menu.items] == [
         "versus",
         "training",
+        "fighters",
         "options",
         "quit",
     ]

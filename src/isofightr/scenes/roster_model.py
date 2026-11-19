@@ -16,7 +16,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final
 
+from PIL import Image
+
 from isofightr.art.palettes import RAMP_LENGTH
+from isofightr.data.sprite_sheet import SpriteSet
 from isofightr.sim.character_def import CharacterDef
 from isofightr.ui.focus import Rect
 from isofightr.ui.menu import MenuAction
@@ -151,6 +154,19 @@ def costume_swatches(
     best = max(range(materials), key=weight)
     shade = min(1 + best * RAMP_LENGTH + SWATCH_SHADE, entries - 1)
     return [tuple(colors[shade]) for colors in palettes]  # type: ignore[misc]
+
+
+def costume_colors(sprite_set: SpriteSet) -> list[tuple[int, int, int]]:
+    """Return a character's swatch colours (:func:`costume_swatches`), weighted by how much
+    of its hero picture each palette entry covers (character select and the Fighters
+    screen; decision D-077)."""
+    area: dict[int, int] = {}
+    path = sprite_set.portrait_path("hero")
+    if path is not None:
+        with Image.open(path) as picture:
+            for count, entry in picture.convert("P").getcolors() or []:
+                area[int(entry)] = count
+    return costume_swatches(sprite_set.costumes, area or None)
 
 
 # --- stats -----------------------------------------------------------------------------------

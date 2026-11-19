@@ -1,6 +1,7 @@
 # Zephyr: Slipstream, a dash through opponents, intangible mid-way, that hits on the way out
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "sspecial"
+name = "Slipstream"
 kind = "special"
 total = 38
 faf = 39

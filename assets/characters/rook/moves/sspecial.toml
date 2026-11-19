@@ -1,6 +1,7 @@
 # Rook: Lunge (side special), a dash-stab aimed with the stick in any of eight directions
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "sspecial"
+name = "Lunge"
 kind = "special"
 total = 44
 faf = 45

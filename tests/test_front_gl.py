@@ -224,7 +224,7 @@ def test_the_title_prompt_names_the_control_and_any_confirm_starts(window: Any) 
 # --- main menu -----------------------------------------------------------------------------
 
 
-def test_the_main_menu_is_four_blocks_beside_the_isle(window: Any) -> None:
+def test_the_main_menu_is_five_blocks_beside_the_isle(window: Any) -> None:
     from isofightr.scenes import front
     from isofightr.scenes.menu_world_model import STATIONS
     from isofightr.ui import theme
@@ -234,7 +234,7 @@ def test_the_main_menu_is_four_blocks_beside_the_isle(window: Any) -> None:
     step(window, 2)
     view = window.current_view
     entries = [key for key, _, _, _ in front.MENU_ENTRIES]
-    assert entries == ["versus", "training", "options", "quit"], "four, not six (D-072)"
+    assert entries == ["versus", "training", "fighters", "options", "quit"], "D-072, D-077"
     assert [item.key for item in view.menu.items] == entries == list(view.buttons)
     assert view.title == "MAIN MENU" and view.world.station is STATIONS["plaza"]
     rects = [button.rect for button in view.buttons.values()]
@@ -263,6 +263,7 @@ def test_the_main_menu_goes_where_its_buttons_say(window: Any) -> None:
     where = {
         "versus": "CharacterSelectView",
         "training": "CharacterSelectView",
+        "fighters": "FightersView",
         "options": "RulesView",
     }
     for key, scene in where.items():

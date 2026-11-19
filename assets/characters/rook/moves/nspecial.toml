@@ -1,6 +1,7 @@
 # Rook: Crescent Wave (neutral special), a sword wave that flies along the facing
 # Frames are 1-indexed and ranges are inclusive. Units: world units, frames, percent.
 id = "nspecial"
+name = "Crescent Wave"
 kind = "special"
 total = 44
 faf = 45

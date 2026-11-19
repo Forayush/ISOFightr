@@ -117,9 +117,10 @@ def test_a_station_rests_on_whole_pixels_and_shows_its_point_at_its_anchor(name:
 
 
 def test_only_the_ring_sends_the_strollers_away() -> None:
-    """The ring, and the podium (the ring framed higher for the results, D-072)."""
+    """The ring, the podium (the ring framed higher for the results, D-072) and the
+    gallery (higher still, for the Fighters screen's cards, D-077)."""
     away = [name for name, station in STATIONS.items() if not station.strollers]
-    assert away == ["ring", "podium"]
+    assert away == ["ring", "podium", "gallery"]
     assert STATIONS["podium"].look_at == STATIONS["ring"].look_at
     assert STATIONS["podium"].zoom == STATIONS["ring"].zoom == 2
 
