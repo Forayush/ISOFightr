@@ -58,6 +58,9 @@ class PadState:
     dpad_right: bool = False
     start: bool = False
     """The pause button. It is never bound to an action."""
+    select: bool = False
+    """The button left of the middle (Back, View, Select, Share): the next tab in the
+    menus. Like Start it is never bound to an action (decision D-078)."""
 
 
 CONTROL_FIELDS: Final[dict[str, str]] = {

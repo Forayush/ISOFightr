@@ -165,6 +165,7 @@ class PadReader:
             dpad_left=self._dpad[0] < 0 or "dpleft" in self._tapped,
             dpad_right=self._dpad[0] > 0 or "dpright" in self._tapped,
             start=self._button("start"),
+            select=self._button("back"),
         )
 
     def start_tapped(self) -> bool:

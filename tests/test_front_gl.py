@@ -312,7 +312,7 @@ def test_the_isle_sounds_a_press_a_glide_and_the_cloud(window: Any) -> None:
     assert UI_WIPE in names and UI_GLIDE not in names, names
 
 
-def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) -> None:
+def test_options_are_tabs_reached_by_the_tab_key_and_a_click(window: Any) -> None:
     from isofightr.scenes import options_view
     from isofightr.scenes.menu_world_model import STATIONS
 
@@ -328,11 +328,11 @@ def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) 
     for _ in range(len(options_view.OPTION_TABS) - 1):
         if name(window) == "ControlsView":
             break
-        press(window, keys().U)
+        press(window, keys().TAB)
         seen.append((name(window), window.current_view.option_tab))
     assert seen == [("ControlsView", "controls")]
-    # On Controls the strong button is a key to test: up from the player tabs reaches the
-    # options' tabs, and right opens the next one.
+    # Strong is a key to test on Controls, and no longer changes tab anywhere (D-078); up
+    # from the player tabs still reaches the options' tabs, and right opens the next one.
     controls = window.current_view
     press(window, keys().U)
     assert name(window) == "ControlsView", "strong does not leave Controls"
@@ -344,7 +344,7 @@ def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) 
     for _ in range(3):
         view = window.current_view
         pages.append((name(window), view.option_tab))
-        press(window, keys().U)
+        press(window, keys().TAB)
     assert pages == [
         ("SettingsView", "display"),
         ("SettingsView", "sound"),
@@ -352,7 +352,9 @@ def test_options_are_tabs_reached_by_the_strong_button_and_a_click(window: Any) 
     ]
     assert name(window) == "RulesView", "and round to the first"
     press(window, keys().COMMA)
-    assert window.current_view.option_tab == "feel", "the down modifier goes back a tab"
+    assert window.current_view.option_tab == "rules", "the down modifier no longer changes tab"
+    press(window, keys().U)
+    assert window.current_view.option_tab == "rules", "nor does strong"
     rect = options_view.tab_rect(window.current_view, "sound")
     click(window, rect.left + 5, rect.bottom + 5)
     assert window.current_view.option_tab == "sound", "a click opens a tab"

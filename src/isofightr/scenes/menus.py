@@ -62,6 +62,7 @@ if TYPE_CHECKING:
 
 KEY_CONFIRM = arcade.key.ENTER
 KEY_BACK = arcade.key.ESCAPE
+KEY_NEXT_TAB = arcade.key.TAB
 KEYBOARD_DEVICE = KEYBOARD_PREFIX + KEYBOARD_SOLO
 """The device Enter and Escape act as."""
 MOUSE_LEFT = arcade.MOUSE_BUTTON_LEFT
@@ -240,6 +241,8 @@ class MenuView(TickedView):
             self._key_actions.append(MenuAction.CONFIRM)
         elif symbol == KEY_BACK:
             self._key_actions.append(MenuAction.BACK)
+        elif symbol == KEY_NEXT_TAB:
+            self._key_actions.append(MenuAction.NEXT_TAB)
 
     # --- mouse (an extra: everything also works without it) --------------------------------
 
@@ -309,7 +312,8 @@ class MenuView(TickedView):
             self._notice_ticks -= 1
         for action in self._key_actions:
             if self.window.current_view is self:
-                self.audio.play(MENU_SOUNDS[action])
+                if MENU_SOUNDS[action]:
+                    self.audio.play(MENU_SOUNDS[action])
                 device = self.pointer_device()
                 self.active_device = device
                 self.act(device, action)
@@ -731,8 +735,8 @@ class SettingsView(MenuListView):
         )
         super().__init__(pixel_buffer, flow, "SETTINGS", menu, "gear")
         self.footer(
-            "{stick}: row and value   {attack}: pick   {strong}: next tab   {special}: back",
-            drop=("strong",),
+            "{stick}: row and value   {attack}: pick   {tabs}: next tab   {special}: back",
+            drop=("tabs",),
         )
 
     def make_header(self, title: str, icon: str | None) -> None:

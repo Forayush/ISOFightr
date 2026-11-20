@@ -166,9 +166,9 @@ class RulesView(MenuView):
         strip = Rect(PANEL.left, HELP_BOTTOM, PANEL.width, HELP_HEIGHT)
         self.help_sign = Sign(self.ui, strip)
         self.help = self.help_sign.label
-        tabs = "   {strong}: next tab" if self.in_options else ""
+        tabs = "   {tabs}: next tab" if self.in_options else ""
         template = "{stick}: row and value   {attack}: on / off" + tabs
-        self.footer(template + "   {special}: back   mouse: click", drop=("mouse", "strong"))
+        self.footer(template + "   {special}: back   mouse: click", drop=("mouse", "tabs"))
         self.refresh()
 
     # --- input -----------------------------------------------------------------------------

@@ -21,6 +21,10 @@ KEYBOARD_STICK: Final[str] = "arrows"
 """What the move keys are called when they are the arrow keys."""
 
 
+TAB_LABELS: Final[dict[str, str]] = {"keyboard": "TAB", "pad": "SELECT"}
+"""What the fixed next-tab button is called in a hint (``{tabs}``), by kind of device."""
+
+
 def device_labels(settings: Settings, device: str) -> dict[str, str]:
     """Return what a device calls each action: its key names, or its gamepad buttons.
 
@@ -29,9 +33,10 @@ def device_labels(settings: Settings, device: str) -> dict[str, str]:
     if device.startswith(KEYBOARD_PREFIX):
         keys = settings.keys.get(device[len(KEYBOARD_PREFIX) :])
         if keys is not None:
-            return keyboard_labels(keys)
+            return {**keyboard_labels(keys), "tabs": TAB_LABELS["keyboard"]}
     elif device.startswith(PAD_PREFIX) and device[len(PAD_PREFIX) :].isdigit():
-        return gamepad_labels(settings.pad(int(device[len(PAD_PREFIX) :])))
+        labels = gamepad_labels(settings.pad(int(device[len(PAD_PREFIX) :])))
+        return {**labels, "tabs": TAB_LABELS["pad"]}
     return {action: action for action in ACTIONS}
 
 

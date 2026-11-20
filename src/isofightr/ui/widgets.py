@@ -175,15 +175,21 @@ class UiLayer:
         shadow: bool | None = None,
         pad: int = theme.PAD,
     ) -> "TextLabel":
-        """Add a line of text inside a rectangle, its capitals centred vertically."""
+        """Add a line of text inside a rectangle, its capitals centred vertically. The text
+        never runs out of the rectangle: one that is too wide is shortened with ".."
+        (``pad`` kept clear on both sides when centred, on its own side otherwise)."""
         x = {
             "left": rect.left + pad,
             "centre": rect.left + rect.width // 2,
             "right": rect.right - pad,
         }[align]
-        return TextLabel(
-            self, x, text_bottom(rect, size), text, size, *self._ink(color, shadow, align)
+        room = rect.width - (2 * pad if align == "centre" else pad + min(pad, theme.PAD))
+        label = TextLabel(
+            self, x, text_bottom(rect, size), "", size, *self._ink(color, shadow, align)
         )
+        label.max_width = max(room, 0)
+        label.text = text
+        return label
 
     def icon(
         self, name: str, left: int, bottom: int, color: theme.Rgb | None = None
@@ -297,12 +303,33 @@ class TextLabel:
         self._alpha = 255
         self._ink: list[arcade.Sprite] = []
         self._under: list[arcade.Sprite] = []
+        self._max_width: int | None = None
         self.text = text
 
     @property
+    def max_width(self) -> int | None:
+        """The widest the label may be drawn (``None``: any width). Text wider than this is
+        shown shortened with ".." (:attr:`shown`); :attr:`text` keeps what was set."""
+        return self._max_width
+
+    @max_width.setter
+    def max_width(self, value: int | None) -> None:
+        if value != self._max_width:
+            self._max_width = value
+            self._layout()
+
+    @property
+    def shown(self) -> str:
+        """The text as drawn: :attr:`text`, shortened if it is wider than
+        :attr:`max_width`."""
+        if self._max_width is None:
+            return self._text
+        return font.fit(self._text, self._max_width, self.size)
+
+    @property
     def width(self) -> int:
-        """The width of the current text in pixels."""
-        return font.text_width(self._text, self.size)
+        """The width of the text as drawn, in pixels."""
+        return font.text_width(self.shown, self.size)
 
     @property
     def left(self) -> int:
@@ -386,7 +413,7 @@ class TextLabel:
         height = font.line_height(self.size)
         x = self.left
         used = 0
-        for character in self._text:
+        for character in self.shown:
             advance = font.text_width(character, self.size)
             texture = glyph_texture(character, self.size) if self._visible else None
             if texture is not None:
@@ -776,6 +803,8 @@ class Stepper:
             ),
         ]
         self.label = layer.write_in(rect, text, TextSize.BODY, shadow=False, pad=0)
+        # The value stays between the arrows at the ends.
+        self.label.max_width = max(rect.width - 2 * (theme.ICON_SIZE + 2), 0)
         self._focused: bool | None = None
         self.set(text, False)
 

@@ -50,7 +50,9 @@ D-061 a layout only fills a pad's binding table; ``[gamepad] preset`` in an old 
 file is still read, to fill the tables the file does not have."""
 QUIT_KEY: Final[str] = "BACKSPACE"
 """Held with attack and special, quits a match whose rules have pausing off."""
-RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "ESCAPE", QUIT_KEY})
+TAB_KEY: Final[str] = "TAB"
+"""The key that goes to the next tab of a screen with tabs (decision D-078)."""
+RESERVED_KEYS: Final[frozenset[str]] = frozenset({"ENTER", "ESCAPE", QUIT_KEY, TAB_KEY})
 """Keys that run the menus or quit a match, and so can never be bound to an action
 (canonical names: check :func:`canonical_key` of a name against this)."""
 KEY_ALIASES: Final[Mapping[str, str]] = {

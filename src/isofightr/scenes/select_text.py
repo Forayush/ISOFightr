@@ -42,6 +42,10 @@ TEAM_OPTIONS_LINE: Final[str] = "{strong}: {team}  {grab}: CPU"
 OPTIONS_SIZE: Final[font.TextSize] = font.TextSize.SMALL
 """The font those two hints are written in: two of them do not fit a panel in the body font."""
 CPU_EDIT_LINE: Final[str] = "{attack}: done  {special}: remove"
+CPU_IDLE_LINE: Final[str] = "{grab}: change it"
+"""What a CPU's plate says while nobody is setting it up, in the keys of the player who
+added it: grab steps onto it (CPUs first), and from there its fighter and level change
+(decision D-078; before, the plate only said "CPU" and nothing said how to get back to it)."""
 """What attack and special do while a player sets up a CPU (on the CPU's panel)."""
 CPU_TEAM_LINE: Final[str] = "{strong}: {team}"
 """A CPU's team while it is set up in a team match, with the button that changes it."""
@@ -63,6 +67,7 @@ NO_SLOT: Final[str] = "NO SLOT FOR A CPU"
 
 FOOTERS: Final[dict[str, tuple[str, tuple[str, ...]]]] = {
     "unjoined": ("{attack}: join   {special}: back", ()),
+    "outside": ("{attack}: join", ()),
     # Ready and costume are on the player's own panel, in that player's keys: the footer
     # does not say them again (decision D-070).
     "roster": (
@@ -164,6 +169,17 @@ def start_problem(reason: str, settings: Settings, device: str) -> str:
     if not reason:
         return ""
     return font.fit(hint_text(reason, device_labels(settings, device)), FOOTER_WIDTH)
+
+
+def outside_back(settings: Settings, people: Sequence[tuple[int, str]]) -> str:
+    """Return what a device that has not joined is told when it presses back while others
+    are in: only a player who is in goes back (with their own back button; pressed again
+    on an empty panel it leaves the screen), so name who and with what (decision D-078)."""
+    who = "  ".join(
+        hint_text(f"P{index + 1}: {{special}}", device_labels(settings, device))
+        for index, device in people
+    )
+    return font.fit(f"ONLY PLAYERS WHO ARE IN GO BACK  {who}".upper(), FOOTER_WIDTH)
 
 
 def join_first(settings: Settings, device: str) -> str:

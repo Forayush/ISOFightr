@@ -26,8 +26,13 @@ from isofightr.render.pixel_buffer import PixelBuffer
 from isofightr.scenes import controls_model as model
 from isofightr.scenes.diorama import PAD_GRID, PAD_SPOTS, Diorama
 from isofightr.scenes.menus import MenuView
-from isofightr.scenes.options_view import OPTION_TABS, add_option_tabs, option_tab_click
-from isofightr.settings import Settings
+from isofightr.scenes.options_view import (
+    OPTION_TABS,
+    add_option_tabs,
+    option_tab_action,
+    option_tab_click,
+)
+from isofightr.settings import Settings, shared_keys
 from isofightr.sim.input_frame import NEUTRAL_INPUT, Dir8
 from isofightr.sim.math3d import ZERO3, Vec3
 from isofightr.ui import pad_art, theme
@@ -60,8 +65,9 @@ MAIN_HEIGHT = 24
 ALT_HEIGHT = 14
 TAB_WIDTH = 58
 TAB_LEFT = 384
-OPTION_LEFT = 96
-OPTION_WIDTH = 168
+OPTION_LEFT = 84
+OPTION_WIDTH = 180
+"""Wide enough that the longest value ("Right-stick modifiers") fits between the arrows."""
 OPTION_HEIGHT = 18
 OPTION_PITCH = 22
 TILES_PANEL = Rect(12, 140, 616, 188)
@@ -261,8 +267,11 @@ class ControlsView(MenuView):
         self.tab_frame = FocusFrame(ui)
         first = next(key for key in self.rects if ":" in key and not key.startswith("tab"))
         self.cursor = cursor if cursor in self.rects else first
+        tabs = "   {tabs}: next tab" if self.in_options else ""
         self.footer(
-            "{stick}: move   {attack}: rebind   {grab}: clear   {special}: back   mouse: click"
+            "{stick}: move   {attack}: rebind   {grab}: clear" + tabs + "   {special}: back"
+            "   mouse: click",
+            drop=("mouse", "tabs"),
         )
         self.refresh()
 
@@ -341,7 +350,7 @@ class ControlsView(MenuView):
             if model.can_bind(self.device, name):
                 self.stop_listening(name)
             else:
-                self.message = "Enter, Escape and Backspace are fixed: they cannot be bound"
+                self.message = "Enter, Escape, Tab and Backspace cannot be bound"
                 self.audio.play("ui_back")
 
     def tick(self) -> None:
@@ -363,7 +372,7 @@ class ControlsView(MenuView):
         if self.live_fighter is not None:
             frame = NEUTRAL_INPUT
             if self.listening is None:
-                frame = self.hub.frame(self.device, keys)
+                frame = self.hub.frame(self.device, self.live_keys(keys))
             self.live_fighter.match.tick([frame])
             fighter = self.live_fighter.match.fighters[0]
             if fighter.pos.z < LIVE_FLOOR:
@@ -372,6 +381,16 @@ class ControlsView(MenuView):
                 x, y = PAD_SPOTS[0]
                 fighter.pos, fighter.vel, fighter.kb_vel = Vec3(x, y, LIVE_DROP), ZERO3, ZERO3
         super().tick()
+
+    def live_keys(self, keys: frozenset[int] | set[int]) -> set[int]:
+        """Return the held keys the live test's fighter acts on: all of them but those the
+        other keyboard layout binds too (decision D-078). Such a key also moves this screen's
+        cursor (S is down on WASD and strong on the user's arrows), so it would swing at every
+        step. Its cap still lights, and the info panel names it as shared."""
+        layout = self.device.removeprefix(model.KEYBOARD_PREFIX)
+        other = model.OTHER_KEYBOARD.get(self.device, "").removeprefix(model.KEYBOARD_PREFIX)
+        shared = set(shared_keys(self.settings, layout, other)) if other else set()
+        return {code for code in keys if key_name(code) not in shared}
 
     def draw_over(self) -> None:
         """The live test's fighter, over its box."""
@@ -383,6 +402,8 @@ class ControlsView(MenuView):
     def act(self, device: str, action: MenuAction) -> None:
         """Move the cursor, start rebinding, clear a cap, change an option, or leave."""
         if self.listening is not None:
+            return
+        if self.in_options and option_tab_action(self, action):
             return
         if self.in_options and self._on_option_tabs(action):
             return

@@ -41,7 +41,7 @@ from isofightr.scenes.menu_world_model import (
 )
 from isofightr.scenes.menus import MenuView
 from isofightr.scenes.roster_model import RANDOM, RANDOM_ENTRY, STAT_LABELS, STAT_NAMES
-from isofightr.scenes.rules_model import rule_chips, with_saved
+from isofightr.scenes.rules_model import chip_line, with_saved
 from isofightr.scenes.setup import TEAM_NAMES, MatchSetup, can_start
 from isofightr.sim.input_frame import InputFrame
 from isofightr.ui import anim, font, kit_art, select_art, theme
@@ -101,7 +101,9 @@ UNKNOWN_UP = 34
 SASH_TICKS = 12
 SASH_SLIDE = 36
 JOIN_BLINK = 40
-CHIP = Rect(420, NATIVE_H - 25, 212, 20)
+CHIP = Rect(276, NATIVE_H - 25, 356, 20)
+"""The rules chip: from just past the title to the right margin (decision D-078; it was
+212 wide and the rules ran out of it once a time limit was on)."""
 CHIP_ROW = -1
 """A player's cursor row when it is on the rules chip, above the roster."""
 ROSTER_ROW = 0
@@ -272,7 +274,7 @@ class CharacterSelectView(MenuView):
         ui = self.ui
         self.chip: Button | None = None
         if not setup.training:
-            self.chip = Button(ui, CHIP, "", "gear")
+            self.chip = Button(ui, CHIP, "", "gear", size=TextSize.TEXT)
         rows = -(-len(self.tiles) // roster_model.TILES_PER_ROW)
         needed = rows * TILE[1] + (rows - 1) * TILE_GAP
         top = ROSTER_TOP
@@ -471,6 +473,10 @@ class CharacterSelectView(MenuView):
                     self._announce(self._shared_warning(device), text.joined(index, device))
             elif action is MenuAction.BACK and not self.people:
                 self.flow.show_main_menu()
+            elif action is MenuAction.BACK:
+                # Never silence: say who can go back, and with which button.
+                people = [(self.slots.index(slot), slot.device) for slot in self.people]
+                self.message = text.outside_back(self.flow.settings, people)
             elif action in (MenuAction.EXTRA, MenuAction.ALT, MenuAction.ALT_BACK):
                 # Never silence: a device that is not in is told how to get in.
                 self.message = text.join_first(self.flow.settings, device)
@@ -679,6 +685,10 @@ class CharacterSelectView(MenuView):
                     return ("swatch", costume)
             if panel.banner_rect.contains(x, y):
                 return ("ready", 0)
+            if not slot.ready and not self.setup.training:
+                for index, (each, plate) in enumerate(zip(self.slots, self.panels, strict=True)):
+                    if each.cpu and plate.rect.contains(x, y):
+                        return ("cpu", index)
         return None
 
     def click(self, x: int, y: int) -> None:
@@ -701,6 +711,12 @@ class CharacterSelectView(MenuView):
             if slot is None:
                 return
         index = next(place for place, each in enumerate(self.slots) if each is slot)
+        if kind == "cpu":
+            # A click on a CPU's plate steps onto it, as grab does.
+            self.focus[device] = value
+            self.detail_slot = value
+            self.slots[value].owner = device
+            return
         self.focus.pop(device, None)
         if kind == "ready":
             self.act(device, MenuAction.CONFIRM)
@@ -788,7 +804,7 @@ class CharacterSelectView(MenuView):
         self._refresh_visits()
         self._refresh_detail()
         if self.chip is not None:
-            self.chip.label.text = "  ".join(rule_chips(self.setup, hazards=False))
+            self.chip.label.text = chip_line(self.setup)
             on_chip = any(
                 slot.device and slot.row == CHIP_ROW and not slot.ready for slot in self.slots
             )
@@ -801,13 +817,18 @@ class CharacterSelectView(MenuView):
             self.footer(template, drop)
         self._sync_footer()
 
+    def _first_person(self) -> str:
+        """Return the device of the first person who has joined ("" if nobody has)."""
+        return next((slot.device for slot in self.people), "")
+
     def _footer_state(self) -> str:
         """Return what the player on the active device is doing (a key of
         ``select_text.FOOTERS``), which decides what the footer explains."""
         device = self.active_device
         slot = self._slot_of(device)
         if slot is None:
-            return "unjoined"
+            # Back does nothing for a device that is not in while others are.
+            return "outside" if self.people else "unjoined"
         if device in self.focus:
             return "cpu" if self.slots[self.focus[device]].cpu else "empty"
         if slot.ready:
@@ -954,9 +975,13 @@ class CharacterSelectView(MenuView):
             panel.line1.text = f"{ARROW_UP}{ARROW_DOWN} {level}" if editing else level
             panel.line1.color = theme.CRIMSON if editing else theme.INK
             panel.line2.color = theme.ASH
-            if not editing:
-                panel.line2.text = team_text if teams else "CPU"
-                panel.line2.color = team_colour if teams else theme.ASH
+            if not editing and teams:
+                panel.line2.text = team_text
+                panel.line2.color = team_colour
+            elif not editing:
+                # How to get back to it, in the keys of whoever set it up last.
+                owner = slot.owner if self._slot_of(slot.owner) else self._first_person()
+                panel.line2.text = text.panel_line(text.CPU_IDLE_LINE, settings, owner)
             elif teams:
                 # A CPU's hints are in the keys of the player setting it up.
                 line = text.CPU_TEAM_LINE.replace("{team}", team_text)

@@ -49,6 +49,10 @@ class MenuAction(Enum):
     select changes costume with it)."""
     ALT_BACK = "alt_back"
     """The down modifier: the same, the other way."""
+    NEXT_TAB = "next_tab"
+    """Keyboard Tab or a gamepad's Select (View, Back, Share): the next tab of a screen that
+    has tabs (Options). Fixed buttons, never bound to an action, so it works the same on
+    every page and every device (decision D-078)."""
 
 
 MENU_SOUNDS: Final[dict[MenuAction, str]] = {
@@ -61,6 +65,7 @@ MENU_SOUNDS: Final[dict[MenuAction, str]] = {
     MenuAction.EXTRA: "ui_pick",
     MenuAction.ALT: "",
     MenuAction.ALT_BACK: "",
+    MenuAction.NEXT_TAB: "",
 }
 """The sound each menu action makes (plan note 14, "UI"); "" for the actions only some
 scenes use, which make their own sound when they do something."""
@@ -102,7 +107,8 @@ def pad_actions(state: PadState, start_confirms: bool = True) -> frozenset[MenuA
     """Return the menu actions a gamepad's own buttons hold, whatever is bound to them
     (decision D-061): A confirms and B goes back, as Enter and Escape do on a keyboard, and
     the d-pad moves. A player who unbinds attack can still use the menus. Start confirms
-    too, except where the caller gives it another job (pausing a match)."""
+    too, except where the caller gives it another job (pausing a match). Select goes to the
+    next tab (:attr:`MenuAction.NEXT_TAB`)."""
     actions = set()
     if state.a or (start_confirms and state.start):
         actions.add(MenuAction.CONFIRM)
@@ -116,6 +122,8 @@ def pad_actions(state: PadState, start_confirms: bool = True) -> frozenset[MenuA
         actions.add(MenuAction.LEFT)
     elif state.dpad_right:
         actions.add(MenuAction.RIGHT)
+    if state.select:
+        actions.add(MenuAction.NEXT_TAB)
     return frozenset(actions)
 
 

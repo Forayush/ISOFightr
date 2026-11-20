@@ -5,8 +5,9 @@ four entries; what used to be three more of them is here: Rules, Controls, and t
 split into Display, Sound and Feel. Each tab is its own screen (the rules screen, the
 controls screen, :class:`~isofightr.scenes.menus.SettingsView` with one of three pages), all
 at the Isle's workshop, all with the same strip of tabs in the title band instead of a
-title. The strong button (or the up and down modifiers) steps to the next or the previous
-tab, and a click on a tab opens it; back leaves the options for the main menu.
+title. Keyboard Tab and a gamepad's Select step to the next tab (fixed buttons, the same on
+every page and every device: decision D-078), and a click on a tab opens it; back leaves the
+options for the main menu.
 """
 
 from __future__ import annotations
@@ -38,7 +39,9 @@ TAB_HEIGHT: Final[int] = 20
 TABS_BOTTOM: Final[int] = NATIVE_H - theme.HEADER_HEIGHT + (theme.HEADER_HEIGHT - TAB_HEIGHT) // 2
 TABS_RIGHT_LIMIT: Final[int] = 378
 """The strip ends before here: the controls screen's player tabs start at 384."""
-TAB_STEPS: Final[dict[MenuAction, int]] = {MenuAction.ALT: 1, MenuAction.ALT_BACK: -1}
+TAB_STEPS: Final[dict[MenuAction, int]] = {MenuAction.NEXT_TAB: 1}
+"""The actions that change tab. Only fixed buttons: until D-078 the strong button and the
+modifiers did it, but they are keys a player binds (and tests on the Controls page)."""
 OPTIONS_TITLE: Final[str] = "OPTIONS"
 
 
@@ -83,7 +86,7 @@ def tabs_width(left: int) -> int:
 
 
 def option_tab_action(view: MenuView, action: MenuAction) -> bool:
-    """Handle the tab buttons on an options screen: step to the next or the previous tab.
+    """Handle the tab button on an options screen: step to the next tab, wrapping round.
     Returns whether the action was one."""
     step = TAB_STEPS.get(action)
     if step is None:

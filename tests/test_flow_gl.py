@@ -747,10 +747,10 @@ def test_settings_apply_and_save(window: Any, tmp_path: Path) -> None:
     assert window.get_size() == (640 * 3, 360 * 3)
     press(window, keys().A)
     assert window.get_size() == (640 * 2, 360 * 2)
-    # Screen shake is on the Feel tab (D-072): the strong button steps to the next tab.
+    # Screen shake is on the Feel tab (D-072): Tab steps to the next tab (D-078).
     assert "screen_shake" not in [item.key for item in view.menu.items]
-    press(window, keys().U)
-    press(window, keys().U)
+    press(window, keys().TAB)
+    press(window, keys().TAB)
     view = window.current_view
     assert name(window) == "SettingsView" and view.tab == "feel"
     assert view.menu.selected.key == "screen_shake"
@@ -1718,7 +1718,7 @@ def test_the_rules_chip_opens_the_rules_and_everyone_is_still_there_after(window
     press(window, keys().NUM_4)
     press(window, keys().D)
     character = css.slots[0].character
-    assert css.chip.label.text == "STOCK 3  1.0x  TEAMS OFF"
+    assert css.chip.label.text == "Stock 3  1.0x  Teams off"
     press(window, keys().W)
     assert css.slots[0].row == -1 and css.chip.look.value == "focus"
     press(window, keys().K)
@@ -1736,7 +1736,7 @@ def test_the_rules_chip_opens_the_rules_and_everyone_is_still_there_after(window
     assert css.slots[0].character == character and css.slots[0].row == 0
     step(window, 2)
     assert css.setup.stocks == 4 and css.setup.team_play
-    assert css.chip.label.text == "STOCK 4  1.0x  TEAMS ON"
+    assert css.chip.label.text == "Stock 4  1.0x  Teams on"
     assert css.panels[1].options.text == "NUM_7: BLUE TEAM  NUM_6: CPU", "the team button"
     assert not any(swatch.sprite.visible for swatch in css.panels[0].swatches), (
         "team colours, not costumes, in a team match"
@@ -2457,7 +2457,7 @@ def test_setting_up_a_cpu_says_what_attack_does(window: Any) -> None:
     assert "X: done" in css._footer.text and "C: remove" in css._footer.text
     press(window, keys().X)
     assert not css.focus and css.panels[0].line2.text == "X: ready"
-    assert css.panels[1].line2.text == "CPU"
+    assert css.panels[1].line2.text == "V: change it", "how to get back to it (D-078)"
 
 
 def test_a_finished_cpu_can_be_set_up_again_and_removed(window: Any) -> None:

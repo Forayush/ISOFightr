@@ -228,6 +228,13 @@ def toggle_pool(setup: MatchSetup, stage: str, stages: Sequence[str]) -> MatchSe
     return replace(setup, random_pool=() if len(kept) == len(stages) else kept)
 
 
+def chip_line(setup: MatchSetup) -> str:
+    """Return character select's one rules chip: the rules without the stage hazards, in
+    mixed case for the text font (decision D-078; in capitals in the body font it ran out of
+    its block once a time limit was on)."""
+    return "  ".join(chip.capitalize() for chip in rule_chips(setup, hazards=False))
+
+
 def rule_chips(setup: MatchSetup, hazards: bool = True) -> list[str]:
     """Return the rules in a few words, for the chips on character and stage select. The
     stage hazards rule is left out with ``hazards=False`` (character select's one chip has
